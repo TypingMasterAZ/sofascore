@@ -57,23 +57,24 @@ app.get("/live-scores", async (req, res) => {
                 leagueId: event.tournament?.uniqueTournament?.id || event.tournament?.id || 0,
                 home: event.homeTeam.name,
                 away: event.awayTeam.name,
-                homeId: event.homeTeam.id,
-                awayId: event.awayTeam.id,
-                score: { home: event.homeScore?.current ?? 0, away: event.awayScore?.current ?? 0 },
+                homeScore: event.homeScore?.current ?? 0,
+                awayScore: event.awayScore?.current ?? 0,
                 minute,
                 homeGoals,
                 awayGoals
             };
         }));
 
-        res.json(matches); // Burada artıq test oyunları yoxdur, real oyunlar gedir
+        res.json(matches);
 
     } catch (err) { 
-        console.error("Xəta baş verdi:", err);
+        console.error("Xəta:", err.message);
         res.json([]); 
     }
 });
 
-// Port hissəsini Render üçün uyğunlaşdırdım
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server ${PORT} portunda aktivdir!`));
+// Render üçün kritik olan port və host tənzimləməsi
+const PORT = process.env.PORT || 3000; 
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 Server ${PORT} portunda aktivdir!`);
+});
