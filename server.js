@@ -56,9 +56,13 @@ app.get("/live-scores", async (req, res) => {
                 displayLeague: `${event.tournament?.category?.name || "Other"}: ${event.tournament?.name}`,
                 leagueId: event.tournament?.uniqueTournament?.id || event.tournament?.id || 0,
                 home: event.homeTeam.name,
+                homeId: event.homeTeam.id,
                 away: event.awayTeam.name,
-                homeScore: event.homeScore?.current ?? 0,
-                awayScore: event.awayScore?.current ?? 0,
+                awayId: event.awayTeam.id,
+                score: {
+                    home: event.homeScore?.current ?? 0,
+                    away: event.awayScore?.current ?? 0
+                },
                 minute,
                 homeGoals,
                 awayGoals
@@ -73,7 +77,6 @@ app.get("/live-scores", async (req, res) => {
     }
 });
 
-// Render üçün kritik olan port və host tənzimləməsi
 const PORT = process.env.PORT || 3000; 
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Server ${PORT} portunda aktivdir!`);
