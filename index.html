@@ -3,82 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ProScore Elite</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;800&display=swap" rel="stylesheet">
+    <title>ProScore Elite | Live</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #020617; --card: #0f172a; --accent: #38bdf8; --red: #f43f5e; }
-        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: #fff; }
-        header { padding: 15px; background: rgba(15,23,42,0.9); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
-        .container { padding: 15px; max-width: 500px; margin: 0 auto; }
-        .match-card { background: var(--card); border-radius: 16px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
-        .match-body { display: flex; align-items: center; justify-content: space-between; }
-        .team { flex: 1; text-align: center; }
-        .logo-wrap { width: 50px; height: 50px; margin: 0 auto 8px; position: relative; }
+        :root {
+            --bg: #020617; --card: #0f172a; --accent: #38bdf8; --red: #f43f5e; --text: #f8fafc;
+        }
+        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); }
+        header { padding: 15px 20px; background: rgba(15, 23, 42, 0.9); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px); }
+        .container { padding: 15px; max-width: 550px; margin: 0 auto; }
+        .match-card { background: var(--card); border-radius: 20px; padding: 20px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .match-body { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .team { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; }
+        
+        /* LOQO DİZAYNI */
+        .logo-box { 
+            width: 55px; height: 55px; background: #fff; border-radius: 12px; 
+            padding: 5px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
         .team-logo { width: 100%; height: 100%; object-fit: contain; }
-        .score { font-size: 28px; font-weight: 800; }
-        .minute { font-size: 11px; color: var(--red); font-weight: 800; border: 1px solid var(--red); padding: 2px 8px; border-radius: 10px; }
-        .team-name { font-size: 12px; font-weight: 600; opacity: 0.9; }
-        .goal-info { font-size: 10px; color: #94a3b8; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; display: flex; justify-content: space-between; }
+        
+        .score-box { text-align: center; flex: 0 0 100px; }
+        .score { font-size: 30px; font-weight: 800; color: #fff; line-height: 1; margin-bottom: 8px; }
+        .minute { font-size: 10px; background: var(--red); color: #fff; padding: 4px 10px; border-radius: 20px; font-weight: 800; display: inline-block; animation: blink 2s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        
+        .league { font-size: 9px; color: var(--accent); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 1px; font-weight: 800; }
+        .scorers { margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; }
     </style>
 </head>
 <body>
 
 <header>
-    <div style="font-weight: 800; color: var(--accent);">PROSCORE</div>
-    <div id="status" style="font-size: 10px; color: #22c55e;">● CANLI</div>
+    <div style="font-size: 20px; font-weight: 800; letter-spacing: -1px;">PRO<span style="color:var(--accent)">SCORE</span></div>
+    <button onclick="fetchData()" style="background:var(--accent); border:none; color:#000; padding:6px 15px; border-radius:10px; font-weight:800; cursor:pointer; font-size:12px;">YENİLƏ</button>
 </header>
 
-<div class="container" id="matchList"></div>
+<div class="container" id="matchList">
+    <div style="text-align:center; padding:100px; color: #94a3b8;">Canlı oyunlar yüklənir...</div>
+</div>
 
 <script>
     const API_URL = "https://canli-neticeler.onrender.com";
 
     async function fetchData() {
         try {
-            const res = await fetch(`${API_URL}/live-scores`);
-            const matches = await res.json();
-            render(matches);
-        } catch (e) { console.log(e); }
+            const res = await fetch(`${API_URL}/live-scores?t=${Date.now()}`);
+            const data = await res.json();
+            render(data);
+        } catch (e) { console.error(e); }
     }
 
     function render(matches) {
         const list = document.getElementById("matchList");
+        if (!matches || matches.length === 0) {
+            list.innerHTML = "<div style='text-align:center; padding:50px;'>Hazırda canlı oyun yoxdur.</div>";
+            return;
+        }
+
         list.innerHTML = matches.map(m => {
-            // 1. STRATEGİYA: FootyStats bazası (Ən stabil linklər)
-            const clean = (n) => n.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9-]/g, '');
-            
-            // Alternativ loqo bazaları
-            const logo1 = `https://api.sofascore.app/api/v1/team/${m.homeId}/image`;
-            const logo2 = `https://api.sofascore.app/api/v1/team/${m.awayId}/image`;
-            const backup1 = `https://www.thesportsdb.com/images/media/team/badge/small/${encodeURIComponent(m.home)}.png`;
-            const backup2 = `https://www.thesportsdb.com/images/media/team/badge/small/${encodeURIComponent(m.away)}.png`;
-            const letterLogo = (n) => `https://ui-avatars.com/api/?name=${encodeURIComponent(n)}&background=38bdf8&color=fff&bold=true`;
+            // LOQO TAPMA STRATEGİYASI (4-lü yoxlama)
+            // 1. Google Favicon (Ən güclü)
+            const googleLogo = (name) => `https://www.google.com/s2/favicons?domain=${name.split(' ')[0]}.com&sz=128`;
+            // 2. Clearbit (Şirkət/Brend loqoları üçün)
+            const clearbitLogo = (name) => `https://logo.clearbit.com/${name.replace(/\s/g, '')}.com`;
+            // 3. UI Avatars (Son variant)
+            const fallback = (name) => `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=38bdf8&color=fff&bold=true`;
 
             return `
                 <div class="match-card">
-                    <div style="font-size: 9px; color: var(--accent); margin-bottom: 10px; text-align: center;">${m.league}</div>
+                    <div class="league">${m.league}</div>
                     <div class="match-body">
                         <div class="team">
-                            <div class="logo-wrap">
-                                <img src="${logo1}" class="team-logo" onerror="this.onerror=null; this.src='${backup1}'; this.onerror=function(){this.src='${letterLogo(m.home)}'};">
+                            <div class="logo-box">
+                                <img src="${googleLogo(m.home)}" class="team-logo" 
+                                     onerror="this.onerror=null; this.src='${clearbitLogo(m.home)}'; this.onerror=function(){this.src='${fallback(m.home)}'};">
                             </div>
-                            <div class="team-name">${m.home}</div>
+                            <div style="font-size: 13px; font-weight: 700;">${m.home}</div>
                         </div>
-                        <div style="text-align: center;">
+                        
+                        <div class="score-box">
                             <div class="score">${m.score.home} - ${m.score.away}</div>
                             <div class="minute">${m.minute}</div>
                         </div>
+
                         <div class="team">
-                            <div class="logo-wrap">
-                                <img src="${logo2}" class="team-logo" onerror="this.onerror=null; this.src='${backup2}'; this.onerror=function(){this.src='${letterLogo(m.away)}'};">
+                            <div class="logo-box">
+                                <img src="${googleLogo(m.away)}" class="team-logo" 
+                                     onerror="this.onerror=null; this.src='${clearbitLogo(m.away)}'; this.onerror=function(){this.src='${fallback(m.away)}'};">
                             </div>
-                            <div class="team-name">${m.away}</div>
+                            <div style="font-size: 13px; font-weight: 700;">${m.away}</div>
                         </div>
                     </div>
-                    ${m.scorers.length > 0 ? `
-                        <div class="goal-info">
-                            <div>${m.scorers.filter(s => s.side === 1).map(s => `⚽ ${s.name} ${s.time}'`).join("<br>")}</div>
-                            <div style="text-align:right">${m.scorers.filter(s => s.side === 2).map(s => `${s.name} ${s.time}' ⚽`).join("<br>")}</div>
+
+                    ${m.scorers && m.scorers.length > 0 ? `
+                        <div class="scorers">
+                            <div style="flex:1">${m.scorers.filter(s => s.side === 1).map(s => `⚽ ${s.name} ${s.time}'`).join("<br>")}</div>
+                            <div style="flex:1; text-align:right">${m.scorers.filter(s => s.side === 2).map(s => `${s.name} ${s.time}' ⚽`).join("<br>")}</div>
                         </div>
                     ` : ''}
                 </div>
