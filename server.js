@@ -3,45 +3,41 @@ const cors = require("cors");
 const app = express();
 app.use(cors());
 
-app.get("/", (req, res) => res.send("Server İşləyir!"));
-
-app.get("/live-scores", async (req, res) => {
-    try {
-        // Alternativ açıq API mənbəsi
-        const response = await fetch("https://worldcupjson.net/matches/current");
-        const data = await response.json();
-        
-        if (!data || data.length === 0) {
-            // Əgər oyun yoxdursa, test üçün bura bir "Sınaq Oyunu" əlavə edirik 
-            // Beləcə sistemin işlədiyini görə biləcəksən
-            return res.json([{
-                id: 1,
-                displayLeague: "Sınaq Liqası: Canlı",
-                home: "Komanda A",
-                away: "Komanda B",
-                score: { home: 1, away: 0 },
-                minute: "15'",
-                homeGoals: [],
-                awayGoals: []
-            }]);
-        }
-
-        const matches = data.map(m => ({
-            id: m.id,
-            displayLeague: "Dünya Kuboku / Beynəlxalq",
-            home: m.home_team.name,
-            away: m.away_team.name,
-            score: { home: m.home_team.goals, away: m.away_team.goals },
-            minute: m.time || "Live",
-            homeGoals: [],
-            awayGoals: []
-        }));
-
-        res.json(matches);
-    } catch (err) {
-        res.json([{ id: 0, home: "Xəta", away: "Məlumat alınmadı", score: {home:0, away:0}, minute: "!", displayLeague: "Sistem", homeGoals: [], awayGoals: [] }]);
+// Test məlumatları (Artıq bloklanma ehtimalı 0-dır)
+const MOCK_DATA = [
+    {
+        id: 1,
+        displayLeague: "Premier League",
+        leagueId: 1,
+        home: "Arsenal",
+        homeId: 42,
+        away: "Liverpool",
+        awayId: 44,
+        score: { home: 2, away: 1 },
+        minute: "75'",
+        homeGoals: [{name: "Saka", time: 12}, {name: "Havertz", time: 60}],
+        awayGoals: [{name: "Salah", time: 45}]
+    },
+    {
+        id: 2,
+        displayLeague: "La Liga",
+        leagueId: 8,
+        home: "Real Madrid",
+        homeId: 2829,
+        away: "Barcelona",
+        awayId: 2817,
+        score: { home: 0, away: 0 },
+        minute: "12'",
+        homeGoals: [],
+        awayGoals: []
     }
+];
+
+app.get("/", (req, res) => res.send("Server Hazırdır!"));
+
+app.get("/live-scores", (req, res) => {
+    res.json(MOCK_DATA);
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, "0.0.0.0");
+app.listen(PORT, "0.0.0.0", () => console.log("🚀 Server aktivdir!"));
