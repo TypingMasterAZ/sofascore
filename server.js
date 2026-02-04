@@ -4,53 +4,39 @@ const axios = require("axios");
 const app = express();
 app.use(cors());
 
-// LOQO PROXY: Livescore-un rəsmi loqolarını sənin serverin üzərindən çəkir
-app.get("/logo", async (req, res) => {
-    const { id } = req.query;
-    if (!id) return res.status(400).send("No ID");
-    
+app.get("/live-scores", async (req, res) => {
     try {
-        // Livescore-un real şəkil serveri
-        const url = `https://static.livescore.com/content/team/v2/img/${id}.png`;
-        const response = await axios.get(url, { responseType: 'arraybuffer' });
-        
-        res.setHeader("Content-Type", "image/png");
-        res.setHeader("Cache-Control", "public, max-age=86400"); // 24 saatlıq keş
-        res.send(response.data);
-    } catch (e) {
-        res.status(404).send("Not found");
+        // Sofascore API-ni real brauzer kimi çağırırıq
+        const response = await axios.get("https://api.sofascore.com/api/v1/sport/football/events/live", {
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+        });
+
+        if (!response.data.events || response.data.events.length === 0) {
+            return res.json([]);
+        }
+
+        const matches = response.data.events.map(event => ({
+            id: event.id,
+            league: event.tournament.name,
+            home: event.homeTeam.name,
+            away: event.awayTeam.name,
+            homeId: event.homeTeam.id,
+            awayId: event.awayTeam.id,
+            score: {
+                home: event.homeScore.current || 0,
+                away: event.awayScore.current || 0
+            },
+            minute: event.status.description === "Live" ? (event.lastPeriod || "Canlı") : event.status.description
+        }));
+
+        res.json(matches);
+    } catch (err) {
+        console.error("Xəta baş verdi:", err.message);
+        res.json([]);
     }
 });
 
-app.get("/live-scores", async (req, res) => {
-    try {
-        const response = await fetch("https://prod-public-api.livescore.com/v1/api/app/live/soccer/0");
-        const data = await response.json();
-        
-        if (!data.Stages) return res.json([]);
-
-        let allMatches = [];
-        data.Stages.forEach(stage => {
-            stage.Events.forEach(event => {
-                allMatches.push({
-                    id: event.Eid,
-                    league: `${stage.Cnm}: ${stage.Snm}`,
-                    home: event.T1[0].Nm,
-                    away: event.T2[0].Nm,
-                    // Livescore-un orijinal loqo ID-lərini götürürük
-                    homeImg: event.T1[0].Img, 
-                    awayImg: event.T2[0].Img,
-                    score: { home: event.Tr1 || 0, away: event.Tr2 || 0 },
-                    minute: event.Eps,
-                    scorers: event.Incs ? event.Incs.filter(i => i.InType === "Goal").map(i => ({
-                        name: i.Pn, time: i.Min, side: i.ScSide
-                    })) : []
-                });
-            });
-        });
-        res.json(allMatches);
-    } catch (err) { res.json([]); }
-});
-
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, "0.0.0.0");
+app.listen(PORT, "0.0.0.0", () => console.log(`Server ${PORT} portunda aktivdir`));
