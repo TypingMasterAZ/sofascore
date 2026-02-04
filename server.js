@@ -13,13 +13,14 @@ app.get("/live-scores", async (req, res) => {
     try {
         const response = await fetch("https://api.sofascore.com/api/v1/sport/football/events/live", { headers: HEADERS });
         const data = await response.json();
-        if (!data || !data.events) return res.json([]);
+        
+        if (!data || !data.events || data.events.length === 0) {
+            return res.json([]); 
+        }
 
-        // İlk 30-40 oyunu götürürük (Limit qoyuruq ki, server donmasın)
         const matches = await Promise.all(data.events.slice(0, 40).map(async (event) => {
             let homeGoals = [], awayGoals = [];
             
-            // Hər oyun üçün qol vuranları çəkirik
             try {
                 const incRes = await fetch(`https://api.sofascore.com/api/v1/event/${event.id}/incidents`, { headers: HEADERS });
                 const incData = await incRes.json();
@@ -33,7 +34,7 @@ app.get("/live-scores", async (req, res) => {
                         }
                     });
                 }
-            } catch (e) { /* Qol datası gəlməyəndə boş keç */ }
+            } catch (e) { }
 
             let minute = "";
             const status = event.status.type;
@@ -64,27 +65,15 @@ app.get("/live-scores", async (req, res) => {
                 awayGoals
             };
         }));
-       // Mövcud matches-in altına bunu əlavə et:
-const testOyunlar = [
-    {
-        league: "Test Liqası",
-        homeTeam: "Mənim Komandam",
-        awayTeam: "Rəqib Komanda",
-        score: "2 - 1",
-        status: "Canlı"
-    },
-    {
-        league: "Azərbaycan Premyer Liqası",
-        homeTeam: "Qarabağ",
-        awayTeam: "Neftçi",
-        score: "0 - 0",
-        status: "15'"
-    }
-];
 
-// Əsas matches yerinə testOyunlar göndəririk:
-res.json(testOyunlar);
-    } catch (err) { res.json([]); }
+        res.json(matches); // Burada artıq test oyunları yoxdur, real oyunlar gedir
+
+    } catch (err) { 
+        console.error("Xəta baş verdi:", err);
+        res.json([]); 
+    }
 });
 
-app.listen(3000, () => console.log("🚀 Qol datası ilə Backend aktivdir!"));
+// Port hissəsini Render üçün uyğunlaşdırdım
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Server ${PORT} portunda aktivdir!`));
