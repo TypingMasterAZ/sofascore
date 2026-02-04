@@ -249,7 +249,7 @@
     async function fetchData() {
         try {
             if (matches.length === 0) document.getElementById("matchContainer").innerHTML = showLoader();
-            const res = await fetch("http://localhost:3000/live-scores");
+            const res = await fetch("https://canli-neticeler.onrender.com/live-scores");
             matches = await res.json();
             updateLeagueFilterList();
             render();
