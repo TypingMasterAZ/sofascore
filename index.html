@@ -3,32 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ProScore Elite | Real-Time</title>
+    <title>ProScore Elite | Sofascore API</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #020617; --card: #0f172a; --accent: #38bdf8; --red: #f43f5e; }
         body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: #fff; }
-        header { padding: 15px 20px; background: rgba(15, 23, 42, 0.9); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px); }
+        header { padding: 15px 20px; background: rgba(15, 23, 42, 0.9); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px); }
         .container { padding: 15px; max-width: 500px; margin: 0 auto; }
-        .match-card { background: var(--card); border-radius: 20px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
-        .match-body { display: flex; align-items: center; justify-content: space-between; }
+        .match-card { background: var(--card); border-radius: 20px; padding: 18px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
+        .match-body { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
         .team { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; }
-        .logo-box { width: 48px; height: 48px; background: #fff; border-radius: 12px; padding: 4px; margin-bottom: 8px; }
+        .logo-box { width: 50px; height: 50px; margin-bottom: 10px; }
         .team-logo { width: 100%; height: 100%; object-fit: contain; }
-        .score { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
-        .minute { font-size: 10px; background: var(--red); padding: 2px 10px; border-radius: 20px; font-weight: 800; }
-        .team-name { font-size: 12px; font-weight: 700; opacity: 0.9; }
-        .league { font-size: 9px; color: var(--accent); text-align: center; margin-bottom: 10px; font-weight: 800; opacity: 0.6; }
+        .score { font-size: 32px; font-weight: 800; color: #fff; line-height: 1; }
+        .minute { font-size: 11px; color: var(--red); font-weight: 800; margin-top: 5px; }
+        .team-name { font-size: 13px; font-weight: 700; }
+        .league { font-size: 10px; color: var(--accent); text-align: center; margin-bottom: 12px; font-weight: 800; opacity: 0.8; }
     </style>
 </head>
 <body>
 
 <header>
     <div style="font-size: 18px; font-weight: 800;">PRO<span style="color:var(--accent)">SCORE</span></div>
-    <button onclick="fetchData()" style="background:var(--accent); border:none; padding:6px 15px; border-radius:8px; font-weight:800; cursor:pointer;">YENİLƏ</button>
+    <button onclick="fetchData()" style="background:var(--accent); border:none; padding:8px 16px; border-radius:10px; font-weight:800; cursor:pointer;">YENİLƏ</button>
 </header>
 
-<div class="container" id="matchList"></div>
+<div class="container" id="matchList">
+    <div style="text-align:center; padding:50px;">Yüklənir...</div>
+</div>
 
 <script>
     const API_URL = "https://canli-neticeler.onrender.com";
@@ -43,9 +45,17 @@
 
     function render(matches) {
         const list = document.getElementById("matchList");
+        if (!matches || matches.length === 0) {
+            list.innerHTML = "<div style='text-align:center'>Hazırda canlı oyun yoxdur.</div>";
+            return;
+        }
+
         list.innerHTML = matches.map(m => {
-            // Proxy vasitəsilə orijinal loqoları çəkirik
-            const getLogo = (img) => img ? `${API_URL}/logo?id=${img.replace('.png', '')}` : '';
+            // Sofascore-un rəsmi və bloklanmayan loqo bazası
+            const homeLogo = `https://api.sofascore.app/api/v1/team/${m.homeId}/image`;
+            const awayLogo = `https://api.sofascore.app/api/v1/team/${m.awayId}/image`;
+            
+            // Əgər loqo tapılmasa (çox nadir hal)
             const fallback = (n) => `https://ui-avatars.com/api/?name=${encodeURIComponent(n)}&background=38bdf8&color=fff&bold=true`;
 
             return `
@@ -54,17 +64,17 @@
                     <div class="match-body">
                         <div class="team">
                             <div class="logo-box">
-                                <img src="${getLogo(m.homeImg)}" class="team-logo" onerror="this.src='${fallback(m.home)}';">
+                                <img src="${homeLogo}" class="team-logo" onerror="this.src='${fallback(m.home)}';">
                             </div>
                             <div class="team-name">${m.home}</div>
                         </div>
-                        <div style="text-align:center; flex: 0 0 80px;">
+                        <div style="text-align:center; flex: 0 0 100px;">
                             <div class="score">${m.score.home}:${m.score.away}</div>
-                            <div class="minute">${m.minute}</div>
+                            <div class="minute">${m.minute}'</div>
                         </div>
                         <div class="team">
                             <div class="logo-box">
-                                <img src="${getLogo(m.awayImg)}" class="team-logo" onerror="this.src='${fallback(m.away)}';">
+                                <img src="${awayLogo}" class="team-logo" onerror="this.src='${fallback(m.away)}';">
                             </div>
                             <div class="team-name">${m.away}</div>
                         </div>
@@ -75,7 +85,7 @@
     }
 
     fetchData();
-    setInterval(fetchData, 45000);
+    setInterval(fetchData, 60000);
 </script>
 </body>
 </html>
