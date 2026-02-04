@@ -1,53 +1,46 @@
 const express = require("express");
-const puppeteer = require("puppeteer");
 const cors = require("cors");
 const app = express();
 app.use(cors());
 
+app.get("/", (req, res) => res.send("LiveScore Bağlantısı Aktivdir!"));
+
 app.get("/live-scores", async (req, res) => {
-    let browser;
     try {
-        // Gizli brauzeri başladırıq
-        browser = await puppeteer.launch({
-            args: ["--no-sandbox", "--disable-setuid-sandbox"]
-        });
-        const page = await browser.newPage();
+        // Bu link LiveScore-un rəsmi daxili JSON bazasıdır (API Key istəmir)
+        const response = await fetch("https://prod-public-api.livescore.com/v1/api/app/live/soccer/0");
+        const data = await response.json();
         
-        // Livescore-un canlı oyunlar səhifəsinə gedirik
-        await page.goto("https://www.livescore.com/en/football/live/", {
-            waitUntil: "networkidle2"
-        });
+        if (!data.Stages || data.Stages.length === 0) {
+            return res.json([]);
+        }
 
-        // Saytdakı məlumatları seçib götürürük (Scraping)
-        const matches = await page.evaluate(() => {
-            const results = [];
-            const matchElements = document.querySelectorAll(".MatchRow_matchRowWrapper__2S69Z"); // Bu klasslar tez-tez dəyişir
-            
-            matchElements.forEach(el => {
-                const homeTeam = el.querySelector(".MatchRow_homeName__19Vf5")?.innerText;
-                const awayTeam = el.querySelector(".MatchRow_awayName__3fN4W")?.innerText;
-                const score = el.querySelector(".MatchRow_score__3-4-8")?.innerText;
-                const time = el.querySelector(".MatchRow_status__3-4-8")?.innerText;
+        let matches = [];
 
-                if(homeTeam && awayTeam) {
-                    results.push({
-                        home: homeTeam,
-                        away: awayTeam,
-                        score: score,
-                        minute: time,
-                        displayLeague: "LiveScore Scraping"
-                    });
-                }
+        data.Stages.forEach(stage => {
+            stage.Events.forEach(event => {
+                matches.push({
+                    id: event.Eid,
+                    displayLeague: `${stage.Cnm}: ${stage.Snm}`, // Ölkə və Liqa adı
+                    home: event.T1[0].Nm,
+                    homeLogo: event.T1[0].Img ? `https://static.livescore.com/content/team/v2/img/${event.T1[0].Img}` : "",
+                    away: event.T2[0].Nm,
+                    awayLogo: event.T2[0].Img ? `https://static.livescore.com/content/team/v2/img/${event.T2[0].Img}` : "",
+                    score: {
+                        home: event.Tr1 || 0,
+                        away: event.Tr2 || 0
+                    },
+                    // Oyunun statusu (Dəqiqə, HT, FT)
+                    minute: event.Eps === "HT" ? "HT" : (event.Eps === "FT" ? "FT" : event.Eps),
+                    events: [] // Qollar bu endpoint-də sadə formatda gəlir
+                });
             });
-            return results;
         });
 
-        await browser.close();
         res.json(matches);
-
     } catch (err) {
-        if (browser) await browser.close();
-        res.status(500).json({ error: "Livescore blokladı və ya xəta baş verdi" });
+        console.error("Xəta:", err.message);
+        res.json([]);
     }
 });
 
