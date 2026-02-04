@@ -49,6 +49,7 @@
             background: linear-gradient(to right, #38bdf8, #818cf8);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
         }
 
         .lang-switcher { display: flex; gap: 8px; }
@@ -61,50 +62,58 @@
             font-size: 11px;
             cursor: pointer;
             font-weight: 700;
+            transition: all 0.3s;
         }
-        .lang-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        .lang-btn.active { 
+            background: var(--accent); 
+            color: #000; 
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
 
         .filters { padding: 20px; max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
         .search-box { 
             width: 100%; padding: 14px 18px; border-radius: 14px; 
             background: var(--card); border: 1px solid var(--border); color: #fff; outline: none;
+            transition: border 0.3s;
         }
+        .search-box:focus { border-color: var(--accent); }
 
         .league-select { 
             width: 100%; padding: 12px; border-radius: 12px; 
-            background: var(--card); border: 1px solid var(--border); color: #fff;
+            background: var(--card); border: 1px solid var(--border); color: #fff; font-size: 13px; outline: none;
         }
 
         .container { padding: 0 15px 100px 15px; max-width: 600px; margin: 0 auto; }
 
-        /* Loader */
         .loader-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 100px 20px; }
-        .spinner { font-size: 50px; animation: ballMove 2s ease-in-out infinite; }
+        .spinner { font-size: 50px; animation: ballMove 2s ease-in-out infinite; filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); }
+        
         @keyframes ballMove {
             0%, 100% { transform: translateX(-50px) rotate(0deg); }
             50% { transform: translateX(50px) rotate(360deg); }
         }
 
-        /* Match Card */
         .match-card { 
-            background: var(--card); backdrop-filter: blur(8px);
-            border-radius: 24px; padding: 20px; margin-bottom: 16px; border: 1px solid var(--border);
+            background: var(--card); border-radius: 24px; padding: 20px; margin-bottom: 16px; 
+            border: 1px solid var(--border); transition: transform 0.2s;
         }
         
-        .league-header { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 15px; }
+        .league-header { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 15px; opacity: 0.8; }
         .league-logo { width: 18px; height: 18px; }
-        .league-title { font-size: 11px; font-weight: 700; color: var(--accent); }
+        .league-title { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 0.5px; }
 
         .match-body { display: flex; align-items: center; justify-content: space-between; }
         .team-side { flex: 1; display: flex; flex-direction: column; align-items: center; }
-        .team-logo { width: 54px; height: 54px; margin-bottom: 10px; }
-        .team-name { font-weight: 700; font-size: 13px; text-align: center; color: #fff; }
+        .team-logo { width: 54px; height: 54px; margin-bottom: 10px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); }
+        .team-name { font-weight: 700; font-size: 13px; text-align: center; color: #fff; line-height: 1.2; max-width: 110px; }
         
         .score-box { flex: 0 0 100px; text-align: center; }
-        .score { font-size: 32px; font-weight: 800; color: #fff; display: flex; justify-content: center; gap: 10px; }
+        .score { font-size: 32px; font-weight: 800; color: #fff; display: flex; justify-content: center; gap: 10px; margin-bottom: 5px; }
         
         .minute-badge { font-size: 10px; font-weight: 800; padding: 5px 12px; border-radius: 20px; background: #000; color: #fff; }
-        .live-bg { background: var(--red); animation: neonPulse 1.5s infinite; }
+        .live-bg { background: var(--red); box-shadow: 0 0 15px rgba(244, 63, 94, 0.4); animation: neonPulse 1.5s infinite; }
+        
         @keyframes neonPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
 
         .goals-container {
@@ -159,19 +168,17 @@
     }
 
     function showLoader() {
-        return `<div class="loader-container"><div class="spinner">⚽</div><div style="color:var(--accent); font-size:12px; font-weight:800; margin-top:20px;">${i18n[currentLang].loading}</div></div>`;
+        return `<div class="loader-container"><div class="spinner">⚽</div><div style="color:var(--accent); font-size:12px; font-weight:800; letter-spacing:2px; margin-top:20px;">${i18n[currentLang].loading}</div></div>`;
     }
 
     async function fetchData() {
         try {
             if (matches.length === 0) document.getElementById("matchContainer").innerHTML = showLoader();
             
-            // LOKALDA yoxlamaq üçün:
+            // Render linki (artıq localhost deyil)
             const res = await fetch("https://canli-neticeler.onrender.com/live-scores");
             
-            // RENDER-də yoxlamaq üçün (Yuxarıdakını silib bunu aç):
-            // const res = await fetch("https://canli-neticeler.onrender.com/live-scores");
-            
+            if (!res.ok) throw new Error();
             matches = await res.json();
             updateLeagueFilterList();
             render();
@@ -210,8 +217,7 @@
             let isLive = false;
             if (statusText === "HT") statusText = i18n[currentLang].ht;
             else if (statusText === "FT") statusText = i18n[currentLang].ft;
-            else if (statusText === "Live") { statusText = i18n[currentLang].live; isLive = true; }
-            else if (statusText.includes("'")) isLive = true;
+            else if (statusText === "Live" || statusText.includes("'")) isLive = true;
 
             return `
                 <div class="match-card">

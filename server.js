@@ -3,10 +3,14 @@ const cors = require("cors");
 const app = express();
 app.use(cors());
 
+// Sofascore bloklamasının qarşısını almaq üçün real brauzer başlıqları
 const HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Accept": "*/*",
+    "Accept-Language": "az-AZ,az;q=0.9,en-US;q=0.8,en;q=0.7",
     "Origin": "https://www.sofascore.com",
-    "Referer": "https://www.sofascore.com/"
+    "Referer": "https://www.sofascore.com/",
+    "Cache-Control": "no-cache"
 };
 
 app.get("/live-scores", async (req, res) => {
@@ -18,13 +22,14 @@ app.get("/live-scores", async (req, res) => {
             return res.json([]); 
         }
 
-        const matches = await Promise.all(data.events.slice(0, 40).map(async (event) => {
+        const matches = await Promise.all(data.events.slice(0, 50).map(async (event) => {
             let homeGoals = [], awayGoals = [];
             
+            // Qol atanları çəkmək üçün (istəyə bağlı)
             try {
                 const incRes = await fetch(`https://api.sofascore.com/api/v1/event/${event.id}/incidents`, { headers: HEADERS });
                 const incData = await incRes.json();
-                if (incData && incData.incidents) {
+                if (incData?.incidents) {
                     incData.incidents.forEach(inc => {
                         if (inc.incidentType === "goal") {
                             const playerName = inc.player ? inc.player.name : (inc.playerName || "Goal");
@@ -34,8 +39,9 @@ app.get("/live-scores", async (req, res) => {
                         }
                     });
                 }
-            } catch (e) { }
+            } catch (e) {}
 
+            // Dəqiqə hesablanması
             let minute = "";
             const status = event.status.type;
             const desc = event.status.description;
@@ -45,9 +51,6 @@ app.get("/live-scores", async (req, res) => {
             else if (status === "inprogress") {
                 if (event.status.clock?.current !== undefined) {
                     minute = Math.floor(event.status.clock.current / 60) + "'";
-                } else if (event.time?.current) {
-                    const diff = Math.floor((Math.floor(Date.now() / 1000) - event.time.current) / 60);
-                    minute = (desc === "2nd half" ? diff + 45 : diff) + "'";
                 } else minute = "Live";
             } else minute = desc || "Soon";
 
