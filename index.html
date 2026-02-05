@@ -35,7 +35,6 @@
 </div>
 
 <script>
-    // Bura Google Apps Script-dən aldığın URL-i yapışdır
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwv8OJOgemLoVsSWnmURIFgqtoHZBMJPT3s3b5QkNYSG9C3So3mThJjAjMFfCQa6Qqf/exec"; 
 
     async function fetchData() {
@@ -43,13 +42,16 @@
             const response = await fetch(GOOGLE_SCRIPT_URL);
             const data = await response.json();
             
-            if (data && data.events && data.events.length > 0) {
-                render(data.events);
+            // Bəzi hallarda data birbaşa massiv, bəzi hallarda events obyekti kimi gəlir
+            const events = data.events || data;
+
+            if (Array.isArray(events) && events.length > 0) {
+                render(events);
             } else {
                 document.getElementById("matchList").innerHTML = "<div style='text-align:center; padding:100px; opacity:0.5;'>Hazırda canlı oyun yoxdur.</div>";
             }
         } catch (e) {
-            document.getElementById("matchList").innerHTML = "<div style='text-align:center; padding:50px;'>Google Script xətası! Linki düzgün qoyduğunuzdan əmin olun.</div>";
+            document.getElementById("matchList").innerHTML = "<div style='text-align:center; padding:50px;'>Məlumat alınarkən xəta baş verdi.</div>";
         }
     }
 
@@ -58,9 +60,12 @@
         list.innerHTML = events.map(event => {
             const homeId = event.homeTeam.id;
             const awayId = event.awayTeam.id;
-            // Köhnə sətirləri bunlarla dəyiş:
-const homeLogo = `https://www.sofascore.com/api/v1/team/${homeId}/image`;
-const awayLogo = `https://www.sofascore.com/api/v1/team/${awayId}/image`;
+            
+            // Rəsmi loqo linkləri
+            const homeLogo = `https://www.sofascore.com/api/v1/team/${homeId}/image`;
+            const awayLogo = `https://www.sofascore.com/api/v1/team/${awayId}/image`;
+            
+            // Loqo yüklənməsə alternativ şəkil (Placeholder)
             const fb = (n) => `https://ui-avatars.com/api/?name=${encodeURIComponent(n)}&background=1e293b&color=38bdf8&bold=true`;
 
             return `
@@ -68,7 +73,9 @@ const awayLogo = `https://www.sofascore.com/api/v1/team/${awayId}/image`;
                     <div class="league-name">${event.tournament.name}</div>
                     <div class="match-body">
                         <div class="team">
-                            <div class="logo-box"><img src="${homeLogo}" class="team-logo" onerror="this.src='${fb(event.homeTeam.name)}';"></div>
+                            <div class="logo-box">
+                                <img src="${homeLogo}" class="team-logo" onerror="this.src='${fb(event.homeTeam.name)}';">
+                            </div>
                             <div class="team-name">${event.homeTeam.shortName || event.homeTeam.name}</div>
                         </div>
                         <div class="score-box">
@@ -76,7 +83,9 @@ const awayLogo = `https://www.sofascore.com/api/v1/team/${awayId}/image`;
                             <div class="minute">${event.status.description === 'Live' ? (event.lastPeriod || '') + "'" : event.status.description}</div>
                         </div>
                         <div class="team">
-                            <div class="logo-box"><img src="${awayLogo}" class="team-logo" onerror="this.src='${fb(event.awayTeam.name)}';"></div>
+                            <div class="logo-box">
+                                <img src="${awayLogo}" class="team-logo" onerror="this.src='${fb(event.awayTeam.name)}';">
+                            </div>
                             <div class="team-name">${event.awayTeam.shortName || event.awayTeam.name}</div>
                         </div>
                     </div>
@@ -85,6 +94,7 @@ const awayLogo = `https://www.sofascore.com/api/v1/team/${awayId}/image`;
     }
 
     fetchData();
+    // Hər 60 saniyədən bir yenilə
     setInterval(fetchData, 60000);
 </script>
 </body>
