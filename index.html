@@ -3,70 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ProScore Elite | 100% Canlı</title>
+    <title>ProScore Elite | Canlı Nəticələr</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #020617; --card: #0f172a; --accent: #38bdf8; --red: #f43f5e; }
-        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: #fff; }
-        header { padding: 15px 20px; background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px); }
+        :root { --bg: #020617; --card: #0f172a; --accent: #38bdf8; --red: #f43f5e; --text: #f8fafc; }
+        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+        
+        header { 
+            padding: 15px 20px; background: rgba(15, 23, 42, 0.8); 
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+            display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; z-index: 100; backdrop-filter: blur(12px);
+        }
+
         .container { padding: 15px; max-width: 500px; margin: 0 auto; }
-        .match-card { background: var(--card); border-radius: 20px; padding: 18px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
-        .match-body { display: flex; align-items: center; justify-content: space-between; }
+
+        .match-card { 
+            background: var(--card); border-radius: 24px; padding: 20px; 
+            margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05);
+            transition: transform 0.2s;
+        }
+
+        .league-name { 
+            font-size: 10px; color: var(--accent); text-align: center; 
+            margin-bottom: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        .match-body { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
         .team { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; }
-        .logo-box { width: 52px; height: 52px; background: #fff; border-radius: 14px; padding: 6px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; }
+
+        .logo-box { 
+            width: 55px; height: 55px; background: #fff; border-radius: 16px; 
+            padding: 7px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+
         .team-logo { width: 100%; height: 100%; object-fit: contain; }
-        .score { font-size: 32px; font-weight: 800; color: #fff; line-height: 1; }
-        .minute { font-size: 11px; background: var(--red); color: #fff; padding: 3px 12px; border-radius: 20px; font-weight: 800; margin-top: 8px; }
-        .team-name { font-size: 12px; font-weight: 700; height: 32px; display: flex; align-items: center; }
-        .league { font-size: 9px; color: var(--accent); text-align: center; margin-bottom: 12px; font-weight: 800; text-transform: uppercase; opacity: 0.7; }
-        .btn-refresh { background: var(--accent); border: none; padding: 8px 16px; border-radius: 10px; font-weight: 800; cursor: pointer; color: #000; }
+
+        .score-box { text-align: center; flex: 0 0 100px; }
+        .score { font-size: 34px; font-weight: 800; line-height: 1; margin-bottom: 5px; }
+        .minute { 
+            font-size: 11px; background: var(--red); color: #fff; 
+            padding: 3px 12px; border-radius: 20px; font-weight: 800; display: inline-block;
+        }
+
+        .team-name { font-size: 13px; font-weight: 700; line-height: 1.2; height: 32px; display: flex; align-items: center; }
+
+        .refresh-btn { 
+            background: var(--accent); border: none; padding: 10px 20px; 
+            border-radius: 12px; font-weight: 800; cursor: pointer; color: #020617;
+            font-size: 12px; transition: opacity 0.2s;
+        }
+        .refresh-btn:active { opacity: 0.7; }
     </style>
 </head>
 <body>
 
 <header>
-    <div style="font-size: 20px; font-weight: 800;">PRO<span style="color:var(--accent)">SCORE</span></div>
-    <button class="btn-refresh" onclick="fetchData()">YENİLƏ</button>
+    <div style="font-size: 22px; font-weight: 800; letter-spacing: -1px;">PRO<span style="color:var(--accent)">SCORE</span></div>
+    <button class="refresh-btn" onclick="fetchData()">YENİLƏ</button>
 </header>
 
 <div class="container" id="matchList">
-    <div style="text-align:center; padding:100px; opacity: 0.5;">Oyunlar çəkilir...</div>
+    <div style="text-align:center; padding:100px; opacity:0.5;">Canlı oyunlar yüklənir...</div>
 </div>
 
 <script>
-    // CORS blokunu aşmaq üçün açıq proxy-lər
-    const PROXY = "https://cors-anywhere.herokuapp.com/"; // Əgər bu işləməsə, alternativ: "https://api.allorigins.win/raw?url="
-    const SOFA_API = "https://api.sofascore.com/api/v1/sport/football/events/live";
+    // BURA GOOGLE-DAN ALDIĞIN URL-İ YAPIŞDIR
+    const GOOGLE_SCRIPT_URL = "SƏNİN_KOPYALADIĞIN_LINK_BURA"; 
 
     async function fetchData() {
-        const container = document.getElementById("matchList");
         try {
-            // Məlumatı birbaşa brauzerdən (Proxy vasitəsilə) çəkirik
-            const response = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(SOFA_API));
+            const response = await fetch(GOOGLE_SCRIPT_URL);
             const data = await response.json();
-
-            if (!data.events || data.events.length === 0) {
-                container.innerHTML = "<div style='text-align:center; padding:100px; opacity:0.5;'>Hazırda canlı oyun yoxdur.</div>";
-                return;
+            
+            if (data.events && data.events.length > 0) {
+                render(data.events);
+            } else {
+                document.getElementById("matchList").innerHTML = "<div style='text-align:center; padding:100px; opacity:0.5;'>Hazırda canlı oyun yoxdur.</div>";
             }
-
-            render(data.events);
         } catch (e) {
             console.error(e);
-            container.innerHTML = "<div style='text-align:center; padding:50px;'>Məlumat alınarkən xəta baş verdi. Zəhmət olmasa bir az sonra yenidən yoxlayın.</div>";
+            document.getElementById("matchList").innerHTML = "<div style='text-align:center; padding:50px;'>Məlumat alınarkən xəta baş verdi.</div>";
         }
     }
 
     function render(events) {
         const list = document.getElementById("matchList");
         list.innerHTML = events.map(event => {
-            const homeLogo = `https://api.sofascore.app/api/v1/team/${event.homeTeam.id}/image`;
-            const awayLogo = `https://api.sofascore.app/api/v1/team/${event.awayTeam.id}/image`;
+            const homeId = event.homeTeam.id;
+            const awayId = event.awayTeam.id;
+            
+            // Sofascore rəsmi loqo bazası
+            const homeLogo = `https://api.sofascore.app/api/v1/team/${homeId}/image`;
+            const awayLogo = `https://api.sofascore.app/api/v1/team/${awayId}/image`;
+            
+            // Loqo tapılmasa hərflər
             const fb = (n) => `https://ui-avatars.com/api/?name=${encodeURIComponent(n)}&background=1e293b&color=38bdf8&bold=true`;
 
             return `
                 <div class="match-card">
-                    <div class="league">${event.tournament.name}</div>
+                    <div class="league-name">${event.tournament.name}</div>
                     <div class="match-body">
                         <div class="team">
                             <div class="logo-box">
@@ -74,10 +112,12 @@
                             </div>
                             <div class="team-name">${event.homeTeam.shortName || event.homeTeam.name}</div>
                         </div>
-                        <div style="text-align:center; flex: 0 0 100px;">
+                        
+                        <div class="score-box">
                             <div class="score">${event.homeScore.current || 0}:${event.awayScore.current || 0}</div>
                             <div class="minute">${event.status.description === 'Live' ? (event.lastPeriod || '') + "'" : event.status.description}</div>
                         </div>
+
                         <div class="team">
                             <div class="logo-box">
                                 <img src="${awayLogo}" class="team-logo" onerror="this.src='${fb(event.awayTeam.name)}';">
@@ -91,7 +131,7 @@
     }
 
     fetchData();
-    setInterval(fetchData, 60000); // 1 dəqiqədən bir yenilə
+    setInterval(fetchData, 60000); // Hər dəqiqə yenilə
 </script>
 </body>
 </html>
