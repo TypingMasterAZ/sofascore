@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ProScore Elite | Canlı</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+    <meta name="referrer" content="no-referrer">
     <style>
         :root { --bg: #020617; --card: #0f172a; --accent: #38bdf8; --red: #f43f5e; --text: #f8fafc; }
         body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); }
@@ -62,8 +63,9 @@
             const awayId = event.awayTeam.id;
             
             // Rəsmi loqo linkləri
-            const homeLogo = `https://www.sofascore.com/api/v1/team/${homeId}/image`;
-            const awayLogo = `https://www.sofascore.com/api/v1/team/${awayId}/image`;
+            // Loqo linklərini bu formatda saxla:
+const homeLogo = `https://www.sofascore.com/api/v1/team/${homeId}/image`;
+const awayLogo = `https://www.sofascore.com/api/v1/team/${awayId}/image`;
             
             // Loqo yüklənməsə alternativ şəkil (Placeholder)
             const fb = (n) => `https://ui-avatars.com/api/?name=${encodeURIComponent(n)}&background=1e293b&color=38bdf8&bold=true`;
