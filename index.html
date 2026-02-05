@@ -3,16 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="referrer" content="no-referrer">
-    <title>ProScore Elite | Live</title>
+    <title>ProScore Elite | Canlı</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+    <meta name="referrer" content="no-referrer">
     <style>
         :root { --bg: #020617; --card: #0f172a; --accent: #38bdf8; --red: #f43f5e; --text: #f8fafc; }
-        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); }
         header { padding: 15px 20px; background: rgba(15, 23, 42, 0.9); border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px); }
         .container { padding: 15px; max-width: 500px; margin: 0 auto; }
-        .match-card { background: var(--card); border-radius: 20px; padding: 18px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; position: relative; transition: 0.3s; }
-        .match-card:active { transform: scale(0.98); }
+        .match-card { background: var(--card); border-radius: 20px; padding: 18px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
         .league-name { font-size: 10px; color: var(--accent); text-align: center; margin-bottom: 12px; font-weight: 800; text-transform: uppercase; }
         .match-body { display: flex; align-items: center; justify-content: space-between; }
         .team { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; }
@@ -22,13 +21,6 @@
         .score { font-size: 30px; font-weight: 800; line-height: 1; }
         .minute { font-size: 11px; color: var(--red); font-weight: 800; margin-top: 5px; }
         .team-name { font-size: 12px; font-weight: 700; height: 32px; display: flex; align-items: center; }
-        
-        /* Modal (Detallar) */
-        #matchModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(2,6,23,0.98); z-index:1000; overflow-y:auto; padding:20px; box-sizing:border-box; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .modal-header { text-align:center; margin-bottom:30px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; }
-        .incident-row { display:flex; align-items:center; margin:15px 0; padding:10px; border-radius:12px; background: rgba(255,255,255,0.03); }
-        .goal-icon { margin-right: 10px; }
         .btn-refresh { background: var(--accent); border: none; padding: 8px 16px; border-radius: 10px; font-weight: 800; cursor: pointer; color: #000; }
     </style>
 </head>
@@ -43,44 +35,49 @@
     <div style="text-align:center; padding:100px; opacity:0.5;">Yüklənir...</div>
 </div>
 
-<div id="matchModal">
-    <button onclick="closeModal()" style="background:none; border:none; color:white; font-size:35px; position:absolute; right:20px; top:10px; cursor:pointer;">&times;</button>
-    <div id="modalContent" style="max-width:500px; margin:40px auto;"></div>
-</div>
-
 <script>
-    // Bura YENİ Google Apps Script linkini yapışdır!
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwXonAUuSpLLMyK28IiMvVjeOFzbr6LzuPgExQczrMkpBeUvgkY8FSXhP9zg5j1mjl1/exec"; 
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwv8OJOgemLoVsSWnmURIFgqtoHZBMJPT3s3b5QkNYSG9C3So3mThJjAjMFfCQa6Qqf/exec"; 
 
     async function fetchData() {
         try {
             const response = await fetch(GOOGLE_SCRIPT_URL);
             const data = await response.json();
-            const events = data.events || data;
             
+            // Bəzi hallarda data birbaşa massiv, bəzi hallarda events obyekti kimi gəlir
+            const events = data.events || data;
+
             if (Array.isArray(events) && events.length > 0) {
                 render(events);
             } else {
-                document.getElementById("matchList").innerHTML = "<div style='text-align:center; padding:100px; opacity:0.5;'>Canlı oyun yoxdur.</div>";
+                document.getElementById("matchList").innerHTML = "<div style='text-align:center; padding:100px; opacity:0.5;'>Hazırda canlı oyun yoxdur.</div>";
             }
         } catch (e) {
-            document.getElementById("matchList").innerHTML = "<div style='text-align:center; padding:50px;'>Xəta baş verdi.</div>";
+            document.getElementById("matchList").innerHTML = "<div style='text-align:center; padding:50px;'>Məlumat alınarkən xəta baş verdi.</div>";
         }
     }
 
     function render(events) {
         const list = document.getElementById("matchList");
         list.innerHTML = events.map(event => {
-            const homeLogo = `https://www.sofascore.com/api/v1/team/${event.homeTeam.id}/image`;
-            const awayLogo = `https://www.sofascore.com/api/v1/team/${event.awayTeam.id}/image`;
+            const homeId = event.homeTeam.id;
+            const awayId = event.awayTeam.id;
+            
+            // Rəsmi loqo linkləri
+            // Loqo linklərini bu formatda saxla:
+const homeLogo = `https://www.sofascore.com/api/v1/team/${homeId}/image`;
+const awayLogo = `https://www.sofascore.com/api/v1/team/${awayId}/image`;
+            
+            // Loqo yüklənməsə alternativ şəkil (Placeholder)
             const fb = (n) => `https://ui-avatars.com/api/?name=${encodeURIComponent(n)}&background=1e293b&color=38bdf8&bold=true`;
 
             return `
-                <div class="match-card" onclick="showDetails('${event.id}', '${event.homeTeam.name}', '${event.awayTeam.name}', '${event.homeScore.current || 0}:${event.awayScore.current || 0}', '${event.status.description}')">
+                <div class="match-card">
                     <div class="league-name">${event.tournament.name}</div>
                     <div class="match-body">
                         <div class="team">
-                            <div class="logo-box"><img src="${homeLogo}" class="team-logo" onerror="this.src='${fb(event.homeTeam.name)}';"></div>
+                            <div class="logo-box">
+                                <img src="${homeLogo}" class="team-logo" onerror="this.src='${fb(event.homeTeam.name)}';">
+                            </div>
                             <div class="team-name">${event.homeTeam.shortName || event.homeTeam.name}</div>
                         </div>
                         <div class="score-box">
@@ -88,7 +85,9 @@
                             <div class="minute">${event.status.description === 'Live' ? (event.lastPeriod || '') + "'" : event.status.description}</div>
                         </div>
                         <div class="team">
-                            <div class="logo-box"><img src="${awayLogo}" class="team-logo" onerror="this.src='${fb(event.awayTeam.name)}';"></div>
+                            <div class="logo-box">
+                                <img src="${awayLogo}" class="team-logo" onerror="this.src='${fb(event.awayTeam.name)}';">
+                            </div>
                             <div class="team-name">${event.awayTeam.shortName || event.awayTeam.name}</div>
                         </div>
                     </div>
@@ -96,50 +95,8 @@
         }).join("");
     }
 
-    async function showDetails(id, home, away, score, time) {
-        const modal = document.getElementById("matchModal");
-        const content = document.getElementById("modalContent");
-        modal.style.display = "block";
-        document.body.style.overflow = "hidden"; // Arxa fonu dondur
-        
-        content.innerHTML = `
-            <div class="modal-header">
-                <h2 style="margin:0; font-size:18px; opacity:0.7;">${home} - ${away}</h2>
-                <div style="font-size:50px; font-weight:800; color:var(--accent); margin:15px 0;">${score}</div>
-                <div style="background:var(--red); display:inline-block; padding:4px 12px; border-radius:8px; font-size:12px;">${time}</div>
-            </div>
-            <div id="incidents"><div style="text-align:center; opacity:0.5;">Hadisələr yüklənir...</div></div>
-        `;
-
-        try {
-            const res = await fetch(`${GOOGLE_SCRIPT_URL}?matchId=${id}`);
-            const data = await res.json();
-            const goals = (data.incidents || []).filter(i => i.incidentType === "goal");
-            
-            let html = "<h3 style='font-size:14px; color:var(--accent); text-align:center;'>QOLLAR</h3>";
-            if(goals.length > 0) {
-                goals.reverse().forEach(g => {
-                    html += `
-                        <div class="incident-row" style="justify-content: ${g.isHome ? 'flex-start' : 'flex-end'}">
-                            <span class="goal-icon">⚽</span>
-                            <span><b>${g.player ? g.player.name : 'Qol'}</b> (${g.time}')</span>
-                        </div>`;
-                });
-            } else {
-                html += "<div style='text-align:center; opacity:0.4; margin-top:20px;'>Hələ qol vurulmayıb.</div>";
-            }
-            document.getElementById("incidents").innerHTML = html;
-        } catch (e) {
-            document.getElementById("incidents").innerHTML = "Məlumat alınmadı.";
-        }
-    }
-
-    function closeModal() {
-        document.getElementById("matchModal").style.display = "none";
-        document.body.style.overflow = "auto";
-    }
-
     fetchData();
+    // Hər 60 saniyədən bir yenilə
     setInterval(fetchData, 60000);
 </script>
 </body>
