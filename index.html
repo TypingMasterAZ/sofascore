@@ -2,7 +2,7 @@
 <html lang="az">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="referrer" content="no-referrer">
     <title>ProScore Elite | Premium Live</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -12,95 +12,96 @@
             --accent: #3b82f6; --live: #ef4444; --text: #0f172a; 
             --border: #e2e8f0; --home-color: #3b82f6; --away-color: #f59e0b;
         }
-        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); }
+        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); -webkit-tap-highlight-color: transparent; }
         
-        /* Loading Animation CSS */
+        /* Arxa fonun donması üçün klass */
+        body.modal-open { overflow: hidden; height: 100vh; }
+
+        /* Loader Animation */
         .loader-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 0; }
         .goal-container { width: 100px; height: 60px; border: 4px solid var(--primary); border-bottom: none; position: relative; display: flex; align-items: center; justify-content: center; border-radius: 4px 4px 0 0; }
         .goal-net { position: absolute; width: 100%; height: 100%; background-image: radial-gradient(#ccc 1px, transparent 1px); background-size: 5px 5px; opacity: 0.3; }
         .ball { font-size: 24px; position: absolute; bottom: -10px; animation: scoreGoal 1.5s infinite ease-in-out; }
-        
         @keyframes scoreGoal {
             0% { transform: translate(-80px, 0) rotate(0deg); }
             60% { transform: translate(0, -20px) rotate(360deg); }
             100% { transform: translate(0, 0) rotate(720deg); }
         }
-        .loading-text { margin-top: 15px; font-weight: 700; font-size: 13px; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
 
         /* Header & Search */
-        header { background: var(--primary); color: white; padding: 20px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .header-top { max-width: 600px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .logo { font-size: 22px; font-weight: 800; letter-spacing: -1px; }
+        header { background: var(--primary); color: white; padding: 15px 20px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .logo { font-size: 20px; font-weight: 800; text-align: center; margin-bottom: 15px; }
         .search-box { width: 100%; max-width: 600px; margin: 0 auto; display: block; padding: 12px 15px; border-radius: 12px; border: none; background: rgba(255,255,255,0.1); color: white; outline: none; box-sizing: border-box; }
-        
-        .container { max-width: 600px; margin: 0 auto; padding: 15px; }
-        .league-group { background: var(--card); margin-bottom: 20px; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); overflow: hidden; }
-        .league-header { background: #f1f5f9; padding: 12px 18px; display: flex; align-items: center; border-bottom: 1px solid var(--border); }
-        .league-header img { width: 20px; height: 20px; margin-right: 12px; }
-        .league-title { font-size: 13px; font-weight: 700; color: #475569; }
-        .match-card { display: flex; align-items: center; padding: 18px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: 0.2s; }
-        .match-card:hover { background: #f8fafc; }
-        .time-status { width: 50px; font-size: 12px; font-weight: 800; color: var(--live); }
-        .teams-area { flex: 1; padding: 0 15px; border-left: 1px solid #f1f5f9; }
-        .team-row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; }
-        .team-info { display: flex; align-items: center; gap: 12px; }
-        .team-logo { width: 24px; height: 24px; object-fit: contain; }
-        .team-name { font-size: 14px; font-weight: 600; }
-        .score { font-size: 16px; font-weight: 800; color: var(--primary); }
-        
-        /* Modal & Stats */
+
+        .container { max-width: 600px; margin: 0 auto; padding: 10px; }
+        .league-group { background: var(--card); margin-bottom: 15px; border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
+        .league-header { background: #f1f5f9; padding: 10px 15px; display: flex; align-items: center; }
+        .league-header img { width: 18px; height: 18px; margin-right: 10px; }
+        .league-title { font-size: 12px; font-weight: 700; color: #475569; }
+
+        /* Match Card */
+        .match-card { display: flex; align-items: center; padding: 15px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+        .time-status { width: 45px; font-size: 11px; font-weight: 800; color: var(--live); text-align: center; }
+        .teams-area { flex: 1; padding: 0 10px; border-left: 1px solid #f1f5f9; }
+        .team-row { display: flex; justify-content: space-between; align-items: center; margin: 4px 0; }
+        .team-info { display: flex; align-items: center; gap: 10px; flex: 1; }
+        .team-logo { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
+        .team-name { font-size: 14px; font-weight: 600; line-height: 1.2; }
+        .score { font-size: 15px; font-weight: 800; color: var(--primary); margin-left: 10px; }
+
+        /* Modal & Fixed Header */
         #detailsModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#fff; z-index:2000; overflow-y:auto; }
-        .modal-header { background: var(--primary); color:white; padding: 40px 20px; text-align:center; position: relative; border-bottom-left-radius: 30px; border-bottom-right-radius: 30px; }
-        .close-btn { position: absolute; left: 20px; top: 20px; font-size: 24px; cursor: pointer; color: #fff; }
-        .m-score-row { display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 25px; }
-        .m-team { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-        .m-team img { width: 65px; height: 65px; background: #fff; padding: 10px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-        .m-team span { font-weight: 700; font-size: 15px; }
-        .m-score-big { font-size: 50px; font-weight: 800; color: #fff; }
-        .stats-container { padding: 25px 20px; max-width: 500px; margin: 0 auto; }
-        .stat-box { margin-bottom: 25px; }
-        .stat-labels { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; margin-bottom: 10px; color: #334155; }
-        .stat-name { font-weight: 600; color: #64748b; font-size: 12px; text-transform: uppercase; }
-        .stat-bar-outer { height: 12px; background: #f1f5f9; border-radius: 6px; overflow: hidden; display: flex; position: relative; }
-        .bar-home { background: var(--home-color); height: 100%; transition: width 1s ease-in-out; border-right: 2px solid #fff; }
-        .bar-away { background: var(--away-color); height: 100%; transition: width 1s ease-in-out; }
-        .incidents-container { padding: 20px; border-bottom: 10px solid #f1f5f9; }
-        .inc-item { display: flex; padding: 12px 0; border-bottom: 1px solid #f8fafc; font-size: 14px; }
+        .modal-header { background: var(--primary); color:white; padding: 45px 15px 30px; text-align:center; position: relative; border-bottom-left-radius: 25px; border-bottom-right-radius: 25px; }
+        .close-btn { position: absolute; left: 15px; top: 15px; font-size: 26px; cursor: pointer; z-index: 2001; }
+        
+        /* Score Row - Mobile Fix */
+        .m-score-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-top: 20px; }
+        .m-team { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; }
+        .m-team img { width: 55px; height: 55px; background: #fff; padding: 8px; border-radius: 15px; margin-bottom: 8px; flex-shrink: 0; }
+        .m-team span { font-weight: 700; font-size: 13px; word-wrap: break-word; width: 100%; }
+        .m-score-big { font-size: 38px; font-weight: 800; padding-top: 10px; white-space: nowrap; }
+
+        /* Stats */
+        .stats-container { padding: 20px 15px; max-width: 500px; margin: 0 auto; }
+        .stat-box { margin-bottom: 20px; }
+        .stat-labels { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+        .stat-name { font-weight: 600; color: #64748b; font-size: 11px; text-transform: uppercase; }
+        .stat-bar-outer { height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; display: flex; }
+        .bar-home { background: var(--home-color); height: 100%; border-right: 1px solid #fff; }
+        .bar-away { background: var(--away-color); height: 100%; }
+
+        .incidents-container { padding: 15px; border-bottom: 8px solid #f1f5f9; }
+        .inc-item { display: flex; padding: 10px 0; border-bottom: 1px solid #f8fafc; font-size: 13px; }
         .inc-side { width: 50%; }
-        .inc-home { text-align: right; padding-right: 15px; border-right: 2px solid #f1f5f9; }
-        .inc-away { text-align: left; padding-left: 15px; }
-        .inc-time { font-weight: 800; color: var(--live); }
+        .inc-home { text-align: right; padding-right: 12px; border-right: 2px solid #f1f5f9; }
+        .inc-away { text-align: left; padding-left: 12px; }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="header-top">
-        <div class="logo">PRO<span style="color:var(--accent)">SCORE</span></div>
-        <button onclick="fetchData()" style="background:none; border:none; color:white; font-size:22px; cursor:pointer;">↻</button>
-    </div>
-    <input type="text" id="search" class="search-box" placeholder="Axtarış..." oninput="filterMatches()">
+    <div class="logo">PRO<span style="color:var(--accent)">SCORE</span></div>
+    <input type="text" id="search" class="search-box" placeholder="Komanda və ya liqa..." oninput="filterMatches()">
 </header>
 
 <div class="container" id="matchList">
     <div class="loader-wrapper">
         <div class="goal-container"><div class="goal-net"></div><div class="ball">⚽</div></div>
-        <div class="loading-text">Oyunlar Gətirilir...</div>
+        <div style="margin-top:10px; font-weight:700; font-size:12px;">CANLI OYUNLAR...</div>
     </div>
 </div>
 
 <div id="detailsModal">
     <div class="modal-header">
         <span class="close-btn" onclick="closeModal()">✕</span>
-        <div id="leagueM" style="font-size:12px; opacity:0.8; font-weight:700;"></div>
+        <div id="leagueM" style="font-size:11px; opacity:0.8; font-weight:700; text-transform:uppercase;"></div>
         <div class="m-score-row">
             <div class="m-team"><img id="logoH" src=""><span id="nameH"></span></div>
             <div class="m-score-big" id="scoreM">0-0</div>
             <div class="m-team"><img id="logoA" src=""><span id="nameA"></span></div>
         </div>
-        <div id="timeM" style="margin-top:20px; font-weight:800; font-size:14px; background:rgba(255,255,255,0.2); display:inline-block; padding:5px 15px; border-radius:20px;"></div>
+        <div id="timeM" style="margin-top:15px; font-weight:800; font-size:12px; background:rgba(255,255,255,0.2); display:inline-block; padding:4px 12px; border-radius:15px;"></div>
     </div>
-    
     <div class="incidents-container" id="goalsBox"></div>
     <div class="stats-container" id="statsBox"></div>
 </div>
@@ -108,12 +109,6 @@
 <script>
     const G_URL = "https://script.google.com/macros/s/AKfycbxcyqVA8trNVID5v5z_PHcqkqYn-21AmlQkXyg4prDAATgBwzB2_EGWTCQG-EzN6i-P/exec"; 
     let allEvents = [];
-
-    const loaderHtml = `
-        <div class="loader-wrapper">
-            <div class="goal-container"><div class="goal-net"></div><div class="ball">⚽</div></div>
-            <div class="loading-text">Yüklənir...</div>
-        </div>`;
 
     async function fetchData() {
         try {
@@ -142,8 +137,8 @@
                         <span class="league-title">${league}</span>
                     </div>
                     ${grouped[league].matches.map(m => `
-                        <div class="match-card" onclick="openMatch('${m.id}', '${m.homeTeam.id}', '${m.awayTeam.id}', '${m.homeTeam.name.replace(/'/g, "")}', '${m.awayTeam.name.replace(/'/g, "")}', '${m.homeScore.current}:${m.awayScore.current}', '${m.status.description}', '${league.replace(/'/g, "")}')">
-                            <div class="time-status">${m.status.description.includes("'") ? m.status.description : 'CANLI'}</div>
+                        <div class="match-card" onclick="openMatch('${m.id}', '${m.homeTeam.id}', '${m.awayTeam.id}', '${m.homeTeam.name.replace(/'/g,"")}', '${m.awayTeam.name.replace(/'/g,"")}', '${m.homeScore.current}:${m.awayScore.current}', '${m.status.description}', '${league.replace(/'/g,"")}')">
+                            <div class="time-status">${m.status.description.includes("'") ? m.status.description : 'LIVE'}</div>
                             <div class="teams-area">
                                 <div class="team-row">
                                     <div class="team-info"><img class="team-logo" src="https://www.sofascore.com/api/v1/team/${m.homeTeam.id}/image"> <span class="team-name">${m.homeTeam.name}</span></div>
@@ -157,11 +152,15 @@
                         </div>`).join("")}
                 </div>`;
         }
-        list.innerHTML = html || "<center style='padding:50px;'>Canlı oyun tapılmadı.</center>";
+        list.innerHTML = html || "<center style='padding:50px;'>Oyun yoxdur.</center>";
     }
 
     async function openMatch(id, idH, idA, nameH, nameA, score, time, league) {
-        document.getElementById("detailsModal").style.display = "block";
+        document.body.classList.add('modal-open'); // Arxa fonu dondur
+        const modal = document.getElementById("detailsModal");
+        modal.style.display = "block";
+        modal.scrollTop = 0;
+
         document.getElementById("logoH").src = `https://www.sofascore.com/api/v1/team/${idH}/image`;
         document.getElementById("logoA").src = `https://www.sofascore.com/api/v1/team/${idA}/image`;
         document.getElementById("nameH").innerText = nameH;
@@ -170,23 +169,22 @@
         document.getElementById("timeM").innerText = time;
         document.getElementById("leagueM").innerText = league;
         
-        document.getElementById("goalsBox").innerHTML = loaderHtml;
+        document.getElementById("goalsBox").innerHTML = "<center>Hadisələr yüklənir...</center>";
         document.getElementById("statsBox").innerHTML = "";
 
         try {
             const resI = await fetch(`${G_URL}?type=incidents&matchId=${id}`);
             const dataI = await resI.json();
             const goals = (dataI.incidents || []).filter(i => i.incidentType === "goal");
-            
-            let gHtml = "<h4 style='font-size:12px; color:#64748b;'>⚽ QOLLAR</h4>";
-            if (goals.length > 0) {
+            let gHtml = "<h4 style='font-size:11px; color:#64748b; margin:0 0 10px 0;'>⚽ QOLLAR</h4>";
+            if(goals.length > 0) {
                 goals.forEach(g => {
                     gHtml += `<div class="inc-item">
-                        <div class="inc-side inc-home">${g.isHome ? `<b>${g.player ? g.player.name : 'Qol'}</b> <span class="inc-time">${g.time}'</span> ⚽` : ''}</div>
-                        <div class="inc-side inc-away">${!g.isHome ? `⚽ <span class="inc-time">${g.time}'</span> <b>${g.player ? g.player.name : 'Qol'}</b>` : ''}</div>
+                        <div class="inc-side inc-home">${g.isHome ? `<b>${g.player?g.player.name:'Qol'}</b> ${g.time}' ⚽` : ''}</div>
+                        <div class="inc-side inc-away">${!g.isHome ? `⚽ ${g.time}' <b>${g.player?g.player.name:'Qol'}</b>` : ''}</div>
                     </div>`;
                 });
-            } else { gHtml += "<center style='font-size:12px; opacity:0.5;'>Hələ qol yoxdur</center>"; }
+            } else { gHtml += "<center style='font-size:12px; opacity:0.5;'>Qol yoxdur</center>"; }
             document.getElementById("goalsBox").innerHTML = gHtml;
 
             const resS = await fetch(`${G_URL}?type=statistics&matchId=${id}`);
@@ -194,7 +192,7 @@
             const statsData = dataS.statistics ? (dataS.statistics.find(s => s.period === "ALL") || dataS.statistics[0]) : null;
 
             if (statsData && statsData.groups) {
-                let sHtml = "<h4 style='font-size:12px; color:#64748b;'>📊 MATÇ STATİSTİKASI</h4>";
+                let sHtml = "<h4 style='font-size:11px; color:#64748b; margin:0 0 15px 0;'>📊 STATİSTİKA</h4>";
                 statsData.groups.forEach(group => {
                     group.statisticsItems.forEach(st => {
                         const hV = parseFloat(st.homeValue) || 0;
@@ -203,17 +201,18 @@
                         const hP = total > 0 ? (hV / total) * 100 : 50;
                         sHtml += `<div class="stat-box">
                             <div class="stat-labels"><span>${st.home}</span><span class="stat-name">${st.name}</span><span>${st.away}</span></div>
-                            <div class="stat-bar-outer"><div class="bar-home" style="width:${hP}%"></div><div class="bar-away" style="width:${100 - hP}%"></div></div>
+                            <div class="stat-bar-outer"><div class="bar-home" style="width:${hP}%"></div><div class="bar-away" style="width:${100-hP}%"></div></div>
                         </div>`;
                     });
                 });
                 document.getElementById("statsBox").innerHTML = sHtml;
-            } else {
-                document.getElementById("statsBox").innerHTML = "<center style='padding:20px; color:#999;'>Statistika hələ mövcud deyil.</center>";
-            }
-        } catch (e) {
-            document.getElementById("statsBox").innerHTML = "<center>Xəta baş verdi.</center>";
-        }
+            } else { document.getElementById("statsBox").innerHTML = "<center style='padding:20px; font-size:12px; color:#999;'>Statistika tapılmadı.</center>"; }
+        } catch (e) { document.getElementById("statsBox").innerHTML = "<center>Xəta!</center>"; }
+    }
+
+    function closeModal() {
+        document.body.classList.remove('modal-open'); // Arxa fonu aç
+        document.getElementById("detailsModal").style.display = "none";
     }
 
     function filterMatches() {
@@ -221,7 +220,6 @@
         const f = allEvents.filter(e => e.homeTeam.name.toLowerCase().includes(q) || e.awayTeam.name.toLowerCase().includes(q) || e.tournament.name.toLowerCase().includes(q));
         render(f);
     }
-    function closeModal() { document.getElementById("detailsModal").style.display = "none"; }
     fetchData();
     setInterval(fetchData, 30000);
 </script>
