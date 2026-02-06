@@ -4,141 +4,151 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>ProScore Elite | Sofascore Style</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>ProScore Elite | Live Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #f2f2f7; --card: #ffffff; --primary: #004682; --accent: #007aff; --live: #ee1e2e; --text: #1a1a1a; --border: #e5e5e5; }
+        :root { --bg: #f0f2f5; --card: #ffffff; --primary: #004682; --accent: #007aff; --live: #ee1e2e; --text: #1a1a1a; --border: #e6e8eb; }
         body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
         
-        header { 
-            background: var(--primary); color: white; padding: 12px 20px; 
-            position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .header-top { display: flex; justify-content: space-between; align-items: center; max-width: 600px; margin: 0 auto; }
-        .logo { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
-        .search-container { max-width: 600px; margin: 10px auto 0; }
-        .search-box { 
-            width: 100%; padding: 8px 15px; border-radius: 8px; border: none; 
-            background: rgba(255,255,255,0.15); color: white; outline: none; box-sizing: border-box;
-        }
-        .search-box::placeholder { color: rgba(255,255,255,0.6); }
+        header { background: var(--primary); color: white; padding: 15px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        .header-content { max-width: 600px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        
+        .search-container { max-width: 600px; margin: 10px auto; padding: 0 15px; }
+        .search-box { width: 100%; padding: 10px 15px; border-radius: 10px; border: 1px solid var(--border); box-sizing: border-box; outline: none; }
 
-        .container { max-width: 600px; margin: 0 auto; padding-bottom: 30px; }
+        .container { max-width: 600px; margin: 0 auto; padding-bottom: 50px; }
 
-        /* Liqa Qruplaşması */
-        .league-group { background: var(--card); margin-top: 10px; border-bottom: 1px solid var(--border); }
+        /* Liqa Başlığı */
+        .league-group { background: var(--card); margin-top: 12px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
         .league-header { 
             background: #f8f9fa; padding: 10px 15px; display: flex; align-items: center; 
-            border-bottom: 1px solid var(--border); border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
         }
-        .league-header img { width: 18px; height: 18px; margin-right: 10px; object-fit: contain; }
-        .league-info { font-size: 13px; font-weight: 600; color: #555; }
+        .league-header img { width: 20px; height: 20px; margin-right: 10px; }
+        .league-title { font-size: 13px; font-weight: 700; color: #444; text-transform: uppercase; }
 
         /* Oyun Kartı */
         .match-card { 
-            display: flex; align-items: center; padding: 12px 15px; cursor: pointer;
-            transition: background 0.2s; border-bottom: 1px solid #f0f0f0; position: relative;
+            display: flex; align-items: center; padding: 15px; cursor: pointer;
+            border-bottom: 1px solid #f5f5f5; position: relative; transition: 0.2s;
         }
-        .match-card:hover { background: #f9f9f9; }
-        .match-card:last-child { border-bottom: none; }
+        .match-card:hover { background: #f0f7ff; }
+        .match-card::after { content: '›'; position: absolute; right: 15px; font-size: 24px; color: #ccc; font-weight: 300; }
         
-        .match-time { width: 50px; font-size: 12px; font-weight: 700; color: var(--live); text-align: left; }
-        .match-time.finished { color: #888; }
+        .time-col { width: 50px; font-size: 12px; font-weight: 800; color: var(--live); }
         
-        .teams-container { flex: 1; padding: 0 10px; border-left: 2px solid transparent; }
-        .match-card:hover .teams-container { border-left-color: var(--accent); }
-        
-        .team-row { display: flex; justify-content: space-between; align-items: center; margin: 3px 0; }
+        .teams-col { flex: 1; padding-left: 10px; }
+        .team-line { display: flex; justify-content: space-between; align-items: center; margin: 4px 0; }
         .team-info { display: flex; align-items: center; gap: 10px; }
-        .team-logo { width: 20px; height: 20px; object-fit: contain; }
-        .team-name { font-size: 14px; font-weight: 500; }
-        .score { font-size: 14px; font-weight: 700; color: var(--text); }
+        .team-logo { width: 22px; height: 22px; object-fit: contain; }
+        .team-name { font-size: 14px; font-weight: 600; }
+        .score-val { font-size: 15px; font-weight: 800; color: var(--primary); }
+
+        /* MODAL (DETALLAR) */
+        #detailsModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:2000; overflow-y:auto; }
+        .modal-header { background: var(--primary); color:white; padding: 20px; text-align:center; position: relative; }
+        .close-btn { position: absolute; left: 15px; top: 18px; font-size: 28px; cursor: pointer; }
         
-        /* Modal */
-        #matchModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:2000; overflow-y:auto; }
-        .modal-nav { padding: 15px; display: flex; align-items: center; border-bottom: 1px solid var(--border); }
-        .close-btn { font-size: 24px; cursor: pointer; margin-right: 20px; }
+        .modal-score-area { display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 15px; }
+        .modal-team { flex: 1; text-align: center; }
+        .modal-score-big { font-size: 45px; font-weight: 800; color: #64b5f6; }
+
+        .stat-section { padding: 20px; max-width: 500px; margin: 0 auto; }
+        .stat-row { margin-bottom: 15px; }
+        .stat-labels { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 5px; }
+        .stat-bar-bg { height: 8px; background: #eee; border-radius: 4px; overflow: hidden; display: flex; }
+        .stat-bar-home { background: var(--primary); height: 100%; }
+        .stat-bar-away { background: var(--accent); height: 100%; }
+
+        .incident-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+        .goal-icon { color: green; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="header-top">
-        <div class="logo">ProScore <span style="color:#64b5f6">Elite</span></div>
-        <button onclick="fetchData()" style="background:none; border:none; color:white; font-weight:600; cursor:pointer;">YENİLƏ</button>
-    </div>
-    <div class="search-container">
-        <input type="text" id="searchInput" class="search-box" placeholder="Axtarış..." oninput="filterMatches()">
+    <div class="header-content">
+        <div class="logo">ProScore <span>ELITE</span></div>
+        <button onclick="fetchData()" style="background:white; color:var(--primary); border:none; padding:5px 12px; border-radius:6px; font-weight:700; cursor:pointer;">YENİLƏ</button>
     </div>
 </header>
 
-<div class="container" id="matchList">
-    <div style="text-align:center; padding:100px; color:#888;">Yüklənir...</div>
+<div class="search-container">
+    <input type="text" id="search" class="search-box" placeholder="Komanda və ya liqa axtar..." oninput="filterMatches()">
 </div>
 
-<div id="matchModal">
-    <div class="modal-nav"><span class="close-btn" onclick="closeModal()">←</span> <b>Matç Detalları</b></div>
-    <div id="modalContent"></div>
+<div class="container" id="matchList">
+    <div style="text-align:center; padding:50px; opacity:0.5;">Canlı nəticələr hazırlanır...</div>
+</div>
+
+<div id="detailsModal">
+    <div class="modal-header">
+        <span class="close-btn" onclick="closeModal()">←</span>
+        <div id="modalTitle" style="font-size:12px; opacity:0.8; text-transform:uppercase;">Matç Detalları</div>
+        <div class="modal-score-area">
+            <div class="modal-team" id="homeM"></div>
+            <div class="modal-score-big" id="scoreM">0 - 0</div>
+            <div class="modal-team" id="awayM"></div>
+        </div>
+        <div id="timeM" style="margin-top:10px; font-weight:800; color:#ffeb3b;"></div>
+    </div>
+    
+    <div class="stat-section">
+        <div id="goalsSection"></div>
+        <div id="statsSection"></div>
+    </div>
 </div>
 
 <script>
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzt-q3Cq597ZKXbalLeMvyn29EyIHmSwoJw6MH2LbAnJS3eAqpi0K0ZNg0jdYhTMgw9/exec"; 
-    let allEvents = [];
+    const G_URL = "https://script.google.com/macros/s/AKfycbwarNRGzp6aeTEvLFU7uunkXDF23ROj8j12Udhil1p1lMQLmvSiw-hWliN4ssoTMiM/exec"; 
+    let events = [];
 
     async function fetchData() {
         try {
-            const response = await fetch(GOOGLE_SCRIPT_URL);
-            const data = await response.json();
-            allEvents = data.events || [];
-            render(allEvents);
-        } catch (e) {
-            document.getElementById("matchList").innerHTML = "<div style='text-align:center; padding:50px;'>Xəta baş verdi.</div>";
-        }
+            const res = await fetch(G_URL);
+            const data = await res.json();
+            events = data.events || [];
+            render(events);
+        } catch (e) { console.error(e); }
     }
 
-    function groupEventsByLeague(events) {
-        return events.reduce((acc, event) => {
-            const leagueName = event.tournament.name;
-            if (!acc[leagueName]) acc[leagueName] = { info: event.tournament, matches: [] };
-            acc[leagueName].matches.push(event);
+    function render(data) {
+        const list = document.getElementById("matchList");
+        if (data.length === 0) { list.innerHTML = "<center>Canlı oyun yoxdur</center>"; return; }
+
+        // Liqalara görə qruplaşdır
+        const grouped = data.reduce((acc, ev) => {
+            const l = ev.tournament.name;
+            if (!acc[l]) acc[l] = { info: ev.tournament, matches: [] };
+            acc[l].matches.push(ev);
             return acc;
         }, {});
-    }
 
-    function render(events) {
-        const list = document.getElementById("matchList");
-        if (events.length === 0) {
-            list.innerHTML = "<div style='text-align:center; padding:100px;'>Canlı oyun tapılmadı.</div>";
-            return;
-        }
-
-        const grouped = groupEventsByLeague(events);
         let html = "";
-
         for (const league in grouped) {
             html += `
                 <div class="league-group">
                     <div class="league-header">
-                        <img src="https://www.sofascore.com/api/v1/tournament/${grouped[league].info.id}/image" onerror="this.style.display='none'">
-                        <div class="league-info">${league}</div>
+                        <img src="https://www.sofascore.com/api/v1/tournament/${grouped[league].info.id}/image">
+                        <span class="league-title">${league}</span>
                     </div>
-                    ${grouped[league].matches.map(ev => `
-                        <div class="match-card" onclick="showDetails('${ev.id}')">
-                            <div class="match-time">${ev.status.description.includes("'") ? ev.status.description : 'Canlı'}</div>
-                            <div class="teams-container">
-                                <div class="team-row">
+                    ${grouped[league].matches.map(m => `
+                        <div class="match-card" onclick="openMatch('${m.id}', '${m.homeTeam.name}', '${m.awayTeam.name}', '${m.homeScore.current}:${m.awayScore.current}', '${m.status.description}')">
+                            <div class="time-col">${m.status.description.includes("'") ? m.status.description : 'LIVE'}</div>
+                            <div class="teams-col">
+                                <div class="team-line">
                                     <div class="team-info">
-                                        <img class="team-logo" src="https://www.sofascore.com/api/v1/team/${ev.homeTeam.id}/image">
-                                        <span class="team-name">${ev.homeTeam.name}</span>
+                                        <img class="team-logo" src="https://www.sofascore.com/api/v1/team/${m.homeTeam.id}/image">
+                                        <span class="team-name">${m.homeTeam.name}</span>
                                     </div>
-                                    <span class="score">${ev.homeScore.current || 0}</span>
+                                    <span class="score-val">${m.homeScore.current}</span>
                                 </div>
-                                <div class="team-row">
+                                <div class="team-line">
                                     <div class="team-info">
-                                        <img class="team-logo" src="https://www.sofascore.com/api/v1/team/${ev.awayTeam.id}/image">
-                                        <span class="team-name">${ev.awayTeam.name}</span>
+                                        <img class="team-logo" src="https://www.sofascore.com/api/v1/team/${m.awayTeam.id}/image">
+                                        <span class="team-name">${m.awayTeam.name}</span>
                                     </div>
-                                    <span class="score">${ev.awayScore.current || 0}</span>
+                                    <span class="score-val">${m.awayScore.current}</span>
                                 </div>
                             </div>
                         </div>
@@ -148,19 +158,59 @@
         list.innerHTML = html;
     }
 
-    function filterMatches() {
-        const query = document.getElementById("searchInput").value.toLowerCase();
-        const filtered = allEvents.filter(ev => 
-            ev.homeTeam.name.toLowerCase().includes(query) || 
-            ev.awayTeam.name.toLowerCase().includes(query) ||
-            ev.tournament.name.toLowerCase().includes(query)
-        );
-        render(filtered);
+    async function openMatch(id, h, a, s, t) {
+        document.getElementById("detailsModal").style.display = "block";
+        document.getElementById("homeM").innerText = h;
+        document.getElementById("awayM").innerText = a;
+        document.getElementById("scoreM").innerText = s;
+        document.getElementById("timeM").innerText = t;
+        document.getElementById("goalsSection").innerHTML = "Yüklənir...";
+        document.getElementById("statsSection").innerHTML = "";
+
+        try {
+            // Qolları gətir
+            const resI = await fetch(`${G_URL}?type=incidents&matchId=${id}`);
+            const dataI = await resI.json();
+            const goals = (dataI.incidents || []).filter(i => i.incidentType === "goal");
+            
+            let gHtml = "<h4>⚽ QOLLAR</h4>";
+            goals.reverse().forEach(g => {
+                gHtml += `<div class="incident-item"><b>${g.time}'</b> ${g.player ? g.player.name : 'Qol'} (${g.homeScore}:${g.awayScore})</div>`;
+            });
+            document.getElementById("goalsSection").innerHTML = goals.length ? gHtml : "<h4>Qol vurulmayıb</h4>";
+
+            // Statistikaları gətir
+            const resS = await fetch(`${G_URL}?type=statistics&matchId=${id}`);
+            const dataS = await resS.json();
+            if (dataS.statistics && dataS.statistics[0]) {
+                const stats = dataS.statistics[0].groups.flatMap(g => g.statisticsItems);
+                let sHtml = "<h4>📊 STATİSTİKA</h4>";
+                stats.forEach(st => {
+                    const hV = parseInt(st.home);
+                    const aV = parseInt(st.away);
+                    const total = hV + aV;
+                    const hP = (hV / total) * 100;
+                    sHtml += `
+                        <div class="stat-row">
+                            <div class="stat-labels"><span>${st.home}</span><span>${st.name}</span><span>${st.away}</span></div>
+                            <div class="stat-bar-bg">
+                                <div class="stat-bar-home" style="width:${hP}%"></div>
+                                <div class="stat-bar-away" style="width:${100 - hP}%"></div>
+                            </div>
+                        </div>`;
+                });
+                document.getElementById("statsSection").innerHTML = sHtml;
+            }
+        } catch (e) { console.error(e); }
     }
 
-    // Modal funksiyaları (əvvəlki kimi qalır)
-    function closeModal() { document.getElementById("matchModal").style.display = "none"; }
-    async function showDetails(id) { /* Əvvəlki detallar funksiyası bura gələcək */ }
+    function filterMatches() {
+        const q = document.getElementById("search").value.toLowerCase();
+        const f = events.filter(e => e.homeTeam.name.toLowerCase().includes(q) || e.awayTeam.name.toLowerCase().includes(q) || e.tournament.name.toLowerCase().includes(q));
+        render(f);
+    }
+
+    function closeModal() { document.getElementById("detailsModal").style.display = "none"; }
 
     fetchData();
     setInterval(fetchData, 30000);
