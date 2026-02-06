@@ -4,101 +4,113 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>ProScore Elite | Live Center</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <title>ProScore Elite | Premium Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #f0f2f5; --card: #ffffff; --primary: #004682; --accent: #007aff; --live: #ee1e2e; --text: #1a1a1a; --border: #e6e8eb; }
-        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
+        :root { 
+            --bg: #f3f4f6; --card: #ffffff; --primary: #004682; 
+            --accent: #38bdf8; --live: #ef4444; --text: #111827; 
+            --border: #e5e7eb; --stat-home: #004682; --stat-away: #f59e0b;
+        }
+        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
         
-        header { background: var(--primary); color: white; padding: 15px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-        .header-content { max-width: 600px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        /* Premium Header & Search */
+        header { 
+            background: var(--primary); color: white; padding: 15px 20px; 
+            position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+        }
+        .header-top { max-width: 600px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .logo { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
         
+        .filter-container { max-width: 600px; margin: 0 auto; position: relative; }
+        .search-input { 
+            width: 100%; padding: 12px 15px 12px 40px; border-radius: 12px; border: none; 
+            background: rgba(255,255,255,0.15); color: white; outline: none; 
+            font-family: inherit; transition: 0.3s; box-sizing: border-box;
+        }
+        .search-input:focus { background: rgba(255,255,255,0.25); }
+        .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); opacity: 0.6; }
+
         .container { max-width: 600px; margin: 0 auto; padding: 10px; padding-bottom: 50px; }
 
-        /* Liqa Başlığı */
-        .league-group { background: var(--card); margin-top: 12px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-        .league-header { background: #f8f9fa; padding: 10px 15px; display: flex; align-items: center; border-bottom: 1px solid var(--border); }
-        .league-header img { width: 18px; height: 18px; margin-right: 10px; }
-        .league-title { font-size: 12px; font-weight: 700; color: #555; text-transform: uppercase; }
+        /* League Styling */
+        .league-group { background: var(--card); margin-top: 15px; border-radius: 16px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .league-header { background: #f9fafb; padding: 12px 16px; display: flex; align-items: center; border-bottom: 1px solid var(--border); }
+        .league-header img { width: 22px; height: 22px; margin-right: 12px; border-radius: 4px; }
+        .league-title { font-size: 13px; font-weight: 700; color: #4b5563; }
 
-        /* Oyun Kartı */
-        .match-card { display: flex; align-items: center; padding: 15px; cursor: pointer; border-bottom: 1px solid #f5f5f5; position: relative; transition: 0.2s; }
-        .match-card:hover { background: #f0f7ff; }
-        .match-card::after { content: '›'; position: absolute; right: 15px; font-size: 24px; color: #ccc; }
+        /* Match Card */
+        .match-card { display: flex; align-items: center; padding: 16px; cursor: pointer; border-bottom: 1px solid #f3f4f6; position: relative; transition: 0.2s; }
+        .match-card:hover { background: #f8fafc; }
+        .match-card::after { content: '→'; position: absolute; right: 15px; font-size: 18px; color: #cbd5e1; }
         
         .time-col { width: 45px; font-size: 11px; font-weight: 800; color: var(--live); }
-        .teams-col { flex: 1; padding-left: 10px; padding-right: 25px; }
-        .team-line { display: flex; justify-content: space-between; align-items: center; margin: 4px 0; }
-        .team-info { display: flex; align-items: center; gap: 8px; }
-        .team-logo { width: 20px; height: 20px; object-fit: contain; }
-        .team-name { font-size: 13px; font-weight: 600; }
-        .score-val { font-size: 14px; font-weight: 800; color: var(--primary); }
+        .teams-col { flex: 1; padding: 0 10px; }
+        .team-line { display: flex; justify-content: space-between; align-items: center; margin: 5px 0; }
+        .team-info { display: flex; align-items: center; gap: 10px; }
+        .team-logo { width: 22px; height: 22px; object-fit: contain; }
+        .team-name { font-size: 14px; font-weight: 600; }
+        .score-val { font-size: 15px; font-weight: 800; color: var(--primary); }
 
-        /* MODAL */
+        /* MODAL & STATS */
         #detailsModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:2000; overflow-y:auto; }
-        .modal-header { background: var(--primary); color:white; padding: 25px 15px; text-align:center; position: relative; }
-        .close-btn { position: absolute; left: 15px; top: 15px; font-size: 32px; cursor: pointer; line-height: 1; }
+        .modal-header { background: var(--primary); color:white; padding: 30px 20px; text-align:center; position: relative; border-bottom-left-radius: 25px; border-bottom-right-radius: 25px; }
+        .close-btn { position: absolute; left: 20px; top: 20px; font-size: 24px; cursor: pointer; background: rgba(255,255,255,0.1); width: 40px; height: 40px; border-radius: 50%; line-height: 40px; text-align: center; }
         
-        .modal-score-area { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px; }
-        .modal-team { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-        .modal-team img { width: 50px; height: 50px; background: white; padding: 5px; border-radius: 10px; }
-        .modal-team span { font-size: 14px; font-weight: 700; }
-        .modal-score-big { font-size: 40px; font-weight: 800; min-width: 100px; color: #fff; }
+        .modal-score-area { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 20px; }
+        .modal-team { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .modal-team img { width: 60px; height: 60px; background: white; padding: 8px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .modal-score-big { font-size: 48px; font-weight: 800; }
 
-        /* Qollar Dizaynı */
-        .incident-container { padding: 20px 15px; border-bottom: 8px solid #f0f2f5; }
-        .incident-row { display: flex; margin-bottom: 10px; font-size: 13px; }
-        .inc-home { width: 50%; padding-right: 10px; text-align: right; border-right: 1px solid #eee; }
-        .inc-away { width: 50%; padding-left: 10px; text-align: left; }
-        .inc-time { font-weight: 800; color: var(--live); margin: 0 5px; }
-        .goal-name { font-weight: 600; }
+        .stat-card { background: white; margin: 20px 15px; padding: 20px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        .stat-title { font-size: 13px; font-weight: 800; color: #6b7280; text-align: center; margin-bottom: 20px; text-transform: uppercase; }
+        .stat-item { margin-bottom: 18px; }
+        .stat-info { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px; font-weight: 700; }
+        
+        .progress-container { height: 10px; background: #f3f4f6; border-radius: 5px; overflow: hidden; display: flex; }
+        .p-home { background: var(--stat-home); border-right: 2px solid white; }
+        .p-away { background: var(--stat-away); }
 
-        /* Statistika Dizaynı */
-        .stat-section { padding: 20px 15px; }
-        .stat-row { margin-bottom: 18px; }
-        .stat-labels { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; margin-bottom: 6px; color: #666; }
-        .stat-bar-bg { height: 6px; background: #eee; border-radius: 3px; overflow: hidden; display: flex; }
-        .stat-bar-home { background: var(--primary); height: 100%; }
-        .stat-bar-away { background: #ff9800; height: 100%; }
+        .inc-box { padding: 20px; border-bottom: 8px solid #f3f4f6; }
+        .inc-row { display: flex; padding: 10px 0; border-bottom: 1px solid #f9fafb; font-size: 13px; }
+        .inc-home { width: 50%; padding-right: 15px; text-align: right; border-right: 2px solid #f3f4f6; }
+        .inc-away { width: 50%; padding-left: 15px; text-align: left; }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="header-content">
-        <div style="font-size: 18px; font-weight: 800;">PRO<span style="color:#64b5f6">SCORE</span></div>
-        <button onclick="fetchData()" style="background:rgba(255,255,255,0.2); color:white; border:none; padding:6px 15px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">YENİLƏ</button>
+    <div class="header-top">
+        <div class="logo">PRO<span style="color:var(--accent)">SCORE</span></div>
+        <button onclick="fetchData()" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">↻</button>
+    </div>
+    <div class="filter-container">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search" class="search-input" placeholder="Komanda və ya liqa..." oninput="filterMatches()">
     </div>
 </header>
 
 <div class="container" id="matchList">
-    <div style="text-align:center; padding:100px; opacity:0.3;">Oyunlar yüklənir...</div>
+    <div style="text-align:center; padding:100px; color:#9ca3af;">Yüklənir...</div>
 </div>
 
 <div id="detailsModal">
     <div class="modal-header">
-        <span class="close-btn" onclick="closeModal()">&times;</span>
-        <div id="leagueM" style="font-size:10px; opacity:0.7; text-transform:uppercase; letter-spacing:1px;"></div>
+        <span class="close-btn" onclick="closeModal()">✕</span>
+        <div id="leagueM" style="font-size:11px; font-weight:700; opacity:0.8; text-transform:uppercase;"></div>
         <div class="modal-score-area">
-            <div class="modal-team">
-                <img id="logoH" src="">
-                <span id="nameH"></span>
-            </div>
-            <div class="modal-score-big" id="scoreM">0 - 0</div>
-            <div class="modal-team">
-                <img id="logoA" src="">
-                <span id="nameA"></span>
-            </div>
+            <div class="modal-team"><img id="logoH" src=""><span id="nameH" style="font-weight: 700;"></span></div>
+            <div class="modal-score-big" id="scoreM">0-0</div>
+            <div class="modal-team"><img id="logoA" src=""><span id="nameA" style="font-weight: 700;"></span></div>
         </div>
-        <div id="timeM" style="margin-top:15px; font-weight:800; color:#4caf50; background:rgba(255,255,255,0.1); display:inline-block; padding:3px 12px; border-radius:20px; font-size:12px;"></div>
+        <div id="timeM" style="margin-top:15px; font-weight:800; color:var(--accent);"></div>
     </div>
-    
-    <div class="incident-container" id="goalsBox"></div>
-    <div class="stat-section" id="statsBox"></div>
+    <div class="inc-box" id="goalsBox"></div>
+    <div class="stat-card" id="statsBox"></div>
 </div>
 
 <script>
-    const G_URL = "https://script.google.com/macros/s/AKfycbxQV1itjk_W7qC7b3yniMt84-HPrufktquS1x2zpDb_fFb81hYdq1bAmhWsxhPNjleg/exec"; 
+    const G_URL = "https://script.google.com/macros/s/AKfycby9YoMlKSDkSodhx6J5j9bGYJ9c2uOTjsL8DP3BNets3b3vDQ-Xku5muuShCTK90I95/exec"; 
     let events = [];
 
     async function fetchData() {
@@ -143,7 +155,7 @@
                         </div>`).join("")}
                 </div>`;
         }
-        list.innerHTML = html || "<center>Canlı oyun yoxdur</center>";
+        list.innerHTML = html || "<center style='padding:50px; opacity:0.5;'>Canlı oyun tapılmadı.</center>";
     }
 
     async function openMatch(id, idH, idA, nameH, nameA, score, time, league) {
@@ -155,43 +167,44 @@
         document.getElementById("scoreM").innerText = score;
         document.getElementById("timeM").innerText = time;
         document.getElementById("leagueM").innerText = league;
-        
-        document.getElementById("goalsBox").innerHTML = "<center style='opacity:0.5'>Hadisələr yüklənir...</center>";
+        document.getElementById("goalsBox").innerHTML = "Hadisələr...";
         document.getElementById("statsBox").innerHTML = "";
 
         try {
             const resI = await fetch(`${G_URL}?type=incidents&matchId=${id}`);
             const dataI = await resI.json();
             const goals = (dataI.incidents || []).filter(i => i.incidentType === "goal");
-            
-            let gHtml = "<h4 style='margin-top:0; font-size:12px; color:#888;'>QOLLAR</h4>";
+            let gHtml = "<div class='stat-title'>⚽ Qollar</div>";
             goals.forEach(g => {
-                gHtml += `
-                    <div class="incident-row">
-                        <div class="inc-home">${g.isHome ? `<span class="goal-name">${g.player ? g.player.name : 'Qol'}</span> <span class="inc-time">${g.time}'</span> ⚽` : ''}</div>
-                        <div class="inc-away">${!g.isHome ? `⚽ <span class="inc-time">${g.time}'</span> <span class="goal-name">${g.player ? g.player.name : 'Qol'}</span>` : ''}</div>
-                    </div>`;
+                gHtml += `<div class="inc-row">
+                    <div class="inc-home">${g.isHome ? `<b>${g.player ? g.player.name : 'Qol'}</b> <span style="color:red">${g.time}'</span> ⚽` : ''}</div>
+                    <div class="inc-away">${!g.isHome ? `⚽ <span style="color:red">${g.time}'</span> <b>${g.player ? g.player.name : 'Qol'}</b>` : ''}</div>
+                </div>`;
             });
-            document.getElementById("goalsBox").innerHTML = goals.length ? gHtml : "<center style='opacity:0.5'>Hələ qol vurulmayıb</center>";
+            document.getElementById("goalsBox").innerHTML = goals.length ? gHtml : "<center>Hələ qol yoxdur</center>";
 
             const resS = await fetch(`${G_URL}?type=statistics&matchId=${id}`);
             const dataS = await resS.json();
             if (dataS.statistics && dataS.statistics[0]) {
-                let sHtml = "<h4 style='font-size:12px; color:#888;'>STATİSTİKA</h4>";
+                let sHtml = "<div class='stat-title'>📊 Statistika</div>";
                 dataS.statistics[0].groups.flatMap(g => g.statisticsItems).forEach(st => {
                     const hV = parseFloat(st.home), aV = parseFloat(st.away);
                     const hP = (hV / (hV + aV)) * 100;
-                    sHtml += `
-                        <div class="stat-row">
-                            <div class="stat-labels"><span>${st.home}</span><span>${st.name}</span><span>${st.away}</span></div>
-                            <div class="stat-bar-bg"><div class="stat-bar-home" style="width:${hP}%"></div><div class="stat-bar-away" style="width:${100-hP}%"></div></div>
-                        </div>`;
+                    sHtml += `<div class="stat-item">
+                        <div class="stat-info"><span>${st.home}</span><span>${st.name}</span><span>${st.away}</span></div>
+                        <div class="progress-container"><div class="p-home" style="width:${hP}%"></div><div class="p-away" style="width:${100-hP}%"></div></div>
+                    </div>`;
                 });
                 document.getElementById("statsBox").innerHTML = sHtml;
             }
         } catch (e) { console.error(e); }
     }
 
+    function filterMatches() {
+        const q = document.getElementById("search").value.toLowerCase();
+        const f = events.filter(e => e.homeTeam.name.toLowerCase().includes(q) || e.awayTeam.name.toLowerCase().includes(q) || e.tournament.name.toLowerCase().includes(q));
+        render(f);
+    }
     function closeModal() { document.getElementById("detailsModal").style.display = "none"; }
     fetchData();
     setInterval(fetchData, 30000);
