@@ -15,6 +15,11 @@
         body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); -webkit-tap-highlight-color: transparent; }
         body.modal-open { overflow: hidden; height: 100vh; }
 
+        /* Header & Search */
+        header { background: var(--primary); color: white; padding: 15px 20px; position: sticky; top: 0; z-index: 1000; }
+        .logo { font-size: 20px; font-weight: 800; text-align: center; margin-bottom: 15px; }
+        .search-box { width: 100%; max-width: 600px; margin: 0 auto; display: block; padding: 12px 15px; border-radius: 12px; border: none; background: rgba(255,255,255,0.1); color: white; outline: none; box-sizing: border-box; }
+
         /* Loader */
         .loader-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 0; }
         .goal-container { width: 100px; height: 60px; border: 4px solid var(--primary); border-bottom: none; position: relative; display: flex; align-items: center; justify-content: center; border-radius: 4px 4px 0 0; }
@@ -26,50 +31,47 @@
             100% { transform: translate(0, 0) rotate(720deg); }
         }
 
-        header { background: var(--primary); color: white; padding: 15px 20px; position: sticky; top: 0; z-index: 1000; }
-        .logo { font-size: 20px; font-weight: 800; text-align: center; margin-bottom: 15px; }
-        .search-box { width: 100%; max-width: 600px; margin: 0 auto; display: block; padding: 12px 15px; border-radius: 12px; border: none; background: rgba(255,255,255,0.1); color: white; outline: none; box-sizing: border-box; }
-
+        /* Match List */
         .container { max-width: 600px; margin: 0 auto; padding: 10px; }
         .league-group { background: var(--card); margin-bottom: 15px; border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
         .league-header { background: #f1f5f9; padding: 10px 15px; display: flex; align-items: center; }
         .league-header img { width: 18px; height: 18px; margin-right: 10px; }
         .league-title { font-size: 12px; font-weight: 700; color: #475569; }
-        .country-label { font-size: 10px; color: #94a3b8; font-weight: 600; margin-left: 5px; }
-
+        
         .match-card { display: flex; align-items: center; padding: 15px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
         .time-status { width: 45px; font-size: 11px; font-weight: 800; color: var(--live); text-align: center; }
         .teams-area { flex: 1; padding: 0 10px; border-left: 1px solid #f1f5f9; }
         .team-row { display: flex; justify-content: space-between; align-items: center; margin: 4px 0; }
-        .team-logo { width: 20px; height: 20px; object-fit: contain; }
+        .team-logo { width: 22px; height: 22px; object-fit: contain; cursor: pointer; transition: transform 0.2s; }
+        .team-logo:hover { transform: scale(1.2); }
         .team-name { font-size: 14px; font-weight: 600; }
         .score { font-size: 15px; font-weight: 800; color: var(--primary); }
 
-        /* Modal & Tabs */
-        #detailsModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#fff; z-index:2000; overflow-y:auto; }
+        /* Modals */
+        #detailsModal, #teamModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#fff; z-index:2000; overflow-y:auto; }
+        #teamModal { z-index: 3000; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
         .modal-header { background: var(--primary); color:white; padding: 45px 15px 20px; text-align:center; position: relative; }
-        .close-btn { position: absolute; left: 15px; top: 15px; font-size: 26px; cursor: pointer; }
-        .m-score-row { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; }
-        .m-team { flex: 1; display: flex; flex-direction: column; align-items: center; }
-        .m-team img { width: 50px; height: 50px; background: #fff; padding: 5px; border-radius: 12px; }
-        .m-score-big { font-size: 34px; font-weight: 800; }
+        .close-btn { position: absolute; left: 15px; top: 15px; font-size: 26px; cursor: pointer; color: white; }
+        
+        /* Team Details UI */
+        .player-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f1f5f9; align-items: center; }
+        .player-name { font-weight: 700; font-size: 14px; }
+        .player-pos { font-size: 11px; color: #64748b; text-transform: uppercase; }
 
+        /* Stats & Tabs */
         .modal-tabs { display: flex; background: #f1f5f9; padding: 5px; gap: 5px; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--border); }
-        .tab-btn { flex: 1; padding: 12px; border: none; background: none; font-weight: 700; font-size: 12px; color: #64748b; border-radius: 10px; cursor: pointer; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: none; font-weight: 700; font-size: 12px; color: #64748b; cursor: pointer; border-radius: 10px; }
         .tab-btn.active { background: #fff; color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .tab-content { display: none; padding: 20px 15px; }
         .tab-content.active { display: block; }
-
+        
         .stat-box { margin-bottom: 18px; }
-        .stat-labels { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
-        .stat-bar-outer { height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; display: flex; }
-        .bar-home { background: var(--home-color); height: 100%; }
-        .bar-away { background: var(--away-color); height: 100%; }
-
-        .inc-item { display: flex; padding: 12px 0; border-bottom: 1px solid #f8fafc; font-size: 13px; }
-        .inc-side { width: 50%; }
-        .inc-home { text-align: right; padding-right: 15px; border-right: 2px solid #f1f5f9; }
-        .inc-away { text-align: left; padding-left: 15px; }
+        .stat-labels { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+        .stat-bar-outer { height: 6px; background: #f1f5f9; border-radius: 3px; display: flex; overflow: hidden; }
+        .bar-home { background: var(--home-color); }
+        .bar-away { background: var(--away-color); }
     </style>
 </head>
 <body>
@@ -90,26 +92,40 @@
     <div class="modal-header">
         <span class="close-btn" onclick="closeModal()">✕</span>
         <div id="leagueM" style="font-size:10px; opacity:0.8; font-weight:700; text-transform:uppercase;"></div>
-        <div class="m-score-row">
-            <div class="m-team"><img id="logoH" src=""><span id="nameH"></span></div>
-            <div class="m-score-big" id="scoreM">0-0</div>
-            <div class="m-team"><img id="logoA" src=""><span id="nameA"></span></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+            <div style="flex:1" onclick="openTeam(event, currentHomeId)"><img id="logoH" src="" style="width:50px;"><br><span id="nameH"></span></div>
+            <div style="font-size:34px; font-weight:800;" id="scoreM">0-0</div>
+            <div style="flex:1" onclick="openTeam(event, currentAwayId)"><img id="logoA" src="" style="width:50px;"><br><span id="nameA"></span></div>
         </div>
         <div id="timeM" style="margin-top:12px; font-weight:800; font-size:11px; background:rgba(255,255,255,0.2); display:inline-block; padding:3px 10px; border-radius:12px;"></div>
     </div>
-
     <div class="modal-tabs">
         <button class="tab-btn active" onclick="switchTab('goalsBox', this)">HADİSƏLƏR</button>
         <button class="tab-btn" onclick="switchTab('statsBox', this)">STATİSTİKA</button>
     </div>
-
     <div id="goalsBox" class="tab-content active"></div>
     <div id="statsBox" class="tab-content"></div>
+</div>
+
+<div id="teamModal">
+    <div class="modal-header">
+        <span class="close-btn" onclick="closeTeamModal()">✕</span>
+        <div style="margin-top:20px">
+            <img id="tLogo" src="" style="width:70px; background:white; padding:10px; border-radius:15px;">
+            <h2 id="tName" style="margin:10px 0 5px 0; color:white;"></h2>
+            <div id="tVenue" style="font-size:11px; color:#94a3b8;"></div>
+        </div>
+    </div>
+    <div class="container">
+        <h3 style="padding:15px 0; border-bottom:2px solid #f1f5f9;">🛡️ Komanda Heyəti</h3>
+        <div id="playerList"></div>
+    </div>
 </div>
 
 <script>
     const G_URL = "https://script.google.com/macros/s/AKfycbxcyqVA8trNVID5v5z_PHcqkqYn-21AmlQkXyg4prDAATgBwzB2_EGWTCQG-EzN6i-P/exec"; 
     let allEvents = [];
+    let currentHomeId, currentAwayId;
 
     async function fetchData() {
         try {
@@ -123,18 +139,9 @@
     function render(data) {
         const list = document.getElementById("matchList");
         const grouped = data.reduce((acc, ev) => {
-            const lName = ev.tournament.name;
-            const cName = ev.tournament.category.name;
-            // Xətanın qarşısını almaq üçün unikal açar yaradırıq
-            const groupKey = `${lName}_${cName}`;
-            
+            const groupKey = `${ev.tournament.name}_${ev.tournament.category.name}`;
             if (!acc[groupKey]) {
-                acc[groupKey] = { 
-                    id: ev.tournament.id, 
-                    name: lName,
-                    country: cName, 
-                    matches: [] 
-                };
+                acc[groupKey] = { id: ev.tournament.id, name: ev.tournament.name, country: ev.tournament.category.name, matches: [] };
             }
             acc[groupKey].matches.push(ev);
             return acc;
@@ -147,21 +154,24 @@
                 <div class="league-group">
                     <div class="league-header">
                         <img src="https://www.sofascore.com/api/v1/tournament/${group.id}/image">
-                        <div>
-                            <span class="league-title">${group.name}</span>
-                            <span class="country-label">(${group.country})</span>
-                        </div>
+                        <span class="league-title">${group.name} (${group.country})</span>
                     </div>
                     ${group.matches.map(m => `
                         <div class="match-card" onclick="openMatch('${m.id}', '${m.homeTeam.id}', '${m.awayTeam.id}', '${m.homeTeam.name.replace(/'/g,"")}', '${m.awayTeam.name.replace(/'/g,"")}', '${m.homeScore.current}:${m.awayScore.current}', '${m.status.description}', '${group.name.replace(/'/g,"")}')">
                             <div class="time-status">${m.status.description.includes("'") ? m.status.description : 'LIVE'}</div>
                             <div class="teams-area">
                                 <div class="team-row">
-                                    <div style="display:flex; align-items:center; gap:10px;"><img class="team-logo" src="https://www.sofascore.com/api/v1/team/${m.homeTeam.id}/image"> <span class="team-name">${m.homeTeam.name}</span></div>
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <img class="team-logo" src="https://www.sofascore.com/api/v1/team/${m.homeTeam.id}/image" onclick="openTeam(event, '${m.homeTeam.id}')"> 
+                                        <span class="team-name">${m.homeTeam.name}</span>
+                                    </div>
                                     <span class="score">${m.homeScore.current}</span>
                                 </div>
                                 <div class="team-row">
-                                    <div style="display:flex; align-items:center; gap:10px;"><img class="team-logo" src="https://www.sofascore.com/api/v1/team/${m.awayTeam.id}/image"> <span class="team-name">${m.awayTeam.name}</span></div>
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <img class="team-logo" src="https://www.sofascore.com/api/v1/team/${m.awayTeam.id}/image" onclick="openTeam(event, '${m.awayTeam.id}')"> 
+                                        <span class="team-name">${m.awayTeam.name}</span>
+                                    </div>
                                     <span class="score">${m.awayScore.current}</span>
                                 </div>
                             </div>
@@ -172,10 +182,9 @@
     }
 
     async function openMatch(id, idH, idA, nameH, nameA, score, time, league) {
+        currentHomeId = idH; currentAwayId = idA;
         document.body.classList.add('modal-open');
         document.getElementById("detailsModal").style.display = "block";
-        switchTab('goalsBox', document.querySelector('.tab-btn'));
-
         document.getElementById("logoH").src = `https://www.sofascore.com/api/v1/team/${idH}/image`;
         document.getElementById("logoA").src = `https://www.sofascore.com/api/v1/team/${idA}/image`;
         document.getElementById("nameH").innerText = nameH;
@@ -183,46 +192,72 @@
         document.getElementById("scoreM").innerText = score;
         document.getElementById("timeM").innerText = time;
         document.getElementById("leagueM").innerText = league;
-        
-        document.getElementById("goalsBox").innerHTML = "<center>Yüklənir...</center>";
-        document.getElementById("statsBox").innerHTML = "<center>Yüklənir...</center>";
 
+        // Hadisələr və Statistikanı çək
         try {
-            const resI = await fetch(`${G_URL}?type=incidents&matchId=${id}`);
+            const [resI, resS] = await Promise.all([
+                fetch(`${G_URL}?type=incidents&matchId=${id}`),
+                fetch(`${G_URL}?type=statistics&matchId=${id}`)
+            ]);
             const dataI = await resI.json();
-            const goals = (dataI.incidents || []).filter(i => i.incidentType === "goal");
-            let gHtml = "";
-            if(goals.length > 0) {
-                goals.forEach(g => {
-                    gHtml += `<div class="inc-item">
-                        <div class="inc-side inc-home">${g.isHome ? `<b>${g.player?g.player.name:'Qol'}</b> ${g.time}' ⚽` : ''}</div>
-                        <div class="inc-side inc-away">${!g.isHome ? `⚽ ${g.time}' <b>${g.player?g.player.name:'Qol'}</b>` : ''}</div>
-                    </div>`;
-                });
-            } else { gHtml = "<center style='padding:30px; opacity:0.5;'>Qol yoxdur</center>"; }
-            document.getElementById("goalsBox").innerHTML = gHtml;
-
-            const resS = await fetch(`${G_URL}?type=statistics&matchId=${id}`);
             const dataS = await resS.json();
-            const statsData = dataS.statistics ? (dataS.statistics.find(s => s.period === "ALL") || dataS.statistics[0]) : null;
 
-            if (statsData && statsData.groups) {
+            // Hadisələr Render
+            const goals = (dataI.incidents || []).filter(i => i.incidentType === "goal");
+            document.getElementById("goalsBox").innerHTML = goals.length ? goals.map(g => `
+                <div class="inc-item" style="display:flex; padding:10px; border-bottom:1px solid #eee">
+                    <div style="flex:1; text-align:right; padding-right:10px">${g.isHome ? `<b>${g.player?g.player.name:'Qol'}</b> ${g.time}' ⚽` : ''}</div>
+                    <div style="flex:1; text-align:left; padding-left:10px">${!g.isHome ? `⚽ ${g.time}' <b>${g.player?g.player.name:'Qol'}</b>` : ''}</div>
+                </div>`).join("") : "<center style='padding:20px'>Qol yoxdur</center>";
+
+            // Statistika Render
+            const stats = dataS.statistics ? (dataS.statistics.find(s => s.period === "ALL") || dataS.statistics[0]) : null;
+            if(stats) {
                 let sHtml = "";
-                statsData.groups.forEach(group => {
+                stats.groups.forEach(group => {
                     group.statisticsItems.forEach(st => {
                         const hV = parseFloat(st.homeValue) || 0;
                         const aV = parseFloat(st.awayValue) || 0;
-                        const total = hV + aV;
-                        const hP = total > 0 ? (hV / total) * 100 : 50;
-                        sHtml += `<div class="stat-box">
-                            <div class="stat-labels"><span>${st.home}</span><span style="font-size:10px; color:#64748b; text-transform:uppercase;">${st.name}</span><span>${st.away}</span></div>
-                            <div class="stat-bar-outer"><div class="bar-home" style="width:${hP}%"></div><div class="bar-away" style="width:${100-hP}%"></div></div>
-                        </div>`;
+                        const hP = (hV + aV) > 0 ? (hV / (hV + aV)) * 100 : 50;
+                        sHtml += `
+                            <div class="stat-box">
+                                <div class="stat-labels"><span>${st.home}</span><span>${st.name}</span><span>${st.away}</span></div>
+                                <div class="stat-bar-outer"><div class="bar-home" style="width:${hP}%"></div><div class="bar-away" style="width:${100-hP}%"></div></div>
+                            </div>`;
                     });
                 });
                 document.getElementById("statsBox").innerHTML = sHtml;
-            } else { document.getElementById("statsBox").innerHTML = "<center style='padding:40px; opacity:0.5;'>Statistika tapılmadı.</center>"; }
+            } else { document.getElementById("statsBox").innerHTML = "<center>Məlumat yoxdur</center>"; }
+
         } catch (e) { console.error(e); }
+    }
+
+    async function openTeam(e, teamId) {
+        e.stopPropagation();
+        const modal = document.getElementById("teamModal");
+        const pList = document.getElementById("playerList");
+        modal.style.display = "block";
+        pList.innerHTML = "<center style='padding:50px;'>Yüklənir...</center>";
+
+        try {
+            // Local Node.js serverindən API-ni çağırır
+            const res = await fetch(`/api/team/${teamId}`);
+            const data = await res.json();
+            
+            const team = data.info.team;
+            document.getElementById("tLogo").src = `https://www.sofascore.com/api/v1/team/${team.id}/image`;
+            document.getElementById("tName").innerText = team.name;
+            document.getElementById("tVenue").innerText = team.venue ? team.venue.name : team.category.name;
+
+            pList.innerHTML = data.players.players.map(p => `
+                <div class="player-item">
+                    <div class="player-info">
+                        <span class="player-name">${p.player.name}</span>
+                        <span class="player-pos">${p.player.position}</span>
+                    </div>
+                    <span style="font-weight:800; color:var(--accent)">#${p.player.jerseyNumber || '-'}</span>
+                </div>`).join("");
+        } catch (err) { pList.innerHTML = "<center>Serverə bağlanmaq alınmadı.</center>"; }
     }
 
     function switchTab(tabId, btn) {
@@ -232,16 +267,13 @@
         btn.classList.add('active');
     }
 
-    function closeModal() {
-        document.body.classList.remove('modal-open');
-        document.getElementById("detailsModal").style.display = "none";
-    }
-
+    function closeModal() { document.getElementById("detailsModal").style.display = "none"; document.body.classList.remove('modal-open'); }
+    function closeTeamModal() { document.getElementById("teamModal").style.display = "none"; }
     function filterMatches() {
         const q = document.getElementById("search").value.toLowerCase();
-        const f = allEvents.filter(e => e.homeTeam.name.toLowerCase().includes(q) || e.awayTeam.name.toLowerCase().includes(q) || e.tournament.name.toLowerCase().includes(q));
-        render(f);
+        render(allEvents.filter(e => e.homeTeam.name.toLowerCase().includes(q) || e.awayTeam.name.toLowerCase().includes(q) || e.tournament.name.toLowerCase().includes(q)));
     }
+
     fetchData();
     setInterval(fetchData, 30000);
 </script>
