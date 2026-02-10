@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProScore DB | Real-Time Data</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #f1f5f9; --card: #ffffff; --primary: #1e293b; --accent: #2563eb; --border: #e2e8f0; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #334155; }
+        
+        .header { text-align: center; margin-bottom: 25px; }
+        .grid-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1400px; margin: 0 auto; }
+        
+        .column { background: var(--card); border-radius: 12px; border: 1px solid var(--border); height: 85vh; display: flex; flex-direction: column; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .col-title { padding: 15px; background: var(--primary); color: white; font-weight: 700; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; }
+        
+        .scroll-area { flex: 1; overflow-y: auto; padding: 10px; }
+        .card-item { display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; border-radius: 8px; transition: 0.2s; }
+        .card-item:hover { background: #f8fafc; transform: translateX(5px); }
+        .card-item img { width: 35px; height: 35px; margin-right: 12px; object-fit: contain; }
+        
+        .badge { font-size: 10px; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; color: #475569; font-weight: 600; }
+        .loading { text-align: center; padding: 40px; color: #94a3b8; font-style: italic; }
+        .error-msg { color: #ef4444; padding: 20px; text-align: center; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1 style="margin:0; color:var(--primary)">DATABASE<span style="color:var(--accent)">EXPLORER</span></h1>
+    <p style="font-size:12px; color:#64748b">SofaScore Canlı API Bağlantısı</p>
+</div>
+
+<div class="grid-layout">
+    <div class="column">
+        <div class="col-title">🏆 Dünya Liqaları</div>
+        <div id="leagues-list" class="scroll-area"><div class="loading">Yüklənir...</div></div>
+    </div>
+
+    <div class="column">
+        <div class="col-title">🛡️ Komandalar</div>
+        <div id="teams-list" class="scroll-area"><div class="loading">Liqa seçin...</div></div>
+    </div>
+
+    <div class="column">
+        <div class="col-title">🏃 Oyunçular</div>
+        <div id="players-list" class="scroll-area"><div class="loading">Komanda seçin...</div></div>
+    </div>
+</div>
+
+<script>
+    // DİQQƏT: Google Apps Script URL-nizi mütləq bura qoyun
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqLSWS7O6_Nr3tPH3ND2McIN8t8pbljcV3gRQDcI-GfQF3DpTXSYnl1uVhyXkXY-1L/exec";
+
+    // Məlumat çəkmə funksiyası (Xəta yoxlaması ilə)
+    async function apiFetch(params) {
+        const url = `${SCRIPT_URL}?${params}`;
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("Server cavab vermir");
+            const data = await res.json();
+            if (data.error) throw new Error(data.message || "API Xətası");
+            return data;
+        } catch (e) {
+            console.error("Fetch error:", e);
+            return { _error: e.message };
+        }
+    }
+
+    // 1. LİQALARI YÜKLƏ
+    async function initLeagues() {
+        const box = document.getElementById("leagues-list");
+        const data = await apiFetch("type=leagues");
+        
+        if (data._error) {
+            box.innerHTML = `<div class="error-msg">⚠️ Baqlantı xətası: ${data._error}<br><small>URL-i və ya Script Deployment-i yoxlayın.</small></div>`;
+            return;
+        }
+
+        box.innerHTML = "";
+        data.uniqueTournaments.forEach(lg => {
+            const div = document.createElement("div");
+            div.className = "card-item";
+            div.onclick = () => loadTeams(lg.id, lg.name);
+            div.innerHTML = `
+                <img src="https://www.sofascore.com/api/v1/tournament/${lg.id}/image" onerror="this.src='https://www.sofascore.com/static/images/placeholders/tournament.png'">
+                <div style="flex:1">
+                    <div style="font-size:14px; font-weight:600">${lg.name}</div>
+                    <div style="font-size:11px; color:#94a3b8">${lg.category.name}</div>
+                </div>
+            `;
+            box.appendChild(div);
+        });
+    }
+
+    // 2. KOMANDALARI YÜKLƏ
+    async function loadTeams(id, name) {
+        const tBox = document.getElementById("teams-list");
+        const pBox = document.getElementById("players-list");
+        tBox.innerHTML = `<div class="loading">${name} yüklənir...</div>`;
+        pBox.innerHTML = `<div class="loading">Gözlənilir...</div>`;
+
+        const data = await apiFetch(`type=teams&id=${id}`);
+        
+        if (data._error || !data.teams) {
+            tBox.innerHTML = `<div class="error-msg">Məlumat tapılmadı.</div>`;
+            return;
+        }
+
+        tBox.innerHTML = "";
+        data.teams.forEach(tm => {
+            const div = document.createElement("div");
+            div.className = "card-item";
+            div.onclick = () => loadPlayers(tm.id, tm.name);
+            div.innerHTML = `
+                <img src="https://www.sofascore.com/api/v1/team/${tm.id}/image">
+                <div style="font-size:14px; font-weight:600">${tm.name}</div>
+            `;
+            tBox.appendChild(div);
+        });
+    }
+
+    // 3. OYUNÇULARI YÜKLƏ
+    async function loadPlayers(id, name) {
+        const pBox = document.getElementById("players-list");
+        pBox.innerHTML = `<div class="loading">${name} heyəti yüklənir...</div>`;
+
+        const data = await apiFetch(`type=players&id=${id}`);
+        
+        if (data._error || !data.players) {
+            pBox.innerHTML = `<div class="error-msg">Heyət məlumatı mövcud deyil.</div>`;
+            return;
+        }
+
+        pBox.innerHTML = "";
+        data.players.forEach(item => {
+            const p = item.player;
+            const div = document.createElement("div");
+            div.className = "card-item";
+            div.style.cursor = "default";
+            div.innerHTML = `
+                <div style="flex:1">
+                    <div style="font-size:14px; font-weight:600">${p.name}</div>
+                    <div style="font-size:11px; color:#94a3b8">Yaş: ${p.age || '??'} | ${p.country.name}</div>
+                </div>
+                <div class="badge">${p.position}</div>
+            `;
+            pBox.appendChild(div);
+        });
+    }
+
+    // İcra et
+    initLeagues();
+</script>
+
+</body>
+</html>
