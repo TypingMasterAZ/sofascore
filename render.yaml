@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: proscore-live
+    runtime: node
+    plan: free # Change if needed
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false
+      - key: PORT
+        value: 3000

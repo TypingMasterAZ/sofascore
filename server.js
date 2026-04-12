@@ -1,4 +1,5 @@
 const express = require("express");
+require('dotenv').config();
 const path = require("path");
 const axios = require("axios");
 const cors = require("cors");
@@ -9,7 +10,18 @@ const nodemailer = require("nodemailer");
 const admin = require("firebase-admin");
 
 // Firebase Admin SDK-nın yaradılması
-const serviceAccount = require("./serviceAccountKey.json");
+let serviceAccount;
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  try {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } catch (e) {
+    console.error("FIREBASE_SERVICE_ACCOUNT parses error, falling back to file.");
+    serviceAccount = require("./serviceAccountKey.json");
+  }
+} else {
+  serviceAccount = require("./serviceAccountKey.json");
+}
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
@@ -19,8 +31,8 @@ admin.initializeApp({
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: 'typingmaster.az@gmail.com', // Sizin email
-        pass: 'hlwg iaey ryxn klsq'    // Sizin "App Password" şifrəniz
+        user: process.env.EMAIL_USER || 'typingmaster.az@gmail.com', // Sizin email
+        pass: process.env.EMAIL_PASS || 'hlwg iaey ryxn klsq'    // Sizin "App Password" şifrəniz
     }
 });
 
