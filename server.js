@@ -63,18 +63,14 @@ app.use((req, res, next) => {
     next();
 });
 
-const SOFA_API = "https://www.sofascore.com/api/v1";
+const SOFA_API = "https://api.sofascore.com/api/v1";
 const HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
     "Accept": "*/*",
-    "Accept-Language": "en-US,en;q=0.9,az;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
     "Referer": "https://www.sofascore.com/",
     "Origin": "https://www.sofascore.com",
-    "Sec-Fetch-Dest": "empty",
-    "Sec-Fetch-Mode": "cors",
-    "Sec-Fetch-Site": "same-origin",
-    "Cache-Control": "no-cache",
-    "Pragma": "no-cache"
+    "Cache-Control": "no-cache"
 };
 
 // API vasitəçisi (Komanda məlumatları və heyət üçün)
@@ -94,9 +90,12 @@ app.get("/api/team/:id", async (req, res) => {
 // Yeni API: Canlı Matçlar
 app.get("/api/matches/live", async (req, res) => {
     try {
+        console.log(`[API CALL] Fetching live matches from: ${SOFA_API}/sport/football/events/live`);
         const result = await axios.get(`${SOFA_API}/sport/football/events/live`, { headers: HEADERS });
+        console.log(`[API SUCCESS] Live matches fetched.`);
         res.json(result.data);
     } catch (error) {
+        console.error(`[API ERROR] Live matches: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
         res.status(500).json({ error: true, message: error.message });
     }
 });
@@ -105,9 +104,11 @@ app.get("/api/matches/live", async (req, res) => {
 app.get("/api/matches/:date", async (req, res) => {
     try {
         const { date } = req.params;
+        console.log(`[API CALL] Fetching matches for ${date}`);
         const result = await axios.get(`${SOFA_API}/sport/football/scheduled-events/${date}`, { headers: HEADERS });
         res.json(result.data);
     } catch (error) {
+        console.error(`[API ERROR] Scheduled matches (${date}): ${error.message}`);
         res.status(500).json({ error: true, message: error.message });
     }
 });
