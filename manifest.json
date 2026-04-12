@@ -1,0 +1,21 @@
+{
+  "name": "Rabona Media LIVE",
+  "short_name": "Rabona Media",
+  "description": "Canlı idman nəticələri və statistikalar.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a101f",
+  "theme_color": "#0a101f",
+  "icons": [
+    {
+      "src": "https://www.sofascore.com/favicon.ico",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://www.sofascore.com/favicon.ico",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

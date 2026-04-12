@@ -1,0 +1,3452 @@
+<!DOCTYPE html>
+<html lang="az">
+
+<head>
+    <meta name="google-site-verification" content="i4omR6aDhgh00ZQnB1NtNkCtWyx8JXyoO2oc2P3RX68" />
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="referrer" content="no-referrer">
+    <meta name="theme-color" content="#0a101f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Rabona Media LIVE</title>
+    <link rel="manifest" href="/manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #020617;
+            --card: #0f172a;
+            --primary: #3b82f6;
+            --live: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #1e293b;
+            --home-color: #3b82f6;
+            --away-color: #f59e0b;
+            --glass-bg: rgba(15, 23, 42, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --gradient-live: linear-gradient(135deg, #ef4444, #dc2626);
+            --gradient-card: linear-gradient(145deg, #0f172a, #020617);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            background-image: radial-gradient(circle at top, rgba(59, 130, 246, 0.05), transparent 50%), radial-gradient(circle at bottom, rgba(239, 68, 68, 0.03), transparent 50%);
+            color: var(--text-main);
+            overflow-x: hidden;
+            overscroll-behavior-y: none;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        body.modal-open {
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* App Shell Layout */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+            border-top: 1px solid var(--glass-border);
+            z-index: 2000;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: 0.3s;
+            flex: 1;
+        }
+
+        .nav-item i {
+            font-size: 20px;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .nav-item span {
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        .nav-item.active i {
+            transform: translateY(-3px) scale(1.1);
+        }
+
+        /* Top Navbar (Glassmorphism) */
+        .top-navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 1000;
+            border-bottom: 1px solid var(--glass-border);
+            padding-top: env(safe-area-inset-top);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        header {
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 56px;
+            position: relative;
+        }
+
+        .header-left,
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 2;
+            width: 80px;
+            /* Symmetry balance */
+        }
+
+        .header-right {
+            justify-content: flex-end;
+        }
+
+        .menu-icon,
+        .search-icon,
+        .notification-bell {
+            font-size: 20px;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .menu-icon:active,
+        .search-icon:active,
+        .notification-bell:active {
+            opacity: 0.5;
+        }
+
+        .back-btn {
+            font-size: 24px;
+            cursor: pointer;
+            display: none;
+            font-weight: 700;
+            line-height: 1;
+            transition: opacity 0.2s;
+        }
+
+        .logo {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 19px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            color: #fff;
+            text-transform: uppercase;
+            white-space: nowrap;
+            z-index: 1;
+        }
+
+        /* Scrollable Date Tabs */
+        .date-tabs {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 10px 16px;
+            scrollbar-width: none;
+        }
+
+        .date-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .date-tab {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 65px;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid transparent;
+        }
+
+        .date-tab:active {
+            transform: scale(0.92);
+        }
+
+        .date-tab.active {
+            color: #fff;
+            background: linear-gradient(135deg, var(--primary), #2563eb);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .date-tab .day-name {
+            text-transform: uppercase;
+            font-size: 10px;
+            margin-bottom: 4px;
+            opacity: 0.8;
+            letter-spacing: 0.5px;
+        }
+
+        .date-tab .date-num {
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .date-tab.live-tab {
+            color: var(--live);
+        }
+
+        .date-tab.live-tab.active {
+            background: var(--gradient-live);
+            color: white;
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .date-tab.live-tab.active .day-name {
+            color: white;
+            opacity: 0.9;
+        }
+
+        /* Main Content Scroll Area */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-top: 130px;
+            padding-bottom: 90px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .container {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .container.active {
+            display: block;
+            opacity: 1;
+            animation: fadeInView 0.4s ease forwards;
+        }
+
+        @keyframes fadeInView {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Loading Skeletons */
+        .skeleton {
+            background: linear-gradient(90deg, var(--card) 25%, rgba(255, 255, 255, 0.07) 50%, var(--card) 75%);
+            background-size: 400% 100%;
+            animation: shimmer 1.5s infinite linear;
+            border-radius: 6px;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 100% 0;
+            }
+
+            100% {
+                background-position: -100% 0;
+            }
+        }
+
+        .loader-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .skel-header {
+            height: 40px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        .skel-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .skel-time {
+            width: 40px;
+            height: 16px;
+        }
+
+        .skel-teams {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .skel-team {
+            height: 16px;
+            width: 70%;
+        }
+
+        /* League Groups */
+        .league-group {
+            margin-bottom: 8px;
+            background: var(--card);
+            overflow: hidden;
+            border-bottom: 1px solid var(--border);
+            border-top: 1px solid var(--border);
+            animation: fadeInUp 0.5s ease backwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .league-header {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .league-header:active {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .league-header img {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            flex-shrink: 0;
+        }
+
+        .league-title-box {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .league-country {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 3px;
+            letter-spacing: 0.8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .league-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chevron {
+            color: var(--text-muted);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 14px;
+            font-weight: 900;
+        }
+
+        .chevron.down {
+            transform: rotate(-180deg);
+        }
+
+        .league-matches {
+            overflow: hidden;
+        }
+
+        .league-matches.collapsed {
+            display: none;
+        }
+
+        /* Single League Card */
+        .league-card {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            background: var(--gradient-card);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-top: 1px solid rgba(255, 255, 255, 0.02);
+            cursor: pointer;
+            gap: 16px;
+            margin: 0 0 12px;
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            animation: fadeInUp 0.4s ease backwards;
+        }
+
+        .league-card:active {
+            transform: scale(0.96);
+            background: rgba(255, 255, 255, 0.06);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .league-card-logo {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+            object-fit: contain;
+            background: #fff;
+            padding: 2px;
+        }
+
+        .league-card-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .league-card-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+        }
+
+        .league-card-country {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+        }
+
+        .league-card-count {
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            background: var(--primary);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+            padding: 4px 10px;
+            border-radius: 12px;
+            flex-shrink: 0;
+        }
+
+        /* Match Row */
+        .match-row {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            text-decoration: none;
+            color: inherit;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .match-row:last-child {
+            border-bottom: none;
+        }
+
+        .match-row:active {
+            background: rgba(150, 150, 150, 0.08);
+            transform: scale(0.99);
+        }
+
+        .match-time {
+            width: 56px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-main);
+            background: rgba(150, 150, 150, 0.15);
+            border-radius: 8px;
+            padding: 6px 0;
+            margin-right: 4px;
+        }
+
+        .match-time.is-live {
+            color: var(--live);
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            text-shadow: 0 0 5px rgba(239, 68, 68, 0.3);
+        }
+
+        .match-time.is-live .live-min {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .match-time.is-live .live-min::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: var(--live);
+            border-radius: 50%;
+            animation: pulse-dot 1.5s infinite;
+            box-shadow: 0 0 6px var(--live);
+        }
+
+        @keyframes pulse-dot {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        .match-teams {
+            flex: 1;
+            padding: 0 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .team-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .team-logo {
+            width: 22px;
+            height: 22px;
+            object-fit: contain;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .team-name {
+            flex: 1;
+            font-size: 15px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            letter-spacing: -0.2px;
+        }
+
+        .match-scores {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-end;
+            width: 38px;
+        }
+
+        .score-val {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text-main);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .score-val.is-live {
+            color: var(--live);
+        }
+
+        /* Table for Top Players */
+        .top-players-list {
+            padding: 10px;
+        }
+
+        .player-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.02);
+            margin-bottom: 8px;
+            border-radius: 10px;
+        }
+
+        .player-rank {
+            font-weight: 800;
+            color: var(--text-muted);
+            min-width: 24px;
+            font-size: 13px;
+        }
+
+        .player-img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--card);
+        }
+
+        .player-info {
+            flex: 1;
+        }
+
+        .player-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-main);
+            display: block;
+        }
+
+        .player-team {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .player-goals {
+            font-weight: 800;
+            color: var(--live);
+            font-size: 15px;
+        }
+
+        /* Leagues Detail Styling */
+        .category-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 24px;
+            background: var(--card);
+            margin-bottom: 2px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .category-row:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .category-flag {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .category-name {
+            font-weight: 600;
+            color: var(--text-main);
+            font-size: 15px;
+            flex: 1;
+        }
+
+        .category-count {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 700;
+            opacity: 0.6;
+        }
+
+        .category-header {
+            padding: 24px 24px 10px;
+            font-weight: 800;
+            color: var(--text-muted);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .league-sub-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 24px 16px 48px;
+            background: rgba(255, 255, 255, 0.015);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .league-sub-row:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .league-sub-logo {
+            width: 24px;
+            height: 24px;
+        }
+
+        .league-sub-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        /* Container for Search */
+        .search-wrapper {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 16px 20px;
+            background: var(--bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            margin-bottom: 8px;
+        }
+
+        .search-input-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            padding: 12px 18px;
+            border-radius: 14px;
+            transition: all 0.3s;
+        }
+
+        .search-input-box:focus-within {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+        }
+
+        .search-input-box input {
+            background: none;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 15px;
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .search-input-box input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-icon {
+            font-size: 18px;
+            opacity: 0.6;
+        }
+
+        .live-badge {
+            background: var(--live);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            animation: pulse-badge 2s infinite;
+            margin-left: auto;
+        }
+
+        @keyframes pulse-badge {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .standings-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .standings-table th {
+            padding: 14px 8px;
+            text-align: center;
+            color: var(--text-muted);
+            font-weight: 700;
+            font-size: 11px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border);
+            letter-spacing: 0.5px;
+        }
+
+        .standings-table th:nth-child(2) {
+            text-align: left;
+        }
+
+        .standings-table td {
+            padding: 14px 8px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            font-weight: 500;
+        }
+
+        .standings-table td.team-cell {
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: var(--text-main);
+            max-width: 150px;
+        }
+
+        .standings-table td.team-cell span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .standings-table .team-logo {
+            width: 22px;
+            height: 22px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            flex-shrink: 0;
+        }
+
+        .standings-table td.pts {
+            font-weight: 800;
+            color: var(--primary);
+            font-size: 14px;
+        }
+
+        /* App Modal (Native Bottom Sheet) */
+        #detailsModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            z-index: 2000;
+            align-items: flex-end;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #detailsModal.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: var(--bg);
+            width: 100%;
+            height: 93vh;
+            border-radius: 24px 24px 0 0;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.1, 1);
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        #detailsModal.show .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 24px 16px 20px;
+            position: relative;
+            background: var(--card);
+            border-radius: 24px 24px 0 0;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            background-image: radial-gradient(circle at top, rgba(59, 130, 246, 0.1), transparent 70%);
+        }
+
+        .drag-handle {
+            width: 40px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            margin: -10px auto 16px;
+        }
+
+        .close-btn {
+            position: absolute;
+            right: 16px;
+            top: 16px;
+            width: 34px;
+            height: 34px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+            transition: background 0.2s;
+        }
+
+        .close-btn:active {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(0.95);
+        }
+
+        .league-name-modal {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 24px;
+            letter-spacing: 1px;
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 5px;
+            padding: 0 10px;
+        }
+
+        .team-block {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .team-block img {
+            width: 72px;
+            height: 72px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            background: #fff;
+            padding: 2px;
+            flex-shrink: 0;
+        }
+
+        .team-block span {
+            font-size: 14px;
+            font-weight: 700;
+            text-align: center;
+            line-height: 1.3;
+            width: 100%;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            overflow-wrap: break-word;
+        }
+
+        .score-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0 10px;
+            min-width: 80px;
+        }
+
+        .score-large {
+            font-size: 48px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .time-badge {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--text-muted);
+            margin-top: 4px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .time-badge.is-live {
+            color: white;
+            background: var(--gradient-live);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
+        .modal-tabs {
+            display: flex;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 0 16px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 18px 4px;
+            border: none;
+            background: none;
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.2s;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 15%;
+            width: 70%;
+            height: 3px;
+            background: var(--primary);
+            border-radius: 3px 3px 0 0;
+            box-shadow: 0 -2px 8px rgba(59, 130, 246, 0.5);
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+            background: var(--bg);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 16px;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Incident styles inside modal body */
+        .incident {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            background: var(--card);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            margin-bottom: 10px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .inc-home {
+            flex-direction: row;
+        }
+
+        .inc-away {
+            flex-direction: row-reverse;
+            text-align: right;
+        }
+
+        .inc-time {
+            width: 35px;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .inc-icon {
+            font-size: 16px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        .inc-detail {
+            flex: 1;
+        }
+
+        /* Stats styles */
+        .stat-group-title {
+            text-align: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin: 24px 0 12px;
+            letter-spacing: 1px;
+        }
+
+        .stat-box {
+            margin-bottom: 16px;
+        }
+
+        .stat-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        .stat-bar-outer {
+            display: flex;
+            background: rgba(255, 255, 255, 0.05);
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+            gap: 2px;
+        }
+
+        .bar-home {
+            background: var(--home-color);
+            border-radius: 3px;
+            box-shadow: 0 0 8px var(--home-color);
+        }
+
+        .bar-away {
+            background: var(--away-color);
+            border-radius: 3px;
+            box-shadow: 0 0 8px var(--away-color);
+        }
+
+        /* App Bottom Nav */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 65px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1000;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 600;
+            gap: 6px;
+            width: 25%;
+            height: 100%;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .nav-item:active {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        .nav-icon {
+            font-size: 24px;
+            line-height: 1;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+
+        .nav-item.active .nav-icon {
+            transform: translateY(-3px) scale(1.1);
+            filter: drop-shadow(0 4px 8px rgba(59, 130, 246, 0.4));
+        }
+
+        @media (max-width: 380px) {
+            .team-name {
+                font-size: 13px;
+            }
+
+            .score-val {
+                font-size: 14px;
+            }
+
+            .league-title {
+                font-size: 13px;
+            }
+
+            .team-block img {
+                width: 56px;
+                height: 56px;
+            }
+
+            .team-block span {
+                font-size: 12px;
+            }
+
+            .score-large {
+                font-size: 40px;
+            }
+
+            .match-time {
+                width: 42px;
+                font-size: 12px;
+                padding-right: 10px;
+            }
+
+            .match-teams {
+                padding: 0 10px;
+            }
+
+            .league-card-logo {
+                width: 36px;
+                height: 36px;
+            }
+
+            .league-card-name {
+                font-size: 14px;
+            }
+
+            .standings-table {
+                font-size: 11px;
+            }
+
+            .standings-table th,
+            .standings-table td {
+                padding: 10px 4px;
+            }
+
+            .standings-table td.team-cell {
+                max-width: 110px;
+            }
+
+            .standings-table td.pts {
+                font-size: 12px;
+            }
+
+            .league-country {
+                font-size: 10px;
+            }
+        }
+
+        /* Favorites & Profile Extra Styles */
+        .fav-star {
+            font-size: 18px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 8px;
+            margin: -8px;
+            z-index: 5;
+        }
+
+        .fav-star.active {
+            color: #f59e0b;
+            filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.5));
+            transform: scale(1.1);
+        }
+
+        .fav-star:active {
+            transform: scale(0.8);
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 24px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .empty-state-text {
+            font-size: 14px;
+            line-height: 1.5;
+            max-width: 250px;
+        }
+
+        .profile-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 15px;
+            margin-top: 8px;
+            transition: border-color 0.2s;
+        }
+
+        .profile-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .save-btn {
+            width: 100%;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .save-btn:active {
+            transform: scale(0.98);
+            background: #2563eb;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(50px);
+            background: var(--card);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            z-index: 3000;
+            transition: all 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        /* Notification System Styling */
+        .notification-bell {
+            position: relative;
+            font-size: 22px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .notification-bell:active {
+            transform: scale(0.9);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 10px;
+            height: 10px;
+            background: var(--live);
+            border-radius: 50%;
+            border: 2px solid var(--card);
+            display: none;
+            animation: pulse-badge 1.5s infinite;
+        }
+
+        .notification-badge.active {
+            display: block;
+        }
+
+        .notification-item {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid var(--glass-border);
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            animation: fadeInUp 0.4s ease backwards;
+        }
+
+        .notification-item.unread {
+            border-left: 4px solid var(--primary);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .notification-icon-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            flex-shrink: 0;
+        }
+
+        .notification-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .notification-title {
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .notification-body {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.4;
+            display: block;
+        }
+
+        .notification-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 8px;
+            opacity: 0.6;
+            display: block;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--primary);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+        }
+
+        /* Sidebar Drawer */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg);
+            z-index: 2500;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-right: 1px solid var(--border);
+            box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .sidebar.active {
+            transform: translateX(280px);
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 2400;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+            opacity: 1;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .side-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            color: var(--text-main);
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .side-item:active {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .side-item i {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* Auth Form */
+        .auth-container {
+            max-width: 400px;
+            margin: 15px auto;
+            padding: 20px;
+            background: var(--card);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            text-align: center;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 5px;
+            border-radius: 12px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        .auth-tab.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* Notifications Clear */
+        .notif-header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .clear-all-btn {
+            color: var(--live);
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Auto Auth Overlay */
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: var(--bg);
+            z-index: 5000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+            text-align: center;
+            padding: 30px;
+            background-image: radial-gradient(circle at center, rgba(59, 130, 246, 0.15), transparent 70%);
+        }
+
+        .auth-overlay.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .auth-overlay-icon {
+            font-size: 80px;
+            margin-bottom: 30px;
+        }
+
+        .auth-overlay-title {
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 15px;
+            letter-spacing: -1px;
+        }
+
+        .auth-overlay-text {
+            font-size: 16px;
+            color: var(--text-muted);
+            max-width: 300px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-overlay-icon">🏆</div>
+        <div class="auth-overlay-title">Xoş Gəlmisiniz!</div>
+        <div class="auth-overlay-text">ProScore ailəsinə qoşulun və bütün imkanlardan yararlanın.</div>
+    </div>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+                <div
+                style="width:50px; height:50px; background:var(--primary); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:900;">
+                R</div>
+            <div>
+                <div style="font-weight:900; font-size:18px;">Rabona Media</div>
+                <div style="font-size:12px; color:var(--text-muted);">Canlı Nəticələr</div>
+            </div>
+        </div>
+        <div class="sidebar-nav">
+            <div class="side-item" onclick="switchMainView('matches'); toggleSidebar()"><i>⚽</i> Oyunlar</div>
+            <div class="side-item" onclick="switchMainView('leagues'); toggleSidebar()"><i>🏆</i> Liqalar</div>
+            <div class="side-item" onclick="switchMainView('favorites'); toggleSidebar()"><i>⭐</i> Favoritlər</div>
+            <div class="side-item" onclick="switchMainView('profile'); toggleSidebar()"><i>👤</i> Profil</div>
+            <hr style="border:none; border-top:1px solid var(--border); margin:10px 0;">
+            <div class="side-item" id="sidebarAuthLink" onclick="switchMainView('auth'); toggleSidebar()"><i>🔑</i>
+                Giriş / Qeydiyyat</div>
+        </div>
+    </div>
+
+    <div class="app-container">
+
+        <div class="top-navbar">
+            <header>
+                <div class="header-left">
+                    <span class="back-btn" id="backBtn" onclick="goBack()">‹</span>
+                    <span class="menu-icon" id="menuBtn" onclick="toggleSidebar()">☰</span>
+                </div>
+
+                <div class="logo" id="logoTitle">RABONA MEDIA</div>
+
+                <div class="header-right">
+                    <div class="notification-bell" id="notifBell" onclick="switchMainView('notifications')">
+                        <span id="notifBadge" class="notification-badge"></span>
+                        🔔
+                    </div>
+                    <span class="search-icon">🔍</span>
+                </div>
+            </header>
+
+            <div class="date-tabs" id="dateTabsContainer">
+                <!-- Tarixlər JS ilə bura gələcək -->
+            </div>
+        </div>
+
+        <!-- Main Content Scroll Area -->
+        <div class="main-content">
+            <!-- 1. Matches View (Home) -->
+            <div class="container active" id="matchView">
+                <div id="matchList">
+                    <div class="loader-wrapper">
+                        <div class="skel-header skeleton"></div>
+                        <div class="skel-row">
+                            <div class="skel-time skeleton"></div>
+                            <div class="skel-teams">
+                                <div class="skel-team skeleton"></div>
+                                <div class="skel-team skeleton" style="width:50%"></div>
+                            </div>
+                        </div>
+                        <div class="skel-row">
+                            <div class="skel-time skeleton"></div>
+                            <div class="skel-teams">
+                                <div class="skel-team skeleton"></div>
+                                <div class="skel-team skeleton" style="width:60%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Leagues View -->
+            <div id="leaguesView" class="container">
+                <div class="search-wrapper">
+                    <div class="search-input-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="leagueSearchTerm" placeholder="Liqa və ya ölkə axtar..."
+                            oninput="renderLeaguesView()">
+                    </div>
+                </div>
+                <div id="leaguesList">
+                    <div class="loader-wrapper">
+                        <div class="skeleton skel-header"></div>
+                        <div class="skeleton skel-row"></div>
+                        <div class="skeleton skel-row"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Single League Details View -->
+            <div class="container" id="singleLeagueView">
+                <div id="singleLeagueContent"></div>
+            </div>
+
+            <!-- 4. Favorites View -->
+            <div class="container" id="favoritesView">
+                <div id="favoritesContent"></div>
+            </div>
+
+            <!-- 5. Notifications View -->
+            <div class="container" id="notificationsView">
+                <div id="notificationsContent" style="padding: 16px;">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔔</div>
+                        <div class="empty-state-title">Bildiriş yoxdur</div>
+                        <div class="empty-state-text">Qollar və digər önəmli hadisələr burada görünəcək.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Auth View -->
+            <div class="container" id="authView">
+                <div class="auth-container">
+                    <div class="auth-tabs">
+                        <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Giriş</div>
+                        <div class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">Qeydiyyat</div>
+                    </div>
+
+                    <h2 id="authTitle" style="margin-bottom:10px;">Xoş Gəlmisiniz</h2>
+                    <p id="authSubtitle" style="color:var(--text-muted); font-size:14px; margin-bottom:30px;">Davam
+                        etmək üçün daxil olun</p>
+
+                    <div style="text-align:left; margin-bottom:15px;">
+                        <label
+                            style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">İstifadəçi
+                            Adı</label>
+                        <input type="text" id="authUsername" class="profile-input" placeholder="Azad123">
+                    </div>
+                    <div style="text-align:left; margin-bottom:30px;">
+                        <label
+                            style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Şifrə</label>
+                        <input type="password" id="authPassword" class="profile-input" placeholder="••••••••">
+                    </div>
+
+                    <button class="save-btn" id="authSubmitBtn" onclick="handleAuthSubmit()">Daxil Ol / Qeydiyyatdan Keç</button>
+                    <div id="authError" style="color:var(--live); font-size:13px; margin-top:15px; font-weight:600;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Profile View -->
+            <div class="container" id="profileView">
+                <div style="padding: 16px; max-width: 500px; margin: 0 auto;">
+                    <div
+                        style="display:flex; align-items:center; gap:20px; background:var(--card); padding:16px; border-radius:16px; margin-bottom:16px; box-shadow:0 8px 30px rgba(0,0,0,0.2); border: 1px solid var(--glass-border);">
+                        <div id="profileAvatar"
+                            style="width:70px; height:70px; border-radius:50%; background: var(--gradient-live); display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:900; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);">
+                            U</div>
+                        <div>
+                            <div id="profileDisplayName"
+                                style="font-size:22px; font-weight:900; letter-spacing: -0.5px;">İstifadəçi</div>
+                            <div style="color:var(--text-muted); font-size:14px; margin-top:2px; font-weight: 500;">
+                                ProScore Hesabı</div>
+                            <div id="profileLogoutBtn"
+                                style="color:var(--live); font-weight:700; font-size:13px; margin-top:10px; cursor:pointer; display:inline-block;"
+                                onclick="logoutUser()">Çıxış Et</div>
+                        </div>
+                    </div>
+
+                    <div
+                        style="background:var(--card); border-radius:16px; overflow:hidden; border: 1px solid var(--glass-border); margin-bottom: 24px;">
+                        <div style="padding:20px;">
+                            <div style="margin-bottom: 20px;">
+                                <label
+                                    style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Adınız</label>
+                                <input type="text" id="usernameInput" class="profile-input"
+                                    placeholder="Adınızı daxil edin" value="İstifadəçi">
+                            </div>
+                            <div style="margin-bottom: 10px;">
+                                <label
+                                    style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Status</label>
+                                <input type="text" id="statusInput" class="profile-input" placeholder="Statusunuz"
+                                    value="ProScore istifadəçisi">
+                            </div>
+                            <button class="save-btn" onclick="saveProfile()">Məlumatları Saxla</button>
+                        </div>
+                    </div>
+
+                    <div
+                        style="padding: 0 10px 10px; font-weight:700; color:var(--text-muted); font-size:12px; text-transform:uppercase; letter-spacing:1px;">
+                        Tənzimləmələr</div>
+                    <div
+                        style="background:var(--card); border-radius:16px; overflow:hidden; border: 1px solid var(--glass-border);">
+                        <div
+                            style="padding:16px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:15px; font-weight:600;">Başlanğıc Səhifə</span>
+                            <select id="defaultViewSelect" class="profile-input"
+                                style="width:auto; margin-top:0; padding:6px 12px;"
+                                onchange="updateSetting('defaultView', this.value)">
+                                <option value="matches">Oyunlar</option>
+                                <option value="leagues">Liqalar</option>
+                            </select>
+                        </div>
+                        <div
+                            style="padding:16px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:15px; font-weight:600;">Səslər</span>
+                            <select id="soundSelect" class="profile-input"
+                                style="width:auto; margin-top:0; padding:6px 12px;"
+                                onchange="updateSetting('notifSound', this.value); notificationMgr.playTestSound()">
+                                <option value="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3">Goal 1
+                                </option>
+                                <option value="https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3">Goal 2
+                                </option>
+                                <option value="https://assets.mixkit.co/active_storage/sfx/1004/1004-preview.mp3">
+                                    Whistle</option>
+                            </select>
+                        </div>
+                        <div
+                            style="padding:16px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:15px; font-weight:600;">Sədəcədə Favoritlər</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="onlyFavNotifToggle"
+                                    onchange="updateSetting('onlyFavNotif', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div
+                            style="padding:16px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:15px; font-weight:600;">Brauzer Bildirişləri</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="browserNotifToggle"
+                                    onchange="toggleBrowserNotifications(this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div
+                            style="padding:16px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:15px; font-weight:600;">Bildiriş Səsi</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="soundNotifToggle"
+                                    onchange="updateSetting('soundEnabled', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div style="padding:16px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
+                            onclick="toggleTheme()">
+                            <span style="font-size:15px; font-weight:600;">Qaranlıq Tema</span>
+                            <span id="themeStatus" style="color:var(--primary);">Aktiv</span>
+                        </div>
+                        <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
+                            onclick="clearAllData()">
+                            <span style="font-size:15px; font-weight:600; color:#ef4444;">Bütün Məlumatları Sil</span>
+                            <span>🗑️</span>
+                        </div>
+                        <div id="logoutBtnBox"
+                            style="padding:16px; display:none; justify-content:space-between; align-items:center; cursor:pointer;"
+                            onclick="logoutUser()">
+                            <span style="font-size:15px; font-weight:600; color:var(--live);">Hesabdan Çıx</span>
+                            <span>🚪</span>
+                        </div>
+                    </div>
+                </div>
+            </div> <!-- main-content sonu -->
+
+        </div>
+
+        <!-- Modal Bottom Sheet -->
+        <div id="detailsModal">
+            <div class="modal-content">
+                <div class="modal-header" id="dragHeader">
+                    <div class="drag-handle"></div>
+                    <div class="close-btn" onclick="closeModal()">✕</div>
+                    <div class="league-name-modal" id="leagueM"></div>
+
+                    <div class="score-board">
+                        <div class="team-block">
+                            <img id="logoH" src="" alt="">
+                            <span id="nameH"></span>
+                        </div>
+                        <div class="score-block">
+                            <div class="score-large" id="scoreM">-</div>
+                            <div class="time-badge" id="timeM"></div>
+                        </div>
+                        <div class="team-block">
+                            <img id="logoA" src="" alt="">
+                            <span id="nameA"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-tabs">
+                    <button class="tab-btn active" onclick="switchTab('goalsBox', this)">Detallar</button>
+                    <button class="tab-btn" onclick="switchTab('statsBox', this)">Statistika</button>
+                </div>
+
+                <div class="modal-body" id="modalBd">
+                    <div id="goalsBox" class="tab-content active" style="padding:0 16px;"></div>
+                    <div id="statsBox" class="tab-content" style="padding:0 16px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="bottom-nav">
+            <div class="nav-item active" id="navMatches" onclick="switchMainView('matches')">
+                <div class="nav-icon">⚽</div>
+                <span>Oyunlar</span>
+            </div>
+            <div class="nav-item" id="navLeagues" onclick="switchMainView('leagues')">
+                <div class="nav-icon">🏆</div>
+                <span>Liqalar</span>
+            </div>
+            <div class="nav-item" id="navFavorites" onclick="switchMainView('favorites')">
+                <div class="nav-icon">⭐</div>
+                <span>Favoritlər</span>
+            </div>
+            <div class="nav-item" id="navProfile" onclick="switchMainView('profile')">
+                <div class="nav-icon">👤</div>
+                <span>Profil</span>
+            </div>
+        </div>
+
+        <!-- Toast Container -->
+        <div id="toast" class="toast"><span id="toastMsg"></span></div>
+
+        <script>
+            console.log("SCRIPT START: index.html VERSION 1.0.1 running");
+            try {
+                // G_URL silindi, yerinə yerli API istifadə olunur
+            let allEvents = [];
+            let groupedDataGlobal = {};
+            let isLiveFiltered = false;
+
+            /* Storage & Settings */
+            let favMatches = JSON.parse(localStorage.getItem('favMatches') || '[]');
+            let favLeagues = JSON.parse(localStorage.getItem('favLeagues') || '[]');
+            let toastTimer = null;
+            let userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"defaultView":"matches", "timeFormat":"24h", "browserNotifEnabled":false, "soundEnabled":true, "onlyFavNotif":true, "notifSound":"https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"}');
+            let topLeaguesRaw = [];
+            let allCategoriesGlobal = [];
+            let expandedCategories = new Set();
+
+            let authTimer = null;
+            let userHasNavigated = false;
+            let selectedDate = new Date().toISOString().split('T')[0];
+
+            function generateDateTabs() {
+                console.log("Generating date tabs...");
+                const container = document.getElementById('dateTabsContainer');
+                if (!container) return;
+                const today = new Date();
+                const days = ['Bazar', 'B.Ertəsi', 'Ç.Axşamı', 'Çərşənbə', 'C.Axşamı', 'Cümə', 'Şənbə'];
+                const months = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'İyun', 'İyul', 'Avq', 'Sent', 'Okt', 'Noy', 'Dek'];
+                
+                let html = '';
+                for (let i = -1; i <= 2; i++) {
+                    const d = new Date();
+                    d.setDate(today.getDate() + i);
+                    const isToday = i === 0;
+                    const dateStr = d.toISOString().split('T')[0];
+                    const activeClass = (dateStr === selectedDate && !isLiveFiltered) ? 'active' : '';
+                    
+                    html += `
+                        <div class="date-tab ${activeClass}" onclick="selectDate('${dateStr}', this)">
+                            <span class="day-name">${isToday ? 'BU GÜN' : days[d.getDay()].toUpperCase()}</span>
+                            <span class="date-num">${d.getDate()} ${months[d.getMonth()]}</span>
+                        </div>
+                    `;
+                    
+                    if (isToday) {
+                        html += `
+                            <div class="date-tab live-tab ${isLiveFiltered ? 'active' : ''}" id="filterLiveBtn" onclick="toggleLiveFilter(this)">
+                                <span class="day-name">CANLI</span>
+                                <span class="date-num">LIVE</span>
+                            </div>
+                        `;
+                    }
+                }
+                console.log("Date tabs HTML generated, setting container content.");
+                container.innerHTML = html;
+            }
+
+            window.selectDate = function(dateStr, el) {
+                isLiveFiltered = false;
+                selectedDate = dateStr;
+                document.querySelectorAll('.date-tab').forEach(t => t.classList.remove('active'));
+                if (el) el.classList.add('active');
+                fetchData(dateStr);
+            };
+
+            window.toggleLiveFilter = function(el) {
+                isLiveFiltered = true;
+                selectedDate = null;
+                document.querySelectorAll('.date-tab').forEach(t => t.classList.remove('active'));
+                if (el) el.classList.add('active');
+                fetchData('live');
+            };
+
+            /* Notification System */
+            class NotificationManager {
+                constructor() {
+                    this.history = JSON.parse(localStorage.getItem('notifHistory') || '[]');
+                    this.lastEventState = new Map();
+                    this.unreadCount = 0;
+                    this.audio = new Audio(userSettings.notifSound || 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                }
+
+                init() {
+                    this.renderHistory();
+                    this.updateBadge();
+                    if (userSettings.browserNotifEnabled) {
+                        this.requestPermission();
+                    }
+
+                    // PWA Message Listener
+                    if ('serviceWorker' in navigator) {
+                        navigator.serviceWorker.addEventListener('message', (event) => {
+                            if (event.data.type === 'openMatch') {
+                                openMatchById(event.data.matchId);
+                            }
+                        });
+                    }
+                }
+
+                playTestSound() {
+                    const tempAudio = new Audio(document.getElementById('soundSelect').value);
+                    tempAudio.play().catch(e => console.log("Blocked"));
+                }
+
+                requestPermission() {
+                    if (!("Notification" in window)) return;
+                    if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+                        Notification.requestPermission();
+                    }
+                }
+
+                checkUpdates(newEvents) {
+                    if (this.lastEventState.size === 0) {
+                        newEvents.forEach(ev => {
+                            this.lastEventState.set(ev.id, { h: ev.homeScore.current, a: ev.awayScore.current, status: ev.status.type });
+                        });
+                        return;
+                    }
+
+                    const favoritesOnly = userSettings.onlyFavNotif;
+
+                    newEvents.forEach(ev => {
+                        const prev = this.lastEventState.get(ev.id);
+                        if (prev) {
+                            // Filter match
+                            const isMatchFav = favMatches.some(f => f.id.toString() === ev.id.toString());
+                            const isLeagueFav = favLeagues.some(f => f.id.toString() === (ev.tournament.uniqueTournament?.id || ev.tournament.id).toString());
+
+                            if (favoritesOnly && !isMatchFav && !isLeagueFav) {
+                                this.lastEventState.set(ev.id, { h: ev.homeScore.current, a: ev.awayScore.current, status: ev.status.type });
+                                return;
+                            }
+
+                            // Check for GOAL
+                            if (ev.homeScore.current > prev.h || ev.awayScore.current > prev.a) {
+                                const scorer = ev.homeScore.current > prev.h ? ev.homeTeam.name : ev.awayTeam.name;
+                                this.addNotification('goal', 'QOOL!', `${scorer} qol vurdu! (${ev.homeTeam.name} ${ev.homeScore.current} - ${ev.awayScore.current} ${ev.awayTeam.name})`, ev.id);
+                            }
+                            // Check for Match Start
+                            else if (prev.status === 'notstarted' && ev.status.type === 'inprogress') {
+                                this.addNotification('start', 'Oyun Başladı', `${ev.homeTeam.name} - ${ev.awayTeam.name} oyunu başladı!`, ev.id);
+                            }
+                        }
+                        this.lastEventState.set(ev.id, { h: ev.homeScore.current, a: ev.awayScore.current, status: ev.status.type });
+                    });
+                }
+
+                addNotification(type, title, body, matchId) {
+                    const notif = {
+                        id: Date.now(),
+                        type,
+                        title,
+                        body,
+                        matchId,
+                        time: new Date().toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' }),
+                        unread: true
+                    };
+
+                    this.history.unshift(notif);
+                    if (this.history.length > 50) this.history.pop();
+                    localStorage.setItem('notifHistory', JSON.stringify(this.history));
+
+                    this.unreadCount++;
+                    this.updateBadge();
+
+                    if (document.getElementById('notificationsView').classList.contains('active')) {
+                        this.renderHistory();
+                    }
+
+                    // Browser notification
+                    if (userSettings.browserNotifEnabled && Notification.permission === "granted") {
+                        const n = new Notification(title, {
+                            body: body,
+                            icon: 'https://www.sofascore.com/favicon.ico',
+                            data: { matchId: matchId }
+                        });
+                        n.onclick = (e) => {
+                            window.focus();
+                            openMatchById(matchId);
+                            n.close();
+                        };
+                    }
+
+                    // Sound
+                    if (userSettings.soundEnabled && type === 'goal') {
+                        this.audio.src = userSettings.notifSound || 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+                        this.audio.play().catch(e => console.log("Audio play blocked"));
+                    }
+
+                    // Toast
+                    showToast(`${title}: ${body}`);
+                }
+
+                renderHistory() {
+                    const container = document.getElementById('notificationsContent');
+                    if (this.history.length === 0) {
+                        container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔔</div>
+                        <div class="empty-state-title">Bildiriş yoxdur</div>
+                        <div class="empty-state-text">Qollar və digər önəmli hadisələr burada görünəcək.</div>
+                    </div>`;
+                        return;
+                    }
+
+                    let html = `
+                <div class="notif-header-actions">
+                    <span style="font-weight:800; opacity:0.6;">SON HADİSƏLƏR</span>
+                    <div class="clear-all-btn" onclick="notificationMgr.clearAllHistory()">🗑️ HAMSINI SİL</div>
+                </div>
+            `;
+
+                    html += this.history.map(n => `
+                <div class="notification-item ${n.unread ? 'unread' : ''}" onclick="openMatchById('${n.matchId}'); notificationMgr.markRead(${n.id})">
+                    <div class="notification-icon-box">
+                        ${n.type === 'goal' ? '⚽' : '📢'}
+                    </div>
+                    <div class="notification-info">
+                        <span class="notification-title">${n.title}</span>
+                        <span class="notification-body">${n.body}</span>
+                        <span class="notification-time">${n.time}</span>
+                    </div>
+                    <div style="font-size:18px; cursor:pointer; padding:10px;" onclick="event.stopPropagation(); notificationMgr.deleteNotification(${n.id})">✕</div>
+                </div>
+            `).join('');
+
+                    container.innerHTML = html;
+                }
+
+                markRead(id) {
+                    const notif = this.history.find(n => n.id === id);
+                    if (notif && notif.unread) {
+                        notif.unread = false;
+                        this.unreadCount = Math.max(0, this.unreadCount - 1);
+                        localStorage.setItem('notifHistory', JSON.stringify(this.history));
+                        this.updateBadge();
+                        this.renderHistory();
+                    }
+                }
+
+                deleteNotification(id) {
+                    this.history = this.history.filter(n => n.id !== id);
+                    localStorage.setItem('notifHistory', JSON.stringify(this.history));
+                    this.unreadCount = this.history.filter(n => n.unread).length;
+                    this.updateBadge();
+                    this.renderHistory();
+                }
+
+                clearAllHistory() {
+                    if (confirm('Bütün bildiriş tarixçəsini silmək istəyirsiniz?')) {
+                        this.history = [];
+                        this.unreadCount = 0;
+                        localStorage.setItem('notifHistory', JSON.stringify(this.history));
+                        this.updateBadge();
+                        this.renderHistory();
+                    }
+                }
+
+                markAllAsRead() {
+                    this.history.forEach(n => n.unread = false);
+                    this.unreadCount = 0;
+                    localStorage.setItem('notifHistory', JSON.stringify(this.history));
+                    this.updateBadge();
+                    this.renderHistory();
+                }
+
+                updateBadge() {
+                    const badge = document.getElementById('notifBadge');
+                    if (this.unreadCount > 0) {
+                        badge.classList.add('active');
+                    } else {
+                        badge.classList.remove('active');
+                    }
+                }
+            }
+
+            const notificationMgr = new NotificationManager();
+
+            /* View Route Logic */
+            let currentStandingsTourId = null;
+            let standingsTimeout = null;
+
+            function switchMainView(viewType) {
+                currentStandingsTourId = null;
+                document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+                const mc = document.querySelector('.main-content');
+                if (viewType === 'matches') {
+                    document.getElementById('matchView').classList.add('active');
+                    document.getElementById('navMatches').classList.add('active');
+                    document.getElementById('dateTabsContainer').style.display = 'flex';
+                    document.getElementById('logoTitle').innerText = 'RABONA MEDIA';
+                    hideBackBtn();
+                    mc.style.paddingTop = '130px';
+                }
+                else if (viewType === 'leagues') {
+                    document.getElementById('leaguesView').classList.add('active');
+                    document.getElementById('navLeagues').classList.add('active');
+                    document.getElementById('dateTabsContainer').style.display = 'none';
+                    document.getElementById('logoTitle').innerText = 'LİQALAR';
+                    hideBackBtn();
+                    mc.style.paddingTop = '80px';
+                    renderLeaguesView();
+                }
+                else if (viewType === 'favorites') {
+                    document.getElementById('favoritesView').classList.add('active');
+                    document.getElementById('navFavorites').classList.add('active');
+                    document.getElementById('dateTabsContainer').style.display = 'none';
+                    document.getElementById('logoTitle').innerText = 'FAVORİTLƏR';
+                    hideBackBtn();
+                    mc.style.paddingTop = '80px';
+                    renderFavoritesView();
+                }
+                else if (viewType === 'profile') {
+                    const token = localStorage.getItem('proscore_token');
+                    if (!token) {
+                        showToast('Profil üçün daxil olun');
+                        switchMainView('auth');
+                        return;
+                    }
+                    userHasNavigated = true;
+                    if (authTimer) clearTimeout(authTimer);
+
+                    document.getElementById('profileView').classList.add('active');
+                    document.getElementById('navProfile').classList.add('active');
+                    document.getElementById('dateTabsContainer').style.display = 'none';
+                    document.getElementById('logoTitle').innerText = 'PROFİL';
+                    hideBackBtn();
+                    mc.style.paddingTop = '80px';
+                    loadProfile();
+                }
+                else if (viewType === 'auth') {
+                    userHasNavigated = true;
+                    if (authTimer) clearTimeout(authTimer);
+                    document.getElementById('authView').classList.add('active');
+                    document.getElementById('navProfile').classList.add('active');
+                    document.getElementById('dateTabsContainer').style.display = 'none';
+                    document.getElementById('logoTitle').innerText = 'QEYDİYYAT';
+                    hideBackBtn();
+                    mc.style.paddingTop = '80px';
+                }
+                else if (viewType === 'notifications') {
+                    document.getElementById('notificationsView').classList.add('active');
+                    document.getElementById('navLeagues').classList.remove('active'); // Reset other navs
+                    document.getElementById('dateTabsContainer').style.display = 'none';
+                    document.getElementById('logoTitle').innerText = 'BİLDİRİŞLƏR';
+                    showBackBtn();
+                    notificationMgr.renderHistory();
+                    notificationMgr.markAllAsRead();
+                    mc.style.paddingTop = '60px';
+                }
+                mc.scrollTo({ top: 0, behavior: 'auto' });
+            }
+
+            window.openSingleLeague = async function(keyId, manualId = null) {
+                let group = manualId ? null : groupedDataGlobal[keyId];
+
+                if (!group && manualId) {
+                    // For categories that were opened manually
+                    group = { id: manualId, name: keyId, country: "Liqa", matches: [], seasonId: null };
+                    // We need more info for logos
+                    const cInfo = await fetch(`/api/tournament/${manualId}/seasons`);
+                    const cData = await cInfo.json();
+                    group.seasonId = cData.seasons && cData.seasons[0] ? cData.seasons[0].id : null;
+                }
+
+                if (!group) return;
+
+                document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
+                document.getElementById('dateTabsContainer').style.display = 'none';
+
+                const singleView = document.getElementById('singleLeagueView');
+                singleView.classList.add('active');
+                document.querySelector('.main-content').style.paddingTop = '70px';
+
+                document.getElementById('logoTitle').innerText = group.name.toUpperCase();
+                showBackBtn();
+
+                if (!group.seasonId) {
+                    const sResp = await fetch(`/api/tournament/${group.id}/seasons`);
+                    const sData = await sResp.json();
+                    group.seasonId = sData.seasons && sData.seasons[0] ? sData.seasons[0].id : null;
+                }
+
+                const { logoUrl, fallBack } = getLeagueLogoData(group);
+                const hasMatches = group.matches && group.matches.length > 0;
+                const matchesHtml = hasMatches
+                    ? group.matches.map(m => createMatchRow(m, group)).join("")
+                    : `<div style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600;">Bu gün üçün oyun tapılmadı. <br><span style="font-size:12px; font-weight:400; opacity:0.7;">Cədvələ (Puan Durumu) keçid edərək xal durumuna baxa bilərsiniz.</span></div>`;
+
+                const html = `
+            <div class="league-group" style="margin-top:20px; border-radius: 12px 12px 0 0; border-bottom: none;">
+                <div class="league-header" style="justify-content:center; flex-direction:column; padding:24px; background: transparent; border:none; pointer-events:none;">
+                    <img src="${logoUrl}" style="width:70px; height:70px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.5)" onerror="this.src='${fallBack}'; this.onerror=function(){this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzFmMjkzZCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIvPjwvc3ZnPg=='}">
+                    <div style="font-size:22px; font-weight:900; margin-top:16px; text-align:center; width:100%; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-wrap:break-word;">${group.name}</div>
+                    <div style="font-size:14px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-top:4px; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${group.country}</div>
+                </div>
+                
+                <div class="modal-tabs" style="background:var(--card); border-bottom:1px solid rgba(255,255,255,0.05); border-top:1px solid rgba(255,255,255,0.05); position:relative; z-index:1;">
+                    <button class="tab-btn ${hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueMatches', this)">OYUNLAR</button>
+                    <button class="tab-btn ${!hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueStandings', this)">CƏDVƏL</button>
+                    <button class="tab-btn" onclick="switchLeagueTab('leagueTopPlayers', this)">BOMBARDİRLƏR</button>
+                </div>
+                
+                <div class="league-tab-content ${hasMatches ? 'active' : ''}" id="leagueMatches" style="${!hasMatches ? 'display:none;' : ''}">
+                    ${matchesHtml}
+                </div>
+                <div class="league-tab-content ${!hasMatches ? 'active' : ''}" id="leagueStandings" style="${hasMatches ? 'display:none;' : ''} padding:16px 0;">
+                    <div class="loader-wrapper"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton"></div></div></div></div>
+                </div>
+                <div class="league-tab-content" id="leagueTopPlayers" style="display:none; padding:16px 0;">
+                    <div class="loader-wrapper"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton"></div></div></div></div>
+                </div>
+            </div>
+        `;
+                document.getElementById('singleLeagueContent').innerHTML = html;
+                window.scrollTo({ top: 0 });
+
+                loadStandings(group.id, group.seasonId);
+                loadTopPlayers(group.id, group.seasonId);
+            }
+            window.switchLeagueTab = function (tabId, btn) {
+                document.querySelectorAll('.league-tab-content').forEach(c => c.style.display = 'none');
+                btn.parentElement.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.getElementById(tabId).style.display = 'block';
+                btn.classList.add('active');
+            };
+
+            async function fetchNativeStandings(tourId, seasonId) {
+                if (currentStandingsTourId !== tourId) return;
+
+                try {
+                    const res = await fetch(`/api/standings/${tourId}/${seasonId}`);
+                    const data = await res.json();
+
+                    if (data && data.standings && data.standings.length > 0) {
+                        const sData = data.standings[0];
+                        const rows = sData.rows || [];
+
+                        let tableHtml = `
+                <div style="background:var(--card); border-radius:12px; margin-top:10px; padding:0; overflow-x:auto;">
+                    <table class="standings-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 30px;">#</th>
+                                <th>KOMANDA</th>
+                                <th>O</th>
+                                <th>Q</th>
+                                <th>H</th>
+                                <th>M</th>
+                                <th>QOL</th>
+                                <th>X</th>
+                                <th>FORMA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                        rows.forEach(row => {
+                            let formHtml = '';
+                            if (row.form && row.form.length > 0) {
+                                formHtml = `<div style="display:flex; gap:3px; justify-content:center;">`;
+                                row.form.slice(0, 5).forEach(f => {
+                                    let color = f === 'W' ? '#16a34a' : (f === 'D' ? '#fbbf24' : '#dc2626');
+                                    let textCol = f === 'W' ? '#FFF' : (f === 'D' ? '#000' : '#FFF');
+                                    let ftext = f === 'W' ? 'Q' : (f === 'D' ? 'H' : 'M');
+                                    formHtml += `<span style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:5px; font-size:10px; font-weight:700; background:${color}; color:${textCol}; box-shadow: 0 2px 6px rgba(0,0,0,0.3); border: 1px solid rgba(0,0,0,0.2);">${ftext}</span>`;
+                                });
+                                formHtml += `</div>`;
+                            }
+
+                            tableHtml += `
+                        <tr style="transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
+                            <td style="font-weight:700; color:var(--text-muted);">${row.position}</td>
+                            <td class="team-cell">
+                                <img class="team-logo" src="https://www.sofascore.com/api/v1/team/${row.team.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
+                                <span>${row.team.name}</span>
+                            </td>
+                            <td>${row.matches}</td>
+                            <td>${row.wins}</td>
+                            <td>${row.draws}</td>
+                            <td>${row.losses}</td>
+                            <td>${row.scoresFor}:${row.scoresAgainst}</td>
+                            <td class="pts">${row.points}</td>
+                            <td>${formHtml}</td>
+                        </tr>
+                    `;
+                        });
+
+                        tableHtml += `</tbody></table></div>`;
+
+                        const box = document.getElementById('leagueStandings');
+                        if (currentStandingsTourId === tourId) {
+                            box.innerHTML = tableHtml;
+                        }
+                    } else {
+                        if (currentStandingsTourId === tourId && document.getElementById('leagueStandings').innerHTML.includes('skeleton')) {
+                            document.getElementById('leagueStandings').innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Cədvəl məlumatı yoxdur.</div>";
+                        }
+                    }
+                } catch (e) {
+                    console.error("Standings fetch error: ", e);
+                }
+
+                if (currentStandingsTourId === tourId) {
+                    clearTimeout(standingsTimeout);
+                    standingsTimeout = setTimeout(() => fetchNativeStandings(tourId, seasonId), 30000);
+                }
+            }
+
+            window.loadTopPlayers = async function(tourId, seasonId) {
+                if (!tourId || !seasonId) return;
+                try {
+                    const res = await fetch(`/api/tournament/${tourId}/season/${seasonId}/top-players`);
+                    const data = await res.json();
+                    const box = document.getElementById("leagueTopPlayers");
+
+                    if (data.topPlayers && data.topPlayers.length > 0) {
+                        let html = '<div class="top-players-list">';
+                        data.topPlayers.slice(0, 15).forEach((p, index) => {
+                            html += `
+                        <div class="player-row">
+                            <span class="player-rank">${index + 1}</span>
+                            <img class="player-img" src="https://www.sofascore.com/api/v1/player/${p.player.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
+                            <div class="player-info">
+                                <span class="player-name">${p.player.name}</span>
+                                <span class="player-team">${p.team.name}</span>
+                            </div>
+                            <span class="player-goals">${p.statistics.goals} Qol</span>
+                        </div>
+                    `;
+                        });
+                        html += '</div>';
+                        box.innerHTML = html;
+                    } else {
+                        box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Məlumat tapılmadı.</div>";
+                    }
+                } catch (e) {
+                    console.error("Top players load error", e);
+                }
+            }
+
+            window.loadStandings = function(tourId, seasonId) {
+                currentStandingsTourId = tourId;
+                const box = document.getElementById('leagueStandings');
+                if (!seasonId || !tourId) {
+                    box.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Cədvəl sistemi mövcud deyil.</div>";
+                    return;
+                }
+
+                box.innerHTML = `<div class="loader-wrapper"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:100%;"></div></div></div><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:70%;"></div></div></div><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:90%;"></div></div></div></div>`;
+
+                fetchNativeStandings(tourId, seasonId);
+            }
+
+
+            function showBackBtn() {
+                document.getElementById('backBtn').style.display = 'block';
+                document.getElementById('menuBtn').style.display = 'none';
+            }
+
+            function hideBackBtn() {
+                document.getElementById('backBtn').style.display = 'none';
+                document.getElementById('menuBtn').style.display = 'block';
+            }
+
+            function goBack() { switchMainView('leagues'); }
+
+            window.toggleCollapsible = function (headerElement) {
+                const matchesContainer = headerElement.nextElementSibling;
+                const chevron = headerElement.querySelector('.chevron');
+                if (matchesContainer) {
+                    matchesContainer.classList.toggle('collapsed');
+                    chevron.classList.toggle('down');
+                }
+            };
+
+            function getMatchTime(m) {
+                if (m.status && m.status.type === 'inprogress' && m.time && m.time.currentPeriodStartTimestamp) {
+                    const now = Math.floor(Date.now() / 1000);
+                    let elapsed = now - m.time.currentPeriodStartTimestamp;
+                    let totalSeconds = elapsed;
+                    if (m.time.initial) totalSeconds += m.time.initial;
+                    if (totalSeconds < 0) totalSeconds = 0;
+                    let min = Math.floor(totalSeconds / 60) + 1;
+                    return min + "'";
+                }
+                let desc = (m.status && m.status.description) ? m.status.description : "";
+                let uc = desc.toUpperCase();
+                if (uc === 'HALFTIME' || uc === 'HALF TIME') return 'HT';
+                if (uc === 'ENDED') return 'FT';
+                return desc;
+            }
+
+            function applyFilters() {
+                console.log("Applying filters... allEvents count:", allEvents.length);
+                let listRaw = allEvents;
+                if (isLiveFiltered) {
+                    listRaw = allEvents.filter(m => m.status.type === 'inprogress' || m.status.description.toUpperCase() === 'HT' || m.status.description.toUpperCase() === 'ET' || m.status.description.includes("'"));
+                } else if (selectedDate) {
+                    listRaw = allEvents.filter(m => {
+                        if (!m.startTimestamp) return false;
+                        try {
+                            const eventDate = new Date(m.startTimestamp * 1000).toISOString().split('T')[0];
+                            return eventDate === selectedDate;
+                        } catch (e) {
+                            return false;
+                        }
+                    });
+                }
+
+                groupedDataGlobal = listRaw.reduce((acc, ev) => {
+                    if (!ev.tournament || !ev.tournament.name) return acc;
+                    const catName = (ev.tournament.category && ev.tournament.category.name) ? ev.tournament.category.name : "Other";
+                    const groupKey = `${ev.tournament.name}_${catName}`;
+                    
+                    if (!acc[groupKey]) {
+                        const isUnique = !!ev.tournament.uniqueTournament;
+                        const tourId = isUnique ? ev.tournament.uniqueTournament.id : ev.tournament.id;
+                        const catId = (ev.tournament.category && ev.tournament.category.id) ? ev.tournament.category.id : 0;
+                        const seasonId = ev.season ? ev.season.id : null;
+                        acc[groupKey] = {
+                            key: groupKey, id: tourId, isUnique, catId,
+                            name: ev.tournament.name, country: catName,
+                            seasonId, matches: [], hasLive: false
+                        };
+                    }
+                    acc[groupKey].matches.push(ev);
+                    if (ev.status && ev.status.type === 'inprogress') acc[groupKey].hasLive = true;
+                    return acc;
+                }, {});
+
+                topLeaguesRaw.forEach(t => {
+                    if (!t || !t.name || !t.category) return;
+                    const groupKey = `${t.name}_${t.category.name}`;
+                    if (!groupedDataGlobal[groupKey]) {
+                        groupedDataGlobal[groupKey] = {
+                            key: groupKey, id: t.id, isUnique: true, catId: t.category.id,
+                            name: t.name, country: t.category.name,
+                            seasonId: null, matches: [], hasLive: false
+                        };
+                    }
+                });
+
+                renderMatchView(groupedDataGlobal);
+                if (document.getElementById('leaguesView').classList.contains('active')) renderLeaguesView();
+            }
+
+            async function fetchData(param = null) {
+                let url = '/api/matches/live';
+                
+                if (param === 'live' || isLiveFiltered) {
+                    url = '/api/matches/live';
+                } else {
+                    const dateToFetch = param || selectedDate || new Date().toISOString().split('T')[0];
+                    url = `/api/matches/${dateToFetch}`;
+                }
+
+                console.log("Fetching data from:", url);
+                
+                try {
+                    console.log("Fetching matches from:", url);
+                    const resEvents = await fetch(url);
+                    if (!resEvents.ok) throw new Error(`HTTP error! status: ${resEvents.status}`);
+                    const dataEvents = await resEvents.json();
+                    
+                    if (dataEvents && dataEvents.events) {
+                        allEvents = dataEvents.events;
+                        console.log(`Successfully loaded ${allEvents.length} events.`);
+                    } else if (Array.isArray(dataEvents)) {
+                        allEvents = dataEvents;
+                        console.log(`Successfully loaded ${allEvents.length} events from array.`);
+                    } else {
+                        allEvents = [];
+                        console.log("No events found in response data.");
+                    }
+
+                    if (window.notificationMgr) {
+                        notificationMgr.checkUpdates(allEvents);
+                    }
+
+                    applyFilters();
+                } catch (e) {
+                    console.error("Matches fetch error:", e);
+                    // Silently fail but keep current state or show error in UI
+                }
+
+                // Fetch Local Config (Top Leagues & Categories)
+                if (topLeaguesRaw.length === 0) {
+                    try {
+                        const [resTop, resCats] = await Promise.all([
+                            fetch('/api/top-leagues').catch(() => null),
+                            fetch('/api/categories').catch(() => null)
+                        ]);
+
+                        if (resTop && resTop.ok) topLeaguesRaw = (await resTop.json()).data || [];
+                        if (resCats && resCats.ok) allCategoriesGlobal = (await resCats.json()).data || [];
+
+                        if (document.getElementById('leaguesView').classList.contains('active')) {
+                            renderLeaguesView();
+                        }
+                    } catch (e) {
+                        console.log("Local API is unreachable, some features may be disabled.");
+                    }
+                }
+            }
+
+            function createMatchRow(m, group) {
+                const timeRaw = getMatchTime(m);
+                const isLive = m.status.type === 'inprogress' || timeRaw === 'HT' || timeRaw === 'ET' || timeRaw === 'LIVE';
+
+                let displayTime = timeRaw;
+                const timeClass = isLive ? 'match-time is-live' : 'match-time';
+                const formattedMinute = isLive ? `<span class="live-min">${displayTime}</span>` : displayTime;
+
+                const safeTimeRaw = timeRaw.replace(/'/g, "\\'");
+                const safeHomeName = m.homeTeam.name.replace(/'/g, "\\'");
+                const safeAwayName = m.awayTeam.name.replace(/'/g, "\\'");
+                const safeGroupName = group.name.replace(/'/g, "\\'");
+
+                const isFav = favMatches.some(f => f.id.toString() === m.id.toString());
+                
+                // Handle undefined scores for future matches
+                const homeScore = (m.homeScore && m.homeScore.current !== undefined) ? m.homeScore.current : '';
+                const awayScore = (m.awayScore && m.awayScore.current !== undefined) ? m.awayScore.current : '';
+
+                return `
+        <div class="match-row" onclick="openMatch('${m.id}', '${m.homeTeam.id}', '${m.awayTeam.id}', '${safeHomeName}', '${safeAwayName}', '${homeScore}', '${awayScore}', '${safeTimeRaw}', '${safeGroupName}')">
+            <div class="${timeClass}">${formattedMinute}</div>
+            <div class="match-teams">
+                <div class="team-line">
+                    <img class="team-logo" src="https://www.sofascore.com/api/v1/team/${m.homeTeam.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
+                    <span class="team-name">${m.homeTeam.name}</span>
+                </div>
+                <div class="team-line">
+                    <img class="team-logo" src="https://www.sofascore.com/api/v1/team/${m.awayTeam.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
+                    <span class="team-name">${m.awayTeam.name}</span>
+                </div>
+            </div>
+            <div class="match-scores">
+                <span class="score-val ${isLive ? 'is-live' : ''}">${homeScore}</span>
+                <span class="score-val ${isLive ? 'is-live' : ''}">${awayScore}</span>
+            </div>
+            <div class="fav-star ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavoriteMatch('${m.id}', this)">${isFav ? '★' : '☆'}</div>
+        </div>`;
+            }
+
+            function getLeagueLogoData(group) {
+                const type = group.isUnique ? 'unique-tournament' : 'tournament';
+                const logoUrl = `https://www.sofascore.com/api/v1/${type}/${group.id}/image`;
+                const fallBack = `https://www.sofascore.com/api/v1/category/${group.catId}/image`;
+                return { logoUrl, fallBack };
+            }
+
+            function renderMatchView(grouped) {
+                const list = document.getElementById("matchList");
+                const keys = Object.keys(grouped).filter(k => grouped[k].matches.length > 0);
+
+                if (keys.length === 0) {
+                    list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600;'>Heç bir oyun tapılmadı.</div>";
+                    return;
+                }
+
+                let html = "";
+                for (const key of keys) {
+                    const group = grouped[key];
+                    const isFav = favLeagues.some(f => f.id.toString() === group.id.toString());
+                    const { logoUrl, fallBack } = getLeagueLogoData(group);
+
+                    html += `
+                <div class="league-group">
+                    <div class="league-header">
+                        <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;" onclick="toggleCollapsible(this.parentElement)">
+                            <img src="${logoUrl}" onerror="this.src='${fallBack}'; this.onerror=function(){this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzFmMjkzZCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIvPjwvc3ZnPg=='}">
+                            <div class="league-title-box">
+                                <span class="league-country">${group.country}</span>
+                                <span class="league-title">${group.name}</span>
+                            </div>
+                        </div>
+                        <div class="fav-star ${isFav ? 'active' : ''}" style="margin-right:15px;" onclick="toggleFavoriteLeague('${group.id}', '${group.name.replace(/'/g, "\\'")}', '${group.country.replace(/'/g, "\\'")}', this)">${isFav ? '★' : '☆'}</div>
+                        <span class="chevron" onclick="toggleCollapsible(this.parentElement)">▼</span>
+                    </div>
+                    <div class="league-matches">
+                        ${group.matches.map(m => createMatchRow(m, group)).join("")}
+                    </div>
+                </div>`;
+                }
+                list.innerHTML = html;
+            }
+
+            window.toggleCategory = async function(catId, catName, element) {
+                if (expandedCategories.has(catId)) {
+                    expandedCategories.delete(catId);
+                    const container = document.getElementById(`cat-leagues-${catId}`);
+                    if (container) container.remove();
+                    return;
+                }
+
+                expandedCategories.add(catId);
+                const leagueContainer = document.createElement('div');
+                leagueContainer.id = `cat-leagues-${catId}`;
+                leagueContainer.innerHTML = `<div style="padding:15px; text-align:center;"><div class="skeleton" style="height:20px; width:40%; margin:auto;"></div></div>`;
+                element.after(leagueContainer);
+
+                try {
+                    const res = await fetch(`/api/category/${catId}/tournaments`);
+                    const data = await res.json();
+                    const leagues = data.uniqueTournaments || [];
+
+                    if (leagues.length === 0) {
+                        leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">Bu ölkə üçün aktiv liqa tapılmadı.</div>`;
+                        return;
+                    }
+
+                    leagueContainer.innerHTML = leagues.map(l => `
+                <div class="league-sub-row" onclick="openSingleLeague('${l.name.replace(/'/g, "\\'")}', '${l.id}')">
+                    <img class="league-sub-logo" src="https://www.sofascore.com/api/v1/unique-tournament/${l.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzFmMjkzZCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIvPjwvc3ZnPg=='">
+                    <span class="league-sub-name">${l.name}</span>
+                </div>
+            `).join("");
+                } catch (e) {
+                    leagueContainer.innerHTML = `<div style="padding:15px; color:var(--live); text-align:center; font-size:12px;">Xəta baş verdi.</div>`;
+                }
+            }
+
+            window.renderLeaguesView = function() {
+                const list = document.getElementById("leaguesList");
+                const searchTerm = (document.getElementById("leagueSearchTerm") ? document.getElementById("leagueSearchTerm").value : "").toLowerCase();
+
+                let html = "";
+
+                // Popular (Top Leagues)
+                const popularMatches = Object.keys(groupedDataGlobal).filter(k =>
+                    (k.toLowerCase().includes(searchTerm) || groupedDataGlobal[k].country.toLowerCase().includes(searchTerm))
+                );
+
+                if (popularMatches.length > 0) {
+                    html += `<div class="category-header"><span>Populyar Liqalar</span> <span class="category-count">${popularMatches.length}</span></div>`;
+                    popularMatches.forEach(key => {
+                        const group = groupedDataGlobal[key];
+                        const escapedKey = key.replace(/'/g, "\\'");
+                        const { logoUrl, fallBack } = getLeagueLogoData(group);
+                        const isFav = favLeagues.some(f => f.id.toString() === group.id.toString());
+
+                        html += `
+                <div class="league-card">
+                    <div style="display:flex; align-items:center; gap:16px; flex:1; min-width:0;" onclick="openSingleLeague('${escapedKey}')">
+                        <img class="league-card-logo" src="${logoUrl}" onerror="this.src='${fallBack}'; this.onerror=function(){this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzFmMjkzZCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIvPjwvc3ZnPg=='}">
+                        <div class="league-card-info">
+                            <span class="league-card-country">${group.country}</span>
+                            <span class="league-card-name">${group.name}</span>
+                        </div>
+                        ${group.hasLive ? '<span class="live-badge">LIVE</span>' : ''}
+                    </div>
+                    <div class="fav-star ${isFav ? 'active' : ''}" onclick="toggleFavoriteLeague('${group.id}', '${group.name.replace(/'/g, "\\'")}', '${group.country.replace(/'/g, "\\'")}', this)">${isFav ? '★' : '☆'}</div>
+                </div>`;
+                    });
+                }
+
+                // Browse Categories (Countries)
+                let filteredCats = allCategoriesGlobal;
+                if (searchTerm) {
+                    filteredCats = allCategoriesGlobal.filter(c => c.name.toLowerCase().includes(searchTerm));
+                }
+
+                if (filteredCats.length > 0) {
+                    html += `<div class="category-header"><span>Ölkələr (${filteredCats.length})</span></div>`;
+                    filteredCats.forEach(cat => {
+                        html += `
+                    <div class="category-row" onclick="toggleCategory('${cat.id}', '${cat.name.replace(/'/g, "\\'")}', this)">
+                        <img class="category-flag" src="https://www.sofascore.com/api/v1/category/${cat.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzFmMjkzZCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIvPjwvc3ZnPg=='">
+                        <span class="category-name">${cat.name}</span>
+                        <span style="opacity:0.4; font-size:10px;">▼</span>
+                    </div>
+                `;
+                    });
+                }
+
+                if (!html) {
+                    list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600;'>Məlumat tapılmadı.</div>";
+                    return;
+                }
+
+                list.innerHTML = html;
+            }
+
+            /* Native Modal Logic */
+            window.openMatch = async function(id, idH, idA, nameH, nameA, sH, sA, timeRaw, league) {
+                document.body.classList.add('modal-open');
+                const modal = document.getElementById("detailsModal");
+                modal.style.display = "flex";
+                setTimeout(() => modal.classList.add("show"), 10);
+
+                document.getElementById("logoH").src = `https://www.sofascore.com/api/v1/team/${idH}/image`;
+                document.getElementById("logoA").src = `https://www.sofascore.com/api/v1/team/${idA}/image`;
+                document.getElementById("nameH").innerText = nameH;
+                document.getElementById("nameA").innerText = nameA;
+                document.getElementById("scoreM").innerText = `${sH} - ${sA}`;
+
+                const isLive = timeRaw.includes("'") || timeRaw === 'HT' || timeRaw === 'LIVE' || timeRaw === 'ET';
+                const tb = document.getElementById("timeM");
+                tb.innerHTML = timeRaw;
+                if (isLive) tb.classList.add("is-live"); else tb.classList.remove("is-live");
+                document.getElementById("leagueM").innerText = league;
+
+                // Skeleton loaders inside modal
+                const skelHtml = `<div class="loader-wrapper"><div class="skel-row"><div class="skel-time skeleton"></div><div class="skel-teams"><div class="skel-team skeleton"></div></div></div><div class="skel-row"><div class="skel-time skeleton"></div><div class="skel-teams"><div class="skel-team skeleton" style="width:60%"></div></div></div></div>`;
+                document.getElementById("goalsBox").innerHTML = skelHtml;
+                document.getElementById("statsBox").innerHTML = `<div class="loader-wrapper"><div class="skel-header skeleton" style="height:20px;width:30%;margin:auto;"></div><div class="skel-header skeleton" style="height:8px;margin-top:20px;"></div><div class="skel-header skeleton" style="height:8px;margin-top:20px;"></div></div>`;
+
+                try {
+                    const [resI, resS] = await Promise.all([
+                        fetch(`/api/match/${id}/incidents`),
+                        fetch(`/api/match/${id}/statistics`)
+                    ]);
+                    const dataI = await resI.json();
+                    const dataS = await resS.json();
+
+                    // Render Incidents
+                    const incidents = (dataI.incidents || []).filter(i => ["goal", "card", "substitution"].includes(i.incidentType));
+                    if (incidents.length) {
+                        document.getElementById("goalsBox").innerHTML = incidents.map(g => {
+                            const isHome = g.isHome;
+                            let icon = g.incidentType === "goal" ? "⚽" : (g.incidentType === "card" ? (g.incidentClass === "yellow" ? "🟨" : "🟥") : "🔄");
+                            let player = g.player ? g.player.name : "Oyunçu";
+                            if (g.incidentType === "substitution") player = `${g.playerIn?.name || ''} ⬅️ ${g.playerOut?.name || ''}`;
+
+                            return `
+                    <div class="incident ${isHome ? 'inc-home' : 'inc-away'}">
+                        <div class="inc-time">${g.time}'</div>
+                        <div class="inc-icon">${icon}</div>
+                        <div class="inc-detail">${player}</div>
+                    </div>`;
+                        }).join("");
+                    } else {
+                        document.getElementById("goalsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Hadisə tapılmadı</div>";
+                    }
+
+                    // Render Stats
+                    const stats = dataS.statistics ? (dataS.statistics.find(s => s.period === "ALL") || dataS.statistics[0]) : null;
+                    if (stats) {
+                        let sHtml = "";
+                        stats.groups.forEach(group => {
+                            sHtml += `<div class="stat-group-title">${group.groupName}</div>`;
+                            group.statisticsItems.forEach(st => {
+                                const hV = parseFloat(st.homeValue) || 0;
+                                const aV = parseFloat(st.awayValue) || 0;
+                                const hP = (hV + aV) > 0 ? (hV / (hV + aV)) * 100 : 50;
+                                sHtml += `
+                            <div class="stat-box">
+                                <div class="stat-labels"><span>${st.homeValue}</span><span>${st.name}</span><span>${st.awayValue}</span></div>
+                                <div class="stat-bar-outer"><div class="bar-home" style="width:${hP}%"></div><div class="bar-away" style="width:${100 - hP}%"></div></div>
+                            </div>`;
+                            });
+                        });
+                        document.getElementById("statsBox").innerHTML = sHtml;
+                    } else {
+                        document.getElementById("statsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Statistika tapılmadı</div>";
+                    }
+                } catch (e) {
+                    document.getElementById("goalsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Xəta baş verdi</div>";
+                    document.getElementById("statsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Xəta baş verdi</div>";
+                }
+            }
+
+            function openMatchById(id) {
+                const match = allEvents.find(m => m.id.toString() === id.toString());
+                if (match) {
+                    const timeRaw = getMatchTime(match);
+                    const safeHomeName = match.homeTeam.name.replace(/'/g, "\\'");
+                    const safeAwayName = match.awayTeam.name.replace(/'/g, "\\'");
+                    const safeGroupName = match.tournament.name.replace(/'/g, "\\'");
+                    openMatch(match.id, match.homeTeam.id, match.awayTeam.id, safeHomeName, safeAwayName, match.homeScore.current, match.awayScore.current, timeRaw, safeGroupName);
+                } else {
+                    showToast("Oyun datası yenilənərkən tapılmadı.");
+                }
+            }
+
+            function switchTab(tabId, btn) {
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.parentElement.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.getElementById(tabId).classList.add('active');
+                btn.classList.add('active');
+            }
+
+            function closeModal() {
+                const modal = document.getElementById("detailsModal");
+                if (modal) {
+                    modal.classList.remove("show");
+                    setTimeout(() => {
+                        modal.style.display = "none";
+                        document.body.classList.remove('modal-open');
+                    }, 300); // Wait for native transition
+                }
+            }
+
+            /* Modal Overlay Close */
+            const detailsModal = document.getElementById('detailsModal');
+            if (detailsModal) {
+                detailsModal.addEventListener('click', function (e) {
+                    if (e.target === this || e.target.classList.contains('drag-handle') || e.target.id === 'dragHeader') closeModal();
+                });
+            }
+
+            /* Favorites Logic */
+            function toggleFavoriteMatch(id, btn) {
+                event.stopPropagation();
+                const idx = favMatches.findIndex(f => f.id.toString() === id.toString());
+                if (idx === -1) {
+                    const match = allEvents.find(m => m.id.toString() === id.toString());
+                    if (match) {
+                        favMatches.push(match);
+                        btn.innerHTML = '★';
+                        btn.classList.add('active');
+                        showToast('Oyun favoritlərə əlavə edildi');
+                    }
+                } else {
+                    favMatches.splice(idx, 1);
+                    btn.innerHTML = '☆';
+                    btn.classList.remove('active');
+                    showToast('Oyun favoritlərdən çıxarıldı');
+                }
+                localStorage.setItem('favMatches', JSON.stringify(favMatches));
+            }
+
+            function toggleFavoriteLeague(id, name, country, btn) {
+                event.stopPropagation();
+                const idx = favLeagues.findIndex(f => f.id.toString() === id.toString());
+                if (idx === -1) {
+                    favLeagues.push({ id, name, country });
+                    btn.innerHTML = '★';
+                    btn.classList.add('active');
+                    showToast('Liqa favoritlərə əlavə edildi');
+                } else {
+                    favLeagues.splice(idx, 1);
+                    btn.innerHTML = '☆';
+                    btn.classList.remove('active');
+                    showToast('Liqa favoritlərdən çıxarıldı');
+                }
+                localStorage.setItem('favLeagues', JSON.stringify(favLeagues));
+            }
+
+            function renderFavoritesView() {
+                const container = document.getElementById('favoritesContent');
+                if (favMatches.length === 0 && favLeagues.length === 0) {
+                    container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">⭐</div>
+                    <div class="empty-state-title">Favoritləriniz yoxdur</div>
+                    <div class="empty-state-text">Oyunları və ya liqaları favoritlərinizə əlavə edərək burada görə bilərsiniz.</div>
+                </div>`;
+                    return;
+                }
+
+                let html = "";
+
+                if (favLeagues.length > 0) {
+                    html += "<div style='padding: 24px 24px 10px; font-weight:700; color:var(--text-muted); font-size:13px; text-transform:uppercase;'>Favorit Liqalar</div>";
+                    favLeagues.forEach(l => {
+                        const groupKey = Object.keys(groupedDataGlobal).find(k => k.startsWith(l.name));
+                        html += `
+                    <div class="league-card">
+                        <div style="display:flex; align-items:center; gap:16px; flex:1;" onclick="${groupKey ? `openSingleLeague('${groupKey.replace(/'/g, "\\'")}')` : `showToast('Liqa məlumatı tapılmadı')`}">
+                            <img class="league-card-logo" src="https://www.sofascore.com/api/v1/tournament/${l.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzFmMjkzZCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIvPjwvc3ZnPg=='">
+                            <div class="league-card-info">
+                                <span class="league-card-country">${l.country}</span>
+                                <span class="league-card-name">${l.name}</span>
+                            </div>
+                        </div>
+                        <div class="fav-star active" onclick="toggleFavoriteLeague('${l.id}', '${l.name.replace(/'/g, "\\'")}', '${l.country.replace(/'/g, "\\'")}', this); renderFavoritesView();">★</div>
+                    </div>`;
+                    });
+                }
+
+                if (favMatches.length > 0) {
+                    html += "<div style='padding: 24px 24px 10px; font-weight:700; color:var(--text-muted); font-size:13px; text-transform:uppercase;'>Favorit Oyunlar</div>";
+                    html += `<div class="league-group" style="margin-top:0;">`;
+                    favMatches.forEach(m => {
+                        const group = { name: m.tournament.name }; // dummy group for createMatchRow
+                        html += createMatchRow(m, group);
+                    });
+                    html += `</div>`;
+                }
+
+                container.innerHTML = html;
+            }
+
+            /* Profile Logic */
+            function saveProfile() {
+                const name = document.getElementById('usernameInput').value;
+                const status = document.getElementById('statusInput').value;
+                const profile = { name, status };
+                localStorage.setItem('userProfile', JSON.stringify(profile));
+
+                document.getElementById('profileDisplayName').innerText = name || 'İstifadəçi';
+                document.getElementById('profileAvatar').innerText = (name || 'U').charAt(0).toUpperCase();
+
+                showToast('Profil məlumatları saxlanıldı');
+            }
+
+            function loadProfile() {
+                const storedUser = localStorage.getItem('proscore_user');
+                const profile = JSON.parse(localStorage.getItem('userProfile') || `{"name":"${storedUser || 'İstifadəçi'}", "status":"ProScore istifadəçisi"}`);
+
+                document.getElementById('usernameInput').value = profile.name;
+                document.getElementById('statusInput').value = profile.status;
+                document.getElementById('profileDisplayName').innerText = profile.name;
+                document.getElementById('profileAvatar').innerText = profile.name.charAt(0).toUpperCase();
+
+                document.getElementById('defaultViewSelect').value = userSettings.defaultView;
+                if (document.getElementById('timeFormatSelect')) {
+                    document.getElementById('timeFormatSelect').value = userSettings.timeFormat;
+                }
+                document.getElementById('soundSelect').value = userSettings.notifSound || 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+                document.getElementById('browserNotifToggle').checked = userSettings.browserNotifEnabled;
+                document.getElementById('soundNotifToggle').checked = userSettings.soundEnabled;
+                document.getElementById('onlyFavNotifToggle').checked = !!userSettings.onlyFavNotif;
+
+                const theme = localStorage.getItem('theme') || 'dark';
+                if (theme === 'light') {
+                    document.documentElement.style.setProperty('--bg', '#f8fafc');
+                    document.documentElement.style.setProperty('--card', '#ffffff');
+                    document.documentElement.style.setProperty('--text-main', '#0f172a');
+                    document.documentElement.style.setProperty('--text-muted', '#64748b');
+                    document.documentElement.style.setProperty('--border', '#e2e8f0');
+                    document.getElementById('themeStatus').innerText = 'Deaktiv';
+                }
+            }
+
+            function updateSetting(key, val) {
+                userSettings[key] = val;
+                localStorage.setItem('userSettings', JSON.stringify(userSettings));
+                showToast('Tənzimləmə yadda saxlanıldı');
+            }
+
+            function toggleBrowserNotifications(enabled) {
+                if (enabled) {
+                    if (!("Notification" in window)) {
+                        alert("Bu brauzer bildirişləri dəstəkləmir.");
+                        document.getElementById('browserNotifToggle').checked = false;
+                        return;
+                    }
+                    Notification.requestPermission().then(permission => {
+                        if (permission === "granted") {
+                            updateSetting('browserNotifEnabled', true);
+                        } else {
+                            alert("Bildirişlərə icazə verilmədi.");
+                            document.getElementById('browserNotifToggle').checked = false;
+                            updateSetting('browserNotifEnabled', false);
+                        }
+                    });
+                } else {
+                    updateSetting('browserNotifEnabled', false);
+                }
+            }
+
+            function clearAllData() {
+                if (confirm('Bütün favoritləriniz və profil məlumatlarınız silinəcək. Əminsiniz?')) {
+                    localStorage.clear();
+                    location.reload();
+                }
+            }
+
+            function toggleTheme() {
+                const current = localStorage.getItem('theme') || 'dark';
+                const next = current === 'dark' ? 'light' : 'dark';
+                localStorage.setItem('theme', next);
+
+                if (next === 'light') {
+                    document.documentElement.style.setProperty('--bg', '#f8fafc');
+                    document.documentElement.style.setProperty('--card', '#ffffff');
+                    document.documentElement.style.setProperty('--text-main', '#0f172a');
+                    document.documentElement.style.setProperty('--text-muted', '#64748b');
+                    document.documentElement.style.setProperty('--border', '#e2e8f0');
+                    document.getElementById('themeStatus').innerText = 'Deaktiv';
+                } else {
+                    document.documentElement.style.setProperty('--bg', '#020617');
+                    document.documentElement.style.setProperty('--card', '#0f172a');
+                    document.documentElement.style.setProperty('--text-main', '#f8fafc');
+                    document.documentElement.style.setProperty('--text-muted', '#94a3b8');
+                    document.documentElement.style.setProperty('--border', '#1e293b');
+                    document.getElementById('themeStatus').innerText = 'Aktiv';
+                }
+                showToast(next === 'light' ? 'İşıqlı tema aktivdir' : 'Qaranlıq tema aktivdir');
+            }
+
+            /* Auth Logic */
+            function switchAuthTab(tab) {
+                document.getElementById('tabLogin').classList.remove('active');
+                document.getElementById('tabRegister').classList.remove('active');
+
+                if (tab === 'login') {
+                    document.getElementById('tabLogin').classList.add('active');
+                    document.getElementById('authTitle').innerText = 'Xoş Gəlmisiniz';
+                    document.getElementById('authSubtitle').innerText = 'Davam etmək üçün daxil olun';
+                    document.getElementById('authSubmitBtn').innerText = 'Daxil Ol';
+                } else {
+                    document.getElementById('tabRegister').classList.add('active');
+                    document.getElementById('authTitle').innerText = 'Yeni Hesab';
+                    document.getElementById('authSubtitle').innerText = 'ProScore ailəsinə qoşulun';
+                    document.getElementById('authSubmitBtn').innerText = 'Qeydiyyatdan Keç';
+                }
+                document.getElementById('authError').innerText = '';
+            }
+
+            async function handleAuthSubmit() {
+                const usernameInput = document.getElementById('authUsername');
+                const passwordInput = document.getElementById('authPassword');
+                const username = usernameInput.value.trim();
+                const password = passwordInput.value.trim();
+                const isLogin = document.getElementById('tabLogin').classList.contains('active');
+                const endpoint = isLogin ? '/api/login' : '/api/register';
+                const errorDiv = document.getElementById('authError');
+                const btn = document.getElementById('authSubmitBtn');
+
+                if (!username || !password) {
+                    errorDiv.innerText = 'Zəhmət olmasa bütün xanaları doldurun.';
+                    return;
+                }
+
+                errorDiv.innerText = '';
+                btn.innerText = 'Gözləyin...';
+                btn.disabled = true;
+                btn.style.opacity = '0.7';
+
+                try {
+                    const res = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        if (isLogin) {
+                            localStorage.setItem('proscore_token', data.token);
+                            localStorage.setItem('proscore_user', data.username);
+                            showToast(`Xoş gəldin, ${data.username}!`);
+                            updateAuthUI();
+
+                            // Clear inputs
+                            usernameInput.value = '';
+                            passwordInput.value = '';
+
+                            switchMainView('matches');
+                        } else {
+                            showToast('Qeydiyyat uğurludur! İndi daxil ola bilərsiniz.');
+                            switchAuthTab('login');
+                        }
+                    } else {
+                        errorDiv.innerText = data.error || 'Bir xəta baş verdi.';
+                    }
+                } catch (error) {
+                    errorDiv.innerText = 'Serverlə əlaqə kəsildi.';
+                } finally {
+                    if (btn && (!localStorage.getItem('proscore_token') || !isLogin)) {
+                        btn.innerText = isLogin ? 'Daxil Ol' : 'Qeydiyyatdan Keç';
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    }
+                }
+            }
+
+            function logoutUser() {
+                if (confirm('Hesabdan çıxmaq istəyirsiniz?')) {
+                    localStorage.removeItem('proscore_token');
+                    localStorage.removeItem('proscore_user');
+                    showToast('Hesabdan çıxıldı.');
+                    updateAuthUI();
+                    switchMainView('matches');
+                }
+            }
+
+            function updateAuthUI() {
+                const token = localStorage.getItem('proscore_token');
+                const username = localStorage.getItem('proscore_user');
+                const authLink = document.getElementById('sidebarAuthLink');
+                const logoutBox = document.getElementById('logoutBtnBox');
+
+                if (token) {
+                    if (authLink) authLink.style.display = 'none';
+                    if (logoutBox) logoutBox.style.display = 'flex';
+                    if (username) {
+                        const nameEl = document.getElementById('profileDisplayName');
+                        const avatarEl = document.getElementById('profileAvatar');
+                        if (nameEl) nameEl.innerText = username;
+                        if (avatarEl) avatarEl.innerText = username.charAt(0).toUpperCase();
+                    }
+                } else {
+                    if (authLink) authLink.style.display = 'flex';
+                    if (logoutBox) logoutBox.style.display = 'none';
+                }
+            }
+
+            /* Utils */
+            function showToast(msg) {
+                const toast = document.getElementById('toast');
+                const msgEl = document.getElementById('toastMsg');
+                msgEl.innerHTML = `✨ ${msg}`;
+
+                clearTimeout(toastTimer);
+                toast.classList.add('show');
+
+                toastTimer = setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3500);
+            }
+
+            // Initial Load
+            function startAuthRedirectTimer() {
+                const token = localStorage.getItem('proscore_token');
+                if (token) return;
+
+                authTimer = setTimeout(() => {
+                    if (!userHasNavigated && !localStorage.getItem('proscore_token')) {
+                        const overlay = document.getElementById('authOverlay');
+                        overlay.classList.add('show');
+
+                        setTimeout(() => {
+                            switchMainView('auth');
+                            setTimeout(() => {
+                                overlay.classList.remove('show');
+                                setTimeout(() => overlay.style.display = 'none', 800);
+                            }, 1000);
+                        }, 2500);
+                    }
+                }, 45000); // 45 seconds
+            }
+
+            generateDateTabs();
+            fetchData();
+            setInterval(() => {
+                fetchData();
+                generateDateTabs();
+            }, 30000);
+            notificationMgr.init();
+            loadProfile();
+            updateAuthUI();
+            startAuthRedirectTimer();
+
+            } catch (err) {
+                console.error("FATAL SCRIPT ERROR:", err);
+            }
+
+            // Register PWA Service Worker
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/sw.js').then(reg => {
+                        console.log('SW registered:', reg);
+                    }).catch(err => {
+                        console.log('SW registration failed:', err);
+                    });
+                });
+            }
+
+            // Uygulama yüklendiğinde default view'e geç
+            if (userSettings && userSettings.defaultView === 'leagues') {
+                setTimeout(() => switchMainView('leagues'), 100);
+            }
+        </script>
+</body>
+
+</html>
