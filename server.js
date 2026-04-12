@@ -11,20 +11,35 @@ const admin = require("firebase-admin");
 
 // Firebase Admin SDK-nın yaradılması
 let serviceAccount;
+let firebaseInitialized = false;
+
 if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   try {
     serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    firebaseInitialized = true;
+    console.log("Firebase Admin SDK initialized from Environment Variable.");
   } catch (e) {
-    console.error("FIREBASE_SERVICE_ACCOUNT parses error, falling back to file.");
-    serviceAccount = require("./serviceAccountKey.json");
+    console.error("FIREBASE_SERVICE_ACCOUNT parse error.");
   }
-} else {
-  serviceAccount = require("./serviceAccountKey.json");
 }
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+if (!firebaseInitialized && fs.existsSync("./serviceAccountKey.json")) {
+  try {
+    serviceAccount = require("./serviceAccountKey.json");
+    firebaseInitialized = true;
+    console.log("Firebase Admin SDK initialized from serviceAccountKey.json file.");
+  } catch (e) {
+    console.error("Error loading serviceAccountKey.json file.");
+  }
+}
+
+if (firebaseInitialized) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+} else {
+  console.warn("[WARNING] Firebase Admin SDK not initialized. Push notifications and Firebase Auth updates will not work.");
+}
 
 // Nodemailer Tənzimləmələri (OTP göndərmək üçün)
 // DİQQƏT: Buraya öz email və tətbiq şifrənizi (App Password) yazmalısınız
@@ -318,15 +333,19 @@ app.post("/api/auth/verify-otp", async (req, res) => {
         }
 
         // ===== FIREBASE ŞİFRƏ DEYİŞİKLİYİ ======
-        try {
-            const firebaseUser = await admin.auth().getUserByEmail(email);
-            await admin.auth().updateUser(firebaseUser.uid, {
-                password: newPassword
-            });
-            console.log(`[AUTH] Firebase password successfully updated for UID: ${firebaseUser.uid}`);
-        } catch (fbError) {
-            console.error("[AUTH] Firebase update password error:", fbError);
-            return res.status(500).json({ success: false, message: "Firebase hesabınızla əlaqə yaradıla bilmədi. Şifrə yenilənmədi." });
+        if (firebaseInitialized) {
+            try {
+                const firebaseUser = await admin.auth().getUserByEmail(email);
+                await admin.auth().updateUser(firebaseUser.uid, {
+                    password: newPassword
+                });
+                console.log(`[AUTH] Firebase password successfully updated for UID: ${firebaseUser.uid}`);
+            } catch (fbError) {
+                console.error("[AUTH] Firebase update password error:", fbError);
+                return res.status(500).json({ success: false, message: "Firebase hesabınızla əlaqə yaradıla bilmədi. Şifrə yenilənmədi." });
+            }
+        } else {
+            console.warn("[AUTH] Firebase not initialized, skipping Firebase Auth password update.");
         }
 
         // OTP-ni təmizlə və şifrəni hash-ləyərək saxla
@@ -441,7 +460,7 @@ setInterval(async () => {
                         return favs.includes(matchId);
                     });
                     
-                    if (tokensToNotify.length > 0) {
+                    if (tokensToNotify.length > 0 && firebaseInitialized) {
                         const message = {
                             notification: {
                                 title: `${ev.homeTeam.name} - ${ev.awayTeam.name} GOOOL!`,
@@ -477,6 +496,8 @@ setInterval(async () => {
                                     }
                                 });
                         });
+                    } else if (tokensToNotify.length > 0 && !firebaseInitialized) {
+                        console.warn("[FCM] Goal detected but Firebase not initialized. Cannot send notification.");
                     }
                 }
             }
