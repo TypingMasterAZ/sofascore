@@ -70,7 +70,13 @@ const HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
     "Referer": "https://www.sofascore.com/",
     "Origin": "https://www.sofascore.com",
-    "Cache-Control": "no-cache"
+    "Cache-Control": "no-cache",
+    "sec-ch-ua": '"Google Chrome";v="123", "Not:A-Brand";v="8", "Chromium";v="123"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site"
 };
 
 // API vasitəçisi (Komanda məlumatları və heyət üçün)
@@ -83,6 +89,7 @@ app.get("/api/team/:id", async (req, res) => {
         ]);
         res.json({ info: info.data, players: players.data });
     } catch (error) {
+        console.error(`[API ERROR] Team ${req.params.id}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
         res.status(500).json({ error: true });
     }
 });
@@ -102,13 +109,13 @@ app.get("/api/matches/live", async (req, res) => {
 
 // Yeni API: Matçlar (Skedullu)
 app.get("/api/matches/:date", async (req, res) => {
+    const { date } = req.params;
     try {
-        const { date } = req.params;
         console.log(`[API CALL] Fetching matches for ${date}`);
         const result = await axios.get(`${SOFA_API}/sport/football/scheduled-events/${date}`, { headers: HEADERS });
         res.json(result.data);
     } catch (error) {
-        console.error(`[API ERROR] Scheduled matches (${date}): ${error.message}`);
+        console.error(`[API ERROR] Scheduled matches for date ${date}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
         res.status(500).json({ error: true, message: error.message });
     }
 });
@@ -120,6 +127,7 @@ app.get("/api/match/:id/incidents", async (req, res) => {
         const result = await axios.get(`${SOFA_API}/event/${id}/incidents`, { headers: HEADERS });
         res.json(result.data);
     } catch (error) {
+        console.error(`[API ERROR] Match incidents ${req.params.id}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
         res.status(500).json({ error: true, message: error.message });
     }
 });
@@ -131,6 +139,7 @@ app.get("/api/match/:id/statistics", async (req, res) => {
         const result = await axios.get(`${SOFA_API}/event/${id}/statistics`, { headers: HEADERS });
         res.json(result.data);
     } catch (error) {
+        console.error(`[API ERROR] Match statistics ${req.params.id}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
         res.status(500).json({ error: true, message: error.message });
     }
 });
@@ -142,6 +151,7 @@ app.get("/api/tournament/:id/seasons", async (req, res) => {
         const result = await axios.get(`${SOFA_API}/unique-tournament/${id}/seasons`, { headers: HEADERS });
         res.json(result.data);
     } catch (error) {
+        console.error(`[API ERROR] Tournament seasons ${req.params.id}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
         res.status(500).json({ error: true, message: error.message });
     }
 });
@@ -153,7 +163,7 @@ app.get("/api/standings/:tourId/:seasonId", async (req, res) => {
         const result = await axios.get(`${SOFA_API}/unique-tournament/${tourId}/season/${seasonId}/standings/total`, { headers: HEADERS });
         res.json(result.data);
     } catch (error) {
-        console.error("Standings fetch error: ", error.message);
+        console.error(`[API ERROR] Standings tour=${tourId} season=${seasonId}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
         res.status(500).json({ error: true, message: error.message });
     }
 });
