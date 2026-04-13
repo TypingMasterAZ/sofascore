@@ -17,19 +17,31 @@ let firebaseInitialized = false;
 if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   try {
     let serviceAccountRaw = process.env.FIREBASE_SERVICE_ACCOUNT;
-    // Bəzən Render-də dırnaqlar və ya newline simvolları ilə bağlı JSON problemi olur
     serviceAccount = JSON.parse(serviceAccountRaw);
-    
-    // Private key daxilindəki \n simvollarını həqiqi newline ilə əvəz etmək (vacibdir)
     if (serviceAccount.private_key && serviceAccount.private_key.includes('\\n')) {
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
     }
-    
     firebaseInitialized = true;
     console.log("Firebase Admin SDK initialized from Environment Variable.");
   } catch (e) {
-    console.error("FIREBASE_SERVICE_ACCOUNT parse error:", e.message);
+    console.error("FIREBASE_SERVICE_ACCOUNT env parse error:", e.message);
   }
+}
+
+// Render Secret File dəstəyi
+const RENDER_SECRET_PATH = "/etc/secrets/FIREBASE_SERVICE_ACCOUNT";
+if (!firebaseInitialized && fs.existsSync(RENDER_SECRET_PATH)) {
+    try {
+        const fileContent = fs.readFileSync(RENDER_SECRET_PATH, "utf8");
+        serviceAccount = JSON.parse(fileContent);
+        if (serviceAccount.private_key && serviceAccount.private_key.includes('\\n')) {
+            serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+        }
+        firebaseInitialized = true;
+        console.log("Firebase Admin SDK initialized from Render Secret File.");
+    } catch (e) {
+        console.error("Render Secret File parse error:", e.message);
+    }
 }
 
 if (!firebaseInitialized && fs.existsSync("./serviceAccountKey.json")) {
@@ -47,7 +59,7 @@ if (firebaseInitialized) {
     credential: admin.credential.cert(serviceAccount)
   });
 } else {
-  console.warn("[WARNING] Firebase Admin SDK not initialized. Push notifications and Firebase Auth updates will not work.");
+  console.warn("[WARNING] Firebase Admin SDK not initialized. Push notifications will not work.");
 }
 
 // Nodemailer Tənzimləmələri (OTP göndərmək üçün)
