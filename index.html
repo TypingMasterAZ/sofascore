@@ -2168,19 +2168,26 @@
 
         .notification-badge {
             position: absolute;
-            top: 2px;
-            right: 2px;
-            width: 10px;
-            height: 10px;
-            background: var(--live);
+            top: -2px;
+            right: -2px;
+            min-width: 16px;
+            height: 16px;
+            background: #ef4444; /* Qırmızı rəng */
+            color: white;
             border-radius: 50%;
-            border: 2px solid var(--card);
+            border: 1.5px solid var(--bg);
             display: none;
-            animation: pulse-badge 1.5s infinite;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 900;
+            padding: 0 2px;
+            z-index: 100;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
 
         .notification-badge.active {
-            display: block;
+            display: flex;
         }
 
         .notification-item {
@@ -3357,11 +3364,17 @@
                         const res = await fetch(API_BASE_URL + '/api/fcm/recent-notifications');
                         const data = await res.json();
                         if (data.success && data.history) {
-                            // Merge with local history avoiding duplicates
+                            // Merge with local history avoiding duplicates AND filter by favorites
                             data.history.forEach(rem => {
-                                const exists = this.history.some(loc => loc.body === rem.body && loc.time === rem.time);
-                                if (!exists) {
-                                    this.history.push({ ...rem, unread: false });
+                                // Filter by favorites on client side
+                                const isMatchFav = favMatches.some(f => f.id.toString() === rem.matchId.toString());
+                                const isLeagueFav = rem.leagueId && favLeagues.some(f => f.id.toString() === rem.leagueId.toString());
+                                
+                                if (isMatchFav || isLeagueFav) {
+                                    const exists = this.history.some(loc => loc.body === rem.body && loc.time === rem.time);
+                                    if (!exists) {
+                                        this.history.push({ ...rem, unread: false });
+                                    }
                                 }
                             });
                             this.history.sort((a,b) => b.id - a.id);
@@ -3560,6 +3573,7 @@
                     const badge = document.getElementById('notifBadge');
                     if (badge) {
                         if (this.unreadCount > 0) {
+                            badge.innerText = this.unreadCount > 99 ? '99+' : this.unreadCount;
                             badge.classList.add('active');
                         } else {
                             badge.classList.remove('active');

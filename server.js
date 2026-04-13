@@ -672,6 +672,7 @@ setInterval(async () => {
                         title,
                         body,
                         matchId: ev.id,
+                        leagueId: leagueId,
                         time: new Date().toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' })
                     };
                     serverNotifHistory.unshift(notifObj);
