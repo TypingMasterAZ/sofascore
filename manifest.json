@@ -4,18 +4,20 @@
   "description": "Canlı idman nəticələri və statistikalar.",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0a101f",
   "theme_color": "#0a101f",
   "icons": [
     {
       "src": "https://www.sofascore.com/favicon.ico",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/x-icon",
+      "purpose": "maskable"
     },
     {
       "src": "https://www.sofascore.com/favicon.ico",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/x-icon"
     }
   ]
 }

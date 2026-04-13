@@ -639,6 +639,39 @@ app.get("/api/fcm/recent-notifications", (req, res) => {
     res.json({ success: true, history: serverNotifHistory });
 });
 
+app.post("/api/fcm/test-push", async (req, res) => {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ success: false, message: "Token required" });
+    
+    if (!firebaseInitialized) return res.status(500).json({ success: false, message: "Firebase not initialized" });
+
+    const message = {
+        notification: {
+            title: "Rabona Media - Test!",
+            body: "Təbriklər! Arxa plan bildirişləri artıq aktivdir 🚀"
+        },
+        data: { type: 'test' },
+        android: { notification: { sound: 'default', priority: 'high' } },
+        apns: { payload: { aps: { sound: 'default' } } },
+        webpush: {
+            notification: {
+                requireInteraction: true,
+                vibrate: [300, 100, 300],
+                icon: 'https://www.sofascore.com/favicon.ico'
+            }
+        },
+        token: token
+    };
+
+    try {
+        const resp = await admin.messaging().send(message);
+        res.json({ success: true, messageId: resp });
+    } catch (e) {
+        console.error("[FCM] Test push error:", e);
+        res.status(500).json({ success: false, message: e.message });
+    }
+});
+
 // Background Worker for Live Matches Push Notifications
 let lastScores = {};
 

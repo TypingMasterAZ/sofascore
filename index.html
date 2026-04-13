@@ -3058,14 +3058,17 @@
                             <span class="slider"></span>
                         </label>
                     </div>
-                    <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Səsli Bildiriş</span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="soundNotifToggle"
-                                    onchange="updateSetting('soundEnabled', this.checked)">
                                 <span class="slider"></span>
                             </label>
                         </div>
+                        
+                        <div class="profile-row" id="testPushBtnBox" style="display: none;">
+                            <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Sınaq Bildirişi</span>
+                            <button class="profile-action-btn" onclick="sendTestPush()" style="margin:0; padding:8px 16px; background:rgba(59,130,246,0.1); color:var(--primary); border:1px solid rgba(59,130,246,0.2); border-radius:10px; font-size:12px; font-weight:700;">
+                                <i class="fas fa-paper-plane"></i> İndi Yoxla
+                            </button>
+                        </div>
+                        
                         <div style="padding:10px; font-size:10px; color:gray; word-break:break-all;" id="debugSettings"></div>
 
 
@@ -4596,9 +4599,41 @@
                        });
                    } else if (Notification.permission === 'granted') {
                        registerFCMToken();
+                       document.getElementById('testPushBtnBox').style.display = 'flex';
                    }
                 }
                 // FCM UPDATE END
+            }
+
+            async function sendTestPush() {
+                try {
+                    showToast("Sınaq bildirişi göndərilir...");
+                    const messaging = firebase.messaging();
+                    const swReg = await navigator.serviceWorker.ready;
+                    const token = await messaging.getToken({ 
+                        serviceWorkerRegistration: swReg,
+                        vapidKey: 'BPAPOqZmGdoTDrIgfoFD99QaV6bmdgab9eXNZQNjkKAzuCqsrnIdtnzi8rX99lLGHiDlp3L4fx64EBezAGHytOY' 
+                    });
+
+                    if (!token) {
+                        showToast("Token alınmadı. İcazələri yoxlayın.", "error");
+                        return;
+                    }
+
+                    const res = await fetch(API_BASE_URL + '/api/fcm/test-push', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ token: token })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast("Bildiriş göndərildi! Gəlməsə, tətbiqi bağlayıb 3 saniyə gözləyin.", "success");
+                    } else {
+                        showToast("Xəta: " + data.message, "error");
+                    }
+                } catch(e) {
+                    showToast("Sistem xətası: " + e.message, "error");
+                }
             }
 
             async function registerFCMToken() {
@@ -4915,7 +4950,15 @@
                         if (permission === "granted") {
                             updateSetting('browserNotifEnabled', true);
                             registerFCMToken();
+                            document.getElementById('testPushBtnBox').style.display = 'flex';
                             showToast('Bildirişlər aktiv edildi', 'success');
+                            
+                            // Show Home Screen Guide for iOS if not standalone
+                            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+                            if (isIOS && !isStandalone) {
+                                showPwaGuide();
+                            }
                         } else {
                             showDialog({
                                 title: 'İcazə Verilmədi',
