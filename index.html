@@ -3311,7 +3311,7 @@
                         this.requestPermission();
                     }
 
-                    // PWA Message Listener
+                    // PWA Message Listener (Native fallback)
                     if ('serviceWorker' in navigator) {
                         navigator.serviceWorker.addEventListener('message', (event) => {
                             if (event.data.type === 'openMatch') {
@@ -3319,6 +3319,57 @@
                             }
                         });
                     }
+
+                    // Real-time Goal Sync via BroadcastChannel
+                    const bc = new BroadcastChannel('goal_notifications');
+                    bc.onmessage = (event) => {
+                        if (event.data.type === 'GOAL_NOTIFICATION') {
+                            const p = event.data.payload;
+                            this.history.unshift({
+                                id: Date.now(),
+                                type: 'goal',
+                                title: p.title,
+                                body: p.body,
+                                matchId: p.matchId,
+                                time: p.time,
+                                unread: true
+                            });
+                            if (this.history.length > 50) this.history.pop();
+                            localStorage.setItem('notifHistory', JSON.stringify(this.history));
+                            this.unreadCount++;
+                            this.updateBadge();
+                            if (document.getElementById('notificationsView').classList.contains('active')) {
+                                this.renderHistory();
+                            }
+                            // Also play sound if app is in foreground
+                            if (userSettings.soundEnabled) {
+                                this.audio.play().catch(() => {});
+                            }
+                        }
+                    };
+
+                    // Sync remote history on boot
+                    this.syncRemoteHistory();
+                }
+
+                async syncRemoteHistory() {
+                    try {
+                        const res = await fetch(API_BASE_URL + '/api/fcm/recent-notifications');
+                        const data = await res.json();
+                        if (data.success && data.history) {
+                            // Merge with local history avoiding duplicates
+                            data.history.forEach(rem => {
+                                const exists = this.history.some(loc => loc.body === rem.body && loc.time === rem.time);
+                                if (!exists) {
+                                    this.history.push({ ...rem, unread: false });
+                                }
+                            });
+                            this.history.sort((a,b) => b.id - a.id);
+                            if (this.history.length > 50) this.history.length = 50;
+                            localStorage.setItem('notifHistory', JSON.stringify(this.history));
+                            this.renderHistory();
+                        }
+                    } catch(e) { console.error("History sync failed", e); }
                 }
 
                 playTestSound(customUrl = null) {
@@ -4550,21 +4601,22 @@
                     
                     const token = await messaging.getToken({ 
                         serviceWorkerRegistration: swReg,
-                        vapidKey: 'BOIqWcR7L9H7NfGvNfB6JdF7NfGvNfB6JdF7NfGvNfB6JdF7NfGvNfB6JdF' // Öhdəlik deyil, amma bəzi brauzerlərdə lazımdır
+                        vapidKey: 'BPAPOqZmGdoTDrIgfoFD99QaV6bmdgab9eXNZQNjkKAzuCqsrnIdtnzi8rX99lLGHiDlp3L4fx64EBezAGHytOY' 
                     }).catch(err => {
                         console.error("[FCM] Token alma xətası:", err);
                         return null;
                     });
 
                     if (token) {
-                        const favIds = (typeof favMatches !== 'undefined' ? Object.values(favMatches) : []).map(m => m.id ? m.id.toString() : null).filter(Boolean);
+                        const favIds = (typeof favMatches !== 'undefined' ? favMatches : []).map(m => m.id ? m.id.toString() : null).filter(Boolean);
+                        const leagueIds = (typeof favLeagues !== 'undefined' ? favLeagues : []).map(l => l.id ? l.id.toString() : null).filter(Boolean);
                         
-                        console.log(`[FCM] Registering token: ${token.substring(0, 10)}... with ${favIds.length} favorites`);
+                        console.log(`[FCM] Syncing: ${favIds.length} matches, ${leagueIds.length} leagues`);
                         
                         const res = await fetch(API_BASE_URL + '/api/fcm/register', {
                             method: 'POST',
                             headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({ token: token, favorites: favIds })
+                            body: JSON.stringify({ token: token, favorites: favIds, leagues: leagueIds })
                         });
                         
                         if (res.ok) {
@@ -4593,6 +4645,7 @@
                     showToast('Liqa favoritlərdən çıxarıldı');
                 }
                 localStorage.setItem('favLeagues', JSON.stringify(favLeagues));
+                registerFCMToken();
             }
 
             function renderFavoritesView() {

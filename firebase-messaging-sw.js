@@ -14,6 +14,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
+// Create BroadcastChannel to communicate with main thread
+const bc = new BroadcastChannel('goal_notifications');
+
 messaging.onBackgroundMessage((payload) => {
     console.log('[firebase-messaging-sw.js] Received background message ', payload);
     
@@ -27,8 +30,19 @@ messaging.onBackgroundMessage((payload) => {
             data: payload.data, 
             vibrate: [300, 100, 400],
             requireInteraction: true,
-            silent: false
         };
+        
+        // Notify main thread if open
+        bc.postMessage({
+            type: 'GOAL_NOTIFICATION',
+            payload: {
+                title: notificationTitle,
+                body: notificationOptions.body,
+                matchId: payload.data ? payload.data.matchId : null,
+                time: new Date().toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' })
+            }
+        });
+
         return self.registration.showNotification(notificationTitle, notificationOptions);
     }
 });

@@ -60,5 +60,10 @@
     "lastResendDate": "2026-04-11",
     "resendCount": 1,
     "password": "$2b$10$1Tw9Hf9VdW4hMfr3baymM.z8ydQF.a09nHfVzfzWDuqOaxhxz/xbK"
+  },
+  {
+    "email": "test@test.com",
+    "username": "testuser",
+    "status": "ProScore istifadəçisi"
   }
 ]

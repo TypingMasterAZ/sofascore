@@ -582,6 +582,23 @@ app.get("/api/auth/profile/:email", async (req, res) => {
 const REG_FILE = "./registrations.json";
 let fcmRegistrations = {}; // { token: { favorites: [] } }
 
+// Persistent History for sync
+const NOTIF_HISTORY_FILE = "./notif_history.json";
+let serverNotifHistory = [];
+function loadNotifHistory() {
+    try {
+        if (fs.existsSync(NOTIF_HISTORY_FILE)) {
+            serverNotifHistory = JSON.parse(fs.readFileSync(NOTIF_HISTORY_FILE, "utf-8"));
+        }
+    } catch (e) { console.error("[FCM] Error loading history:", e.message); }
+}
+function saveNotifHistory() {
+    try {
+        fs.writeFileSync(NOTIF_HISTORY_FILE, JSON.stringify(serverNotifHistory.slice(0, 50), null, 2));
+    } catch (e) { console.error("[FCM] Error saving history:", e.message); }
+}
+loadNotifHistory();
+
 function loadRegistrations() {
     try {
         if (fs.existsSync(REG_FILE)) {
@@ -603,93 +620,93 @@ function saveRegistrations() {
 }
 
 app.post("/api/fcm/register", (req, res) => {
-    const { token, favorites } = req.body;
+    const { token, favorites, leagues } = req.body;
     if (token) {
         fcmRegistrations[token] = { 
             favorites: favorites || [], 
+            leagues: leagues || [],
             lastUpdated: Date.now() 
         };
         saveRegistrations();
-        console.log(`[FCM] Token registered and saved. Favs count: ${(favorites||[]).length}`);
+        console.log(`[FCM] Token updated. Matches: ${(favorites||[]).length}, Leagues: ${(leagues||[]).length}`);
         res.json({ success: true });
     } else {
         res.status(400).json({ success: false, message: "Token is required" });
     }
 });
 
+app.get("/api/fcm/recent-notifications", (req, res) => {
+    res.json({ success: true, history: serverNotifHistory });
+});
+
 // Background Worker for Live Matches Push Notifications
 let lastScores = {};
 
 setInterval(async () => {
-    if (Object.keys(fcmRegistrations).length === 0) return; // No tokens registered
+    if (Object.keys(fcmRegistrations).length === 0) return;
 
     try {
         const result = await fetchFromSofa("/sport/football/events/live");
-        const events = result.data.events || [];
+        if (!result || !result.data || !result.data.events) return;
+        
+        const events = result.data.events;
         
         events.forEach(ev => {
             const matchId = ev.id.toString();
             const hs = ev.homeScore?.current || 0;
             const as = ev.awayScore?.current || 0;
+            const leagueId = (ev.tournament.uniqueTournament?.id || ev.tournament.id).toString();
             const prev = lastScores[matchId];
             
             if (prev) {
-                // Goal Detection
                 if (hs > prev.homeScore || as > prev.awayScore) {
-                    console.log(`[SERVER GOAL DETECTED] Match ${matchId}: ${ev.homeTeam.name} ${hs} - ${as} ${ev.awayTeam.name}`);
+                    const title = `${ev.homeTeam.name} - ${ev.awayTeam.name} GOOOL!`;
+                    const body = `${ev.homeTeam.name} ${hs} - ${as} ${ev.awayTeam.name}. Qol vuruldu!`;
                     
+                    console.log(`[GOAL] ${title}`);
+
+                    // Add to server history
+                    const notifObj = {
+                        id: Date.now(),
+                        type: 'goal',
+                        title,
+                        body,
+                        matchId: ev.id,
+                        time: new Date().toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' })
+                    };
+                    serverNotifHistory.unshift(notifObj);
+                    if (serverNotifHistory.length > 50) serverNotifHistory.pop();
+                    saveNotifHistory();
+
                     const tokensToNotify = Object.keys(fcmRegistrations).filter(token => {
-                        const favs = fcmRegistrations[token].favorites;
-                        return favs.includes(matchId);
+                        const reg = fcmRegistrations[token];
+                        return (reg.favorites && reg.favorites.includes(matchId)) || (reg.leagues && reg.leagues.includes(leagueId));
                     });
                     
                     if (tokensToNotify.length > 0 && firebaseInitialized) {
                         const message = {
-                            notification: {
-                                title: `${ev.homeTeam.name} - ${ev.awayTeam.name} GOOOL!`,
-                                body: `${ev.homeTeam.name} ${hs} - ${as} ${ev.awayTeam.name}. Qool vuruldu!`
-                            },
-                            android: {
-                                notification: {
-                                    sound: 'default',
-                                    defaultSound: true
-                                }
-                            },
-                            apns: {
-                                payload: {
-                                    aps: {
-                                        sound: 'default'
-                                    }
-                                }
-                            },
-                            webpush: {
-                                notification: {
-                                    requireInteraction: true,
-                                    vibrate: [200, 100, 200]
-                                }
-                            }
+                            notification: { title, body },
+                            data: { matchId: matchId, type: 'goal' },
+                            android: { notification: { sound: 'default', priority: 'high' } },
+                            apns: { payload: { aps: { sound: 'default' } } },
+                            webpush: { notification: { requireInteraction: true, vibrate: [300, 100, 300], icon: 'https://www.sofascore.com/favicon.ico' } }
                         };
                         
                         tokensToNotify.forEach(token => {
-                            admin.messaging().send({ ...message, token: token })
-                                .then(resp => console.log('[FCM] Sent successfully:', resp))
+                            admin.messaging().send({ ...message, token })
                                 .catch(err => {
-                                    if (err.code === 'messaging/registration-token-not-registered') {
-                                        delete fcmRegistrations[token];
-                                    }
+                                    if (err.code === 'messaging/registration-token-not-registered') delete fcmRegistrations[token];
                                 });
                         });
-                    } else if (tokensToNotify.length > 0 && !firebaseInitialized) {
-                        console.warn("[FCM] Goal detected but Firebase not initialized. Cannot send notification.");
                     }
                 }
             }
             lastScores[matchId] = { homeScore: hs, awayScore: as };
         });
     } catch (e) {
-        console.error("[Background Tracker] Fetch error:", e.message);
+        console.error("[Background Tracker] Error:", e.message);
     }
-}, 30000);
+}, 12000);
 
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
