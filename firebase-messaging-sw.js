@@ -16,14 +16,19 @@ const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
     console.log('[firebase-messaging-sw.js] Received background message ', payload);
-    const notificationTitle = payload.notification.title;
-    const notificationOptions = {
-        body: payload.notification.body,
-        icon: 'https://www.sofascore.com/favicon.ico',
-        vibrate: [200, 100, 200],
-        requireInteraction: true,
-        silent: false
-    };
-
-    if(!payload.notification) self.registration.showNotification(notificationTitle, notificationOptions);
+    
+    // Əgər payload-da notification obyekti varsa, onu göstər
+    if (payload.notification) {
+        const notificationTitle = payload.notification.title || "Yeni Qol!";
+        const notificationOptions = {
+            body: payload.notification.body || "Matçda yenilik var.",
+            icon: '/favicon.ico', // Yerli fayl istifadə etmək daha yaxşıdır
+            badge: '/favicon.ico',
+            data: payload.data, // Matç ID-si və s. burada ola bilər
+            vibrate: [200, 100, 200],
+            requireInteraction: true,
+            silent: false
+        };
+        return self.registration.showNotification(notificationTitle, notificationOptions);
+    }
 });

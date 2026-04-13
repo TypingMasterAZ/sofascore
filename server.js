@@ -172,6 +172,17 @@ app.get("/api/debug/proxy", async (req, res) => {
         }
     }
 
+    diagnostic.firebase = {
+        initialized: firebaseInitialized,
+        admin_ready: !!admin.apps.length,
+        has_env_key: !!process.env.FIREBASE_SERVICE_ACCOUNT
+    };
+
+    diagnostic.notifications = {
+        registration_count: Object.keys(fcmRegistrations).length,
+        last_scores_size: Object.keys(lastScores).length
+    };
+
     res.json(diagnostic);
 });
 
@@ -568,7 +579,28 @@ app.get("/api/auth/profile/:email", async (req, res) => {
 });
 
 // FCM Device & Favorites Tracking
+const REG_FILE = "./registrations.json";
 let fcmRegistrations = {}; // { token: { favorites: [] } }
+
+function loadRegistrations() {
+    try {
+        if (fs.existsSync(REG_FILE)) {
+            fcmRegistrations = JSON.parse(fs.readFileSync(REG_FILE, "utf-8"));
+            console.log(`[FCM] Loaded ${Object.keys(fcmRegistrations).length} registrations from file.`);
+        }
+    } catch (e) {
+        console.error("[FCM] Error loading registrations:", e.message);
+    }
+}
+loadRegistrations();
+
+function saveRegistrations() {
+    try {
+        fs.writeFileSync(REG_FILE, JSON.stringify(fcmRegistrations, null, 2));
+    } catch (e) {
+        console.error("[FCM] Error saving registrations:", e.message);
+    }
+}
 
 app.post("/api/fcm/register", (req, res) => {
     const { token, favorites } = req.body;
@@ -577,7 +609,8 @@ app.post("/api/fcm/register", (req, res) => {
             favorites: favorites || [], 
             lastUpdated: Date.now() 
         };
-        console.log(`[FCM] Token registered. Favs count: ${(favorites||[]).length}`);
+        saveRegistrations();
+        console.log(`[FCM] Token registered and saved. Favs count: ${(favorites||[]).length}`);
         res.json({ success: true });
     } else {
         res.status(400).json({ success: false, message: "Token is required" });

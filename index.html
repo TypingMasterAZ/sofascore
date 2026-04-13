@@ -4542,21 +4542,42 @@
             async function registerFCMToken() {
                 try {
                     if (Notification.permission !== 'granted') return;
-                    if (typeof firebase === 'undefined' || !firebase.messaging || !firebase.messaging.isSupported()) return;
+                    if (typeof firebase === 'undefined' || !firebase.messaging || !firebase.messaging.isSupported()) {
+                        console.warn("[FCM] Firebase or Messaging not supported/initialized in this browser.");
+                        return;
+                    }
                     const messaging = firebase.messaging();
+                    
+                    // Service Worker-in hazır olmasını gözləyirik
                     const swReg = await navigator.serviceWorker.ready;
-                    const token = await messaging.getToken({ serviceWorkerRegistration: swReg });
+                    
+                    const token = await messaging.getToken({ 
+                        serviceWorkerRegistration: swReg,
+                        vapidKey: 'BOIqWcR7L9H7NfGvNfB6JdF7NfGvNfB6JdF7NfGvNfB6JdF7NfGvNfB6JdF' // Öhdəlik deyil, amma bəzi brauzerlərdə lazımdır
+                    }).catch(err => {
+                        console.error("[FCM] Token alma xətası:", err);
+                        return null;
+                    });
+
                     if (token) {
                         const favIds = (typeof favMatches !== 'undefined' ? Object.values(favMatches) : []).map(m => m.id ? m.id.toString() : null).filter(Boolean);
-                        await fetch(API_BASE_URL + '/api/fcm/register', {
+                        
+                        console.log(`[FCM] Registering token: ${token.substring(0, 10)}... with ${favIds.length} favorites`);
+                        
+                        const res = await fetch(API_BASE_URL + '/api/fcm/register', {
                             method: 'POST',
                             headers: {'Content-Type': 'application/json'},
                             body: JSON.stringify({ token: token, favorites: favIds })
                         });
-                        console.log('[FCM] Push Notification registered successfully');
+                        
+                        if (res.ok) {
+                            console.log('[FCM] Push Notification registered successfully on server');
+                        } else {
+                            console.error('[FCM] Server registration failed');
+                        }
                     }
                 } catch(e) {
-                    console.error('[FCM] Error:', e);
+                    console.error('[FCM] General Error:', e);
                 }
             }
 
@@ -4797,15 +4818,27 @@
 
             function toggleBrowserNotifications(enabled) {
                 if (enabled) {
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
                     if (!("Notification" in window)) {
+                        let msg = 'Sizin brauzeriniz bildirişləri dəstəkləmir.';
+                        let icon = '⚠️';
+                        
+                        if (isIOS && !isStandalone) {
+                            msg = 'iPhone/iPad-da bildirişlər üçün: \n1. Paylaş (Share) düyməsinə klikləyin.\n2. "Ana ekrana əlavə et" (Add to Home Screen) seçin.\n3. Tətbiqi ana ekrandan açın və yenidən cəhd edin.';
+                            icon = '📱';
+                        }
+
                         showDialog({
-                            title: 'Brauzer Dəstəkləmir',
-                            message: 'Sizin brauzeriniz bildirişləri dəstəkləmir.',
-                            icon: '⚠️'
+                            title: 'Bildiriş Dəstəklənmir',
+                            message: msg,
+                            icon: icon
                         });
                         document.getElementById('browserNotifToggle').checked = false;
                         return;
                     }
+
                     Notification.requestPermission().then(permission => {
                         if (permission === "granted") {
                             updateSetting('browserNotifEnabled', true);
@@ -4814,7 +4847,7 @@
                         } else {
                             showDialog({
                                 title: 'İcazə Verilmədi',
-                                message: 'Brauzer tərəfindən bildirişlərə icazə verilmədi.',
+                                message: 'Brauzer tərəfindən bildirişlərə icazə verilmədi. Lütfən brauzer tənzimləmələrindən icazə verin.',
                                 icon: '🚫'
                             });
                             document.getElementById('browserNotifToggle').checked = false;
