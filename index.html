@@ -4776,10 +4776,11 @@
                     else card.classList.remove('active');
                 });
                 
-                if (bNotif) bNotif.checked = userSettings.browserNotifEnabled;
-                if (sNotif) sNotif.checked = userSettings.soundEnabled;
-                if (fNotif) fNotif.checked = !!userSettings.onlyFavNotif;
-
+                setTimeout(() => {
+                    if (bNotif) bNotif.checked = !!userSettings.browserNotifEnabled;
+                    if (sNotif) sNotif.checked = !!userSettings.soundEnabled;
+                    if (fNotif) fNotif.checked = !!userSettings.onlyFavNotif;
+                }, 50);
                 const theme = localStorage.getItem('theme') || 'dark';
                 if (theme === 'light') {
                     document.documentElement.style.setProperty('--bg', '#f8fafc');
@@ -4792,9 +4793,13 @@
             }
 
             function updateSetting(key, val) {
-                userSettings[key] = val;
-                localStorage.setItem('userSettings', JSON.stringify(userSettings));
-                showToast('Tənzimləmə yadda saxlanıldı');
+                try {
+                    userSettings[key] = val;
+                    localStorage.setItem('userSettings', JSON.stringify(userSettings));
+                    showToast('Tənzimləmə yadda saxlanıldı');
+                } catch (e) {
+                    showToast('Yaddaşa yazmaq mümkün olmadı: ' + e.message, 'error');
+                }
             }
 
             window.selectSound = function(url, el) {
