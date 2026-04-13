@@ -15,4 +15,4 @@ services:
       - key: PORT
         value: 3000
       - key: GAS_PROXY_URL
-        value: https://script.google.com/macros/s/AKfycbymzCMu2r7wO5CAzXAcQjj1xPllg4izS48IZzjBEvXCxRKr4icEOHAvLYT37QuX363JdA/exec
+        value: https://script.google.com/macros/s/AKfycbwFuXK4oHJIAjMoCxPEMeh5hH5jn10PGYEEo048pnmQLFNQoI-M0Fqr5-NZ1wyITYJQrQ/exec
