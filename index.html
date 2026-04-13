@@ -2626,6 +2626,77 @@
             max-width: 300px;
             line-height: 1.6;
         }
+        /* Sound Selector Styling */
+        .sound-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .sound-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sound-card i {
+            font-size: 20px;
+            color: var(--text-muted);
+            transition: color 0.3s;
+        }
+
+        .sound-card span {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sound-card.active {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.2);
+        }
+
+        .sound-card.active i {
+            color: var(--primary);
+        }
+
+        .sound-card.active span {
+            color: #fff;
+        }
+
+        .sound-card:active {
+            transform: scale(0.95);
+        }
+
+        .play-indicator {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 10px;
+            color: var(--primary);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .sound-card.playing .play-indicator {
+            opacity: 1;
+            animation: pulse-badge 1s infinite;
+        }
     </style>
 </head>
 
@@ -2946,15 +3017,25 @@
                             <option value="leagues">Liqalar</option>
                         </select>
                     </div>
-                    <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Qol Bildiriş Səsi</span>
-                        <select id="soundSelect" class="profile-input"
-                            style="width:auto; margin-top:0; padding:8px 16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);"
-                            onchange="updateSetting('notifSound', this.value); notificationMgr.playTestSound()">
-                            <option value="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3">Goal 1</option>
-                            <option value="https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3">Goal 2</option>
-                            <option value="https://assets.mixkit.co/active_storage/sfx/1004/1004-preview.mp3">Whistle</option>
-                        </select>
+                    <div class="profile-row" style="flex-direction: column; align-items: flex-start;">
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9); margin-bottom: 5px;">Qol Bildiriş Səsi</span>
+                        <div class="sound-grid">
+                            <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" onclick="selectSound(this.dataset.url, this)">
+                                <i>⚽</i>
+                                <span>Goal 1</span>
+                                <div class="play-indicator">▶</div>
+                            </div>
+                            <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3" onclick="selectSound(this.dataset.url, this)">
+                                <i>📣</i>
+                                <span>Goal 2</span>
+                                <div class="play-indicator">▶</div>
+                            </div>
+                            <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/1004/1004-preview.mp3" onclick="selectSound(this.dataset.url, this)">
+                                <i>🏁</i>
+                                <span>Whistle</span>
+                                <div class="play-indicator">▶</div>
+                            </div>
+                        </div>
                     </div>
                     <div class="profile-row">
                         <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Yalnız Favoritlər</span>
@@ -3238,9 +3319,11 @@
                     }
                 }
 
-                playTestSound() {
-                    const tempAudio = new Audio(document.getElementById('soundSelect').value);
-                    tempAudio.play().catch(e => console.log("Blocked"));
+                playTestSound(customUrl = null) {
+                    const url = customUrl || userSettings.notifSound || 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+                    if (this.audio) this.audio.pause();
+                    this.audio = new Audio(url);
+                    this.audio.play().catch(e => console.log("Audio play blocked by browser."));
                 }
 
                 requestPermission() {
@@ -4661,12 +4744,17 @@
                 if (document.getElementById('timeFormatSelect')) {
                     document.getElementById('timeFormatSelect').value = userSettings.timeFormat;
                 }
-                const soundS = document.getElementById('soundSelect');
                 const bNotif = document.getElementById('browserNotifToggle');
                 const sNotif = document.getElementById('soundNotifToggle');
                 const fNotif = document.getElementById('onlyFavNotifToggle');
 
-                if (soundS) soundS.value = userSettings.notifSound || 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+                // Update sound selection UI
+                const currentSound = userSettings.notifSound || 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+                document.querySelectorAll('.sound-card').forEach(card => {
+                    if (card.dataset.url === currentSound) card.classList.add('active');
+                    else card.classList.remove('active');
+                });
+                
                 if (bNotif) bNotif.checked = userSettings.browserNotifEnabled;
                 if (sNotif) sNotif.checked = userSettings.soundEnabled;
                 if (fNotif) fNotif.checked = !!userSettings.onlyFavNotif;
@@ -4687,6 +4775,25 @@
                 localStorage.setItem('userSettings', JSON.stringify(userSettings));
                 showToast('Tənzimləmə yadda saxlanıldı');
             }
+
+            window.selectSound = function(url, el) {
+                // Update UI visually
+                document.querySelectorAll('.sound-card').forEach(c => {
+                    c.classList.remove('active');
+                    c.classList.remove('playing');
+                });
+                el.classList.add('active');
+                el.classList.add('playing');
+
+                // Play preview
+                notificationMgr.playTestSound(url);
+
+                // Save setting
+                updateSetting('notifSound', url);
+
+                // Stop playing animation after 2s
+                setTimeout(() => el.classList.remove('playing'), 2000);
+            };
 
             function toggleBrowserNotifications(enabled) {
                 if (enabled) {
