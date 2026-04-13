@@ -3059,6 +3059,8 @@
                                 <span class="slider"></span>
                             </label>
                         </div>
+                        <div style="padding:10px; font-size:10px; color:gray; word-break:break-all;" id="debugSettings"></div>
+
 
                         <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
                             onclick="clearAllData()">
@@ -4775,6 +4777,9 @@
                     if (bNotif) bNotif.checked = !!userSettings.browserNotifEnabled;
                     if (sNotif) sNotif.checked = !!userSettings.soundEnabled;
                     if (fNotif) fNotif.checked = !!userSettings.onlyFavNotif;
+                    
+                    const dbg = document.getElementById('debugSettings');
+                    if(dbg) dbg.innerText = "Yaddaşdakı vəziyyət: " + JSON.stringify(userSettings);
                 }, 50);
                 const theme = localStorage.getItem('theme') || 'dark';
                 if (theme === 'light') {
