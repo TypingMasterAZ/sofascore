@@ -5470,6 +5470,12 @@
                 window.addEventListener('load', () => {
                     navigator.serviceWorker.register('sw.js?v=' + new Date().getTime()).then(reg => {
                         console.log('SW registered:', reg);
+                        // Kəş xətası problemlərini həll etmək üçün mövcud kəşləri təmizlə
+                        caches.keys().then(names => {
+                            for (let name of names) {
+                                caches.delete(name);
+                            }
+                        });
                     }).catch(err => {
                         console.log('SW registration failed:', err);
                     });
