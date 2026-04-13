@@ -22,10 +22,10 @@ messaging.onBackgroundMessage((payload) => {
         const notificationTitle = payload.notification.title || "Yeni Qol!";
         const notificationOptions = {
             body: payload.notification.body || "Matçda yenilik var.",
-            icon: '/favicon.ico', // Yerli fayl istifadə etmək daha yaxşıdır
+            icon: '/favicon.ico', 
             badge: '/favicon.ico',
-            data: payload.data, // Matç ID-si və s. burada ola bilər
-            vibrate: [200, 100, 200],
+            data: payload.data, 
+            vibrate: [300, 100, 400],
             requireInteraction: true,
             silent: false
         };
