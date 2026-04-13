@@ -3989,7 +3989,7 @@
                     applyFilters();
                 } catch (e) {
                     console.error("Matches fetch error:", e);
-                    // Silently fail but keep current state or show error in UI
+                    if (window.showToast) showToast(`Xəta: ${e.message}`);
                 }
 
                 // Fetch Local Config (Top Leagues & Categories)
@@ -4014,6 +4014,7 @@
                         }
                     } catch (e) {
                         console.log("Local API is unreachable, some features may be disabled.");
+                        if (window.showToast) showToast("Serverə bağlanmaq mümkün olmadı.");
                     }
                 }
             }

@@ -88,42 +88,91 @@ async function fetchFromSofa(path, params = {}) {
         if (GAS_PROXY_URL) {
             console.log(`[PROXY FETCH] Path: ${path}`);
             result = await axios.get(GAS_PROXY_URL, { 
-                params: { path, ...params } 
+                params: { path, ...params },
+                timeout: 10000 // 10 saniyə timeout
             });
         } else {
             console.log(`[DIRECT FETCH] Path: ${path}`);
             result = await axios.get(`${SOFA_API}${path}`, { 
                 headers: HEADERS,
-                params: params
+                params: params,
+                timeout: 10000
             });
         }
 
-        // Validate that we got a JSON object
-        if (typeof result.data === 'string' && result.data.trim().startsWith('<!doctype')) {
-            throw new Error("SofaScore-dan etibarsız cavab gəldi (HTML). Böyük ehtimalla Google Script login tələb edir.");
+        // Validate that we got a JSON object or at least not an HTML page
+        if (result.data && typeof result.data === 'string' && (result.data.trim().startsWith('<!doctype') || result.data.trim().startsWith('<html'))) {
+            console.error(`[FETCH ERROR] Received HTML instead of JSON for path: ${path}`);
+            throw new Error("SofaScore-dan və ya Proxy-dən etibarsız cavab gəldi (HTML). Böyük ehtimalla Google Script login tələb edir və ya bloklanıb.");
         }
         
         return result;
     } catch (error) {
+        console.error(`[FETCH EXCEPTION] Path: ${path} | Error: ${error.message}`);
+        
         // Enhance error message if it's a proxy/parse issue
-        if (error.response && typeof error.response.data === 'string' && error.response.data.includes('<!doctype')) {
-            error.message = "Google Script etibarsız cavab qaytardı (Login səhifəsi). Lütfən Script icazələrini yoxlayın.";
-        } else if (!GAS_PROXY_URL) {
+        if (error.response) {
+            const status = error.response.status;
+            const dataPreview = typeof error.response.data === 'string' ? error.response.data.substring(0, 100) : 'Non-string data';
+            
+            if (dataPreview.includes('<!doctype') || dataPreview.includes('<html')) {
+                error.message = "Google Script etibarsız cavab qaytardı (Login səhifəsi). Lütfən Script icazələrini (Execute as: Me, Access: Anyone) yoxlayın.";
+            } else if (status === 403) {
+                error.message = "SofaScore tərəfindən bloklanma (403 Forbidden).";
+            } else if (status === 429) {
+                error.message = "Həddindən artıq sorğu (429 Too Many Requests).";
+            } else {
+                error.message = `Proxy/API Xətası: ${status} - ${error.message}`;
+            }
+        } else if (error.code === 'ECONNABORTED') {
+            error.message = "Sorğu vaxtı bitdi (Timeout).";
+        } else if (!GAS_PROXY_URL && !path.includes('/debug/')) {
             error.message = "GAS_PROXY_URL mühit dəyişəni təyin edilməyib! Lütfən Render Dashboard-da əlavə edin.";
         }
+        
         throw error;
     }
 }
 
-// Diagnostic Endpoint
-app.get("/api/debug/proxy", (req, res) => {
-    res.json({
+// Diagnostic Endpoint Enhanced
+app.get("/api/debug/proxy", async (req, res) => {
+    const diagnostic = {
+        timestamp: new Date().toISOString(),
         proxy_configured: !!GAS_PROXY_URL,
         proxy_prefix: GAS_PROXY_URL ? GAS_PROXY_URL.substring(0, 40) + "..." : "NONE",
         sofa_api: SOFA_API,
         node_version: process.version,
-        env_keys: Object.keys(process.env).filter(key => key.includes("GAS") || key.includes("URL") || key.includes("API"))
-    });
+        env_keys: Object.keys(process.env).filter(key => key.includes("GAS") || key.includes("URL") || key.includes("API")),
+        test_fetch: null
+    };
+
+    if (GAS_PROXY_URL) {
+        try {
+            console.log("[DEBUG] Testing proxy connectivity...");
+            const start = Date.now();
+            const test = await axios.get(GAS_PROXY_URL, { 
+                params: { path: "/sport/football/events/live" },
+                timeout: 5000
+            });
+            const duration = Date.now() - start;
+            
+            diagnostic.test_fetch = {
+                status: "SUCCESS",
+                duration_ms: duration,
+                data_type: typeof test.data,
+                data_preview: typeof test.data === 'object' ? "Valid JSON Object" : (typeof test.data === 'string' ? test.data.substring(0, 50) : "Unknown")
+            };
+        } catch (err) {
+            diagnostic.test_fetch = {
+                status: "FAILED",
+                error: err.message,
+                response_status: err.response?.status,
+                response_data: typeof err.response?.data === 'string' ? err.response.data.substring(0, 100) : "Binary/Object"
+            };
+        }
+    }
+
+    res.json(diagnostic);
 });
 
 // Caching System
@@ -161,7 +210,7 @@ app.get("/api/team/:id", async (req, res) => {
         res.json({ info: info.data, players: players.data });
     } catch (error) {
         console.error(`[API ERROR] Team ${req.params.id}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
-        res.status(500).json({ error: true });
+        res.status(500).json({ error: true, message: error.message, details: error.response?.data?.substring?.(0, 100) });
     }
 });
 
@@ -190,7 +239,7 @@ app.get("/api/matches/:date", async (req, res) => {
         res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Scheduled matches for date ${date}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
-        res.status(500).json({ error: true, message: error.message });
+        res.status(500).json({ error: true, message: error.message, details: error.response?.data?.substring?.(0, 100) });
     }
 });
 
@@ -252,7 +301,7 @@ app.get("/api/top-leagues", async (req, res) => {
         res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Top Leagues: ${error.message}`);
-        res.status(500).json({ error: true });
+        res.status(500).json({ error: true, message: error.message, details: error.response?.data?.substring?.(0, 100) });
     }
 });
 
@@ -266,7 +315,7 @@ app.get("/api/categories", async (req, res) => {
         res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Categories: ${error.message}`);
-        res.status(500).json({ error: true });
+        res.status(500).json({ error: true, message: error.message, details: error.response?.data?.substring?.(0, 100) });
     }
 });
 
