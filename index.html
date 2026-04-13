@@ -3925,7 +3925,14 @@
                 try {
                     console.log("Fetching matches from:", API_BASE_URL + url);
                     const resEvents = await fetch(API_BASE_URL + url);
-                    if (!resEvents.ok) throw new Error(`HTTP error! status: ${resEvents.status}`);
+                    if (!resEvents.ok) {
+                        let errorMsg = `HTTP error! status: ${resEvents.status}`;
+                        try {
+                            const errData = await resEvents.json();
+                            if (errData && errData.message) errorMsg = errData.message;
+                        } catch(e) {}
+                        throw new Error(errorMsg);
+                    }
                     const dataEvents = await resEvents.json();
                     
                     if (dataEvents && dataEvents.events) {
