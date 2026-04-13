@@ -82,17 +82,33 @@ const HEADERS = {
 };
 
 async function fetchFromSofa(path, params = {}) {
-    if (GAS_PROXY_URL) {
-        console.log(`[PROXY FETCH] Path: ${path}`);
-        return axios.get(GAS_PROXY_URL, { 
-            params: { path, ...params } 
-        });
-    } else {
-        console.log(`[DIRECT FETCH] Path: ${path}`);
-        return axios.get(`${SOFA_API}${path}`, { 
-            headers: HEADERS,
-            params: params
-        });
+    try {
+        let result;
+        if (GAS_PROXY_URL) {
+            console.log(`[PROXY FETCH] Path: ${path}`);
+            result = await axios.get(GAS_PROXY_URL, { 
+                params: { path, ...params } 
+            });
+        } else {
+            console.log(`[DIRECT FETCH] Path: ${path}`);
+            result = await axios.get(`${SOFA_API}${path}`, { 
+                headers: HEADERS,
+                params: params
+            });
+        }
+
+        // Validate that we got a JSON object
+        if (typeof result.data === 'string' && result.data.trim().startsWith('<!doctype')) {
+            throw new Error("SofaScore-dan etibarsız cavab gəldi (HTML). Böyük ehtimalla Google Script login tələb edir.");
+        }
+        
+        return result;
+    } catch (error) {
+        // Enhance error message if it's a proxy/parse issue
+        if (error.response && typeof error.response.data === 'string' && error.response.data.includes('<!doctype')) {
+            error.message = "Google Script etibarsız cavab qaytardı (Login səhifəsi). Lütfən Script icazələrini yoxlayın.";
+        }
+        throw error;
     }
 }
 
