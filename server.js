@@ -1,5 +1,8 @@
 const express = require("express");
-// Version: 1.1.3 - Triggering Render Redeploy (Force)
+// Version: 1.1.4 - Debugging Render Startup
+console.log("-----------------------------------------");
+console.log(`[STARTUP] Server booting at ${new Date().toISOString()}`);
+console.log("-----------------------------------------");
 require('dotenv').config();
 const path = require("path");
 const axios = require("axios");
@@ -707,10 +710,10 @@ app.post("/api/fcm/test-push", async (req, res) => {
             priority: 'high',
             notification: { 
                 sound: 'default',
-                channel_id: 'goal_notifications',
-                vibrate_timings_ms: [0, 500, 200, 500, 200, 500],
-                notification_priority: 'priority_max',
-                visibility: 'public'
+                channelId: 'goal_notifications',
+                vibrateTimingsMillis: [0, 500, 200, 500, 200, 500],
+                notificationPriority: 'PRIORITY_MAX',
+                visibility: 'PUBLIC'
             } 
         },
         apns: { 
@@ -803,10 +806,10 @@ setInterval(async () => {
                                 priority: 'high',
                                 notification: { 
                                     sound: 'default',
-                                    channel_id: 'goal_notifications',
-                                    notification_priority: 'priority_max',
-                                    vibrate_timings_ms: [0, 500, 100, 500, 100, 500],
-                                    visibility: 'public'
+                                    channelId: 'goal_notifications',
+                                    notificationPriority: 'PRIORITY_MAX',
+                                    vibrateTimingsMillis: [0, 500, 100, 500, 100, 500],
+                                    visibility: 'PUBLIC'
                                 } 
                             },
                             apns: { 

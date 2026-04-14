@@ -12,7 +12,5 @@ services:
         sync: false
       - key: FIREBASE_SERVICE_ACCOUNT
         sync: false
-      - key: PORT
-        value: 3000
       - key: GAS_PROXY_URL
         value: https://script.google.com/macros/s/AKfycbwFuXK4oHJIAjMoCxPEMeh5hH5jn10PGYEEo048pnmQLFNQoI-M0Fqr5-NZ1wyITYJQrQ/exec
