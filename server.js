@@ -655,6 +655,38 @@ app.post("/api/fcm/register", (req, res) => {
     }
 });
 
+// Reminder Persistence
+const REMINDERS_FILE = "./reminders_sent.json";
+let remindersSent = {}; // { token: { matchIdSyncKey: { soon: bool, started: bool } } }
+
+function loadReminders() {
+    try {
+        if (fs.existsSync(REMINDERS_FILE)) {
+            remindersSent = JSON.parse(fs.readFileSync(REMINDERS_FILE, "utf-8"));
+            // Clean up old reminders (older than 24h)
+            const now = Date.now();
+            let changed = false;
+            for (const token in remindersSent) {
+                for (const syncKey in remindersSent[token]) {
+                    if (now - remindersSent[token][syncKey].timestamp > 24 * 60 * 60 * 1000) {
+                        delete remindersSent[token][syncKey];
+                        changed = true;
+                    }
+                }
+                if (Object.keys(remindersSent[token]).length === 0) delete remindersSent[token];
+            }
+            if (changed) saveReminders();
+        }
+    } catch (e) { console.error("[Reminder] Load error:", e.message); }
+}
+
+function saveReminders() {
+    try {
+        fs.writeFileSync(REMINDERS_FILE, JSON.stringify(remindersSent, null, 2));
+    } catch (e) { console.error("[Reminder] Save error:", e.message); }
+}
+loadReminders();
+
 app.get("/api/fcm/recent-notifications", (req, res) => {
     res.json({ success: true, history: serverNotifHistory });
 });
@@ -761,6 +793,100 @@ setInterval(async () => {
         console.error("[Background Tracker] Error:", e.message);
     }
 }, 12000);
+
+// --- Reminder Worker for Upcoming Favorited Matches ---
+setInterval(async () => {
+    if (Object.keys(fcmRegistrations).length === 0 || !firebaseInitialized) return;
+
+    try {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+        // Fetch events for today and tomorrow
+        // We use direct fetching to ensure background correctness, but Sofa API is cached at CDN level anyway
+        const [resToday, resTomorrow] = await Promise.all([
+            fetchFromSofa(`/sport/football/scheduled-events/${todayStr}`).catch(() => null),
+            fetchFromSofa(`/sport/football/scheduled-events/${tomorrowStr}`).catch(() => null)
+        ]);
+
+        const allUpcomingEvents = [
+            ...(resToday?.data?.events || []),
+            ...(resTomorrow?.data?.events || [])
+        ];
+
+        if (allUpcomingEvents.length === 0) return;
+
+        const nowSec = Math.floor(Date.now() / 1000);
+
+        for (const token in fcmRegistrations) {
+            const reg = fcmRegistrations[token];
+            if (!reg.favorites || reg.favorites.length === 0) continue;
+
+            reg.favorites.forEach(favId => {
+                const match = allUpcomingEvents.find(ev => ev.id.toString() === favId.toString());
+                if (!match) return;
+
+                const startTimestamp = match.startTimestamp;
+                if (!startTimestamp) return;
+
+                const timeUntilStart = startTimestamp - nowSec;
+                
+                if (!remindersSent[token]) remindersSent[token] = {};
+                if (!remindersSent[token][favId]) remindersSent[token][favId] = { timestamp: Date.now() };
+
+                const state = remindersSent[token][favId];
+
+                // 1. 30 Minutes Reminder (Between 20 and 40 minutes before start)
+                if (timeUntilStart > 0 && timeUntilStart <= 40 * 60 && timeUntilStart >= 20 * 60 && !state.soon) {
+                    const title = `Xatırlatma: ${match.homeTeam.name} - ${match.awayTeam.name}`;
+                    const body = `Oyunun başlamasına təxminən 30 dəqiqə qaldı! ⏳`;
+                    
+                    admin.messaging().send({
+                        notification: { title, body },
+                        data: { matchId: favId.toString(), type: 'reminder_soon' },
+                        token: token,
+                        android: { notification: { sound: 'default', priority: 'high' } },
+                        webpush: { notification: { icon: 'https://www.sofascore.com/favicon.ico' } }
+                    }).then(() => {
+                        state.soon = true;
+                        state.timestamp = Date.now();
+                        saveReminders();
+                        console.log(`[Reminder] Sent 'Soon' notification for match ${favId}`);
+                    }).catch(err => {
+                        if (err.code === 'messaging/registration-token-not-registered') delete fcmRegistrations[token];
+                    });
+                }
+
+                // 2. Match Started Reminder (Between 0 and -10 minutes start)
+                // Note: The main live tracker handles goals, this handles the start whistle
+                const isStarted = match.status?.type === 'inprogress' || (timeUntilStart <= 0 && timeUntilStart >= -600);
+                if (isStarted && !state.started) {
+                    const title = `Oyun Başladı! ⚽`;
+                    const body = `${match.homeTeam.name} - ${match.awayTeam.name} oyunu start götürdü.`;
+                    
+                    admin.messaging().send({
+                        notification: { title, body },
+                        data: { matchId: favId.toString(), type: 'reminder_started' },
+                        token: token,
+                        android: { notification: { sound: 'default', priority: 'high' } },
+                        webpush: { notification: { icon: 'https://www.sofascore.com/favicon.ico' } }
+                    }).then(() => {
+                        state.started = true;
+                        state.timestamp = Date.now();
+                        saveReminders();
+                        console.log(`[Reminder] Sent 'Started' notification for match ${favId}`);
+                    }).catch(err => {
+                        if (err.code === 'messaging/registration-token-not-registered') delete fcmRegistrations[token];
+                    });
+                }
+            });
+        }
+    } catch (e) {
+        console.error("[Reminder Worker] Error:", e.name, e.message);
+    }
+}, 5 * 60 * 1000); // Check every 5 minutes
 
 app.get("/api/ping", (req, res) => {
     res.json({ status: "alive", timestamp: new Date().toISOString() });
