@@ -708,8 +708,9 @@ app.post("/api/fcm/test-push", async (req, res) => {
             notification: { 
                 sound: 'default',
                 channel_id: 'goal_notifications',
-                vibrate_timings_ms: [0, 500, 200, 500],
-                notification_priority: 'priority_max'
+                vibrate_timings_ms: [0, 500, 200, 500, 200, 500],
+                notification_priority: 'priority_max',
+                visibility: 'public'
             } 
         },
         apns: { 
@@ -728,8 +729,10 @@ app.post("/api/fcm/test-push", async (req, res) => {
             },
             notification: {
                 requireInteraction: true,
-                vibrate: [300, 100, 300],
-                icon: 'https://imglink.cc/cdn/hC_7Jg-pCe.png'
+                vibrate: [500, 100, 500, 100, 500],
+                icon: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
+                tag: 'test-push',
+                renotify: true
             },
             fcm_options: {
                 link: '/'
@@ -801,7 +804,9 @@ setInterval(async () => {
                                 notification: { 
                                     sound: 'default',
                                     channel_id: 'goal_notifications',
-                                    notification_priority: 'priority_max'
+                                    notification_priority: 'priority_max',
+                                    vibrate_timings_ms: [0, 500, 100, 500, 100, 500],
+                                    visibility: 'public'
                                 } 
                             },
                             apns: { 
@@ -817,8 +822,10 @@ setInterval(async () => {
                                 headers: { Urgency: 'high' },
                                 notification: { 
                                     requireInteraction: true, 
-                                    vibrate: [300, 100, 300], 
-                                    icon: 'https://imglink.cc/cdn/hC_7Jg-pCe.png' 
+                                    vibrate: [500, 110, 500, 110, 450, 110, 200, 110, 170, 40], 
+                                    icon: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
+                                    tag: `goal-${matchId}`,
+                                    renotify: true
                                 },
                                 fcm_options: {
                                     link: '/'

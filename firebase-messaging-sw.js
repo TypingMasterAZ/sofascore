@@ -29,7 +29,7 @@ messaging.onBackgroundMessage((payload) => {
         icon: 'https://imglink.cc/cdn/hC_7Jg-pCe.png', 
         badge: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
         data: payload.data, 
-        vibrate: [300, 100, 300],
+        vibrate: [500, 110, 500, 110, 450, 110, 200, 110, 170, 40],
         requireInteraction: true,
         tag: payload.data?.matchId ? `goal-${payload.data.matchId}` : 'general-notification',
         renotify: true,
