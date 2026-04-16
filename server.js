@@ -82,7 +82,12 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
+let detectedHostUrl = null;
 app.use((req, res, next) => {
+    if (!detectedHostUrl && req.headers.host) {
+        detectedHostUrl = req.protocol + '://' + req.headers.host;
+        console.log(`[Self-Ping] Host detected: ${detectedHostUrl}`);
+    }
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
     next();
 });
@@ -949,17 +954,16 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server ${PORT} portunda aktivdir.`);
     
-    // Render Self-Ping Mechanism
-    const selfUrl = process.env.RENDER_EXTERNAL_URL;
-    if (selfUrl) {
-        console.log(`[Self-Ping] Initialized for: ${selfUrl}`);
-        setInterval(async () => {
+    // Render Self-Ping Mechanism (Oyaq qalmaq üçün)
+    setInterval(async () => {
+        const targetUrl = process.env.RENDER_EXTERNAL_URL || detectedHostUrl;
+        if (targetUrl) {
             try {
-                await axios.get(`${selfUrl}/api/ping`);
-                console.log(`[Self-Ping] Success: ${new Date().toISOString()}`);
+                await axios.get(`${targetUrl}/api/ping`);
+                console.log(`[Self-Ping] Oyaq saxlama uğurludur (${targetUrl}): ${new Date().toISOString()}`);
             } catch (err) {
-                console.error(`[Self-Ping] Error: ${err.message}`);
+                console.error(`[Self-Ping] Xəta: ${err.message}`);
             }
-        }, 13 * 60 * 1000); 
-    }
+        }
+    }, 8 * 60 * 1000); // 8 minutes to prevent 15-min idle timeout
 });

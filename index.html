@@ -4313,11 +4313,11 @@
             <div class="${timeClass}">${formattedMinute}</div>
             <div class="match-teams">
                 <div class="team-line">
-                    <img class="team-logo club-logo" src="https://www.sofascore.com/api/v1/team/${m.homeTeam.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
+                    <img class="team-logo club-logo" loading="lazy" src="https://www.sofascore.com/api/v1/team/${m.homeTeam.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
                     <span class="team-name">${m.homeTeam.name}</span>
                 </div>
                 <div class="team-line">
-                    <img class="team-logo club-logo" src="https://www.sofascore.com/api/v1/team/${m.awayTeam.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
+                    <img class="team-logo club-logo" loading="lazy" src="https://www.sofascore.com/api/v1/team/${m.awayTeam.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
                     <span class="team-name">${m.awayTeam.name}</span>
                 </div>
             </div>
@@ -4355,7 +4355,7 @@
                 <div class="league-group">
                     <div class="league-header">
                         <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;" onclick="toggleCollapsible(this.parentElement)">
-                            <img class="club-logo" src="${logoUrl}" onerror="this.src='${fallBack}'; this.onerror=function(){this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzFmMjkzZCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIvPjwvc3ZnPg=='}">
+                            <img class="club-logo" loading="lazy" src="${logoUrl}" onerror="this.src='${fallBack}'; this.onerror=function(){this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzFmMjkzZCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIvPjwvc3ZnPg=='}">
                             <div class="league-title-box">
                                 <span class="league-country">${group.country}</span>
                                 <span class="league-title">${group.name}</span>
@@ -4463,7 +4463,7 @@
                         html += `
                         <div class="league-card" onclick="openSingleLeague('${l.id}')">
                             <div style="display:flex; align-items:center; gap:16px; flex:1; min-width:0;">
-                                <img class="league-card-logo" src="https://www.sofascore.com/api/v1/unique-tournament/${l.id}/image" onerror="this.src='https://www.sofascore.com/api/v1/category/${catId}/image'">
+                                <img class="league-card-logo" loading="lazy" src="https://www.sofascore.com/api/v1/unique-tournament/${l.id}/image" onerror="this.src='https://www.sofascore.com/api/v1/category/${catId}/image'">
                                 <div class="league-card-info">
                                     <span class="league-card-country">${countryName}</span>
                                     <span class="league-card-name">${l.name}</span>
@@ -4480,7 +4480,7 @@
                             const safeCatName = (cat.name || "Ölkə").replace(/'/g, "\\'");
                             html += `
                             <div class="category-row" onclick="toggleCategory('${cat.id}', '${safeCatName}', this)">
-                                <img class="category-flag" src="https://www.sofascore.com/api/v1/category/${cat.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
+                                <img class="category-flag" loading="lazy" src="https://www.sofascore.com/api/v1/category/${cat.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
                                 <span class="category-name">${cat.name || 'Ölkə'}</span>
                                 <span class="chevron" style="opacity:0.4; font-size:12px; margin-left:auto;">▼</span>
                             </div>`;
@@ -4514,7 +4514,7 @@
                                 html += `
                                 <div class="league-card" onclick="openSingleLeague('${l.id}')">
                                     <div style="display:flex; align-items:center; gap:16px; flex:1; min-width:0;">
-                                        <img class="league-card-logo club-logo" src="https://www.sofascore.com/api/v1/unique-tournament/${l.id}/image" onerror="this.src='https://www.sofascore.com/api/v1/category/${catId}/image'">
+                                        <img class="league-card-logo club-logo" loading="lazy" src="https://www.sofascore.com/api/v1/unique-tournament/${l.id}/image" onerror="this.src='https://www.sofascore.com/api/v1/category/${catId}/image'">
                                         <div class="league-card-info">
                                             <span class="league-card-country">${countryName}</span>
                                             <span class="league-card-name">${l.name || 'Liqa'}</span>
