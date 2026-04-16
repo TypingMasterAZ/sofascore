@@ -728,7 +728,6 @@ app.post("/api/fcm/test-push", async (req, res) => {
         webpush: {
             headers: { Urgency: 'high' },
             notification: {
-                requireInteraction: true,
                 vibrate: [500, 100, 500],
                 icon: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
                 tag: 'test-push',
@@ -747,6 +746,52 @@ app.post("/api/fcm/test-push", async (req, res) => {
     } catch (e) {
         console.error("[FCM] Test push error:", e);
         res.status(500).json({ success: false, message: e.message });
+    }
+});
+
+// YENI YOXLANIS UCUN (KƏNAR VASİTƏ)
+// Bu linkə kompüterdən girdiyinizdə BÜTÜN qeydiyyatdan keçmiş cihazlara (o cümlədən bağlı olan iPhone-a) bildiriş göndərəcək
+app.get("/api/fcm/broadcast-test", async (req, res) => {
+    if (!firebaseInitialized) return res.status(500).send("Firebase qoşulmayıb");
+    
+    const tokens = Object.keys(fcmRegistrations);
+    if (tokens.length === 0) return res.send("Heç bir cihaz qeydiyyatda deyil.");
+
+    const message = {
+        notification: {
+            title: "Xüsusi Test Bildirişi 📡",
+            body: "Əgər tətbiq tam bağlıdırsa və bu bildiriş gəlirsə, hər şey əla işləyir!"
+        },
+        data: { type: 'test' },
+        android: {
+            priority: 'high',
+            notification: { sound: 'default', channelId: 'goal_notifications' }
+        },
+        webpush: {
+            headers: { Urgency: 'high' },
+            notification: {
+                vibrate: [500, 100, 500],
+                icon: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
+                tag: 'broadcast-test',
+                renotify: true
+            },
+            fcm_options: { link: '/' }
+        }
+    };
+
+    try {
+        let sentCount = 0;
+        for (const token of tokens) {
+            try {
+                await admin.messaging().send({ ...message, token });
+                sentCount++;
+            } catch (err) {
+                if (err.code === 'messaging/registration-token-not-registered') delete fcmRegistrations[token];
+            }
+        }
+        res.send(`<h1>Uğurlu!</h1><p>${sentCount} cihaza bildiriş göndərildi.</p><p>İndi iPhone-unuzu yoxlayın.</p>`);
+    } catch (e) {
+        res.status(500).send("Xəta baş verdi: " + e.message);
     }
 });
 
@@ -811,9 +856,9 @@ setInterval(async () => {
                             webpush: { 
                                 headers: { Urgency: 'high' },
                                 notification: { 
-                                    requireInteraction: true, 
                                     vibrate: [500, 110, 500], 
                                     icon: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
+                                    badge: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
                                     tag: `goal-${matchId}`,
                                     renotify: true
                                 },
