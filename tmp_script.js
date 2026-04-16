@@ -1340,6 +1340,14 @@
             updateAuthUI();
             startAuthRedirectTimer();
 
+            // Arxa plandan önə qayıdanda köhnə hesabların görünməsinin qarşısını almaq üçün dərhal yeniləmə
+            document.addEventListener("visibilitychange", () => {
+                if (document.visibilityState === "visible") {
+                    console.log("App foregrounded. Fetching instant live data.");
+                    fetchData();
+                }
+            });
+
             // Register PWA Service Worker
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {

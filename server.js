@@ -255,12 +255,18 @@ app.get("/api/team/:id", async (req, res) => {
 
 // Yeni API: Canlı Matçlar
 app.get("/api/matches/live", async (req, res) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+
     try {
-        const data = await getCachedData("live_matches", async () => {
-            const result = await fetchFromSofa("/sport/football/events/live");
-            return result.data;
-        }, CACHE_TIMES.LIVE);
-        res.json(data);
+        if (globalLiveEvents && (Date.now() - lastLiveFetchTime < 15000)) {
+            return res.json(globalLiveEvents);
+        }
+        const result = await fetchFromSofa("/sport/football/events/live");
+        globalLiveEvents = result.data;
+        lastLiveFetchTime = Date.now();
+        res.json(result.data);
     } catch (error) {
         console.error(`[API ERROR] Live matches: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
         res.status(500).json({ error: true, message: error.message, details: error.response?.data?.substring?.(0, 100) });
@@ -746,13 +752,18 @@ app.post("/api/fcm/test-push", async (req, res) => {
 
 // Background Worker for Live Matches Push Notifications
 let lastScores = {};
+let globalLiveEvents = null;
+let lastLiveFetchTime = 0;
 
 setInterval(async () => {
-    if (Object.keys(fcmRegistrations).length === 0) return;
-
     try {
         const result = await fetchFromSofa("/sport/football/events/live");
         if (!result || !result.data || !result.data.events) return;
+        
+        globalLiveEvents = result.data;
+        lastLiveFetchTime = Date.now();
+
+        if (Object.keys(fcmRegistrations).length === 0) return;
         
         const events = result.data.events;
         
@@ -964,19 +975,26 @@ app.listen(PORT, "0.0.0.0", () => {
         
         const targetUrl = renderUrl || detectedHostUrl;
         
-        if (targetUrl) {
+        if (targetUrl && targetUrl.startsWith('http')) {
             try {
-                // Render botları bloklamasın deyə gerçək istifadəçi kimliyinə bənzər yollayırıq
-                await axios.get(`${targetUrl}/api/ping`, {
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1',
-                        'Accept': 'application/json, text/plain, */*'
-                    },
-                    timeout: 5000
-                });
-                console.log(`[Self-Ping] Oyaq saxlama uğurludur (${targetUrl}): ${new Date().toLocaleTimeString()}`);
+                // Xarici proxy (allorigins) istifadə edərək sanki başqa yerdən sorğu gəlirmiş kimi göstəririk
+                const pingUrl = encodeURIComponent(`${targetUrl}/api/ping`);
+                await axios.get(`https://api.allorigins.win/raw?url=${pingUrl}`, { timeout: 10000 });
+                console.log(`[Self-Ping] allorigins vasitəsilə oyaq saxlama uğurludur (${targetUrl}): ${new Date().toLocaleTimeString()}`);
             } catch (err) {
-                console.error(`[Self-Ping] Xəta: ${err.message}`);
+                console.error(`[Self-Ping] Proxy Xəta, birbaşa yoxlanılır: ${err.message}`);
+                // Fallback direct request
+                try {
+                    await axios.get(`${targetUrl}/api/ping`, {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+                        },
+                        timeout: 5000
+                    });
+                    console.log(`[Self-Ping] Birbaşa oyaq saxlama uğurludur (${targetUrl})`);
+                } catch (err2) {
+                    // Ignore error
+                }
             }
         } else {
             console.warn("[Self-Ping] Mühit bağlantısı (URL) hələ təyin edilməyib. Server yuxuya gedə bilər.");
