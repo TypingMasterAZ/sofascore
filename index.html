@@ -384,7 +384,21 @@
             }
         }
 
-        .loader-wrapper {
+        .sync-status {
+            background: rgba(var(--primary-rgb), 0.1);
+            color: var(--primary);
+            text-align: center;
+            padding: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            animation: fadeIn 0.3s ease;
+        }
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -2856,6 +2870,9 @@
                             oninput="applyFilters()">
                     </div>
                 </div>
+                <div id="syncStatusOverlay" class="sync-status" style="display: none;">
+                    <i class="fas fa-sync fa-spin"></i> Yenilənir...
+                </div>
                 <div id="matchList">
                     <div class="loader-wrapper">
                         <div class="skel-header skeleton"></div>
@@ -4223,23 +4240,32 @@
 
                 console.log("Fetching data from:", url);
                 
-                // --- OPTIMISTIC UI (Show cache even if old, then update) ---
+                const syncOverlay = document.getElementById('syncStatusOverlay');
+                
+                // --- HYBRID DATA POLICY ---
                 const cacheKey = 'cached_events_' + (param || 'default');
                 const cacheTimeKey = cacheKey + '_time';
                 const cachedData = localStorage.getItem(cacheKey);
+                const cachedTime = parseInt(localStorage.getItem(cacheTimeKey) || '0');
+                const now = Date.now();
                 
                 if (cachedData && (!allEvents || allEvents.length === 0)) {
                     try {
                         allEvents = JSON.parse(cachedData);
                         applyFilters();
-                        console.log("Loaded cached data (optimistic)");
+                        
+                        // If data is > 30s old, show "Updating" overlay
+                        if (now - cachedTime > 30000 && syncOverlay) {
+                            syncOverlay.style.display = 'flex';
+                        }
                     } catch(e) {}
                 }
 
                 if (!allEvents || allEvents.length === 0 || isForced) {
                     const list = document.getElementById("matchList");
-                    // Only show big loader if absolutely no data exists
-                    if (list && (!allEvents || allEvents.length === 0) && !list.innerHTML.includes('fa-spin')) {
+                    if (isForced && syncOverlay) syncOverlay.style.display = 'flex';
+                    
+                    if (list && (!allEvents || allEvents.length === 0)) {
                         list.innerHTML = `
                             <div class="loader-wrapper">
                                 <div style="text-align:center; padding:50px;">
@@ -4300,6 +4326,7 @@
 
                     if (window.notificationMgr) notificationMgr.checkUpdates(allEvents);
                     applyFilters();
+                    if (syncOverlay) syncOverlay.style.display = 'none';
                     
                 } catch (e) {
                     console.error("Matches fetch error:", e);
@@ -4307,6 +4334,7 @@
                 } finally {
                     const syncIcon = document.getElementById('syncIcon');
                     if (syncIcon) syncIcon.classList.remove('fa-spin');
+                    if (syncOverlay && (!allEvents || allEvents.length === 0)) syncOverlay.style.display = 'none';
                 }
 
                 if (topLeaguesRaw.length === 0) {

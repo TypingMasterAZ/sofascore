@@ -1015,7 +1015,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server ${PORT} portunda aktivdir.`);
     
-    // Render Self-Ping Mechanism (Oyaq qalmaq üçün ən güclü versiya)
+    // Aggressive Keep-Alive (2 dəqiqədən bir kənar trafik imitasiyası)
     setInterval(async () => {
         let renderUrl = process.env.RENDER_EXTERNAL_URL;
         if (!renderUrl && process.env.RENDER_SERVICE_NAME) {
@@ -1030,29 +1030,27 @@ app.listen(PORT, "0.0.0.0", () => {
                 `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl + '/api/ping?t=' + timestamp)}`,
                 `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl + '/api/ping?t=' + timestamp)}`,
                 `https://thingproxy.freeboard.io/fetch/${targetUrl}/api/ping?t=${timestamp}`,
-                `${targetUrl}/api/ping?t=${timestamp}` // Son fallback: Birbaşa
+                `https://corsproxy.io/?${encodeURIComponent(targetUrl + '/api/ping?t=' + timestamp)}`,
+                `${targetUrl}/api/ping?t=${timestamp}`
             ];
 
-            let success = false;
             for (const pUrl of pingUrls) {
-                if (success) break;
                 try {
                     await axios.get(pUrl, {
                         headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ProScore-Ping/1.0',
-                            'Cache-Control': 'no-cache',
-                            'Pragma': 'no-cache'
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ProScore-Ping/2.0',
+                            'Cache-Control': 'no-cache'
                         },
-                        timeout: 8000
+                        timeout: 10000
                     });
-                    console.log(`[Keep-Alive] Uğurlu: ${pUrl.split('/')[2]}`);
-                    success = true;
+                    console.log(`[Keep-Alive] Ping OK: ${pUrl.split('/')[2]}`);
+                    break;
                 } catch (err) {
-                    // Fail silently for proxies, try next
+                    // Fail silently, try next proxy
                 }
             }
         } else {
             console.warn("[Keep-Alive] Server URL tapılmadı.");
         }
-    }, 3 * 60 * 1000); // 3 dəqiqədən bir vurur (Render 15 dəqiqə limitinə qarşı)
+    }, 2 * 60 * 1000); // Hər 2 dəqiqədən bir vurur
 });
