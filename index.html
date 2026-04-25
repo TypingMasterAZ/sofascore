@@ -4827,7 +4827,7 @@
                 localStorage.setItem('favMatches', JSON.stringify(favMatches));
             }
 
-            async function registerFCMToken() {
+            window.registerFCMToken = async function registerFCMToken() {
                 try {
                     const status = Notification.permission;
                     if (document.getElementById('debugPermBox')) {
@@ -5858,24 +5858,13 @@
             loadProfile();
             updateAuthUI();
 
+            // Sync FCM on boot if already granted
+            if ("Notification" in window && Notification.permission === "granted") {
+                setTimeout(() => { window.registerFCMToken && window.registerFCMToken(); }, 3000);
+            }
 
             } catch (err) {
                 console.error("FATAL SCRIPT ERROR:", err);
-            }
-
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('sw.js?v=' + new Date().getTime()).then(reg => {
-                        console.log('SW registered:', reg);
-                    }).catch(err => {
-                        console.log('SW registration failed:', err);
-                    });
-                });
-            }
-
-            // Sync FCM on boot if already granted
-            if ("Notification" in window && Notification.permission === "granted") {
-                setTimeout(() => { registerFCMToken(); }, 3000);
             }
 
 

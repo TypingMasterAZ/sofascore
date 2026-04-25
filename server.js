@@ -1,5 +1,5 @@
 const express = require("express");
-// Version: 1.1.4 - Debugging Render Startup
+// Version: 1.1.5 - Improved SofaScore bypass + API-Football fallback
 console.log("-----------------------------------------");
 console.log(`[STARTUP] Server booting at ${new Date().toISOString()}`);
 console.log("-----------------------------------------");
@@ -94,79 +94,143 @@ app.use((req, res, next) => {
 
 const SOFA_API = "https://api.sofascore.com/api/v1";
 const GAS_PROXY_URL = process.env.GAS_PROXY_URL;
-const HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-    "Accept-Language": "en-US,en;q=0.9,az;q=0.8",
-    "Referer": "https://www.sofascore.com/",
-    "Origin": "https://www.sofascore.com",
-    "Cache-Control": "max-age=0",
-    "sec-ch-ua": '"Google Chrome";v="123", "Not:A-Brand";v="8", "Chromium";v="123"',
-    "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": '"Windows"',
-    "sec-fetch-dest": "empty",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "same-site",
-    "Upgrade-Insecure-Requests": "1"
-};
+const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY; // Optional: from api-football.com free plan
+
+// Rotating User-Agent pool to reduce block chance
+const USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0"
+];
+
+const ACCEPT_LANGS = [
+    "en-US,en;q=0.9",
+    "en-GB,en;q=0.9",
+    "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7",
+    "fr-FR,fr;q=0.9,en-US;q=0.8"
+];
+
+function getHeaders() {
+    const ua = USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+    const lang = ACCEPT_LANGS[Math.floor(Math.random() * ACCEPT_LANGS.length)];
+    return {
+        "User-Agent": ua,
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": lang,
+        "Accept-Encoding": "gzip, deflate, br",
+        "Referer": "https://www.sofascore.com/",
+        "Origin": "https://www.sofascore.com",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+        "sec-ch-ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-site",
+        "Connection": "keep-alive"
+    };
+}
+
+// Last-good-response cache — serves stale data if ALL sources fail
+const lastGoodData = {};
+
+function isHtml(data) {
+    if (typeof data !== 'string') return false;
+    const t = data.trim().toLowerCase();
+    return t.startsWith('<!doctype') || t.startsWith('<html');
+}
+
+async function tryFetch(url, options = {}) {
+    const result = await axios.get(url, { timeout: 12000, ...options });
+    if (isHtml(result.data)) throw new Error('HTML_RESPONSE');
+    return result;
+}
 
 async function fetchFromSofa(path, params = {}) {
-    try {
-        let result;
-        if (GAS_PROXY_URL) {
-            console.log(`[PROXY FETCH] Path: ${path}`);
-            result = await axios.get(GAS_PROXY_URL, { 
-                params: { 
-                    path, 
-                    ...params,
-                    _t: Date.now() // Bypass any Proxy/Google scripting cache
-                },
-                timeout: 10000 // 10 saniyə timeout
-            });
-        } else {
-            console.log(`[DIRECT FETCH] Path: ${path}`);
-            result = await axios.get(`${SOFA_API}${path}`, { 
-                headers: HEADERS,
-                params: { 
-                    ...params, 
-                    _t: Date.now() // Bypass Sofa CDN cache
-                },
-                timeout: 10000
-            });
-        }
+    const cacheKey = path;
+    const fullUrl = `${SOFA_API}${path}`;
+    const encodedUrl = encodeURIComponent(fullUrl);
 
-        // Validate that we got a JSON object or at least not an HTML page
-        if (result.data && typeof result.data === 'string' && (result.data.trim().startsWith('<!doctype') || result.data.trim().startsWith('<html'))) {
-            console.error(`[FETCH ERROR] Received HTML instead of JSON for path: ${path}`);
-            throw new Error("SofaScore-dan və ya Proxy-dən etibarsız cavab gəldi (HTML). Böyük ehtimalla Google Script login tələb edir və ya bloklanıb.");
+    // --- Attempt 1: GAS Proxy (if configured) ---
+    if (GAS_PROXY_URL) {
+        try {
+            console.log(`[GAS PROXY] ${path}`);
+            const result = await tryFetch(GAS_PROXY_URL, {
+                params: { path, ...params, _t: Date.now() }
+            });
+            lastGoodData[cacheKey] = { data: result.data, ts: Date.now() };
+            return result;
+        } catch (e) {
+            console.warn(`[GAS PROXY FAIL] ${path}: ${e.message}`);
         }
-        
-        return result;
-    } catch (error) {
-        console.error(`[FETCH EXCEPTION] Path: ${path} | Error: ${error.message}`);
-        
-        // Enhance error message if it's a proxy/parse issue
-        if (error.response) {
-            const status = error.response.status;
-            const dataPreview = typeof error.response.data === 'string' ? error.response.data.substring(0, 100) : 'Non-string data';
-            
-            if (dataPreview.includes('<!doctype') || dataPreview.includes('<html')) {
-                error.message = "Google Script etibarsız cavab qaytardı (Login səhifəsi). Lütfən Script icazələrini (Execute as: Me, Access: Anyone) yoxlayın.";
-            } else if (status === 403) {
-                error.message = "SofaScore tərəfindən bloklanma (403 Forbidden).";
-            } else if (status === 429) {
-                error.message = "Həddindən artıq sorğu (429 Too Many Requests).";
-            } else {
-                error.message = `Proxy/API Xətası: ${status} - ${error.message}`;
-            }
-        } else if (error.code === 'ECONNABORTED') {
-            error.message = "Sorğu vaxtı bitdi (Timeout).";
-        } else if (!GAS_PROXY_URL && !path.includes('/debug/')) {
-            error.message = "GAS_PROXY_URL mühit dəyişəni təyin edilməyib! Lütfən Render Dashboard-da əlavə edin.";
-        }
-        
-        throw error;
     }
+
+    // --- Attempt 2: Direct SofaScore with rotating UA ---
+    try {
+        console.log(`[DIRECT] ${path}`);
+        const result = await tryFetch(fullUrl, {
+            headers: getHeaders(),
+            params: { ...params, _t: Date.now() }
+        });
+        lastGoodData[cacheKey] = { data: result.data, ts: Date.now() };
+        return result;
+    } catch (e) {
+        console.warn(`[DIRECT FAIL] ${path}: ${e.message} | Status: ${e.response?.status}`);
+    }
+
+    // --- Attempt 3: AllOrigins public CORS proxy ---
+    try {
+        console.log(`[ALLORIGINS PROXY] ${path}`);
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodedUrl}`;
+        const result = await tryFetch(proxyUrl, { timeout: 10000 });
+        // allorigins returns raw text, parse it
+        const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
+        const wrapped = { ...result, data: parsed };
+        lastGoodData[cacheKey] = { data: parsed, ts: Date.now() };
+        return wrapped;
+    } catch (e) {
+        console.warn(`[ALLORIGINS FAIL] ${path}: ${e.message}`);
+    }
+
+    // --- Attempt 4: corsproxy.io ---
+    try {
+        console.log(`[CORSPROXY] ${path}`);
+        const proxyUrl = `https://corsproxy.io/?${encodedUrl}`;
+        const result = await tryFetch(proxyUrl, { timeout: 10000 });
+        const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
+        const wrapped = { ...result, data: parsed };
+        lastGoodData[cacheKey] = { data: parsed, ts: Date.now() };
+        return wrapped;
+    } catch (e) {
+        console.warn(`[CORSPROXY FAIL] ${path}: ${e.message}`);
+    }
+
+    // --- Attempt 5: corsproxy.io alternate URL ---
+    try {
+        console.log(`[CORSPROXY2] ${path}`);
+        const proxyUrl2 = `https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`;
+        const result = await tryFetch(proxyUrl2, { timeout: 10000 });
+        const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
+        const wrapped = { ...result, data: parsed };
+        lastGoodData[cacheKey] = { data: parsed, ts: Date.now() };
+        return wrapped;
+    } catch (e) {
+        console.warn(`[CORSPROXY2 FAIL] ${path}: ${e.message}`);
+    }
+
+    // --- Fallback: Serve last known good data (max 10 minutes stale) ---
+    const stale = lastGoodData[cacheKey];
+    if (stale && (Date.now() - stale.ts) < 10 * 60 * 1000) {
+        console.warn(`[STALE DATA] Serving cached data for ${path} (age: ${Math.round((Date.now() - stale.ts)/1000)}s)`);
+        return { data: stale.data, status: 200, stale: true };
+    }
+
+    // All attempts failed
+    throw new Error(`Bütün sorğu üsulları uğursuz oldu: ${path}. SofaScore bloklanmış ola bilər.`);
 }
 
 // Diagnostic Endpoint Enhanced
@@ -260,6 +324,40 @@ app.get("/api/team/:id", async (req, res) => {
     }
 });
 
+// API-Football live match normalizer
+async function fetchLiveFromApiFootball() {
+    if (!API_FOOTBALL_KEY) throw new Error('API_FOOTBALL_KEY not configured');
+    const resp = await axios.get('https://v3.football.api-sports.io/fixtures?live=all', {
+        headers: {
+            'x-apisports-key': API_FOOTBALL_KEY,
+            'x-rapidapi-host': 'v3.football.api-sports.io'
+        },
+        timeout: 12000
+    });
+    if (!resp.data || !resp.data.response) throw new Error('Invalid API-Football response');
+    // Normalize API-Football format to match SofaScore format expected by frontend
+    const events = resp.data.response.map(f => ({
+        id: f.fixture.id,
+        homeTeam: { name: f.teams.home.name, id: f.teams.home.id },
+        awayTeam: { name: f.teams.away.name, id: f.teams.away.id },
+        homeScore: { current: f.goals.home || 0 },
+        awayScore: { current: f.goals.away || 0 },
+        tournament: {
+            name: f.league.name,
+            uniqueTournament: { id: f.league.id, name: f.league.name }
+        },
+        status: {
+            type: f.fixture.status.short === 'FT' ? 'finished' : 'inprogress',
+            description: f.fixture.status.long,
+            elapsed: f.fixture.status.elapsed
+        },
+        startTimestamp: Math.floor(new Date(f.fixture.date).getTime() / 1000),
+        _source: 'api-football'
+    }));
+    console.log(`[API-Football] Got ${events.length} live matches`);
+    return { events };
+}
+
 // Yeni API: Canlı Matçlar
 app.get("/api/matches/live", async (req, res) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -272,9 +370,18 @@ app.get("/api/matches/live", async (req, res) => {
         globalLiveEvents = result.data;
         lastLiveFetchTime = Date.now();
         res.json(result.data);
-    } catch (error) {
-        console.error(`[API ERROR] Live matches: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
-        res.status(500).json({ error: true, message: error.message, details: error.response?.data?.substring?.(0, 100) });
+    } catch (sofaError) {
+        console.warn(`[LIVE] SofaScore failed, trying API-Football fallback...`);
+        // Try API-Football as last resort for live matches
+        try {
+            const afData = await fetchLiveFromApiFootball();
+            globalLiveEvents = afData;
+            lastLiveFetchTime = Date.now();
+            res.json(afData);
+        } catch (afError) {
+            console.error(`[API ERROR] Live matches all sources failed: SofaScore(${sofaError.message}) API-Football(${afError.message})`);
+            res.status(500).json({ error: true, message: sofaError.message, details: 'All data sources failed. Try again in 30 seconds.' });
+        }
     }
 });
 
