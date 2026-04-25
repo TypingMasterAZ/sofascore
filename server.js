@@ -144,11 +144,21 @@ function isHtml(data) {
     return t.startsWith('<!doctype') || t.startsWith('<html');
 }
 
+function isSofaError(data) {
+    // SofaScore returns {error:{code:403}} when blocking
+    if (data && typeof data === 'object' && data.error && data.error.code) return true;
+    return false;
+}
+
 async function tryFetch(url, options = {}) {
     const result = await axios.get(url, { timeout: 12000, ...options });
     if (isHtml(result.data)) throw new Error('HTML_RESPONSE');
+    if (isSofaError(result.data)) throw new Error(`SOFA_BLOCKED:${result.data.error.code}`);
     return result;
 }
+
+// Sleep helper
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function fetchFromSofa(path, params = {}) {
     const cacheKey = path;
@@ -182,13 +192,27 @@ async function fetchFromSofa(path, params = {}) {
         console.warn(`[DIRECT FAIL] ${path}: ${e.message} | Status: ${e.response?.status}`);
     }
 
-    // --- Attempt 3: AllOrigins public CORS proxy ---
+    // --- Attempt 3: Direct with extra delay (jitter bypass) ---
+    try {
+        await sleep(Math.random() * 1500 + 500);
+        console.log(`[DIRECT-DELAY] ${path}`);
+        const h = getHeaders();
+        // Add cookie-like header that real browsers send
+        h['X-Forwarded-For'] = `${Math.floor(Math.random()*200)+20}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}`;
+        const result = await tryFetch(fullUrl, { headers: h });
+        lastGoodData[cacheKey] = { data: result.data, ts: Date.now() };
+        return result;
+    } catch (e) {
+        console.warn(`[DIRECT-DELAY FAIL] ${path}: ${e.message}`);
+    }
+
+    // --- Attempt 4: AllOrigins public CORS proxy ---
     try {
         console.log(`[ALLORIGINS PROXY] ${path}`);
         const proxyUrl = `https://api.allorigins.win/raw?url=${encodedUrl}`;
         const result = await tryFetch(proxyUrl, { timeout: 10000 });
-        // allorigins returns raw text, parse it
         const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
+        if (isSofaError(parsed)) throw new Error('SOFA_BLOCKED_VIA_ALLORIGINS');
         const wrapped = { ...result, data: parsed };
         lastGoodData[cacheKey] = { data: parsed, ts: Date.now() };
         return wrapped;
@@ -196,12 +220,27 @@ async function fetchFromSofa(path, params = {}) {
         console.warn(`[ALLORIGINS FAIL] ${path}: ${e.message}`);
     }
 
-    // --- Attempt 4: corsproxy.io ---
+    // --- Attempt 5: ThingProxy ---
+    try {
+        console.log(`[THINGPROXY] ${path}`);
+        const proxyUrl = `https://thingproxy.freeboard.io/fetch/${fullUrl}`;
+        const result = await tryFetch(proxyUrl, { timeout: 12000 });
+        const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
+        if (isSofaError(parsed)) throw new Error('SOFA_BLOCKED_VIA_THINGPROXY');
+        const wrapped = { ...result, data: parsed };
+        lastGoodData[cacheKey] = { data: parsed, ts: Date.now() };
+        return wrapped;
+    } catch (e) {
+        console.warn(`[THINGPROXY FAIL] ${path}: ${e.message}`);
+    }
+
+    // --- Attempt 6: corsproxy.io ---
     try {
         console.log(`[CORSPROXY] ${path}`);
         const proxyUrl = `https://corsproxy.io/?${encodedUrl}`;
         const result = await tryFetch(proxyUrl, { timeout: 10000 });
         const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
+        if (isSofaError(parsed)) throw new Error('SOFA_BLOCKED_VIA_CORSPROXY');
         const wrapped = { ...result, data: parsed };
         lastGoodData[cacheKey] = { data: parsed, ts: Date.now() };
         return wrapped;
@@ -209,22 +248,40 @@ async function fetchFromSofa(path, params = {}) {
         console.warn(`[CORSPROXY FAIL] ${path}: ${e.message}`);
     }
 
-    // --- Attempt 5: corsproxy.io alternate URL ---
+    // --- Attempt 7: codetabs ---
     try {
-        console.log(`[CORSPROXY2] ${path}`);
+        console.log(`[CODETABS] ${path}`);
         const proxyUrl2 = `https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`;
         const result = await tryFetch(proxyUrl2, { timeout: 10000 });
         const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
+        if (isSofaError(parsed)) throw new Error('SOFA_BLOCKED_VIA_CODETABS');
         const wrapped = { ...result, data: parsed };
         lastGoodData[cacheKey] = { data: parsed, ts: Date.now() };
         return wrapped;
     } catch (e) {
-        console.warn(`[CORSPROXY2 FAIL] ${path}: ${e.message}`);
+        console.warn(`[CODETABS FAIL] ${path}: ${e.message}`);
     }
 
-    // --- Fallback: Serve last known good data (max 10 minutes stale) ---
+    // --- Attempt 8: htmldriven CORS proxy ---
+    try {
+        console.log(`[HTMLDRIVEN] ${path}`);
+        const proxyUrl3 = `https://cors-anywhere.herokuapp.com/${fullUrl}`;
+        const result = await tryFetch(proxyUrl3, {
+            timeout: 10000,
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Origin': 'https://www.sofascore.com' }
+        });
+        const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
+        if (isSofaError(parsed)) throw new Error('SOFA_BLOCKED_VIA_HTMLDRIVEN');
+        const wrapped = { ...result, data: parsed };
+        lastGoodData[cacheKey] = { data: parsed, ts: Date.now() };
+        return wrapped;
+    } catch (e) {
+        console.warn(`[HTMLDRIVEN FAIL] ${path}: ${e.message}`);
+    }
+
+    // --- Fallback: Serve last known good data (max 15 minutes stale) ---
     const stale = lastGoodData[cacheKey];
-    if (stale && (Date.now() - stale.ts) < 10 * 60 * 1000) {
+    if (stale && (Date.now() - stale.ts) < 15 * 60 * 1000) {
         console.warn(`[STALE DATA] Serving cached data for ${path} (age: ${Math.round((Date.now() - stale.ts)/1000)}s)`);
         return { data: stale.data, status: 200, stale: true };
     }
