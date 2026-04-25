@@ -385,7 +385,7 @@
         }
 
         .sync-status {
-            background: rgba(var(--primary-rgb), 0.1);
+            background: rgba(59, 130, 246, 0.1);
             color: var(--primary);
             text-align: center;
             padding: 8px;
@@ -399,6 +399,8 @@
             gap: 8px;
             animation: fadeIn 0.3s ease;
         }
+
+        .loader-wrapper {
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -3184,6 +3186,17 @@
                         <div id="debugPermBox" style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:5px;">İcazə: yoxlanılır...</div>
                     </div>
 
+                    <div class="profile-row">
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Qaranlıq Tema</span>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span id="themeStatus" style="font-size:12px; color:var(--text-muted);">Aktiv</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="themeToggle" checked onchange="toggleTheme()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
                         onclick="document.getElementById('debugSettings').style.display = 'block'; showToast('Diaqnostika paneli açıldı')">
                         <span style="font-size:12px; font-weight:600; color:var(--text-muted);">Sazlama Məlumatları (Debug)</span>
@@ -4153,10 +4166,21 @@
             }
 
             function applyFilters() {
-                console.log("Applying filters... allEvents count:", allEvents.length);
+                console.log("Applying filters... allEvents count:", allEvents.length, "isLiveFiltered:", isLiveFiltered);
                 let listRaw = allEvents;
                 if (isLiveFiltered) {
-                    listRaw = allEvents.filter(m => m.status.type === 'inprogress' || m.status.description.toUpperCase() === 'HT' || m.status.description.toUpperCase() === 'ET' || m.status.description.includes("'"));
+                    // When live filter is ON, /api/matches/live already returns only live events.
+                    // But we still filter in case combined data contains non-live events.
+                    listRaw = allEvents.filter(m => {
+                        const s = m.status;
+                        if (!s) return false;
+                        return s.type === 'inprogress' || 
+                               (s.description && (
+                                   s.description.toUpperCase() === 'HT' || 
+                                   s.description.toUpperCase() === 'ET' || 
+                                   s.description.includes("'")
+                               ));
+                    });
                 } else if (selectedDate) {
                     listRaw = allEvents.filter(m => {
                         if (!m.startTimestamp) return false;
@@ -4223,12 +4247,13 @@
             }
 
             async function fetchData(param = null, isForced = false) {
-                let url = '/api/matches/live';
+                let url;
                 
-                if (param === 'live' || isLiveFiltered) {
+                // If param is explicitly 'live', or we are in live-filter mode with no date selected
+                if (param === 'live' || (isLiveFiltered && !selectedDate)) {
                     url = '/api/matches/live';
                 } else {
-                    const dateToFetch = param || selectedDate || new Date().toISOString().split('T')[0];
+                    const dateToFetch = (param && param !== 'live') ? param : (selectedDate || new Date().toISOString().split('T')[0]);
                     url = `/api/matches/${dateToFetch}`;
                 }
 
@@ -5776,10 +5801,16 @@
                     </div>`;
             }
 
-            fetchData();
-            setInterval(() => {
+            // Initial fetch — always start with live matches
+            fetchData('live');
+            
+            let liveRefreshInterval = setInterval(() => {
                 if (document.visibilityState === 'visible') {
-                    fetchData();
+                    if (isLiveFiltered) {
+                        fetchData('live');
+                    } else {
+                        fetchData(selectedDate);
+                    }
                     generateDateTabs();
                 }
             }, 30000);
@@ -5788,7 +5819,11 @@
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') {
                     console.log("[Sync] App resumed, forcing fresh data...");
-                    fetchData(null, true);
+                    if (isLiveFiltered) {
+                        fetchData('live', true);
+                    } else {
+                        fetchData(selectedDate, true);
+                    }
                 }
             });
 

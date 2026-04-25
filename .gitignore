@@ -1,6 +1,9 @@
-node_modules
-users.json
+node_modules/
+.env
+serviceAccountKey.json
 registrations.json
 notif_history.json
+reminders_sent.json
 tmp.json
-.env
+tmp_script.js
+*.log
