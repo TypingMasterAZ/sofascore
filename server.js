@@ -380,7 +380,16 @@ app.get("/api/matches/live", async (req, res) => {
             res.json(afData);
         } catch (afError) {
             console.error(`[API ERROR] Live matches all sources failed: SofaScore(${sofaError.message}) API-Football(${afError.message})`);
-            res.status(500).json({ error: true, message: sofaError.message, details: 'All data sources failed. Try again in 30 seconds.' });
+            // If we have stale global data, return it instead of a 500 error
+            if (globalLiveEvents && globalLiveEvents.events && (Date.now() - lastLiveFetchTime < 5 * 60 * 1000)) {
+                console.warn(`[LIVE STALE] Serving stale live events (age: ${Math.round((Date.now() - lastLiveFetchTime)/1000)}s)`);
+                res.set('X-Data-Stale', 'true');
+                res.json(globalLiveEvents);
+            } else {
+                // Return empty events array gracefully - client will show "no live games" 
+                console.warn(`[LIVE EMPTY] All sources failed, returning empty events.`);
+                res.json({ events: [], error: false, message: 'No live data available. Try again shortly.' });
+            }
         }
     }
 });

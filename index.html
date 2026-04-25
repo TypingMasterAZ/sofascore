@@ -4312,20 +4312,46 @@
                     const resEvents = await fetchWithRetry(API_BASE_URL + url);
                     if (wakeUpTimer) clearTimeout(wakeUpTimer);
                     
-                    if (!resEvents.ok) throw new Error(`Server xətası: ${resEvents.status}`);
-                    const dataEvents = await resEvents.json();
-                    
-                    if (dataEvents && dataEvents.events) {
-                        allEvents = dataEvents.events;
-                    } else if (Array.isArray(dataEvents)) {
-                        allEvents = dataEvents;
+                    if (!resEvents.ok) {
+                        // If live endpoint fails (500), fallback to today's scheduled matches
+                        if (param === 'live' && resEvents.status === 500) {
+                            console.warn('[FALLBACK] Live API failed (500), fetching today\'s scheduled matches...');
+                            const todayStr = new Date().toISOString().split('T')[0];
+                            const fallbackRes = await fetchWithRetry(API_BASE_URL + `/api/matches/${todayStr}`);
+                            if (fallbackRes.ok) {
+                                const fallbackData = await fallbackRes.json();
+                                allEvents = (fallbackData && fallbackData.events) ? fallbackData.events : (Array.isArray(fallbackData) ? fallbackData : []);
+                                // When showing fallback, turn off live filter so user sees all today's games
+                                isLiveFiltered = false;
+                                selectedDate = todayStr;
+                                // Update date tab UI
+                                document.querySelectorAll('.date-tab').forEach(t => t.classList.remove('active'));
+                                const todayTabs = document.querySelectorAll('.date-tab:not(.live-tab)');
+                                todayTabs.forEach(t => { if (t.onclick && t.onclick.toString().includes(todayStr)) t.classList.add('active'); });
+                                localStorage.setItem('cached_events_' + todayStr, JSON.stringify(allEvents));
+                                localStorage.setItem('cached_events_' + todayStr + '_time', Date.now().toString());
+                                if (window.showToast) showToast('Canlı server məlumatı əlçatmaz, bu günün oyunları göstərilir', 'info');
+                            } else {
+                                throw new Error(`Server xətası: ${resEvents.status}`);
+                            }
+                        } else {
+                            throw new Error(`Server xətası: ${resEvents.status}`);
+                        }
                     } else {
-                        allEvents = [];
-                    }
+                        const dataEvents = await resEvents.json();
+                        
+                        if (dataEvents && dataEvents.events) {
+                            allEvents = dataEvents.events;
+                        } else if (Array.isArray(dataEvents)) {
+                            allEvents = dataEvents;
+                        } else {
+                            allEvents = [];
+                        }
 
-                    // Save fresh data + timestamp
-                    localStorage.setItem(cacheKey, JSON.stringify(allEvents));
-                    localStorage.setItem(cacheTimeKey, Date.now().toString());
+                        // Save fresh data + timestamp
+                        localStorage.setItem(cacheKey, JSON.stringify(allEvents));
+                        localStorage.setItem(cacheTimeKey, Date.now().toString());
+                    }
 
                     // Synchronize Favorites
                     if (allEvents.length > 0) {
@@ -4337,7 +4363,7 @@
                                 updatedFavs.push(liveMatch);
                                 if (JSON.stringify(fm.homeScore) !== JSON.stringify(liveMatch.homeScore) || 
                                     JSON.stringify(fm.awayScore) !== JSON.stringify(liveMatch.awayScore) ||
-                                    fm.status.description !== liveMatch.status.description) {
+                                    fm.status?.description !== liveMatch.status?.description) {
                                     favsChanged = true;
                                 }
                             } else { updatedFavs.push(fm); }
@@ -4355,7 +4381,30 @@
                     
                 } catch (e) {
                     console.error("Matches fetch error:", e);
-                    if (window.showToast) showToast(`Bağlantı xətası: Server oyanarkən gecikmə oldu.`, 'error');
+                    // If live fetch failed and we have cached data, show it
+                    const cachedFallback = localStorage.getItem('cached_events_' + new Date().toISOString().split('T')[0]);
+                    if (cachedFallback && (!allEvents || allEvents.length === 0)) {
+                        try {
+                            allEvents = JSON.parse(cachedFallback);
+                            isLiveFiltered = false;
+                            selectedDate = new Date().toISOString().split('T')[0];
+                            applyFilters();
+                            if (window.showToast) showToast('Serverə qoşulmaq mümkün olmadı, köhnə data göstərilir', 'info');
+                        } catch(cacheErr) {}
+                    } else {
+                        // Show error state in match list
+                        const list = document.getElementById('matchList');
+                        if (list && (!allEvents || allEvents.length === 0)) {
+                            list.innerHTML = `
+                                <div class="loader-wrapper" style="text-align:center; padding:50px;">
+                                    <div style="font-size:40px; margin-bottom:15px;">⚠️</div>
+                                    <div style="font-weight:700; font-size:16px; margin-bottom:10px; color:var(--text-main);">Server məlumatı gətirə bilmir</div>
+                                    <div style="color:var(--text-muted); font-size:14px; margin-bottom:20px;">SofaScore API müvəqqəti olaraq əlçatmazdır.</div>
+                                    <button onclick="fetchData('live', true)" style="background:var(--primary); color:white; border:none; padding:12px 24px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer;">Yenidən Cəhd Et</button>
+                                </div>`;
+                        }
+                        if (window.showToast) showToast('Server xətası: Məlumat əlçatmaz.', 'error');
+                    }
                 } finally {
                     const syncIcon = document.getElementById('syncIcon');
                     if (syncIcon) syncIcon.classList.remove('fa-spin');
@@ -4452,7 +4501,15 @@
                 const keys = Object.keys(grouped).filter(k => grouped[k].matches.length > 0);
 
                 if (keys.length === 0) {
-                    list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600;'>Heç bir oyun tapılmadı.</div>";
+                    const emptyMsg = isLiveFiltered 
+                        ? `<div class='loader-wrapper' style='text-align:center; padding:50px;'>
+                            <div style='font-size:48px; margin-bottom:15px;'>🔴</div>
+                            <div style='font-weight:700; font-size:18px; margin-bottom:8px; color:var(--text-main);'>Canlı Oyun Yoxdur</div>
+                            <div style='color:var(--text-muted); font-size:14px; margin-bottom:20px;'>Hal-hazırda heç bir oyun canlı keçirilmir.</div>
+                            <button onclick="selectDate('${new Date().toISOString().split('T')[0]}', null); generateDateTabs();" style='background:var(--primary); color:white; border:none; padding:12px 24px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer;'>Bu Günün Oyunlarını Göstər</button>
+                          </div>`
+                        : `<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600;'>Heç bir oyun tapılmadı.</div>`;
+                    list.innerHTML = emptyMsg;
                     return;
                 }
 
