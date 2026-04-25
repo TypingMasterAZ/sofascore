@@ -392,7 +392,6 @@ async function fetchLiveFromApiFootball() {
         timeout: 12000
     });
     if (!resp.data || !resp.data.response) throw new Error('Invalid API-Football response');
-    // Normalize API-Football format to match SofaScore format expected by frontend
     const events = resp.data.response.map(f => ({
         id: f.fixture.id,
         homeTeam: { name: f.teams.home.name, id: f.teams.home.id },
@@ -415,6 +414,61 @@ async function fetchLiveFromApiFootball() {
     return { events };
 }
 
+// ESPN Public API - no key needed, good for live match fallback
+async function fetchLiveFromESPN() {
+    // ESPN soccer scoreboard - all live matches
+    const resp = await axios.get('https://site.api.espn.com/apis/site/v2/sports/soccer/all/scoreboard', {
+        params: { limit: 200 },
+        timeout: 12000,
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json'
+        }
+    });
+    if (!resp.data || !resp.data.events) throw new Error('Invalid ESPN response');
+
+    // Only live/in-progress events
+    const liveEvents = resp.data.events.filter(e => {
+        const status = e.status && e.status.type && e.status.type.state;
+        return status === 'in';
+    });
+
+    // Normalize ESPN format to SofaScore-like format
+    const events = liveEvents.map((e, idx) => {
+        const comp = e.competitions && e.competitions[0];
+        const home = comp && comp.competitors && comp.competitors.find(c => c.homeAway === 'home');
+        const away = comp && comp.competitors && comp.competitors.find(c => c.homeAway === 'away');
+        const league = e.season && e.season.slug ? e.season.slug : (e.name || 'Unknown League');
+        const leagueId = 90000 + idx; // synthetic ID to avoid conflict with SofaScore IDs
+
+        return {
+            id: 80000000 + idx, // synthetic unique ID
+            homeTeam: { name: home ? home.team.displayName : 'Home', id: home ? parseInt(home.team.id) : 0 },
+            awayTeam: { name: away ? away.team.displayName : 'Away', id: away ? parseInt(away.team.id) : 0 },
+            homeScore: { current: home ? parseInt(home.score || 0) : 0 },
+            awayScore: { current: away ? parseInt(away.score || 0) : 0 },
+            tournament: {
+                name: e.season && e.season.displayName ? e.season.displayName : league,
+                id: leagueId,
+                uniqueTournament: { id: leagueId, name: e.season && e.season.displayName ? e.season.displayName : league },
+                category: { name: 'International', id: 1 }
+            },
+            status: {
+                type: 'inprogress',
+                description: e.status && e.status.displayClock ? e.status.displayClock : 'LIVE'
+            },
+            time: {
+                currentPeriodStartTimestamp: null
+            },
+            startTimestamp: comp ? Math.floor(new Date(comp.startDate).getTime() / 1000) : Math.floor(Date.now() / 1000),
+            _source: 'espn'
+        };
+    });
+
+    console.log(`[ESPN] Got ${events.length} live matches`);
+    return { events };
+}
+
 // Yeni API: Canlı Matçlar
 app.get("/api/matches/live", async (req, res) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -428,25 +482,34 @@ app.get("/api/matches/live", async (req, res) => {
         lastLiveFetchTime = Date.now();
         res.json(result.data);
     } catch (sofaError) {
-        console.warn(`[LIVE] SofaScore failed, trying API-Football fallback...`);
-        // Try API-Football as last resort for live matches
+        console.warn(`[LIVE] SofaScore failed (${sofaError.message}), trying API-Football...`);
+        // Try API-Football as second resort
         try {
             const afData = await fetchLiveFromApiFootball();
             globalLiveEvents = afData;
             lastLiveFetchTime = Date.now();
-            res.json(afData);
+            return res.json(afData);
         } catch (afError) {
-            console.error(`[API ERROR] Live matches all sources failed: SofaScore(${sofaError.message}) API-Football(${afError.message})`);
-            // If we have stale global data, return it instead of a 500 error
-            if (globalLiveEvents && globalLiveEvents.events && (Date.now() - lastLiveFetchTime < 5 * 60 * 1000)) {
-                console.warn(`[LIVE STALE] Serving stale live events (age: ${Math.round((Date.now() - lastLiveFetchTime)/1000)}s)`);
-                res.set('X-Data-Stale', 'true');
-                res.json(globalLiveEvents);
-            } else {
-                // Return empty events array gracefully - client will show "no live games" 
-                console.warn(`[LIVE EMPTY] All sources failed, returning empty events.`);
-                res.json({ events: [], error: false, message: 'No live data available. Try again shortly.' });
-            }
+            console.warn(`[LIVE] API-Football failed (${afError.message}), trying ESPN...`);
+        }
+        // Try ESPN as third resort (no key needed!)
+        try {
+            const espnData = await fetchLiveFromESPN();
+            globalLiveEvents = espnData;
+            lastLiveFetchTime = Date.now();
+            return res.json(espnData);
+        } catch (espnError) {
+            console.error(`[LIVE] ESPN also failed: ${espnError.message}`);
+        }
+        // If we have stale global data (< 5 min), return it
+        if (globalLiveEvents && globalLiveEvents.events && (Date.now() - lastLiveFetchTime < 5 * 60 * 1000)) {
+            console.warn(`[LIVE STALE] Serving stale live events (age: ${Math.round((Date.now() - lastLiveFetchTime)/1000)}s)`);
+            res.set('X-Data-Stale', 'true');
+            return res.json(globalLiveEvents);
+        } else {
+            // Return empty events array gracefully - client will show "no live games" 
+            console.warn(`[LIVE EMPTY] All sources failed, returning empty events.`);
+            res.json({ events: [], error: false, message: 'No live data available. Try again shortly.' });
         }
     }
 });
