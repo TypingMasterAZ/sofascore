@@ -4794,8 +4794,7 @@
 
                 try {
                     // İndi iki ayrı sorğu yerinə, bir dəfəyə hər ikisini çəkirik
-                    const res = await fetch(API_BASE_URL + `/api/match/${id}/details`, { cache: 'no-store' });
-                    const data = await res.json();
+                    const data = await fetchMatchDetailsData(id);
                     modalDetailsLastFetch[id] = Date.now();
                     if (currentOpenMatchId && currentOpenMatchId.toString() !== id.toString()) return;
                     
