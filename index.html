@@ -4768,7 +4768,7 @@
                     console.warn("Match details API failed, trying browser SofaScore fallback:", serverErr.message);
                 }
 
-                const hasIncidents = data && data.incidents && Array.isArray(data.incidents.incidents);
+                const hasIncidents = data && data.incidents && Array.isArray(data.incidents.incidents) && data.incidents.incidents.length > 0;
                 if (hasIncidents) return data;
 
                 const [incidentsResult, statsResult] = await Promise.allSettled([
