@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="az">
 
 <head>
@@ -33,22 +33,22 @@
         // Initialize Firebase before any other calls
         firebase.initializeApp(firebaseConfig);
         
-        // MÜHÜM: registerFCMToken funksiyasını qlobal olaraq təyin edirik
+        // MÃœHÃœM: registerFCMToken funksiyasÄ±nÄ± qlobal olaraq tÉ™yin edirik
         window.registerFCMToken = function() {
-            console.log("[FCM] Push Notification qeydiyyatı başladılır...");
+            console.log("[FCM] Push Notification qeydiyyatÄ± baÅŸladÄ±lÄ±r...");
             const messaging = firebase.messaging();
             
-            // Notification icazəsi istə
+            // Notification icazÉ™si istÉ™
             Notification.requestPermission().then((permission) => {
                 if (permission === 'granted') {
                     console.log('Notification permission granted.');
                     
                     // Token al
-                    messaging.getToken() // Parametr olmadan yoxlayırıq. VAPID key lazımdırsa bura əlavə ediləcək.
+                    messaging.getToken() // Parametr olmadan yoxlayÄ±rÄ±q. VAPID key lazÄ±mdÄ±rsa bura É™lavÉ™ edilÉ™cÉ™k.
                     .then((currentToken) => {
                         if (currentToken) {
-                            console.log('[FCM] Token alındı:', currentToken);
-                            // Serverə göndər
+                            console.log('[FCM] Token alÄ±ndÄ±:', currentToken);
+                            // ServerÉ™ gÃ¶ndÉ™r
                             sendTokenToServer(currentToken);
                         } else {
                             console.log('No registration token available. Request permission to generate one.');
@@ -63,7 +63,7 @@
         };
 
         function sendTokenToServer(token) {
-            // API_BASE_URL ola bilər ki hələ təyin olunmayıb
+            // API_BASE_URL ola bilÉ™r ki hÉ™lÉ™ tÉ™yin olunmayÄ±b
             const baseUrl = window.API_BASE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000' : '');
             fetch(baseUrl + '/api/fcm/register', {
                 method: 'POST',
@@ -76,8 +76,8 @@
                     leagues: typeof favLeagues !== 'undefined' ? favLeagues.map(l => l.id) : []
                 })
             }).then(res => res.json())
-              .then(data => console.log('[FCM] Token serverə qeyd olundu:', data))
-              .catch(err => console.error('[FCM] Serverə qeydiyyat xətası:', err));
+              .then(data => console.log('[FCM] Token serverÉ™ qeyd olundu:', data))
+              .catch(err => console.error('[FCM] ServerÉ™ qeydiyyat xÉ™tasÄ±:', err));
         }
 
         // Set Firebase language to Azerbaijani
@@ -2235,7 +2235,7 @@
             right: -2px;
             min-width: 16px;
             height: 16px;
-            background: #ef4444; /* Qırmızı rəng */
+            background: #ef4444; /* QÄ±rmÄ±zÄ± rÉ™ng */
             color: white;
             border-radius: 50%;
             border: 1.5px solid var(--bg);
@@ -2644,7 +2644,7 @@
         }
 
         .clear-all-btn {
-            color: #ef4444; /* Qırmızı rəng daha yaxşı olar */
+            color: #ef4444; /* QÄ±rmÄ±zÄ± rÉ™ng daha yaxÅŸÄ± olar */
             font-weight: 700;
             font-size: 13px;
             cursor: pointer;
@@ -2841,9 +2841,9 @@
 
 <body>
     <div class="auth-overlay" id="authOverlay">
-        <div class="auth-overlay-icon">🏆</div>
-        <div class="auth-overlay-title">Xoş Gəlmisiniz!</div>
-        <div class="auth-overlay-text">ProScore ailəsinə qoşulun və bütün imkanlardan yararlanın.</div>
+        <div class="auth-overlay-icon">ğŸ†</div>
+        <div class="auth-overlay-title">XoÅŸ GÉ™lmisiniz!</div>
+        <div class="auth-overlay-text">ProScore ailÉ™sinÉ™ qoÅŸulun vÉ™ bÃ¼tÃ¼n imkanlardan yararlanÄ±n.</div>
     </div>
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
     <div class="sidebar" id="sidebar">
@@ -2853,21 +2853,21 @@
                 R</div>
             <div>
                 <div style="font-weight:900; font-size:18px;">Rabona Media</div>
-                <div style="font-size:12px; color:var(--text-muted);">Canlı Nəticələr</div>
+                <div style="font-size:12px; color:var(--text-muted);">CanlÄ± NÉ™ticÉ™lÉ™r</div>
             </div>
         </div>
         <div class="sidebar-nav">
-            <div class="side-item active" onclick="switchMainView('matches'); toggleSidebar()"><i>⚽</i> Günün Oyunları</div>
-            <div class="side-item" onclick="toggleLiveFilter(null); switchMainView('matches'); toggleSidebar()"><i>🔴</i> Canlı Hesablar</div>
-            <div class="side-item" onclick="switchMainView('leagues'); toggleSidebar()"><i>🏆</i> Bütün Liqalar</div>
-            <div class="side-item" onclick="switchMainView('favorites'); toggleSidebar()"><i>⭐</i> Favoritlərim</div>
+            <div class="side-item active" onclick="switchMainView('matches'); toggleSidebar()"><i>âš½</i> GÃ¼nÃ¼n OyunlarÄ±</div>
+            <div class="side-item" onclick="toggleLiveFilter(null); switchMainView('matches'); toggleSidebar()"><i>ğŸ”´</i> CanlÄ± Hesablar</div>
+            <div class="side-item" onclick="switchMainView('leagues'); toggleSidebar()"><i>ğŸ†</i> BÃ¼tÃ¼n Liqalar</div>
+            <div class="side-item" onclick="switchMainView('favorites'); toggleSidebar()"><i>â­</i> FavoritlÉ™rim</div>
             <hr style="border:none; border-top:1px solid var(--border); margin:10px 0;">
-            <div class="side-item" onclick="switchMainView('notifications'); toggleSidebar()"><i>🔔</i> Bildirişlər</div>
-            <div class="side-item" onclick="switchMainView('profile'); toggleSidebar()"><i>⚙️</i> Tənzimləmələr</div>
-            <div class="side-item" id="sidebarAuthLink" onclick="switchMainView('auth'); toggleSidebar()"><i>🔑</i> Giriş / Qeydiyyat</div>
+            <div class="side-item" onclick="switchMainView('notifications'); toggleSidebar()"><i>ğŸ””</i> BildiriÅŸlÉ™r</div>
+            <div class="side-item" onclick="switchMainView('profile'); toggleSidebar()"><i>âš™ï¸</i> TÉ™nzimlÉ™mÉ™lÉ™r</div>
+            <div class="side-item" id="sidebarAuthLink" onclick="switchMainView('auth'); toggleSidebar()"><i>ğŸ”‘</i> GiriÅŸ / Qeydiyyat</div>
             <hr style="border:none; border-top:1px solid var(--border); margin:10px 0;">
             <div class="social-section">
-                <span class="social-title">Bizi İzləyin</span>
+                <span class="social-title">Bizi Ä°zlÉ™yin</span>
                 <div class="social-buttons">
                     <a href="https://www.instagram.com/rabonamedia/" target="_blank" class="social-btn instagram" title="Instagram">
                         <i class="fab fa-instagram"></i>
@@ -2885,8 +2885,8 @@
         <div class="top-navbar">
             <header>
                 <div class="header-left">
-                    <span class="back-btn" id="backBtn" onclick="goBack()">‹</span>
-                    <span class="menu-icon" id="menuBtn" onclick="toggleSidebar()">☰</span>
+                    <span class="back-btn" id="backBtn" onclick="goBack()">â€¹</span>
+                    <span class="menu-icon" id="menuBtn" onclick="toggleSidebar()">â˜°</span>
                 </div>
 
                 <div class="logo" id="logoTitle">RABONA MEDIA</div>
@@ -2897,14 +2897,14 @@
                     </div>
                     <div class="notification-bell" id="notifBell" onclick="switchMainView('notifications')">
                         <span id="notifBadge" class="notification-badge"></span>
-                        🔔
+                        ğŸ””
                     </div>
-                    <span class="search-icon" onclick="toggleSearch()">🔍</span>
+                    <span class="search-icon" onclick="toggleSearch()">ğŸ”</span>
                 </div>
             </header>
 
             <div class="date-tabs" id="dateTabsContainer">
-                <!-- Tarixlər JS ilə bura gələcək -->
+                <!-- TarixlÉ™r JS ilÉ™ bura gÉ™lÉ™cÉ™k -->
             </div>
         </div>
 
@@ -2914,13 +2914,13 @@
             <div class="container active" id="matchView">
                 <div class="search-wrapper" style="display: none; margin-bottom: 10px;">
                     <div class="search-input-box">
-                        <span class="search-icon">🔍</span>
-                        <input type="text" id="matchSearchTerm" placeholder="Komanda və ya liqa axtar..."
+                        <span class="search-icon">ğŸ”</span>
+                        <input type="text" id="matchSearchTerm" placeholder="Komanda vÉ™ ya liqa axtar..."
                             oninput="applyFilters()">
                     </div>
                 </div>
                 <div id="syncStatusOverlay" class="sync-status" style="display: none;">
-                    <i class="fas fa-sync fa-spin"></i> Yenilənir...
+                    <i class="fas fa-sync fa-spin"></i> YenilÉ™nir...
                 </div>
                 <div id="matchList">
                     <div class="loader-wrapper">
@@ -2947,8 +2947,8 @@
             <div id="leaguesView" class="container">
                 <div class="search-wrapper" style="display: none; margin-bottom: 10px;">
                     <div class="search-input-box">
-                        <span class="search-icon">🔍</span>
-                        <input type="text" id="leagueSearchTerm" placeholder="Liqa və ya ölkə axtar..."
+                        <span class="search-icon">ğŸ”</span>
+                        <input type="text" id="leagueSearchTerm" placeholder="Liqa vÉ™ ya Ã¶lkÉ™ axtar..."
                             oninput="renderLeaguesView()">
                     </div>
                 </div>
@@ -2974,23 +2974,23 @@
             <!-- 5. Notifications View -->
             <div class="container" id="notificationsView">
                 <div id="notificationsContent" style="padding: 16px;">
-                    <!-- Səsli Bildiriş Təlimatı -->
+                    <!-- SÉ™sli BildiriÅŸ TÉ™limatÄ± -->
                     <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 16px; padding: 18px; margin-bottom: 24px; position: relative; overflow: hidden;">
-                        <div style="position: absolute; top: -10px; right: -10px; font-size: 60px; opacity: 0.1; transform: rotate(15deg);">🔔</div>
+                        <div style="position: absolute; top: -10px; right: -10px; font-size: 60px; opacity: 0.1; transform: rotate(15deg);">ğŸ””</div>
                         <h4 style="margin: 0 0 10px; font-size: 16px; display: flex; align-items: center; gap: 8px;">
-                            <span>🔊</span> Səsli Bildiriş Gəlmir?
+                            <span>ğŸ”Š</span> SÉ™sli BildiriÅŸ GÉ™lmir?
                         </h4>
                         <ul style="margin: 0; padding: 0 0 0 20px; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-                            <li><b>Android:</b> Proqramlar > Chrome > Bildirişlər > <b>"Geyim"</b> (və ya Gələn qollar) bölməsində səsin aktiv olduğundan əmin olun.</li>
-                            <li><b>Batareya:</b> Chrome üçün "Batareya Qənaəti" rejimini <b>"Məhdudiyyətsiz"</b> (Unrestricted) edin.</li>
-                            <li><b>iOS:</b> Saytı mütləq "Ana Ekrana Əlavə Et" düyməsi ilə telefona quraşdırın.</li>
+                            <li><b>Android:</b> Proqramlar > Chrome > BildiriÅŸlÉ™r > <b>"Geyim"</b> (vÉ™ ya GÉ™lÉ™n qollar) bÃ¶lmÉ™sindÉ™ sÉ™sin aktiv olduÄŸundan É™min olun.</li>
+                            <li><b>Batareya:</b> Chrome Ã¼Ã§Ã¼n "Batareya QÉ™naÉ™ti" rejimini <b>"MÉ™hdudiyyÉ™tsiz"</b> (Unrestricted) edin.</li>
+                            <li><b>iOS:</b> SaytÄ± mÃ¼tlÉ™q "Ana Ekrana ÆlavÉ™ Et" dÃ¼ymÉ™si ilÉ™ telefona quraÅŸdÄ±rÄ±n.</li>
                         </ul>
                     </div>
 
                     <div class="empty-state">
-                        <div class="empty-state-icon">🔔</div>
-                        <div class="empty-state-title">Bildiriş yoxdur</div>
-                        <div class="empty-state-text">Qollar və digər önəmli hadisələr burada görünəcək.</div>
+                        <div class="empty-state-icon">ğŸ””</div>
+                        <div class="empty-state-title">BildiriÅŸ yoxdur</div>
+                        <div class="empty-state-text">Qollar vÉ™ digÉ™r Ã¶nÉ™mli hadisÉ™lÉ™r burada gÃ¶rÃ¼nÉ™cÉ™k.</div>
                     </div>
                 </div>
             </div>
@@ -2999,18 +2999,18 @@
             <div class="container" id="authView">
                 <div class="auth-container">
                     <div class="auth-tabs">
-                        <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Giriş</div>
+                        <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">GiriÅŸ</div>
                         <div class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">Qeydiyyat</div>
                     </div>
 
-                    <h2 id="authTitle" style="margin-bottom:8px;">Xoş Gəlmisiniz</h2>
+                    <h2 id="authTitle" style="margin-bottom:8px;">XoÅŸ GÉ™lmisiniz</h2>
                     <p id="authSubtitle" style="color:var(--text-muted); font-size:14px; margin-bottom:20px;">Davam
-                        etmək üçün daxil olun</p>
+                        etmÉ™k Ã¼Ã§Ã¼n daxil olun</p>
 
                     <div style="text-align:left; margin-bottom:12px;">
                         <label
-                            style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">İstifadəçi
-                            Adı</label>
+                            style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Ä°stifadÉ™Ã§i
+                            AdÄ±</label>
                         <input type="text" id="authUsername" class="profile-input" placeholder="Azad123">
                     </div>
                     <div id="emailField" style="text-align:left; margin-bottom:12px; display:none;">
@@ -3020,14 +3020,14 @@
                     </div>
                     <div style="text-align:left; margin-bottom:12px;">
                         <label
-                            style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Şifrə</label>
+                            style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">ÅifrÉ™</label>
                         <div class="password-wrapper">
-                            <input type="password" id="authPassword" class="profile-input" placeholder="••••••••">
-                            <span class="toggle-password" onclick="togglePasswordVisibility('authPassword', this)">👁️</span>
+                            <input type="password" id="authPassword" class="profile-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢">
+                            <span class="toggle-password" onclick="togglePasswordVisibility('authPassword', this)">ğŸ‘ï¸</span>
                         </div>
                     </div>
                     <div id="forgotPassLink" style="text-align:right; margin-bottom:15px;">
-                        <span style="color:var(--primary); font-size:13px; cursor:pointer; font-weight:600;" onclick="toggleForgotView(true)">Şifrəni unutmusunuz?</span>
+                        <span style="color:var(--primary); font-size:13px; cursor:pointer; font-weight:600;" onclick="toggleForgotView(true)">ÅifrÉ™ni unutmusunuz?</span>
                     </div>
 
                     <div id="authError" class="auth-error"></div>
@@ -3035,32 +3035,32 @@
                     <button class="save-btn" id="authSubmitBtn" onclick="handleAuthSubmit()" style="margin-top:5px;">Daxil Ol</button>
 
                     <div id="alreadyHaveAccount" style="text-align:center; margin-top:15px; display:none;">
-                        <span style="color:var(--text-muted); font-size:14px;">Hesabınız var? </span>
+                        <span style="color:var(--text-muted); font-size:14px;">HesabÄ±nÄ±z var? </span>
                         <span style="color:var(--primary); font-size:14px; cursor:pointer; font-weight:700;" onclick="switchAuthTab('login')">Daxil Olun</span>
                     </div>
 
                          <!-- Forgot Password Flow (Hidden by default) -->
                     <div id="forgotView" style="display:none;">
                         <div class="forgot-card" style="padding: 40px 30px;">
-                            <h3 style="margin-bottom:20px; font-size: 26px; font-weight: 900; letter-spacing: -0.5px;">Şifrə Sıfırlama</h3>
+                            <h3 style="margin-bottom:20px; font-size: 26px; font-weight: 900; letter-spacing: -0.5px;">ÅifrÉ™ SÄ±fÄ±rlama</h3>
                             
                             <div id="forgotStep1" style="display:flex; flex-direction:column; align-items:center; padding: 10px 0;">
                                 <div style="margin-bottom: 25px; display:inline-flex; justify-content:center; align-items:center; width:64px; height:64px; border-radius:50%; background:rgba(59, 130, 246, 0.1); color:var(--primary); font-size:28px;">
-                                    📧
+                                    ğŸ“§
                                 </div>
-                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">Hesabınızın email ünvanını daxil edin, biz sizə 4 rəqəmli təsdiq kodu göndərəcəyik.</p>
+                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">HesabÄ±nÄ±zÄ±n email Ã¼nvanÄ±nÄ± daxil edin, biz sizÉ™ 4 rÉ™qÉ™mli tÉ™sdiq kodu gÃ¶ndÉ™rÉ™cÉ™yik.</p>
                                 <div style="text-align:left; margin-bottom:25px; width:100%;">
-                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-left: 4px;">Email Ünvanı</label>
+                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-left: 4px;">Email ÃœnvanÄ±</label>
                                     <input type="email" id="resetEmail" class="profile-input" placeholder="misal@mail.com" style="margin-top:10px; height: 52px; font-size: 16px; border-radius: 14px;">
                                 </div>
-                                <button class="save-btn" onclick="handleSendResetOTP()" style="height: 54px; font-size: 16px; border-radius: 14px; margin-top: 10px;">Kod Göndər</button>
+                                <button class="save-btn" onclick="handleSendResetOTP()" style="height: 54px; font-size: 16px; border-radius: 14px; margin-top: 10px;">Kod GÃ¶ndÉ™r</button>
                             </div>
 
                             <div id="forgotStep2" style="display:none; flex-direction:column; align-items:center; padding: 10px 0;">
                                 <div style="margin-bottom: 25px; display:inline-flex; justify-content:center; align-items:center; width:64px; height:64px; border-radius:50%; background:rgba(59, 130, 246, 0.1); color:var(--primary); font-size:28px;">
-                                    🔐
+                                    ğŸ”
                                 </div>
-                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">Göndərilən 4 rəqəmli təsdiq kodunu daxil edin.</p>
+                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">GÃ¶ndÉ™rilÉ™n 4 rÉ™qÉ™mli tÉ™sdiq kodunu daxil edin.</p>
                                 
                                 <div class="otp-container" style="display:flex; gap:16px; justify-content:center; margin-bottom:30px; width:100%;">
                                     <input type="text" class="otp-input" inputmode="numeric" pattern="[0-9]*" maxlength="1" oninput="handleOTPInput(this, 0)" onkeydown="handleOTPBack(event, 0)" style="width: 55px; height: 65px; border-radius: 14px; font-size: 32px;">
@@ -3074,38 +3074,38 @@
                                     <span id="otpCountdown" style="font-weight:900; color:var(--live); font-variant-numeric: tabular-nums; font-size: 16px;">03:00</span>
                                 </div>
 
-                                <button class="save-btn" id="verifyBtn" onclick="handleCheckOTP()" style="height: 54px; font-size: 16px; border-radius: 14px; width: 100%; margin-top: 5px;">Kodu Təsdiqlə</button>
+                                <button class="save-btn" id="verifyBtn" onclick="handleCheckOTP()" style="height: 54px; font-size: 16px; border-radius: 14px; width: 100%; margin-top: 5px;">Kodu TÉ™sdiqlÉ™</button>
                                 
                                 <div id="resendBox" style="display:none; text-align:center; margin-top:25px; width: 100%;">
-                                    <span style="color:var(--primary); font-size:15px; cursor:pointer; font-weight:700; text-decoration:none;" onclick="handleSendResetOTP(true)">Kodu Yenidən Göndər</span>
+                                    <span style="color:var(--primary); font-size:15px; cursor:pointer; font-weight:700; text-decoration:none;" onclick="handleSendResetOTP(true)">Kodu YenidÉ™n GÃ¶ndÉ™r</span>
                                 </div>
                             </div>
 
                             <div id="forgotStep3" style="display:none; flex-direction:column; align-items:center; padding: 10px 0;">
                                 <div style="margin-bottom: 25px; display:inline-flex; justify-content:center; align-items:center; width:64px; height:64px; border-radius:50%; background:rgba(59, 130, 246, 0.1); color:var(--primary); font-size:28px;">
-                                    🔑
+                                    ğŸ”‘
                                 </div>
-                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">Təhlükəsizliyiniz üçün yeni və güclü şifrə təyin edin.</p>
+                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">TÉ™hlÃ¼kÉ™sizliyiniz Ã¼Ã§Ã¼n yeni vÉ™ gÃ¼clÃ¼ ÅŸifrÉ™ tÉ™yin edin.</p>
                                 <div style="text-align:left; margin-bottom:20px; width: 100%;">
-                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-left:4px;">Yeni Şifrə</label>
+                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-left:4px;">Yeni ÅifrÉ™</label>
                                     <div class="password-wrapper">
-                                        <input type="password" id="newPassword" class="profile-input" placeholder="••••••••" style="margin-top:10px; height: 52px; font-size: 16px; border-radius: 14px;">
-                                        <span class="toggle-password" onclick="togglePasswordVisibility('newPassword', this)">👁️</span>
+                                        <input type="password" id="newPassword" class="profile-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" style="margin-top:10px; height: 52px; font-size: 16px; border-radius: 14px;">
+                                        <span class="toggle-password" onclick="togglePasswordVisibility('newPassword', this)">ğŸ‘ï¸</span>
                                     </div>
                                 </div>
                                 <div style="text-align:left; margin-bottom:30px; width: 100%;">
-                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-left:4px;">Şifrənin Təkrarı</label>
+                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-left:4px;">ÅifrÉ™nin TÉ™krarÄ±</label>
                                     <div class="password-wrapper">
-                                        <input type="password" id="confirmPassword" class="profile-input" placeholder="••••••••" style="margin-top:10px; height: 52px; font-size: 16px; border-radius: 14px;">
-                                        <span class="toggle-password" onclick="togglePasswordVisibility('confirmPassword', this)">👁️</span>
+                                        <input type="password" id="confirmPassword" class="profile-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" style="margin-top:10px; height: 52px; font-size: 16px; border-radius: 14px;">
+                                        <span class="toggle-password" onclick="togglePasswordVisibility('confirmPassword', this)">ğŸ‘ï¸</span>
                                     </div>
                                 </div>
-                                <button class="save-btn" onclick="handleFinalReset()" style="height: 54px; font-size: 16px; border-radius: 14px; width: 100%; margin-top: 5px;">Şifrəni Yenilə</button>
+                                <button class="save-btn" onclick="handleFinalReset()" style="height: 54px; font-size: 16px; border-radius: 14px; width: 100%; margin-top: 5px;">ÅifrÉ™ni YenilÉ™</button>
                             </div>
 
                             <div style="margin-top:25px; border-top: 1px solid var(--border); padding-top: 20px;">
                                 <span style="color:var(--text-muted); font-size:14px; cursor:pointer; font-weight:600; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="toggleForgotView(false)">
-                                    <i style="font-style: normal; font-size: 18px;">←</i> Geri qayıt
+                                    <i style="font-style: normal; font-size: 18px;">â†</i> Geri qayÄ±t
                                 </span>
                             </div>
                         </div>
@@ -3126,13 +3126,13 @@
                             </div>
                         </div>
                         <div class="avatar-edit-label" onclick="triggerPicUpload()">
-                            <i class="fas fa-image"></i> Şəkli Dəyiş
+                            <i class="fas fa-image"></i> ÅÉ™kli DÉ™yiÅŸ
                         </div>
                     </div>
                     
                     <div class="profile-info-box">
-                        <div id="profileDisplayName" style="font-size:24px; font-weight:900; letter-spacing: -0.8px; color:#fff;">İstifadəçi</div>
-                        <div id="profileUserStatus" style="color:var(--text-muted); font-size:14px; font-weight: 600; opacity:0.8;">ProScore Premium Üzvü</div>
+                        <div id="profileDisplayName" style="font-size:24px; font-weight:900; letter-spacing: -0.8px; color:#fff;">Ä°stifadÉ™Ã§i</div>
+                        <div id="profileUserStatus" style="color:var(--text-muted); font-size:14px; font-weight: 600; opacity:0.8;">ProScore Premium ÃœzvÃ¼</div>
                         
                         <div class="profile-actions-row">
                             <div class="profile-badge" style="margin: 0; display: none;">
@@ -3141,33 +3141,33 @@
                             </div>
 
                             <div class="profile-action-btn btn-logout-header" onclick="logoutUser()">
-                                <i class="fas fa-sign-out-alt"></i> Çıxış Et
+                                <i class="fas fa-sign-out-alt"></i> Ã‡Ä±xÄ±ÅŸ Et
                             </div>
                         </div>
                     </div>
                 </div>
 
 
-                <span class="profile-section-title">Hesab Məlumatları</span>
+                <span class="profile-section-title">Hesab MÉ™lumatlarÄ±</span>
                 <div style="margin-bottom: 20px;">
                     <div class="profile-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                        <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">İstifadəçi Adı</label>
-                        <input type="text" id="usernameInput" class="profile-input" style="margin-top:0; border:none; background:rgba(255,255,255,0.03); padding:14px;" placeholder="Adınızı daxil edin" value="İstifadəçi">
+                        <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Ä°stifadÉ™Ã§i AdÄ±</label>
+                        <input type="text" id="usernameInput" class="profile-input" style="margin-top:0; border:none; background:rgba(255,255,255,0.03); padding:14px;" placeholder="AdÄ±nÄ±zÄ± daxil edin" value="Ä°stifadÉ™Ã§i">
                     </div>
                     <div class="profile-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
                         <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Status</label>
-                        <input type="text" id="statusInput" class="profile-input" style="margin-top:0; border:none; background:rgba(255,255,255,0.03); padding:14px;" placeholder="Statusunuz" value="ProScore istifadəçisi">
+                        <input type="text" id="statusInput" class="profile-input" style="margin-top:0; border:none; background:rgba(255,255,255,0.03); padding:14px;" placeholder="Statusunuz" value="ProScore istifadÉ™Ã§isi">
                     </div>
                     <div style="padding: 15px 16px;">
-                        <button class="save-btn" onclick="saveProfile()" style="margin-top:0; height:52px; border-radius: 14px; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);">Məlumatları Saxla</button>
+                        <button class="save-btn" onclick="saveProfile()" style="margin-top:0; height:52px; border-radius: 14px; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);">MÉ™lumatlarÄ± Saxla</button>
                     </div>
                 </div>
 
 
-                <span class="profile-section-title">TƏNZİMLƏMƏLƏR</span>
+                <span class="profile-section-title">TÆNZÄ°MLÆMÆLÆR</span>
                 <div style="background: transparent;">
                     <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Başlanğıc Səhifə</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">BaÅŸlanÄŸÄ±c SÉ™hifÉ™</span>
                         <select id="defaultViewSelect" class="profile-input"
                             style="width:auto; margin-top:0; padding:8px 16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);"
                             onchange="updateSetting('defaultView', this.value)">
@@ -3176,41 +3176,41 @@
                         </select>
                     </div>
                     <div class="profile-row" style="flex-direction: column; align-items: flex-start;">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9); margin-bottom: 5px;">Qol Bildiriş Səsi</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9); margin-bottom: 5px;">Qol BildiriÅŸ SÉ™si</span>
                         <div class="sound-grid">
                             <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" onclick="selectSound(this.dataset.url, this)">
-                                <i>⚽</i>
+                                <i>âš½</i>
                                 <span>Goal 1</span>
-                                <div class="play-indicator">▶</div>
+                                <div class="play-indicator">â–¶</div>
                             </div>
                             <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3" onclick="selectSound(this.dataset.url, this)">
-                                <i>📣</i>
+                                <i>ğŸ“£</i>
                                 <span>Goal 2</span>
-                                <div class="play-indicator">▶</div>
+                                <div class="play-indicator">â–¶</div>
                             </div>
                             <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/1004/1004-preview.mp3" onclick="selectSound(this.dataset.url, this)">
-                                <i>🏁</i>
+                                <i>ğŸ</i>
                                 <span>Whistle</span>
-                                <div class="play-indicator">▶</div>
+                                <div class="play-indicator">â–¶</div>
                             </div>
                         </div>
                     </div>
                     <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Yalnız Favoritlər</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">YalnÄ±z FavoritlÉ™r</span>
                         <label class="toggle-switch">
                             <input type="checkbox" id="onlyFavNotifToggle" onchange="updateSetting('onlyFavNotif', this.checked)">
                             <span class="slider"></span>
                         </label>
                     </div>
                     <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Brauzer Bildirişləri</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Brauzer BildiriÅŸlÉ™ri</span>
                         <label class="toggle-switch">
                             <input type="checkbox" id="browserNotifToggle" onchange="toggleBrowserNotifications(this.checked)">
                             <span class="slider"></span>
                         </label>
                     </div>
                     <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Səsli Bildiriş</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">SÉ™sli BildiriÅŸ</span>
                         <label class="toggle-switch">
                             <input type="checkbox" id="soundNotifToggle" onchange="updateSetting('soundEnabled', this.checked)">
                             <span class="slider"></span>
@@ -3220,35 +3220,35 @@
                     <!-- TEST PUSH SECTION -->
                     <div id="testPushRow" class="profile-row" style="display:none; padding:12px 16px; background:rgba(59, 130, 246, 0.05); border-radius:12px; margin: 10px 16px; border: 1px dashed rgba(59, 130, 246, 0.3);">
                         <div style="flex:1;">
-                            <div style="font-size:14px; font-weight:700; color:var(--primary);">Bildirişləri Yoxla</div>
-                            <div style="font-size:11px; color:var(--text-muted);">Cihazın bildiriş qəbul etdiyini yoxlayın.</div>
+                            <div style="font-size:14px; font-weight:700; color:var(--primary);">BildiriÅŸlÉ™ri Yoxla</div>
+                            <div style="font-size:11px; color:var(--text-muted);">CihazÄ±n bildiriÅŸ qÉ™bul etdiyini yoxlayÄ±n.</div>
                         </div>
                         <button onclick="sendTestPush()" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">YOXLA</button>
                     </div>
 
                     <!-- DEBUG INFO SECTION -->
                     <div id="debugSettings" style="display:none; padding:15px; margin:10px 16px; background:rgba(255,255,0,0.05); border:1px solid rgba(255,255,0,0.2); border-radius:12px;">
-                        <div style="font-size:11px; font-weight:800; margin-bottom:5px; color:#ffcc00;">DIAQNOSTİKA (DEBUG)</div>
-                        <div id="debugTokenBox" style="font-size:10px; color:rgba(255,255,255,0.6); word-break:break-all; font-family:monospace;">Token tapılmadı</div>
-                        <div id="debugPermBox" style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:5px;">İcazə: yoxlanılır...</div>
+                        <div style="font-size:11px; font-weight:800; margin-bottom:5px; color:#ffcc00;">DIAQNOSTÄ°KA (DEBUG)</div>
+                        <div id="debugTokenBox" style="font-size:10px; color:rgba(255,255,255,0.6); word-break:break-all; font-family:monospace;">Token tapÄ±lmadÄ±</div>
+                        <div id="debugPermBox" style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:5px;">Ä°cazÉ™: yoxlanÄ±lÄ±r...</div>
                     </div>
 
                     <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
-                        onclick="document.getElementById('debugSettings').style.display = 'block'; showToast('Diaqnostika paneli açıldı')">
-                        <span style="font-size:12px; font-weight:600; color:var(--text-muted);">Sazlama Məlumatları (Debug)</span>
+                        onclick="document.getElementById('debugSettings').style.display = 'block'; showToast('Diaqnostika paneli aÃ§Ä±ldÄ±')">
+                        <span style="font-size:12px; font-weight:600; color:var(--text-muted);">Sazlama MÉ™lumatlarÄ± (Debug)</span>
                         <i class="fas fa-chevron-right" style="font-size:10px; color:var(--text-muted);"></i>
                     </div>
 
                     <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
                         onclick="clearAllData()">
-                        <span style="font-size:15px; font-weight:600; color:#ef4444;">Bütün Məlumatları Sil</span>
-                            <span>🗑️</span>
+                        <span style="font-size:15px; font-weight:600; color:#ef4444;">BÃ¼tÃ¼n MÉ™lumatlarÄ± Sil</span>
+                            <span>ğŸ—‘ï¸</span>
                         </div>
                         <div id="logoutBtnBox" class="profile-row"
                             style="margin-top:20px; border-top:1px solid rgba(255,255,255,0.05); cursor:pointer;"
                             onclick="logoutUser()">
-                            <span style="font-size:15px; font-weight:700; color:#ef4444;">Hesabdan Çıx</span>
-                            <span style="font-size:18px;">🚪</span>
+                            <span style="font-size:15px; font-weight:700; color:#ef4444;">Hesabdan Ã‡Ä±x</span>
+                            <span style="font-size:18px;">ğŸšª</span>
                         </div>
 
                     </div>
@@ -3262,7 +3262,7 @@
             <div class="modal-content">
                 <div class="modal-header" id="dragHeader">
                     <div class="drag-handle"></div>
-                    <div class="close-btn" onclick="closeModal()">✕</div>
+                    <div class="close-btn" onclick="closeModal()">âœ•</div>
                     <div class="league-name-modal" id="leagueM"></div>
 
                     <div class="score-board">
@@ -3296,19 +3296,19 @@
         <!-- Bottom Navigation -->
         <div class="bottom-nav">
             <div class="nav-item active" id="navMatches" onclick="switchMainView('matches')">
-                <div class="nav-icon">⚽</div>
+                <div class="nav-icon">âš½</div>
                 <span>Oyunlar</span>
             </div>
             <div class="nav-item" id="navLeagues" onclick="switchMainView('leagues')">
-                <div class="nav-icon">🏆</div>
+                <div class="nav-icon">ğŸ†</div>
                 <span>Liqalar</span>
             </div>
             <div class="nav-item" id="navFavorites" onclick="switchMainView('favorites')">
-                <div class="nav-icon">⭐</div>
-                <span>Favoritlər</span>
+                <div class="nav-icon">â­</div>
+                <span>FavoritlÉ™r</span>
             </div>
             <div class="nav-item" id="navProfile" onclick="switchMainView('profile')">
-                <div class="nav-icon">👤</div>
+                <div class="nav-icon">ğŸ‘¤</div>
                 <span>Profil</span>
             </div>
         </div>
@@ -3320,8 +3320,8 @@
                 <div id="dialogTitle" class="dialog-title"></div>
                 <div id="dialogMessage" class="dialog-message"></div>
                 <div class="dialog-btns">
-                    <button id="dialogCancelBtn" class="dialog-btn dialog-btn-cancel">Ləğv Et</button>
-                    <button id="dialogConfirmBtn" class="dialog-btn dialog-btn-confirm">Bəli</button>
+                    <button id="dialogCancelBtn" class="dialog-btn dialog-btn-cancel">LÉ™ÄŸv Et</button>
+                    <button id="dialogConfirmBtn" class="dialog-btn dialog-btn-confirm">BÉ™li</button>
                 </div>
             </div>
         </div>
@@ -3336,10 +3336,10 @@
             const auth = firebase.auth();
 
             try {
-            // API Ünvanının təyin edilməsi (Lokal və ya Render)
+            // API ÃœnvanÄ±nÄ±n tÉ™yin edilmÉ™si (Lokal vÉ™ ya Render)
             const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:';
             const isRender = window.location.hostname.includes('onrender.com');
-            // DİQQƏT: Render-dən aldığınız ünvanı aşağıdakı DEPLOYED_URL hissəsinə yazın
+            // DÄ°QQÆT: Render-dÉ™n aldÄ±ÄŸÄ±nÄ±z Ã¼nvanÄ± aÅŸaÄŸÄ±dakÄ± DEPLOYED_URL hissÉ™sinÉ™ yazÄ±n
             const DEPLOYED_URL = 'https://proscore-live.onrender.com';
             const API_BASE_URL = (isLocalhost || isRender || !DEPLOYED_URL) ? '' : DEPLOYED_URL;
             console.log("API Base URL:", API_BASE_URL || "Local/SameOrigin");
@@ -3406,15 +3406,15 @@
                 const items = document.querySelectorAll('.sidebar .side-item');
                 items.forEach(item => {
                     const text = item.innerText.toLowerCase();
-                    if (view === 'matches' && (text.includes('oyun') || text.includes('canlı'))) {
+                    if (view === 'matches' && (text.includes('oyun') || text.includes('canlÄ±'))) {
                          // We'll handle this more specifically if needed
                     } else if (view === 'leagues' && text.includes('liqa')) {
                         item.classList.add('active');
                     } else if (view === 'favorites' && text.includes('favorit')) {
                         item.classList.add('active');
-                    } else if (view === 'profile' && text.includes('tənzimləmə')) {
+                    } else if (view === 'profile' && text.includes('tÉ™nzimlÉ™mÉ™')) {
                         item.classList.add('active');
-                    } else if (view === 'notifications' && text.includes('bildiriş')) {
+                    } else if (view === 'notifications' && text.includes('bildiriÅŸ')) {
                         item.classList.add('active');
                     }
                 });
@@ -3425,8 +3425,8 @@
                 const container = document.getElementById('dateTabsContainer');
                 if (!container) return;
                 const today = new Date();
-                const days = ['Bazar', 'B.Ertəsi', 'Ç.Axşamı', 'Çərşənbə', 'C.Axşamı', 'Cümə', 'Şənbə'];
-                const months = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'İyun', 'İyul', 'Avq', 'Sent', 'Okt', 'Noy', 'Dek'];
+                const days = ['Bazar', 'B.ErtÉ™si', 'Ã‡.AxÅŸamÄ±', 'Ã‡É™rÅŸÉ™nbÉ™', 'C.AxÅŸamÄ±', 'CÃ¼mÉ™', 'ÅÉ™nbÉ™'];
+                const months = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Ä°yun', 'Ä°yul', 'Avq', 'Sent', 'Okt', 'Noy', 'Dek'];
                 
                 let html = '';
                 for (let i = -7; i <= 30; i++) {
@@ -3438,7 +3438,7 @@
                     
                     html += `
                         <div class="date-tab ${activeClass}" onclick="selectDate('${dateStr}', this)">
-                            <span class="day-name">${isToday ? 'BU GÜN' : days[d.getDay()].toUpperCase()}</span>
+                            <span class="day-name">${isToday ? 'BU GÃœN' : days[d.getDay()].toUpperCase()}</span>
                             <span class="date-num">${d.getDate()} ${months[d.getMonth()]}</span>
                         </div>
                     `;
@@ -3601,12 +3601,12 @@
                                 const hs = ev.homeScore.current;
                                 const as = ev.awayScore.current;
                                 const title = `Rabona Media: ${ev.homeTeam.name} - ${ev.awayTeam.name} GOOOL!`;
-                                const body = `${ev.homeTeam.name} ${hs} - ${as} ${ev.awayTeam.name}. Hesab dəyişdi!`;
+                                const body = `${ev.homeTeam.name} ${hs} - ${as} ${ev.awayTeam.name}. Hesab dÉ™yiÅŸdi!`;
                                 this.addNotification('goal', title, body, ev.id);
                             }
                             // Check for Match Start
                             else if (prev.status === 'notstarted' && ev.status.type === 'inprogress') {
-                                this.addNotification('start', 'Oyun Başladı', `${ev.homeTeam.name} - ${ev.awayTeam.name} oyunu başladı!`, ev.id);
+                                this.addNotification('start', 'Oyun BaÅŸladÄ±', `${ev.homeTeam.name} - ${ev.awayTeam.name} oyunu baÅŸladÄ±!`, ev.id);
                             }
                         }
                         this.lastEventState.set(ev.id, { h: ev.homeScore.current, a: ev.awayScore.current, status: ev.status.type });
@@ -3679,31 +3679,31 @@
                     if (this.history.length === 0) {
                         container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">🔔</div>
-                        <div class="empty-state-title">Bildiriş yoxdur</div>
-                        <div class="empty-state-text">Qollar və digər önəmli hadisələr burada görünəcək.</div>
+                        <div class="empty-state-icon">ğŸ””</div>
+                        <div class="empty-state-title">BildiriÅŸ yoxdur</div>
+                        <div class="empty-state-text">Qollar vÉ™ digÉ™r Ã¶nÉ™mli hadisÉ™lÉ™r burada gÃ¶rÃ¼nÉ™cÉ™k.</div>
                     </div>`;
                         return;
                     }
 
                     let html = `
                 <div class="notif-header-actions">
-                    <span style="font-weight:800; opacity:0.6;">SON HADİSƏLƏR</span>
-                    <div class="clear-all-btn" onclick="notificationMgr.clearAllHistory()">🗑️ HAMSINI SİL</div>
+                    <span style="font-weight:800; opacity:0.6;">SON HADÄ°SÆLÆR</span>
+                    <div class="clear-all-btn" onclick="notificationMgr.clearAllHistory()">ğŸ—‘ï¸ HAMSINI SÄ°L</div>
                 </div>
             `;
 
                     html += this.history.map(n => `
                 <div class="notification-item ${n.unread ? 'unread' : ''}" onclick="openMatchById('${n.matchId}'); notificationMgr.markRead(${n.id})">
                     <div class="notification-icon-box">
-                        ${n.type === 'goal' ? '⚽' : '📢'}
+                        ${n.type === 'goal' ? 'âš½' : 'ğŸ“¢'}
                     </div>
                     <div class="notification-info">
                         <span class="notification-title">${n.title}</span>
                         <span class="notification-body">${n.body}</span>
                         <span class="notification-time">${n.time}</span>
                     </div>
-                    <div class="notif-delete-btn" onclick="event.stopPropagation(); window.notificationMgr.deleteNotification('${n.id}')">✕</div>
+                    <div class="notif-delete-btn" onclick="event.stopPropagation(); window.notificationMgr.deleteNotification('${n.id}')">âœ•</div>
                 </div>
             `).join('');
 
@@ -3722,7 +3722,7 @@
                 }
 
                 deleteNotification(id) {
-                    // ID simvol dizisi ola bilər, ona görə == istifadə edirik
+                    // ID simvol dizisi ola bilÉ™r, ona gÃ¶rÉ™ == istifadÉ™ edirik
                     this.history = this.history.filter(n => n.id.toString() !== id.toString());
                     localStorage.setItem('notifHistory', JSON.stringify(this.history));
                     this.unreadCount = this.history.filter(n => n.unread).length;
@@ -3731,7 +3731,7 @@
                 }
 
                 clearAllHistory() {
-                    if (confirm('Bütün bildiriş tarixçəsini silmək istəyirsiniz?')) {
+                    if (confirm('BÃ¼tÃ¼n bildiriÅŸ tarixÃ§É™sini silmÉ™k istÉ™yirsiniz?')) {
                         this.history = [];
                         this.unreadCount = 0;
                         localStorage.setItem('notifHistory', JSON.stringify(this.history));
@@ -3780,7 +3780,7 @@
                     document.getElementById('profileView').classList.add('active');
                     document.getElementById('navProfile').classList.add('active');
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'PROFİL';
+                    document.getElementById('logoTitle').innerText = 'PROFÄ°L';
                     hideBackBtn();
                     mc.style.paddingTop = '80px';
                     loadProfile();
@@ -3798,7 +3798,7 @@
                     document.getElementById('leaguesView').classList.add('active');
                     document.getElementById('navLeagues').classList.add('active');
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'LİQALAR';
+                    document.getElementById('logoTitle').innerText = 'LÄ°QALAR';
                     hideBackBtn();
                     mc.style.paddingTop = '80px';
                     renderLeaguesView();
@@ -3807,7 +3807,7 @@
                     document.getElementById('favoritesView').classList.add('active');
                     document.getElementById('navFavorites').classList.add('active');
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'FAVORİTLƏR';
+                    document.getElementById('logoTitle').innerText = 'FAVORÄ°TLÆR';
                     hideBackBtn();
                     mc.style.paddingTop = '80px';
                     renderFavoritesView();
@@ -3817,7 +3817,7 @@
                     if (!auth.currentUser) {
                         setTimeout(() => {
                             if (!auth.currentUser) {
-                                showToast('Profil üçün daxil olun');
+                                showToast('Profil Ã¼Ã§Ã¼n daxil olun');
                                 switchMainView('auth');
                             } else {
                                 // Now we have user, proceed to show profile
@@ -3835,7 +3835,7 @@
                     document.getElementById('authView').classList.add('active');
                     document.getElementById('navProfile').classList.add('active');
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'QEYDİYYAT';
+                    document.getElementById('logoTitle').innerText = 'QEYDÄ°YYAT';
                     hideBackBtn();
                     mc.style.paddingTop = '65px'; // Reduced padding to remove gap
                     switchAuthTab('login'); // Always default to login and reset button
@@ -3844,7 +3844,7 @@
                     document.getElementById('notificationsView').classList.add('active');
                     document.getElementById('navLeagues').classList.remove('active'); // Reset other navs
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'BİLDİRİŞLƏR';
+                    document.getElementById('logoTitle').innerText = 'BÄ°LDÄ°RÄ°ÅLÆR';
                     showBackBtn();
                     notificationMgr.renderHistory();
                     notificationMgr.markAllAsRead();
@@ -3877,25 +3877,20 @@
                 }
 
                 if (!group && tourId) {
-                    group = { id: tourId, name: "Liqa", country: "Yüklənir...", catId: 1, isUnique: isUnique, matches: [], seasonId: null };
+                    group = { id: tourId, name: "Liqa", country: "YÃ¼klÉ™nir...", catId: 1, isUnique: isUnique, matches: [], seasonId: null };
                     
                     try {
-                        const path = isUnique ? 'unique-tournament' : 'tournament';
-                        const tInfo = await fetch(API_BASE_URL + `/api/tournament/${tourId}?isUnique=${isUnique}`);
-                        const tData = await tInfo.json();
-                        const entity = isUnique ? tData.uniqueTournament : tData.tournament;
+                        const entity = await fetchLeagueInfoData(tourId, isUnique);
                         if (entity) {
                             group.name = entity.name || "Liqa";
-                            group.country = entity.category ? entity.category.name : "Ölkə";
+                            group.country = entity.category ? entity.category.name : "Ã–lkÉ™";
                             group.catId = entity.category ? entity.category.id : 1;
                         }
                     } catch(e) { console.error("League info fetch error:", e); }
 
                     try {
-                        const path = isUnique ? 'unique-tournament' : 'tournament';
-                        const cInfo = await fetch(API_BASE_URL + `/api/tournament/${tourId}/seasons?isUnique=${isUnique}`);
-                        const cData = await cInfo.json();
-                        group.seasonId = cData.seasons && cData.seasons[0] ? cData.seasons[0].id : null;
+                        const seasons = await fetchLeagueSeasonsData(tourId, isUnique);
+                        group.seasonId = seasons && seasons[0] ? seasons[0].id : null;
                     } catch(e) { console.error("Seasons info error:", e); }
                 }
 
@@ -3913,9 +3908,8 @@
 
                 if (!group.seasonId) {
                     try {
-                        const sResp = await fetch(API_BASE_URL + `/api/tournament/${group.id}/seasons?isUnique=true`);
-                        const sData = await sResp.json();
-                        group.seasonId = sData.seasons && sData.seasons[0] ? sData.seasons[0].id : null;
+                        const seasons = await fetchLeagueSeasonsData(group.id, group.isUnique !== false);
+                        group.seasonId = seasons && seasons[0] ? seasons[0].id : null;
                     } catch(e) { console.error("Secondary seasons fetch error:", e); }
                 }
 
@@ -3923,7 +3917,7 @@
                 const hasMatches = group.matches && group.matches.length > 0;
                 const matchesHtml = hasMatches
                     ? group.matches.map(m => createMatchRow(m, group)).join("")
-                    : `<div style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600;">Bu gün üçün oyun tapılmadı. <br><span style="font-size:12px; font-weight:400; opacity:0.7;">Cədvələ (Puan Durumu) keçid edərək xal durumuna baxa bilərsiniz.</span></div>`;
+                    : `<div style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600;">Bu gÃ¼n Ã¼Ã§Ã¼n oyun tapÄ±lmadÄ±. <br><span style="font-size:12px; font-weight:400; opacity:0.7;">CÉ™dvÉ™lÉ™ (Puan Durumu) keÃ§id edÉ™rÉ™k xal durumuna baxa bilÉ™rsiniz.</span></div>`;
 
                 const html = `
             <div class="league-group" style="margin-top:20px; border-radius: 12px 12px 0 0; border-bottom: none;">
@@ -3935,9 +3929,9 @@
                 
                 <div class="modal-tabs" style="background:var(--card); border-bottom:1px solid rgba(255,255,255,0.05); border-top:1px solid rgba(255,255,255,0.05); position:relative; z-index:1;">
                     <button class="tab-btn ${hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueMatches', this)">OYUNLAR</button>
-                    <button class="tab-btn ${!hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueStandings', this)">CƏDVƏL</button>
-                    <button class="tab-btn" onclick="switchLeagueTab('leagueTopPlayers', this)">BOMBARDİRLƏR</button>
-                    <button class="tab-btn" onclick="switchLeagueTab('leagueInfo', this)">MƏLUMAT</button>
+                    <button class="tab-btn ${!hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueStandings', this)">CÆDVÆL</button>
+                    <button class="tab-btn" onclick="switchLeagueTab('leagueTopPlayers', this)">BOMBARDÄ°RLÆR</button>
+                    <button class="tab-btn" onclick="switchLeagueTab('leagueInfo', this)">MÆLUMAT</button>
                 </div>
                 
                 <div class="league-tab-content ${hasMatches ? 'active' : ''}" id="leagueMatches" style="${!hasMatches ? 'display:none;' : ''}">
@@ -3956,14 +3950,14 @@
                             <span style="font-weight:600">${group.name}</span>
                         </div>
                         <div style="margin-bottom:15px; display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:10px;">
-                            <span style="color:var(--text-muted)">Ölkə:</span>
+                            <span style="color:var(--text-muted)">Ã–lkÉ™:</span>
                             <span style="font-weight:600">${group.country}</span>
                         </div>
                          <div style="margin-bottom:15px; display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:10px;">
-                            <span style="color:var(--text-muted)">Mövsüm:</span>
-                            <span style="font-weight:600">${group.seasonId ? '2023/2024' : 'Aktiv Mövsüm'}</span>
+                            <span style="color:var(--text-muted)">MÃ¶vsÃ¼m:</span>
+                            <span style="font-weight:600">${group.seasonId ? '2023/2024' : 'Aktiv MÃ¶vsÃ¼m'}</span>
                         </div>
-                        <p style="font-size:12px; color:var(--text-muted); text-align:center; margin-top:20px;">Rabona Media LIVE vasitəsilə bütün dünya liqalarını anlıq izləyə bilərsiniz.</p>
+                        <p style="font-size:12px; color:var(--text-muted); text-align:center; margin-top:20px;">Rabona Media LIVE vasitÉ™silÉ™ bÃ¼tÃ¼n dÃ¼nya liqalarÄ±nÄ± anlÄ±q izlÉ™yÉ™ bilÉ™rsiniz.</p>
                     </div>
                 </div>
             </div>
@@ -3985,8 +3979,7 @@
                 if (currentStandingsTourId !== tourId) return;
 
                 try {
-                    const res = await fetch(API_BASE_URL + `/api/standings/${tourId}/${seasonId}`);
-                    const data = await res.json();
+                    const data = await fetchLeagueStandingsData(tourId, seasonId);
 
                     if (data && data.standings && data.standings.length > 0) {
                         const sData = data.standings[0];
@@ -4038,7 +4031,7 @@
                         }
                     } else {
                         if (currentStandingsTourId === tourId && document.getElementById('leagueStandings').innerHTML.includes('skeleton')) {
-                            document.getElementById('leagueStandings').innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Cədvəl məlumatı yoxdur.</div>";
+                            document.getElementById('leagueStandings').innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>CÉ™dvÉ™l mÉ™lumatÄ± yoxdur.</div>";
                         }
                     }
                 } catch (e) {
@@ -4055,8 +4048,7 @@
                 if (!tourId || !seasonId) return;
                 const box = document.getElementById("leagueTopPlayers");
                 try {
-                    const res = await fetch(API_BASE_URL + `/api/tournament/${tourId}/season/${seasonId}/top-players`);
-                    const data = await res.json();
+                    const data = await fetchLeagueTopPlayersData(tourId, seasonId);
                     let topPlayers = [];
                     if (data.topPlayers && data.topPlayers.goals) {
                         topPlayers = data.topPlayers.goals;
@@ -4084,11 +4076,11 @@
                         html += '</div>';
                         box.innerHTML = html;
                     } else {
-                        box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Bombardir məlumatı tapılmadı.</div>";
+                        box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Bombardir mÉ™lumatÄ± tapÄ±lmadÄ±.</div>";
                     }
                 } catch (e) {
                     console.error("Top players load error", e);
-                    box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Yükləmə xətası baş verdi.</div>";
+                    box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>YÃ¼klÉ™mÉ™ xÉ™tasÄ± baÅŸ verdi.</div>";
                 }
             }
 
@@ -4096,7 +4088,7 @@
                 currentStandingsTourId = tourId;
                 const box = document.getElementById('leagueStandings');
                 if (!seasonId || !tourId) {
-                    box.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Cədvəl sistemi mövcud deyil.</div>";
+                    box.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>CÉ™dvÉ™l sistemi mÃ¶vcud deyil.</div>";
                     return;
                 }
 
@@ -4128,9 +4120,9 @@
             };
 
             async function fetchWithRetry(url, options = {}, retries = 4, backoff = 3000) {
-                // iOS PWA-larda şəbəkə bağlantısı bərpasını gözlə
+                // iOS PWA-larda ÅŸÉ™bÉ™kÉ™ baÄŸlantÄ±sÄ± bÉ™rpasÄ±nÄ± gÃ¶zlÉ™
                 if (!navigator.onLine) {
-                    console.log("[RETRY] Offline — şəbəkə gözlənilir...");
+                    console.log("[RETRY] Offline â€” ÅŸÉ™bÉ™kÉ™ gÃ¶zlÉ™nilir...");
                     await new Promise(resolve => {
                         const onlineCb = () => { window.removeEventListener('online', onlineCb); resolve(); };
                         window.addEventListener('online', onlineCb);
@@ -4138,7 +4130,7 @@
                     });
                 }
 
-                // AbortController ilə 20 saniyəlik timeout — iOS-da donuq fetch-lərin qarşısını alır
+                // AbortController ilÉ™ 20 saniyÉ™lik timeout â€” iOS-da donuq fetch-lÉ™rin qarÅŸÄ±sÄ±nÄ± alÄ±r
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 35000);
 
@@ -4146,7 +4138,7 @@
                     const res = await fetch(url, { ...options, signal: controller.signal });
                     clearTimeout(timeoutId);
                     if (!res.ok && retries > 0 && (res.status >= 502 && res.status <= 504)) {
-                        console.log(`[RETRY] Server cavab vermir (${res.status}). ${backoff}ms sonra yenidən...`);
+                        console.log(`[RETRY] Server cavab vermir (${res.status}). ${backoff}ms sonra yenidÉ™n...`);
                         await new Promise(r => setTimeout(r, backoff));
                         return fetchWithRetry(url, options, retries - 1, backoff + 2000);
                     }
@@ -4155,7 +4147,7 @@
                     clearTimeout(timeoutId);
                     if (retries > 0) {
                         const reason = err.name === 'AbortError' ? 'Timeout (35s)' : err.message;
-                        console.log(`[RETRY] Xəta: ${reason}. ${backoff}ms sonra yenidən (${retries} qalıb)...`);
+                        console.log(`[RETRY] XÉ™ta: ${reason}. ${backoff}ms sonra yenidÉ™n (${retries} qalÄ±b)...`);
                         await new Promise(r => setTimeout(r, backoff));
                         return fetchWithRetry(url, options, retries - 1, backoff + 2000);
                     }
@@ -4215,7 +4207,7 @@
                     });
                 }
 
-                // Axtarış süzgəci
+                // AxtarÄ±ÅŸ sÃ¼zgÉ™ci
                 const matchSearchInput = document.getElementById("matchSearchTerm");
                 const searchTerm = matchSearchInput ? matchSearchInput.value.toLowerCase().trim() : "";
                 
@@ -4306,7 +4298,7 @@
                             <div class="loader-wrapper">
                                 <div style="text-align:center; padding:50px;">
                                     <i class="fas fa-circle-notch fa-spin" style="font-size:32px; color:var(--primary); margin-bottom:15px;"></i>
-                                    <div style="font-weight:600; color:var(--text-muted);">Ən yeni məlumatlar yüklənir...</div>
+                                    <div style="font-weight:600; color:var(--text-muted);">Æn yeni mÉ™lumatlar yÃ¼klÉ™nir...</div>
                                 </div>
                             </div>`;
                     }
@@ -4316,7 +4308,7 @@
                     let dataEvents;
                     try {
                         const resEvents = await fetchWithRetry(url, fetchOptions);
-                        if (!resEvents.ok) throw new Error(`Server xətası: ${resEvents.status}`);
+                        if (!resEvents.ok) throw new Error(`Server xÉ™tasÄ±: ${resEvents.status}`);
                         dataEvents = await resEvents.json();
                     } catch (serverErr) {
                         const directUrl = `https://api.sofascore.com/api/v1${sofaFallbackPath}`;
@@ -4332,9 +4324,9 @@
                         } catch (e) {}
                     }
 
-                    // Backend xətanı 200 ilə qaytarsa belə, onu tutmaq üçün:
+                    // Backend xÉ™tanÄ± 200 ilÉ™ qaytarsa belÉ™, onu tutmaq Ã¼Ã§Ã¼n:
                     if (dataEvents && dataEvents.error) {
-                        throw new Error(`API Proxy Error: ${dataEvents.error.code || 'Bilinməyən'} - ${dataEvents.error.reason || 'Xəta'}`);
+                        throw new Error(`API Proxy Error: ${dataEvents.error.code || 'BilinmÉ™yÉ™n'} - ${dataEvents.error.reason || 'XÉ™ta'}`);
                     }
 
                     if (dataEvents && dataEvents.events) {
@@ -4480,7 +4472,7 @@
                 <span class="score-val ${isLive ? 'is-live' : ''}">${homeScore}</span>
                 <span class="score-val ${isLive ? 'is-live' : ''}">${awayScore}</span>
             </div>
-            <div class="fav-star ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavoriteMatch('${m.id}', this)">${isFav ? '★' : '☆'}</div>
+            <div class="fav-star ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavoriteMatch('${m.id}', this)">${isFav ? 'â˜…' : 'â˜†'}</div>
         </div>`;
             }
 
@@ -4506,9 +4498,9 @@
 
                 if (keys.length === 0) {
                     if (window._lastFetchError) {
-                        list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600; color:var(--live);'>SofaScore serveri müvəqqəti məhdudiyyət qoyub (Çox sayda sorğu). Bir neçə dəqiqə sonra yenidən cəhd edin.</div>";
+                        list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600; color:var(--live);'>SofaScore serveri mÃ¼vÉ™qqÉ™ti mÉ™hdudiyyÉ™t qoyub (Ã‡ox sayda sorÄŸu). Bir neÃ§É™ dÉ™qiqÉ™ sonra yenidÉ™n cÉ™hd edin.</div>";
                     } else {
-                        list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600;'>Heç bir oyun tapılmadı.</div>";
+                        list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600;'>HeÃ§ bir oyun tapÄ±lmadÄ±.</div>";
                     }
                     return;
                 }
@@ -4528,7 +4520,7 @@
                     const chunk = renderKeys.slice(i, i + 5);
                     if (chunk.length === 0) {
                         if (keys.length > maxLeaguesToRender) {
-                            list.insertAdjacentHTML('beforeend', `<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">Qalan ${keys.length - maxLeaguesToRender} liqa gizlədilib (performans üçün). Cədvəl səhifəsindən axtarış edə bilərsiniz.</div>`);
+                            list.insertAdjacentHTML('beforeend', `<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">Qalan ${keys.length - maxLeaguesToRender} liqa gizlÉ™dilib (performans Ã¼Ã§Ã¼n). CÉ™dvÉ™l sÉ™hifÉ™sindÉ™n axtarÄ±ÅŸ edÉ™ bilÉ™rsiniz.</div>`);
                         }
                         return;
                     }
@@ -4549,8 +4541,8 @@
                                 <span class="league-title">${group.name}</span>
                             </div>
                         </div>
-                        <div class="fav-star ${isFav ? 'active' : ''}" style="margin-right:15px;" onclick="toggleFavoriteLeague('${group.id}', '${group.name.replace(/'/g, "\\'")}', '${group.country.replace(/'/g, "\\'")}', this)">${isFav ? '★' : '☆'}</div>
-                        <span class="chevron" onclick="toggleCollapsible(this.parentElement)">▼</span>
+                        <div class="fav-star ${isFav ? 'active' : ''}" style="margin-right:15px;" onclick="toggleFavoriteLeague('${group.id}', '${group.name.replace(/'/g, "\\'")}', '${group.country.replace(/'/g, "\\'")}', this)">${isFav ? 'â˜…' : 'â˜†'}</div>
+                        <span class="chevron" onclick="toggleCollapsible(this.parentElement)">â–¼</span>
                     </div>
                     <div class="league-matches">
                         ${group.matches.map(m => createMatchRow(m, group)).join("")}
@@ -4594,7 +4586,7 @@
                     }
 
                     if (leagues.length === 0) {
-                        leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">Bu ölkə üçün aktiv liqa tapılmadı.</div>`;
+                        leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">Bu Ã¶lkÉ™ Ã¼Ã§Ã¼n aktiv liqa tapÄ±lmadÄ±.</div>`;
                         return;
                     }
 
@@ -4605,7 +4597,7 @@
                 </div>
             `).join("");
                 } catch (e) {
-                    leagueContainer.innerHTML = `<div style="padding:15px; color:var(--live); text-align:center; font-size:12px;">Xəta baş verdi.</div>`;
+                    leagueContainer.innerHTML = `<div style="padding:15px; color:var(--live); text-align:center; font-size:12px;">XÉ™ta baÅŸ verdi.</div>`;
                 }
             }
 
@@ -4629,15 +4621,15 @@
                     { id: 23, name: "Serie A", country: "Italy" },
                     { id: 37, name: "Bundesliga", country: "Germany" },
                     { id: 34, name: "Ligue 1", country: "France" },
-                    { id: 203, name: "Süper Lig", country: "Turkey" },
-                    { id: 709, name: "Azərbaycan Premyer Liqası", country: "Azerbaijan" },
+                    { id: 203, name: "SÃ¼per Lig", country: "Turkey" },
+                    { id: 709, name: "AzÉ™rbaycan Premyer LiqasÄ±", country: "Azerbaijan" },
                     { id: 10783, name: "UEFA Nations League", country: "Eurasia" },
                     { id: 16, name: "FIFA World Cup", country: "World" },
                     { id: 1, name: "European Championship", country: "Eurasia" }
                 ];
 
                 if (!searchTerm) {
-                    html += `<div class="category-header"><span>Populyar Turnirlər</span></div>`;
+                    html += `<div class="category-header"><span>Populyar TurnirlÉ™r</span></div>`;
                     
                     // Priority: If topLeaguesRaw is empty, use a fallback set to ensure UI is never empty
                     let displayPopular = topLeaguesRaw && topLeaguesRaw.length > 0 ? topLeaguesRaw : [
@@ -4646,13 +4638,13 @@
                         { id: 8, name: "La Liga", category: { name: "Spain", id: 32 } },
                         { id: 23, name: "Serie A", category: { name: "Italy", id: 31 } },
                         { id: 37, name: "Bundesliga", category: { name: "Germany", id: 30 } },
-                        { id: 203, name: "Süper Lig", category: { name: "Turkey", id: 52 } },
+                        { id: 203, name: "SÃ¼per Lig", category: { name: "Turkey", id: 52 } },
                         { id: 709, name: "Premyer Liqa", category: { name: "Azerbaijan", id: 875 } }
                     ];
 
                     displayPopular.forEach(l => {
                         const isFav = favLeagues.some(f => f.id.toString() === l.id.toString());
-                        const countryName = l.category ? l.category.name : (l.country || "Beynəlxalq");
+                        const countryName = l.category ? l.category.name : (l.country || "BeynÉ™lxalq");
                         const catId = l.category ? l.category.id : (l.catId || 1);
                         const safeName = l.name.replace(/'/g, "\\'");
                         const safeCountry = countryName.replace(/'/g, "\\'");
@@ -4666,20 +4658,20 @@
                                     <span class="league-card-name">${l.name}</span>
                                 </div>
                             </div>
-                            <div class="fav-star ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavoriteLeague('${l.id}', '${safeName}', '${safeCountry}', this)">${isFav ? '★' : '☆'}</div>
+                            <div class="fav-star ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavoriteLeague('${l.id}', '${safeName}', '${safeCountry}', this)">${isFav ? 'â˜…' : 'â˜†'}</div>
                         </div>`;
                     });
 
                     // 2. Discovery Section: All Countries (Categories)
                     if (allCategoriesGlobal && allCategoriesGlobal.length > 0) {
-                        html += `<div class="category-header"><span>Bütün Ölkələr (${allCategoriesGlobal.length})</span></div>`;
+                        html += `<div class="category-header"><span>BÃ¼tÃ¼n Ã–lkÉ™lÉ™r (${allCategoriesGlobal.length})</span></div>`;
                         allCategoriesGlobal.forEach(cat => {
-                            const safeCatName = (cat.name || "Ölkə").replace(/'/g, "\\'");
+                            const safeCatName = (cat.name || "Ã–lkÉ™").replace(/'/g, "\\'");
                             html += `
                             <div class="category-row" onclick="toggleCategory('${cat.id}', '${safeCatName}', this)">
                                 <img class="category-flag" src="https://www.sofascore.com/api/v1/category/${cat.id}/image" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
-                                <span class="category-name">${cat.name || 'Ölkə'}</span>
-                                <span class="chevron" style="opacity:0.4; font-size:12px; margin-left:auto;">▼</span>
+                                <span class="category-name">${cat.name || 'Ã–lkÉ™'}</span>
+                                <span class="chevron" style="opacity:0.4; font-size:12px; margin-left:auto;">â–¼</span>
                             </div>`;
                         });
                     }
@@ -4699,7 +4691,7 @@
                             results = data.results.filter(r => r.type === "uniqueTournament").map(r => r.entity);
                         }
 
-                        html += `<div class="category-header"><span>Axtarış Nəticələri: ${results.length} Liqa</span></div>`;
+                        html += `<div class="category-header"><span>AxtarÄ±ÅŸ NÉ™ticÉ™lÉ™ri: ${results.length} Liqa</span></div>`;
                         
                         if (results.length > 0) {
                             results.forEach(l => {
@@ -4717,21 +4709,21 @@
                                             <span class="league-card-name">${l.name || 'Liqa'}</span>
                                         </div>
                                     </div>
-                                    <div class="fav-star ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavoriteLeague('${l.id}', '${safeName}', '${safeCountry}', this)">${isFav ? '★' : '☆'}</div>
+                                    <div class="fav-star ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavoriteLeague('${l.id}', '${safeName}', '${safeCountry}', this)">${isFav ? 'â˜…' : 'â˜†'}</div>
                                 </div>`;
                             });
                         } else {
                             html += `
                             <div class="empty-state" style="padding:60px 20px;">
-                                <div style="font-size:40px; margin-bottom:20px;">🔍</div>
-                                <div style="font-weight:700; font-size:18px; margin-bottom:10px;">Nəticə tapılmadı</div>
-                                <div style="color:var(--text-muted); font-size:14px;">"${searchTerm}" üçün uyğun liqa tapılmadı. Gərəkirsə, fərqli adlar yoxlayın.</div>
+                                <div style="font-size:40px; margin-bottom:20px;">ğŸ”</div>
+                                <div style="font-weight:700; font-size:18px; margin-bottom:10px;">NÉ™ticÉ™ tapÄ±lmadÄ±</div>
+                                <div style="color:var(--text-muted); font-size:14px;">"${searchTerm}" Ã¼Ã§Ã¼n uyÄŸun liqa tapÄ±lmadÄ±. GÉ™rÉ™kirsÉ™, fÉ™rqli adlar yoxlayÄ±n.</div>
                             </div>`;
                         }
 
                         list.innerHTML = html;
                     } catch (e) {
-                        list.innerHTML = `<div class="empty-state" style="padding:60px 20px;">Axtarışda xəta baş verdi. Zəhmət olmasa yenidən yoxlayın.</div>`;
+                        list.innerHTML = `<div class="empty-state" style="padding:60px 20px;">AxtarÄ±ÅŸda xÉ™ta baÅŸ verdi. ZÉ™hmÉ™t olmasa yenidÉ™n yoxlayÄ±n.</div>`;
                     }
                 }, 500);
             }
@@ -4754,16 +4746,80 @@
             async function fetchDirectSofaJson(path) {
                 const directUrl = `https://api.sofascore.com/api/v1${path}`;
                 const res = await fetchWithRetry(directUrl, { cache: 'no-store' });
-                if (!res.ok) throw new Error(`SofaScore direct xətası: ${res.status}`);
+                if (!res.ok) throw new Error(`SofaScore direct xÉ™tasÄ±: ${res.status}`);
                 return res.json();
+            }
+
+            async function fetchServerJson(path, errorLabel = "Server xÃ‰â„¢tasÃ„Â±") {
+                const res = await fetch(API_BASE_URL + path, { cache: 'no-store' });
+                if (!res.ok) throw new Error(`${errorLabel}: ${res.status}`);
+                return res.json();
+            }
+
+            async function fetchLeagueInfoData(tourId, isUnique = true) {
+                let data = null;
+                try {
+                    data = await fetchServerJson(`/api/tournament/${tourId}?isUnique=${isUnique}`, "League info server xÃ‰â„¢tasÃ„Â±");
+                } catch (serverErr) {
+                    console.warn("League info API failed, trying browser SofaScore fallback:", serverErr.message);
+                }
+
+                const entity = isUnique ? data?.uniqueTournament : data?.tournament;
+                if (entity) return entity;
+
+                const directPath = isUnique ? `/unique-tournament/${tourId}` : `/tournament/${tourId}`;
+                const directData = await fetchDirectSofaJson(directPath);
+                return isUnique ? directData?.uniqueTournament : directData?.tournament;
+            }
+
+            async function fetchLeagueSeasonsData(tourId, isUnique = true) {
+                let data = null;
+                try {
+                    data = await fetchServerJson(`/api/tournament/${tourId}/seasons?isUnique=${isUnique}`, "League seasons server xÃ‰â„¢tasÃ„Â±");
+                } catch (serverErr) {
+                    console.warn("League seasons API failed, trying browser SofaScore fallback:", serverErr.message);
+                }
+
+                if (data?.seasons?.length) return data.seasons;
+
+                const directPath = isUnique ? `/unique-tournament/${tourId}/seasons` : `/tournament/${tourId}/seasons`;
+                const directData = await fetchDirectSofaJson(directPath);
+                return directData?.seasons || [];
+            }
+
+            async function fetchLeagueStandingsData(tourId, seasonId) {
+                let data = null;
+                try {
+                    data = await fetchServerJson(`/api/standings/${tourId}/${seasonId}`, "Standings server xÃ‰â„¢tasÃ„Â±");
+                } catch (serverErr) {
+                    console.warn("Standings API failed, trying browser SofaScore fallback:", serverErr.message);
+                }
+
+                if (data?.standings?.length) return data;
+                return fetchDirectSofaJson(`/unique-tournament/${tourId}/season/${seasonId}/standings/total`);
+            }
+
+            async function fetchLeagueTopPlayersData(tourId, seasonId) {
+                let data = null;
+                try {
+                    data = await fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players server xÃ‰â„¢tasÃ„Â±");
+                } catch (serverErr) {
+                    console.warn("Top players API failed, trying browser SofaScore fallback:", serverErr.message);
+                }
+
+                const hasPlayers =
+                    (data?.topPlayers?.goals && data.topPlayers.goals.length > 0) ||
+                    (Array.isArray(data?.topPlayers) && data.topPlayers.length > 0) ||
+                    (Array.isArray(data) && data.length > 0);
+
+                if (hasPlayers) return data;
+                return fetchDirectSofaJson(`/unique-tournament/${tourId}/season/${seasonId}/top-players/overall`);
             }
 
             async function fetchMatchDetailsData(id) {
                 let data = null;
                 try {
-                    const res = await fetch(API_BASE_URL + `/api/match/${id}/details`, { cache: 'no-store' });
-                    if (!res.ok) throw new Error(`Server xətası: ${res.status}`);
-                    data = await res.json();
+                    data = await fetchServerJson(`/api/match/${id}/details`);
                 } catch (serverErr) {
                     console.warn("Match details API failed, trying browser SofaScore fallback:", serverErr.message);
                 }
@@ -4793,7 +4849,7 @@
                 modalDetailsInFlight = id;
 
                 try {
-                    // İndi iki ayrı sorğu yerinə, bir dəfəyə hər ikisini çəkirik
+                    // Ä°ndi iki ayrÄ± sorÄŸu yerinÉ™, bir dÉ™fÉ™yÉ™ hÉ™r ikisini Ã§É™kirik
                     const data = await fetchMatchDetailsData(id);
                     modalDetailsLastFetch[id] = Date.now();
                     if (currentOpenMatchId && currentOpenMatchId.toString() !== id.toString()) return;
@@ -4807,20 +4863,20 @@
                         let tHtml = '<div class="timeline-container">';
                         tHtml += incidents.map(g => {
                             const isHome = g.isHome;
-                            let icon = g.incidentType === "goal" ? "⚽" : (g.incidentType === "card" ? (g.incidentClass === "yellow" ? "🟨" : "🟥") : "🔄");
+                            let icon = g.incidentType === "goal" ? "âš½" : (g.incidentType === "card" ? (g.incidentClass === "yellow" ? "ğŸŸ¨" : "ğŸŸ¥") : "ğŸ”„");
                             let player = getIncidentPlayerName(g);
                             let subText = "";
                             let detail = "";
 
                             if (g.incidentType === "substitution") {
-                                player = g.playerIn ? g.playerIn.name : "Oyunçu";
-                                subText = `<div class="timeline-sub-player">🔽 ${g.playerOut ? g.playerOut.name : ''}</div>`;
-                                detail = "Əvəzetmə";
+                                player = g.playerIn ? g.playerIn.name : "OyunÃ§u";
+                                subText = `<div class="timeline-sub-player">ğŸ”½ ${g.playerOut ? g.playerOut.name : ''}</div>`;
+                                detail = "ÆvÉ™zetmÉ™";
                             } else if (g.incidentType === "goal") {
                                 detail = g.incidentClass === "ownGoal" ? "Avtoqol" : (g.incidentClass === "penalty" ? "Penalti" : "Qol");
                                 subText = getAssistText(g);
                             } else if (g.incidentType === "card") {
-                                detail = g.incidentClass === "yellow" ? "Sarı Kart" : "Qırmızı Kart";
+                                detail = g.incidentClass === "yellow" ? "SarÄ± Kart" : "QÄ±rmÄ±zÄ± Kart";
                             }
 
                             return `
@@ -4837,7 +4893,7 @@
                         tHtml += '</div>';
                         document.getElementById("goalsBox").innerHTML = tHtml;
                     } else {
-                        document.getElementById("goalsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Hadisə tapılmadı</div>";
+                        document.getElementById("goalsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>HadisÉ™ tapÄ±lmadÄ±</div>";
                     }
 
                     // Render Stats (Premium)
@@ -4870,7 +4926,7 @@
                         });
                         document.getElementById("statsBox").innerHTML = sHtml;
                     } else {
-                        document.getElementById("statsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Statistika tapılmadı</div>";
+                        document.getElementById("statsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Statistika tapÄ±lmadÄ±</div>";
                     }
                 } catch (e) {
                     console.error("Modal sync error", e);
@@ -4915,7 +4971,7 @@
                     const safeGroupName = match.tournament.name.replace(/'/g, "\\'");
                     openMatch(match.id, match.homeTeam.id, match.awayTeam.id, safeHomeName, safeAwayName, match.homeScore.current, match.awayScore.current, timeRaw, safeGroupName);
                 } else {
-                    showToast("Oyun datası yenilənərkən tapılmadı.");
+                    showToast("Oyun datasÄ± yenilÉ™nÉ™rkÉ™n tapÄ±lmadÄ±.");
                 }
             }
 
@@ -4954,15 +5010,15 @@
                     const match = allEvents.find(m => m.id.toString() === id.toString());
                     if (match) {
                         favMatches.push(match);
-                        btn.innerHTML = '★';
+                        btn.innerHTML = 'â˜…';
                         btn.classList.add('active');
-                        showToast('Oyun favoritlərə əlavə edildi');
+                        showToast('Oyun favoritlÉ™rÉ™ É™lavÉ™ edildi');
                     }
                 } else {
                     favMatches.splice(idx, 1);
-                    btn.innerHTML = '☆';
+                    btn.innerHTML = 'â˜†';
                     btn.classList.remove('active');
-                    showToast('Oyun favoritlərdən çıxarıldı');
+                    showToast('Oyun favoritlÉ™rdÉ™n Ã§Ä±xarÄ±ldÄ±');
                 }
                 localStorage.setItem('favMatches', JSON.stringify(favMatches));
                 registerFCMToken();
@@ -4972,7 +5028,7 @@
                 try {
                     const status = Notification.permission;
                     if (document.getElementById('debugPermBox')) {
-                        document.getElementById('debugPermBox').innerText = 'İcazə: ' + status;
+                        document.getElementById('debugPermBox').innerText = 'Ä°cazÉ™: ' + status;
                     }
 
                     if (status !== 'granted') {
@@ -4994,7 +5050,7 @@
                         vapidKey: 'BPAPOqZmGdoTDrIgfoFD99QaV6bmdgab9eXNZQNjkKAzuCqsrnIdtnzi8rX99lLGHiDlp3L4fx64EBezAGHytOY' 
                     }).catch(err => {
                         console.error("[FCM] Token Error:", err);
-                        showToast("FCM Token alınmadı: " + err.message, "error");
+                        showToast("FCM Token alÄ±nmadÄ±: " + err.message, "error");
                         throw err;
                     });
 
@@ -5003,7 +5059,7 @@
                         messaging.onMessage((payload) => {
                             console.log('[FCM] Foreground message received:', payload);
                             const notificationTitle = payload.notification?.title || payload.data?.title || "Rabona Media";
-                            const notificationBody = payload.notification?.body || payload.data?.body || "Yeni xəbər var.";
+                            const notificationBody = payload.notification?.body || payload.data?.body || "Yeni xÉ™bÉ™r var.";
                             
                             if (window.notificationMgr) {
                                 window.notificationMgr.history.unshift({
@@ -5070,12 +5126,12 @@
             window.sendTestPush = async function() {
                 const token = localStorage.getItem('fcmToken');
                 if (!token) {
-                    showToast('Bildiriş tokeni tapılmadı. Zəhmət olmasa bildirişləri yenidən aktiv edin.', 'error');
+                    showToast('BildiriÅŸ tokeni tapÄ±lmadÄ±. ZÉ™hmÉ™t olmasa bildiriÅŸlÉ™ri yenidÉ™n aktiv edin.', 'error');
                     return;
                 }
 
                 try {
-                    showToast('Test bildirişi göndərilir...');
+                    showToast('Test bildiriÅŸi gÃ¶ndÉ™rilir...');
                     const res = await fetch(API_BASE_URL + '/api/fcm/test-push', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -5083,12 +5139,12 @@
                     });
                     const data = await res.json();
                     if (data.success) {
-                        showToast('Test bildirişi göndərildi! 🚀', 'success');
+                        showToast('Test bildiriÅŸi gÃ¶ndÉ™rildi! ğŸš€', 'success');
                     } else {
-                        showToast('Xəta: ' + data.message, 'error');
+                        showToast('XÉ™ta: ' + data.message, 'error');
                     }
                 } catch (e) {
-                    showToast('Serverlə əlaqə xətası', 'error');
+                    showToast('ServerlÉ™ É™laqÉ™ xÉ™tasÄ±', 'error');
                 }
                 registerFCMToken();
             }
@@ -5098,14 +5154,14 @@
                 const idx = favLeagues.findIndex(f => f.id.toString() === id.toString());
                 if (idx === -1) {
                     favLeagues.push({ id, name, country });
-                    btn.innerHTML = '★';
+                    btn.innerHTML = 'â˜…';
                     btn.classList.add('active');
-                    showToast('Liqa favoritlərə əlavə edildi');
+                    showToast('Liqa favoritlÉ™rÉ™ É™lavÉ™ edildi');
                 } else {
                     favLeagues.splice(idx, 1);
-                    btn.innerHTML = '☆';
+                    btn.innerHTML = 'â˜†';
                     btn.classList.remove('active');
-                    showToast('Liqa favoritlərdən çıxarıldı');
+                    showToast('Liqa favoritlÉ™rdÉ™n Ã§Ä±xarÄ±ldÄ±');
                 }
                 localStorage.setItem('favLeagues', JSON.stringify(favLeagues));
                 registerFCMToken();
@@ -5116,9 +5172,9 @@
                 if (favMatches.length === 0 && favLeagues.length === 0) {
                     container.innerHTML = `
                 <div class="empty-state">
-                    <div class="empty-state-icon">⭐</div>
-                    <div class="empty-state-title">Favoritləriniz yoxdur</div>
-                    <div class="empty-state-text">Oyunları və ya liqaları favoritlərinizə əlavə edərək burada görə bilərsiniz.</div>
+                    <div class="empty-state-icon">â­</div>
+                    <div class="empty-state-title">FavoritlÉ™riniz yoxdur</div>
+                    <div class="empty-state-text">OyunlarÄ± vÉ™ ya liqalarÄ± favoritlÉ™rinizÉ™ É™lavÉ™ edÉ™rÉ™k burada gÃ¶rÉ™ bilÉ™rsiniz.</div>
                 </div>`;
                     return;
                 }
@@ -5131,14 +5187,14 @@
                         const groupKey = Object.keys(groupedDataGlobal).find(k => k.startsWith(l.name));
                         html += `
                     <div class="league-card">
-                        <div style="display:flex; align-items:center; gap:16px; flex:1;" onclick="${groupKey ? `openSingleLeague('${groupKey.replace(/'/g, "\\'")}')` : `showToast('Liqa məlumatı tapılmadı')`}">
+                        <div style="display:flex; align-items:center; gap:16px; flex:1;" onclick="${groupKey ? `openSingleLeague('${groupKey.replace(/'/g, "\\'")}')` : `showToast('Liqa mÉ™lumatÄ± tapÄ±lmadÄ±')`}">
                             <img class="league-card-logo" src="https://www.sofascore.com/api/v1/tournament/${l.id}/image" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzFmMjkzZCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIvPjwvc3ZnPg=='">
                             <div class="league-card-info">
                                 <span class="league-card-country">${l.country}</span>
                                 <span class="league-card-name">${l.name}</span>
                             </div>
                         </div>
-                        <div class="fav-star active" onclick="toggleFavoriteLeague('${l.id}', '${l.name.replace(/'/g, "\\'")}', '${l.country.replace(/'/g, "\\'")}', this); renderFavoritesView();">★</div>
+                        <div class="fav-star active" onclick="toggleFavoriteLeague('${l.id}', '${l.name.replace(/'/g, "\\'")}', '${l.country.replace(/'/g, "\\'")}', this); renderFavoritesView();">â˜…</div>
                     </div>`;
                     });
                 }
@@ -5162,16 +5218,16 @@
                 const sInput = document.getElementById('statusInput');
                 const saveBtn = document.querySelector('.container#profileView .save-btn');
                 
-                let newName = uInput ? uInput.value.trim() : 'İstifadəçi';
-                let newStatus = sInput ? sInput.value.trim() : 'ProScore istifadəçisi';
+                let newName = uInput ? uInput.value.trim() : 'Ä°stifadÉ™Ã§i';
+                let newStatus = sInput ? sInput.value.trim() : 'ProScore istifadÉ™Ã§isi';
 
                 if (!newName) {
-                    showToast('Ad boş ola bilməz!');
+                    showToast('Ad boÅŸ ola bilmÉ™z!');
                     return;
                 }
 
                 if (saveBtn) {
-                    saveBtn.innerText = 'Yadda saxlanılır...';
+                    saveBtn.innerText = 'Yadda saxlanÄ±lÄ±r...';
                     saveBtn.disabled = true;
                 }
 
@@ -5204,13 +5260,13 @@
                     }));
                     
                     updateAuthUI();
-                    showToast('Profil məlumatları yeniləndi');
+                    showToast('Profil mÉ™lumatlarÄ± yenilÉ™ndi');
                 } catch (e) {
                     console.error("Save profile error:", e);
-                    showToast('Xəta baş verdi');
+                    showToast('XÉ™ta baÅŸ verdi');
                 } finally {
                     if (saveBtn) {
-                        saveBtn.innerText = 'Məlumatları Saxla';
+                        saveBtn.innerText = 'MÉ™lumatlarÄ± Saxla';
                         saveBtn.disabled = false;
                     }
                 }
@@ -5226,7 +5282,7 @@
                 if (!file) return;
 
                 if (file.size > 2 * 1024 * 1024) { // Limit 2MB
-                    showToast('Şəkil 2MB-dan kiçik olmalıdır!', 'error');
+                    showToast('ÅÉ™kil 2MB-dan kiÃ§ik olmalÄ±dÄ±r!', 'error');
                     return;
                 }
 
@@ -5235,17 +5291,17 @@
                     const base64 = e.target.result;
                     localStorage.setItem('profileImage', base64);
                     updateAuthUI();
-                    showToast('Profil şəkli yeniləndi', 'success');
+                    showToast('Profil ÅŸÉ™kli yenilÉ™ndi', 'success');
                 }
                 reader.readAsDataURL(file);
             }
 
             function loadProfile() {
-                let currentName = 'İstifadəçi';
+                let currentName = 'Ä°stifadÉ™Ã§i';
                 if (auth.currentUser) {
-                    currentName = auth.currentUser.displayName || (auth.currentUser.email ? auth.currentUser.email.split('@')[0] : 'İstifadəçi');
+                    currentName = auth.currentUser.displayName || (auth.currentUser.email ? auth.currentUser.email.split('@')[0] : 'Ä°stifadÉ™Ã§i');
                 }
-                const profile = JSON.parse(localStorage.getItem('userProfile') || `{"name":"${currentName}", "status":"ProScore istifadəçisi"}`);
+                const profile = JSON.parse(localStorage.getItem('userProfile') || `{"name":"${currentName}", "status":"ProScore istifadÉ™Ã§isi"}`);
 
                 const uInput = document.getElementById('usernameInput');
                 const sInput = document.getElementById('statusInput');
@@ -5295,7 +5351,7 @@
                     if (fNotif) fNotif.checked = !!userSettings.onlyFavNotif;
                     
                     const dbg = document.getElementById('debugSettings');
-                    if(dbg) dbg.innerText = "Yaddaşdakı vəziyyət: " + JSON.stringify(userSettings);
+                    if(dbg) dbg.innerText = "YaddaÅŸdakÄ± vÉ™ziyyÉ™t: " + JSON.stringify(userSettings);
                 }, 100);
                 const theme = localStorage.getItem('theme') || 'dark';
                 if (theme === 'light') {
@@ -5312,9 +5368,9 @@
                 try {
                     userSettings[key] = val;
                     localStorage.setItem('userSettings', JSON.stringify(userSettings));
-                    showToast('Tənzimləmə yadda saxlanıldı');
+                    showToast('TÉ™nzimlÉ™mÉ™ yadda saxlanÄ±ldÄ±');
                 } catch (e) {
-                    showToast('Yaddaşa yazmaq mümkün olmadı: ' + e.message, 'error');
+                    showToast('YaddaÅŸa yazmaq mÃ¼mkÃ¼n olmadÄ±: ' + e.message, 'error');
                 }
             }
 
@@ -5343,15 +5399,15 @@
                     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
                     if (!("Notification" in window)) {
-                        let msg = 'Sizin brauzeriniz bildirişləri dəstəkləmir.';
-                        let icon = '⚠️';
+                        let msg = 'Sizin brauzeriniz bildiriÅŸlÉ™ri dÉ™stÉ™klÉ™mir.';
+                        let icon = 'âš ï¸';
                         
                         if (isIOS && !isStandalone) {
-                            msg = 'iPhone-da bildirişlər üçün: \n1. Paylaş (Share) düyməsinə klikləyin.\n2. "Ana ekrana əlavə et" (Add to Home Screen) seçin.\n3. Proqramı həmin ekrandan açıb yenidən yoxlayın.';
-                            icon = '📱';
+                            msg = 'iPhone-da bildiriÅŸlÉ™r Ã¼Ã§Ã¼n: \n1. PaylaÅŸ (Share) dÃ¼ymÉ™sinÉ™ kliklÉ™yin.\n2. "Ana ekrana É™lavÉ™ et" (Add to Home Screen) seÃ§in.\n3. ProqramÄ± hÉ™min ekrandan aÃ§Ä±b yenidÉ™n yoxlayÄ±n.';
+                            icon = 'ğŸ“±';
                         }
 
-                        showDialog({ title: 'Dəstəklənmir', message: msg, icon: icon });
+                        showDialog({ title: 'DÉ™stÉ™klÉ™nmir', message: msg, icon: icon });
                         document.getElementById('browserNotifToggle').checked = false;
                         return;
                     }
@@ -5360,13 +5416,13 @@
                         if (permission === "granted") {
                             updateSetting('browserNotifEnabled', true);
                             registerFCMToken();
-                            showToast('Bildirişlər aktiv edildi', 'success');
+                            showToast('BildiriÅŸlÉ™r aktiv edildi', 'success');
                         } else {
                             if (permission !== 'unsupported') {
                                 showDialog({
-                                    title: 'İcazə Verilmədi',
-                                    message: 'Brauzer bildirişlərə icazə vermədi. Lütfən brauzer tənzimləmələrindən icazəni sıfırlayıb yenidən cəhd edin.',
-                                    icon: '🚫'
+                                    title: 'Ä°cazÉ™ VerilmÉ™di',
+                                    message: 'Brauzer bildiriÅŸlÉ™rÉ™ icazÉ™ vermÉ™di. LÃ¼tfÉ™n brauzer tÉ™nzimlÉ™mÉ™lÉ™rindÉ™n icazÉ™ni sÄ±fÄ±rlayÄ±b yenidÉ™n cÉ™hd edin.',
+                                    icon: 'ğŸš«'
                                 });
                             }
                             document.getElementById('browserNotifToggle').checked = false;
@@ -5382,9 +5438,9 @@
 
             function clearAllData() {
                 showDialog({
-                    title: 'Bütün Məlumatları Sil?',
-                    message: 'Bütün favoritləriniz və profil məlumatlarınız həmişəlik silinəcək. Bu hərəkəti geri qaytarmaq mümkün deyil.',
-                    icon: '🗑️',
+                    title: 'BÃ¼tÃ¼n MÉ™lumatlarÄ± Sil?',
+                    message: 'BÃ¼tÃ¼n favoritlÉ™riniz vÉ™ profil mÉ™lumatlarÄ±nÄ±z hÉ™miÅŸÉ™lik silinÉ™cÉ™k. Bu hÉ™rÉ™kÉ™ti geri qaytarmaq mÃ¼mkÃ¼n deyil.',
+                    icon: 'ğŸ—‘ï¸',
                     type: 'confirm',
                     isDanger: true,
                     confirmTxt: 'Sil',
@@ -5415,7 +5471,7 @@
                     document.documentElement.style.setProperty('--border', '#1e293b');
                     document.getElementById('themeStatus').innerText = 'Aktiv';
                 }
-                showToast(next === 'light' ? 'İşıqlı tema aktivdir' : 'Qaranlıq tema aktivdir');
+                showToast(next === 'light' ? 'Ä°ÅŸÄ±qlÄ± tema aktivdir' : 'QaranlÄ±q tema aktivdir');
             }
 
             /* Auth Logic */
@@ -5435,8 +5491,8 @@
 
                 if (tab === 'login') {
                     tabL.classList.add('active');
-                    document.getElementById('authTitle').innerText = 'Xoş Gəlmisiniz';
-                    document.getElementById('authSubtitle').innerText = 'Davam etmək üçün daxil olun';
+                    document.getElementById('authTitle').innerText = 'XoÅŸ GÉ™lmisiniz';
+                    document.getElementById('authSubtitle').innerText = 'Davam etmÉ™k Ã¼Ã§Ã¼n daxil olun';
                     if (btn) btn.innerText = 'Daxil Ol';
                     if (emailField) emailField.style.display = 'block'; // Firebase login requires email
                     if (forgotLink) forgotLink.style.display = 'block';
@@ -5446,8 +5502,8 @@
                 } else {
                     tabR.classList.add('active');
                     document.getElementById('authTitle').innerText = 'Yeni Hesab';
-                    document.getElementById('authSubtitle').innerText = 'ProScore ailəsinə qoşulun';
-                    if (btn) btn.innerText = 'Qeydiyyatdan Keç';
+                    document.getElementById('authSubtitle').innerText = 'ProScore ailÉ™sinÉ™ qoÅŸulun';
+                    if (btn) btn.innerText = 'Qeydiyyatdan KeÃ§';
                     if (emailField) emailField.style.display = 'block';
                     if (forgotLink) forgotLink.style.display = 'none';
                     // Show username field for registration to use as displayName
@@ -5487,13 +5543,13 @@
                 const btn = document.getElementById('authSubmitBtn');
 
                 if (!email || !password || (!isLogin && !username)) {
-                    if (errorDiv) errorDiv.innerText = 'Zəhmət olmasa bütün xanaları doldurun.';
+                    if (errorDiv) errorDiv.innerText = 'ZÉ™hmÉ™t olmasa bÃ¼tÃ¼n xanalarÄ± doldurun.';
                     return;
                 }
 
                 if (errorDiv) errorDiv.innerText = '';
                 if (btn) {
-                    btn.innerText = 'Gözləyin...';
+                    btn.innerText = 'GÃ¶zlÉ™yin...';
                     btn.disabled = true;
                     btn.style.opacity = '0.7';
                 }
@@ -5516,7 +5572,7 @@
                             }
                         } catch(e) { console.warn("Could not sync profile from server."); }
 
-                        showToast(`Xoş gəldin, ${userCredential.user.displayName || userCredential.user.email}!`);
+                        showToast(`XoÅŸ gÉ™ldin, ${userCredential.user.displayName || userCredential.user.email}!`);
                         switchMainView('profile');
                     } else {
                         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
@@ -5529,17 +5585,17 @@
                             body: JSON.stringify({
                                 email: email,
                                 displayName: username,
-                                status: "ProScore istifadəçisi"
+                                status: "ProScore istifadÉ™Ã§isi"
                             })
                         });
 
                         // Local sync
                         localStorage.setItem('userProfile', JSON.stringify({
                             name: username,
-                            status: "ProScore istifadəçisi"
+                            status: "ProScore istifadÉ™Ã§isi"
                         }));
 
-                        showToast('Qeydiyyat uğurludur! Xoş gəldiniz.');
+                        showToast('Qeydiyyat uÄŸurludur! XoÅŸ gÉ™ldiniz.');
                         switchMainView('profile');
                     }
                     
@@ -5550,14 +5606,14 @@
 
                 } catch (error) {
                     console.error("Firebase auth error:", error);
-                    let errMsg = "Bir xəta baş verdi.";
+                    let errMsg = "Bir xÉ™ta baÅŸ verdi.";
                     switch (error.code) {
-                        case 'auth/user-not-found': errMsg = "İstifadəçi tapılmadı."; break;
-                        case 'auth/wrong-password': errMsg = "Şifrə yanlışdır. Yenidən cəhd edin."; break; // User specifically asked for this check
-                        case 'auth/invalid-credential': errMsg = "Email və ya şifrə yanlışdır."; break;
-                        case 'auth/email-already-in-use': errMsg = "Bu email artıq istifadə olunub."; break;
-                        case 'auth/invalid-email': errMsg = "Yanlış email formatı."; break;
-                        case 'auth/weak-password': errMsg = "Şifrə çox zəifdir (ən az 6 simvol)."; break;
+                        case 'auth/user-not-found': errMsg = "Ä°stifadÉ™Ã§i tapÄ±lmadÄ±."; break;
+                        case 'auth/wrong-password': errMsg = "ÅifrÉ™ yanlÄ±ÅŸdÄ±r. YenidÉ™n cÉ™hd edin."; break; // User specifically asked for this check
+                        case 'auth/invalid-credential': errMsg = "Email vÉ™ ya ÅŸifrÉ™ yanlÄ±ÅŸdÄ±r."; break;
+                        case 'auth/email-already-in-use': errMsg = "Bu email artÄ±q istifadÉ™ olunub."; break;
+                        case 'auth/invalid-email': errMsg = "YanlÄ±ÅŸ email formatÄ±."; break;
+                        case 'auth/weak-password': errMsg = "ÅifrÉ™ Ã§ox zÉ™ifdir (É™n az 6 simvol)."; break;
                         default: errMsg = error.message;
                     }
                     if (errorDiv) {
@@ -5567,7 +5623,7 @@
                     showToast(errMsg, 'error');
                 } finally {
                     if (btn) {
-                        btn.innerText = isLogin ? 'Daxil Ol' : 'Qeydiyyatdan Keç';
+                        btn.innerText = isLogin ? 'Daxil Ol' : 'Qeydiyyatdan KeÃ§';
                         btn.disabled = false;
                         btn.style.opacity = '1';
                     }
@@ -5578,10 +5634,10 @@
                 const input = document.getElementById(inputId);
                 if (input.type === 'password') {
                     input.type = 'text';
-                    iconEl.innerText = '👓';
+                    iconEl.innerText = 'ğŸ‘“';
                 } else {
                     input.type = 'password';
-                    iconEl.innerText = '👁️';
+                    iconEl.innerText = 'ğŸ‘ï¸';
                 }
             };
 
@@ -5666,7 +5722,7 @@
                     if (seconds <= 0) {
                         clearInterval(otpInterval);
                         display.innerText = "00:00";
-                        showToast("Vaxt bitdi. Kodu yenidən göndərin.");
+                        showToast("Vaxt bitdi. Kodu yenidÉ™n gÃ¶ndÉ™rin.");
                         inputs.forEach(i => i.classList.add('expired'));
                         verifyBtn.disabled = true;
                         resendBox.style.display = 'block';
@@ -5695,11 +5751,11 @@
                         document.getElementById('forgotStep2').style.display = 'flex';
                         startOTPCountdown();
                     } else {
-                        showToast(data.message || 'Xəta baş verdi');
+                        showToast(data.message || 'XÉ™ta baÅŸ verdi');
                     }
                 } catch (e) {
                     console.error("Reset OTP error:", e);
-                    showToast('Xəta baş verdi. Serverlə əlaqə kəsildi.');
+                    showToast('XÉ™ta baÅŸ verdi. ServerlÉ™ É™laqÉ™ kÉ™sildi.');
                 }
             }
 
@@ -5709,7 +5765,7 @@
                 const otp = Array.from(inputs).map(i => i.value).join('');
 
                 if (otp.length < 4) {
-                    showToast('4 rəqəmli kodu daxil edin!');
+                    showToast('4 rÉ™qÉ™mli kodu daxil edin!');
                     return;
                 }
 
@@ -5726,9 +5782,9 @@
                         console.error(`[AUTH] Check OTP status error: ${res.status}`, errorText);
                         try {
                             const errorData = JSON.parse(errorText);
-                            showToast(errorData.message || 'Server xətası baş verdi.');
+                            showToast(errorData.message || 'Server xÉ™tasÄ± baÅŸ verdi.');
                         } catch(e) {
-                            showToast('Server cavab verə bilmədi (Xəta: ' + res.status + ')');
+                            showToast('Server cavab verÉ™ bilmÉ™di (XÉ™ta: ' + res.status + ')');
                         }
                         return;
                     }
@@ -5739,11 +5795,11 @@
                         document.getElementById('forgotStep2').style.display = 'none';
                         document.getElementById('forgotStep3').style.display = 'flex';
                     } else {
-                        showToast(data.message || 'Kod yanlışdır.');
+                        showToast(data.message || 'Kod yanlÄ±ÅŸdÄ±r.');
                     }
                 } catch (e) {
                     console.error("[AUTH] Check OTP Exception:", e);
-                    showToast('Bağlantı xətası. İnternet bağlantınızı yoxlayın.');
+                    showToast('BaÄŸlantÄ± xÉ™tasÄ±. Ä°nternet baÄŸlantÄ±nÄ±zÄ± yoxlayÄ±n.');
                 }
             }
 
@@ -5755,11 +5811,11 @@
                 const confirmPassword = document.getElementById('confirmPassword').value.trim();
 
                 if (!newPassword || !confirmPassword) {
-                    showToast('Bütün xanaları doldurun!');
+                    showToast('BÃ¼tÃ¼n xanalarÄ± doldurun!');
                     return;
                 }
                 if (newPassword !== confirmPassword) {
-                    showToast('Şifrələr üst-üstə düşmür!');
+                    showToast('ÅifrÉ™lÉ™r Ã¼st-Ã¼stÉ™ dÃ¼ÅŸmÃ¼r!');
                     return;
                 }
 
@@ -5775,9 +5831,9 @@
                         console.error(`[AUTH] Verify OTP error: ${res.status}`, errorText);
                         try {
                             const errorData = JSON.parse(errorText);
-                            showToast(errorData.message || 'Xəta baş verdi.');
+                            showToast(errorData.message || 'XÉ™ta baÅŸ verdi.');
                         } catch(e) {
-                            showToast('Server xətası (' + res.status + ')');
+                            showToast('Server xÉ™tasÄ± (' + res.status + ')');
                         }
                         return;
                     }
@@ -5788,25 +5844,25 @@
                         clearInterval(otpInterval);
                         toggleForgotView(false);
                     } else {
-                        showToast(data.message || 'Xəta baş verdi');
+                        showToast(data.message || 'XÉ™ta baÅŸ verdi');
                     }
                 } catch (e) {
                     console.error("[AUTH] Verify OTP Exception:", e);
-                    showToast('Xəta baş verdi.');
+                    showToast('XÉ™ta baÅŸ verdi.');
                 }
             }
 
             window.logoutUser = function() {
                 showDialog({
-                    title: 'Çıxış Et?',
-                    message: 'Hesabınızdan çıxmaq istədiyinizə əminsiniz?',
-                    icon: '🚪',
+                    title: 'Ã‡Ä±xÄ±ÅŸ Et?',
+                    message: 'HesabÄ±nÄ±zdan Ã§Ä±xmaq istÉ™diyinizÉ™ É™minsiniz?',
+                    icon: 'ğŸšª',
                     type: 'confirm',
                     onConfirm: () => {
                         auth.signOut().then(() => {
                             localStorage.removeItem('userProfile');
                             localStorage.removeItem('profileImage');
-                            showToast('Hesabdan çıxıldı.', 'success');
+                            showToast('Hesabdan Ã§Ä±xÄ±ldÄ±.', 'success');
                             switchMainView('matches');
                         });
 
@@ -5873,8 +5929,8 @@
                     const statusEl = document.getElementById('profileUserStatus');
                     const avatarEl = document.getElementById('profileAvatar');
                     
-                    if (nameEl) nameEl.innerText = "İstifadəçi";
-                    if (statusEl) statusEl.innerText = "Daxil olunmayıb";
+                    if (nameEl) nameEl.innerText = "Ä°stifadÉ™Ã§i";
+                    if (statusEl) statusEl.innerText = "Daxil olunmayÄ±b";
                     
                     if (avatarEl) {
                         avatarEl.style.backgroundImage = "none";
@@ -5901,10 +5957,10 @@
                 const msgEl = document.getElementById('toastMsg');
                 const iconEl = document.getElementById('toastIcon');
 
-                let icon = '✨';
-                if (type === 'success') icon = '✅';
-                else if (type === 'error') icon = '❌';
-                else if (type === 'info') icon = 'ℹ️';
+                let icon = 'âœ¨';
+                if (type === 'success') icon = 'âœ…';
+                else if (type === 'error') icon = 'âŒ';
+                else if (type === 'info') icon = 'â„¹ï¸';
 
                 toast.className = 'toast show ' + type;
                 msgEl.innerText = msg;
@@ -5919,12 +5975,12 @@
             window.showDialog = function({
                 title, 
                 message, 
-                icon = '🔔', 
+                icon = 'ğŸ””', 
                 type = 'alert', 
                 onConfirm, 
                 onCancel, 
-                confirmTxt = 'Bəli', 
-                cancelTxt = 'Ləğv Et',
+                confirmTxt = 'BÉ™li', 
+                cancelTxt = 'LÉ™ÄŸv Et',
                 isDanger = false
             }) {
                 const overlay = document.getElementById('customDialog');
@@ -5979,7 +6035,7 @@
                     <div class="loader-wrapper">
                         <div style="text-align:center; padding:50px;">
                             <i class="fas fa-circle-notch fa-spin" style="font-size:32px; color:var(--primary); margin-bottom:15px;"></i>
-                            <div style="font-weight:600; color:var(--text-muted);">Məlumatlar yüklənir...</div>
+                            <div style="font-weight:600; color:var(--text-muted);">MÉ™lumatlar yÃ¼klÉ™nir...</div>
                         </div>
                     </div>`;
             }
@@ -5998,7 +6054,7 @@
                                     const liveMatch = data.events.find(m => m.id.toString() === fm.id.toString());
                                     if (liveMatch) {
                                         updatedFavs.push(liveMatch);
-                                        // Dəqiqə, qol və ya status dəyişibsə yenilə
+                                        // DÉ™qiqÉ™, qol vÉ™ ya status dÉ™yiÅŸibsÉ™ yenilÉ™
                                         if (JSON.stringify(fm.homeScore) !== JSON.stringify(liveMatch.homeScore) || 
                                             JSON.stringify(fm.awayScore) !== JSON.stringify(liveMatch.awayScore) ||
                                             JSON.stringify(fm.time) !== JSON.stringify(liveMatch.time) ||
@@ -6010,8 +6066,8 @@
                                     }
                                 });
                                 
-                                // Hər 10 saniyədən bir Date.now() dəyişdiyi üçün getMatchTime vaxtı dəyişir.
-                                // Ona görə də UI həmişə yenilənməlidir.
+                                // HÉ™r 10 saniyÉ™dÉ™n bir Date.now() dÉ™yiÅŸdiyi Ã¼Ã§Ã¼n getMatchTime vaxtÄ± dÉ™yiÅŸir.
+                                // Ona gÃ¶rÉ™ dÉ™ UI hÉ™miÅŸÉ™ yenilÉ™nmÉ™lidir.
                                 favMatches = updatedFavs;
                                 localStorage.setItem('favMatches', JSON.stringify(favMatches));
                                 
@@ -6053,7 +6109,7 @@
             // Single visibilitychange handler: sync data + ping when app resumes
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') {
-                    console.log("[App] Resumed — refreshing data and pinging server...");
+                    console.log("[App] Resumed â€” refreshing data and pinging server...");
                     pingServer();
                     fetchData(null, true);
                     syncFavoritesLive();
@@ -6075,7 +6131,7 @@
                         console.log('SW registered:', reg.scope);
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
                     }).catch(err => {
-                        console.warn('SW qeydiyyatı uğursuz:', err);
+                        console.warn('SW qeydiyyatÄ± uÄŸursuz:', err);
                     });
                 });
             }
@@ -6091,7 +6147,7 @@
 
 
 
-            // Uygulama yüklendiğinde default view'e geç
+            // Uygulama yÃ¼klendiÄŸinde default view'e geÃ§
             if (userSettings && userSettings.defaultView === 'leagues') {
                 setTimeout(() => switchMainView('leagues'), 100);
             }
