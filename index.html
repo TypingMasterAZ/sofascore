@@ -8,6 +8,7 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="referrer" content="no-referrer">
     <meta name="theme-color" content="#0a101f">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Rabona Media LIVE</title>
@@ -4270,6 +4271,7 @@
             async function fetchData(param = null, isForced = false) {
                 let url = '';
                 let dataCacheKey = 'live';
+                let sofaFallbackPath = '/sport/football/events/live';
                 
                 if (param === 'live' || isLiveFiltered) {
                     url = API_BASE_URL + '/api/matches/live';
@@ -4278,6 +4280,7 @@
                     const dateToFetch = param || selectedDate || new Date().toISOString().split('T')[0];
                     url = API_BASE_URL + `/api/matches/${dateToFetch}`;
                     dataCacheKey = dateToFetch;
+                    sofaFallbackPath = `/sport/football/scheduled-events/${dateToFetch}`;
                 }
 
                 let fetchOptions = { cache: 'no-store' };
@@ -4310,9 +4313,18 @@
                 }
                 
                 try {
-                    const resEvents = await fetchWithRetry(url, fetchOptions);
-                    if (!resEvents.ok) throw new Error(`Server xətası: ${resEvents.status}`);
-                    let dataEvents = await resEvents.json();
+                    let dataEvents;
+                    try {
+                        const resEvents = await fetchWithRetry(url, fetchOptions);
+                        if (!resEvents.ok) throw new Error(`Server xətası: ${resEvents.status}`);
+                        dataEvents = await resEvents.json();
+                    } catch (serverErr) {
+                        const directUrl = `https://api.sofascore.com/api/v1${sofaFallbackPath}`;
+                        console.warn("Local API failed, trying browser SofaScore fallback:", serverErr.message);
+                        const directRes = await fetchWithRetry(directUrl, fetchOptions);
+                        if (!directRes.ok) throw serverErr;
+                        dataEvents = await directRes.json();
+                    }
                     
                     if (typeof dataEvents === 'string') {
                         try {
