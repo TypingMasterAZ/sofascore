@@ -33,33 +33,13 @@
         // Initialize Firebase before any other calls
         firebase.initializeApp(firebaseConfig);
         
-        // MUHUM: registerFCMToken funksiyasini qlobal olaraq teyin edirik
+        // Ilkin yüklənmədə çağırılsa belə, əsas push sync helperi hazır olan kimi ona yönləndiririk.
         window.registerFCMToken = function() {
-            console.log("[FCM] Push Notification qeydiyyatı başladılır...");
-            const messaging = firebase.messaging();
-            
-            // Notification icazəsi istə
-            Notification.requestPermission().then((permission) => {
-                if (permission === 'granted') {
-                    console.log('Notification permission granted.');
-                    
-                    // Token al
-                    messaging.getToken() // Parametr olmadan yoxlayiriq. VAPID key lazimdirdisa bura elave edilecek.
-                    .then((currentToken) => {
-                        if (currentToken) {
-                            console.log('[FCM] Token alindi:', currentToken);
-                            // Servere gonder
-                            sendTokenToServer(currentToken);
-                        } else {
-                            console.log('No registration token available. Request permission to generate one.');
-                        }
-                    }).catch((err) => {
-                        console.log('An error occurred while retrieving token. ', err);
-                    });
-                } else {
-                    console.log('Unable to get permission to notify.');
-                }
-            });
+            if (typeof window.syncPushRegistration === 'function') {
+                return window.syncPushRegistration();
+            }
+            console.log('[Push] Sync helper hələ hazır deyil.');
+            return Promise.resolve();
         };
 
         function sendTokenToServer(token) {
@@ -3330,7 +3310,7 @@
         <div id="toast" class="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
 
         <script>
-            console.log("SCRIPT START: index.html VERSION 1.1.1 running");
+            console.log("SCRIPT START: index.html VERSION 1.1.2 running");
 
             const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"defaultView": "matches"}');
             const auth = firebase.auth();
@@ -5385,7 +5365,202 @@
                 registerFCMToken();
             }
 
-            async function registerFCMToken() {
+            let firebaseForegroundBound = false;
+
+            function getPushDeviceId() {
+                let deviceId = localStorage.getItem('pushDeviceId');
+                if (!deviceId) {
+                    deviceId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `device-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+                    localStorage.setItem('pushDeviceId', deviceId);
+                }
+                return deviceId;
+            }
+
+            function getFavoriteIds() {
+                return (typeof favMatches !== 'undefined' ? favMatches : []).map(m => m.id ? m.id.toString() : null).filter(Boolean);
+            }
+
+            function getFavoriteLeagueIds() {
+                return (typeof favLeagues !== 'undefined' ? favLeagues : []).map(l => l.id ? l.id.toString() : null).filter(Boolean);
+            }
+
+            function isIosStandalonePwa() {
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+                return isIOS && isStandalone;
+            }
+
+            function supportsWebPush() {
+                return 'serviceWorker' in navigator && 'PushManager' in window;
+            }
+
+            function shouldUseWebPushChannel() {
+                const messagingSupported = typeof firebase !== 'undefined' &&
+                    firebase.messaging &&
+                    typeof firebase.messaging.isSupported === 'function' &&
+                    firebase.messaging.isSupported();
+
+                return supportsWebPush() && (isIosStandalonePwa() || !messagingSupported);
+            }
+
+            function urlBase64ToUint8Array(base64String) {
+                const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+                const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+                const rawData = window.atob(base64);
+                return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+            }
+
+            function bindFirebaseForegroundMessages(messaging) {
+                if (firebaseForegroundBound) return;
+                firebaseForegroundBound = true;
+
+                messaging.onMessage((payload) => {
+                    console.log('[FCM] Foreground message received:', payload);
+                    const notificationTitle = payload.notification?.title || payload.data?.title || "Rabona Media";
+                    const notificationBody = payload.notification?.body || payload.data?.body || "Yeni xəbər var.";
+
+                    if (window.notificationMgr) {
+                        window.notificationMgr.history.unshift({
+                            id: Date.now(),
+                            type: payload.data?.type || 'goal',
+                            title: notificationTitle,
+                            body: notificationBody,
+                            matchId: payload.data?.matchId,
+                            time: new Date().toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' }),
+                            unread: true
+                        });
+                        if (window.notificationMgr.history.length > 50) window.notificationMgr.history.pop();
+                        localStorage.setItem('notifHistory', JSON.stringify(window.notificationMgr.history));
+                        window.notificationMgr.unreadCount++;
+                        window.notificationMgr.updateBadge();
+
+                        if (document.getElementById('notificationsView').classList.contains('active')) {
+                            window.notificationMgr.renderHistory();
+                        }
+
+                        if (userSettings.browserNotifEnabled && Notification.permission === "granted") {
+                            new Notification(notificationTitle, {
+                                body: notificationBody,
+                                icon: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
+                                data: payload.data
+                            });
+                        }
+
+                        if (userSettings.soundEnabled) {
+                            window.notificationMgr.audio.play().catch(() => {});
+                        }
+                    }
+                });
+            }
+
+            async function registerWebPushSubscription() {
+                const swReg = await navigator.serviceWorker.ready;
+                const keyRes = await fetch(API_BASE_URL + '/api/push/public-key');
+                const keyData = await keyRes.json();
+                if (!keyData.success || !keyData.publicKey) {
+                    throw new Error('Web Push açarı tapılmadı');
+                }
+
+                let subscription = await swReg.pushManager.getSubscription();
+                if (!subscription) {
+                    subscription = await swReg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(keyData.publicKey)
+                    });
+                }
+
+                const payload = {
+                    deviceId: getPushDeviceId(),
+                    subscription,
+                    favorites: getFavoriteIds(),
+                    leagues: getFavoriteLeagueIds(),
+                    platform: isIosStandalonePwa() ? 'ios-pwa' : 'webpush',
+                    userAgent: navigator.userAgent
+                };
+
+                const res = await fetch(API_BASE_URL + '/api/push/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    throw new Error('Web Push qeydiyyatı alınmadı');
+                }
+
+                localStorage.setItem('pushMode', 'webpush');
+                if (document.getElementById('debugTokenBox')) {
+                    document.getElementById('debugTokenBox').innerText = 'Web Push hazırdır';
+                }
+                if (document.getElementById('testPushRow')) {
+                    document.getElementById('testPushRow').style.display = 'flex';
+                }
+            }
+
+            async function unregisterWebPushSubscription() {
+                try {
+                    if (!supportsWebPush()) return;
+                    const swReg = await navigator.serviceWorker.ready;
+                    const subscription = await swReg.pushManager.getSubscription();
+                    if (subscription) {
+                        await subscription.unsubscribe().catch(() => {});
+                    }
+                    await fetch(API_BASE_URL + '/api/push/unsubscribe', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ deviceId: getPushDeviceId() })
+                    }).catch(() => {});
+                } catch (e) {
+                    console.warn('[WebPush] Unsubscribe failed:', e);
+                }
+            }
+
+            async function registerFirebaseToken() {
+                const messagingSupported = typeof firebase !== 'undefined' &&
+                    firebase.messaging &&
+                    typeof firebase.messaging.isSupported === 'function' &&
+                    firebase.messaging.isSupported();
+
+                if (!messagingSupported) {
+                    throw new Error('Firebase Messaging dəstəklənmir');
+                }
+
+                const messaging = firebase.messaging();
+                const swReg = await navigator.serviceWorker.ready;
+                bindFirebaseForegroundMessages(messaging);
+
+                console.log("[FCM] Requesting token...");
+                const token = await messaging.getToken({
+                    serviceWorkerRegistration: swReg,
+                    vapidKey: 'BPAPOqZmGdoTDrIgfoFD99QaV6bmdgab9eXNZQNjkKAzuCqsrnIdtnzi8rX99lLGHiDlp3L4fx64EBezAGHytOY'
+                });
+
+                if (!token) {
+                    throw new Error('FCM token alınmadı');
+                }
+
+                localStorage.setItem('fcmToken', token);
+                localStorage.setItem('pushMode', 'fcm');
+
+                if (document.getElementById('debugTokenBox')) {
+                    document.getElementById('debugTokenBox').innerText = 'Token: ' + token;
+                }
+                if (document.getElementById('testPushRow')) {
+                    document.getElementById('testPushRow').style.display = 'flex';
+                }
+
+                const res = await fetch(API_BASE_URL + '/api/fcm/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, favorites: getFavoriteIds(), leagues: getFavoriteLeagueIds() })
+                });
+
+                if (!res.ok) {
+                    throw new Error('FCM token serverə yazılmadı');
+                }
+            }
+
+            async function syncPushRegistration() {
                 try {
                     const status = Notification.permission;
                     if (document.getElementById('debugPermBox')) {
@@ -5393,121 +5568,57 @@
                     }
 
                     if (status !== 'granted') {
-                        console.log("[FCM] Permission not granted yet.");
+                        console.log('[Push] Permission not granted yet.');
                         return;
                     }
 
-                    if (typeof firebase === 'undefined' || !firebase.messaging || !firebase.messaging.isSupported()) {
-                        console.warn("[FCM] Firebase error: Messaging not supported.");
-                        return;
+                    if (shouldUseWebPushChannel()) {
+                        await registerWebPushSubscription();
+                    } else {
+                        await registerFirebaseToken();
                     }
-
-                    const messaging = firebase.messaging();
-                    const swReg = await navigator.serviceWorker.ready;
-                    
-                    console.log("[FCM] Requesting token...");
-                    const token = await messaging.getToken({ 
-                        serviceWorkerRegistration: swReg,
-                        vapidKey: 'BPAPOqZmGdoTDrIgfoFD99QaV6bmdgab9eXNZQNjkKAzuCqsrnIdtnzi8rX99lLGHiDlp3L4fx64EBezAGHytOY' 
-                    }).catch(err => {
-                        console.error("[FCM] Token Error:", err);
-                        showToast("FCM token alinmadi: " + err.message, "error");
-                        throw err;
-                    });
-
-                    if (token) {
-                        // Handle foreground messages
-                        messaging.onMessage((payload) => {
-                            console.log('[FCM] Foreground message received:', payload);
-                            const notificationTitle = payload.notification?.title || payload.data?.title || "Rabona Media";
-                            const notificationBody = payload.notification?.body || payload.data?.body || "Yeni xəbər var.";
-                            
-                            if (window.notificationMgr) {
-                                window.notificationMgr.history.unshift({
-                                    id: Date.now(),
-                                    type: payload.data?.type || 'goal',
-                                    title: notificationTitle,
-                                    body: notificationBody,
-                                    matchId: payload.data?.matchId,
-                                    time: new Date().toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' }),
-                                    unread: true
-                                });
-                                if (window.notificationMgr.history.length > 50) window.notificationMgr.history.pop();
-                                localStorage.setItem('notifHistory', JSON.stringify(window.notificationMgr.history));
-                                window.notificationMgr.unreadCount++;
-                                window.notificationMgr.updateBadge();
-                                
-                                if (document.getElementById('notificationsView').classList.contains('active')) {
-                                    window.notificationMgr.renderHistory();
-                                }
-                                
-                                // Show native notification
-                                if (userSettings.browserNotifEnabled && Notification.permission === "granted") {
-                                    new Notification(notificationTitle, {
-                                        body: notificationBody,
-                                        icon: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
-                                        data: payload.data
-                                    });
-                                }
-                                
-                                // Play sound
-                                if (userSettings.soundEnabled) {
-                                    window.notificationMgr.audio.play().catch(() => {});
-                                }
-                            }
-                        });
-
-                        localStorage.setItem('fcmToken', token);
-                        if (document.getElementById('debugTokenBox')) {
-                            document.getElementById('debugTokenBox').innerText = 'Token: ' + token;
-                        }
-                        
-                        if (document.getElementById('testPushRow')) {
-                            document.getElementById('testPushRow').style.display = 'flex';
-                        }
-
-                        const favIds = (typeof favMatches !== 'undefined' ? favMatches : []).map(m => m.id ? m.id.toString() : null).filter(Boolean);
-                        const leagueIds = (typeof favLeagues !== 'undefined' ? favLeagues : []).map(l => l.id ? l.id.toString() : null).filter(Boolean);
-                        
-                        const res = await fetch(API_BASE_URL + '/api/fcm/register', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({ token: token, favorites: favIds, leagues: leagueIds })
-                        });
-                        
-                        if (res.ok) {
-                            console.log('[FCM] Token synchronized.');
-                        }
-                    }
-                } catch(e) {
-                    console.error('[FCM] General Error:', e);
+                } catch (e) {
+                    console.error('[Push] Registration error:', e);
+                    showToast('Bildiriş qeydiyyatı alınmadı', 'error');
                 }
             }
 
+            async function registerFCMToken() {
+                return syncPushRegistration();
+            }
+
+            window.syncPushRegistration = syncPushRegistration;
+            window.registerFCMToken = syncPushRegistration;
+
             window.sendTestPush = async function() {
+                const pushMode = localStorage.getItem('pushMode');
                 const token = localStorage.getItem('fcmToken');
-                if (!token) {
-                    showToast('Bildiriş tokeni tapılmadı. Zəhmət olmasa bildirişləri yenidən aktiv edin.', 'error');
+                const deviceId = localStorage.getItem('pushDeviceId');
+
+                if (!token && !deviceId) {
+                    showToast('Bildiriş qeydiyyatı tapılmadı. Bildirişləri yenidən aktiv edin.', 'error');
                     return;
                 }
 
                 try {
                     showToast('Test bildirişi göndərilir...');
-                    const res = await fetch(API_BASE_URL + '/api/fcm/test-push', {
+                    const endpoint = pushMode === 'webpush' ? '/api/push/test' : '/api/fcm/test-push';
+                    const body = pushMode === 'webpush' ? { deviceId } : { token };
+                    const res = await fetch(API_BASE_URL + endpoint, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ token })
+                        body: JSON.stringify(body)
                     });
                     const data = await res.json();
                     if (data.success) {
-                        showToast('Test bildirişi göndərildi! &#128640;', 'success');
+                        showToast('Test bildirişi göndərildi!', 'success');
                     } else {
                         showToast('Xəta: ' + data.message, 'error');
                     }
                 } catch (e) {
                     showToast('Serverlə əlaqə xətası', 'error');
                 }
-                registerFCMToken();
+                syncPushRegistration();
             }
 
             function toggleFavoriteLeague(id, name, country, btn) {
@@ -5776,13 +5887,13 @@
                     notificationMgr.requestPermission().then(permission => {
                         if (permission === "granted") {
                             updateSetting('browserNotifEnabled', true);
-                            registerFCMToken();
+                            syncPushRegistration();
                             showToast('Bildirişlər aktiv edildi', 'success');
                         } else {
                             if (permission !== 'unsupported') {
                                 showDialog({
                                     title: 'İcazə Verilmədi',
-                                    message: 'Brauzer bildirişlər? icazə vermədi. Lütfən brauzer tənzimləmələrindən icazəni sıfırlayıb yenidən c?hd edin.',
+                                    message: 'Brauzer bildirişlərə icazə vermədi. Lütfən brauzer tənzimləmələrindən icazəni sıfırlayıb yenidən cəhd edin.',
                                     icon: '&#128683;'
                                 });
                             }
@@ -5793,6 +5904,8 @@
                 } else {
                     updateSetting('browserNotifEnabled', false);
                     localStorage.removeItem('fcmToken'); // Clear token locally if disabled
+                    localStorage.removeItem('pushMode');
+                    unregisterWebPushSubscription();
                 }
             }
 
@@ -6489,7 +6602,7 @@
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js?v=7').then(reg => {
+                    navigator.serviceWorker.register('/sw.js?v=8').then(reg => {
                         console.log('SW registered:', reg.scope);
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });

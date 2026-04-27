@@ -1,4 +1,4 @@
-const express = require("express");
+﻿const express = require("express");
 // Version: 2.0.0 - Keep-Alive Fix + Render Sleep Prevention
 console.log("-----------------------------------------");
 console.log(`[STARTUP] Server booting at ${new Date().toISOString()}`);
@@ -12,8 +12,9 @@ const app = express();
 const fs = require("fs");
 const nodemailer = require("nodemailer");
 const admin = require("firebase-admin");
+const webpush = require("web-push");
 
-// Firebase Admin SDK-nın yaradılması
+// Firebase Admin SDK-nÄ±n yaradÄ±lmasÄ±
 let serviceAccount;
 let firebaseInitialized = false;
 
@@ -31,7 +32,7 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   }
 }
 
-// Render Secret File dəstəyi
+// Render Secret File dÉ™stÉ™yi
 const RENDER_SECRET_PATH = "/etc/secrets/FIREBASE_SERVICE_ACCOUNT";
 if (!firebaseInitialized && fs.existsSync(RENDER_SECRET_PATH)) {
     try {
@@ -74,7 +75,17 @@ if (firebaseInitialized) {
   console.warn("[WARNING] Firebase Admin SDK not initialized. Push notifications will not work.");
 }
 
-// ─── FIRESTORE USER HELPERS ───────────────────────────────────────────────────
+const DEFAULT_VAPID_KEYS = {
+  publicKey: "BHWOOLhZ6kHIPynDRpEilL9L7SMfwz0p9fWu0NLeZSIQCx2ffdlNwgLILQiA-d22Fy_SLPP-kTMa5AFo0YinhWM",
+  privateKey: "XgT1SE-DUDLvp_IQsr60Qd_15fIau4OhXiu8zaGAAc8"
+};
+const VAPID_PUBLIC_KEY = process.env.WEB_PUSH_PUBLIC_KEY || DEFAULT_VAPID_KEYS.publicKey;
+const VAPID_PRIVATE_KEY = process.env.WEB_PUSH_PRIVATE_KEY || DEFAULT_VAPID_KEYS.privateKey;
+const VAPID_SUBJECT = process.env.WEB_PUSH_SUBJECT || "mailto:support@rabonamedia.app";
+
+webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+
+// â”€â”€â”€ FIRESTORE USER HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function getUsers() {
     if (db) {
         try {
@@ -114,20 +125,20 @@ async function getUserByEmail(email) {
     const users = await getUsers();
     return users.find(u => u.email === email) || null;
 }
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// Nodemailer Tənzimləmələri (OTP göndərmək üçün)
-// DİQQƏT: Buraya öz email və tətbiq şifrənizi (App Password) yazmalısınız
+// Nodemailer TÉ™nzimlÉ™mÉ™lÉ™ri (OTP gÃ¶ndÉ™rmÉ™k Ã¼Ã§Ã¼n)
+// DÄ°QQÆT: Buraya Ã¶z email vÉ™ tÉ™tbiq ÅŸifrÉ™nizi (App Password) yazmalÄ±sÄ±nÄ±z
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: process.env.EMAIL_USER || 'typingmaster.az@gmail.com', // Sizin email
-        pass: process.env.EMAIL_PASS || 'hlwg iaey ryxn klsq'    // Sizin "App Password" şifrəniz
+        pass: process.env.EMAIL_PASS || 'hlwg iaey ryxn klsq'    // Sizin "App Password" ÅŸifrÉ™niz
     }
 });
 
 app.use(cors({
-    origin: '*', // Hələlik hər yerə icazə veririk, Render linki bəlli olandan sonra bunu GitHub linkinlə əvəz edə bilərik
+    origin: '*', // HÉ™lÉ™lik hÉ™r yerÉ™ icazÉ™ veririk, Render linki bÉ™lli olandan sonra bunu GitHub linkinlÉ™ É™vÉ™z edÉ™ bilÉ™rik
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -247,7 +258,7 @@ async function legacyFetchFromSofa(path, params = {}) {
         }
     }
 
-    throw new Error(`Bütün bağlantı cəhdləri uğursuz oldu: ${lastError ? lastError.message : 'Unknown'}`);
+    throw new Error(`BÃ¼tÃ¼n baÄŸlantÄ± cÉ™hdlÉ™ri uÄŸursuz oldu: ${lastError ? lastError.message : 'Unknown'}`);
 }
 
 const SOFA_DIRECT_TIMEOUT = 12000;
@@ -461,8 +472,8 @@ app.get("/api/debug/proxy", async (req, res) => {
 // Caching System
 const cache = {};
 const CACHE_TIMES = {
-    LIVE: 30 * 1000,       // 30 saniyə
-    SCHEDULED: 5 * 60 * 1000, // 5 dəqiqə
+    LIVE: 30 * 1000,       // 30 saniyÉ™
+    SCHEDULED: 5 * 60 * 1000, // 5 dÉ™qiqÉ™
     STATIC: 60 * 60 * 1000    // 1 saat
 };
 
@@ -565,7 +576,7 @@ async function getLiveEventsData() {
     }
 }
 
-// API vasitəçisi (Komanda məlumatları və heyət üçün)
+// API vasitÉ™Ã§isi (Komanda mÉ™lumatlarÄ± vÉ™ heyÉ™t Ã¼Ã§Ã¼n)
 app.get("/api/team/:id", async (req, res) => {
     try {
         const teamId = req.params.id;
@@ -580,7 +591,7 @@ app.get("/api/team/:id", async (req, res) => {
     }
 });
 
-// Yeni API: Canlı Matçlar
+// Yeni API: CanlÄ± MatÃ§lar
 app.get("/api/matches/live", async (req, res) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
@@ -595,7 +606,7 @@ app.get("/api/matches/live", async (req, res) => {
     }
 });
 
-// Yeni API: Matçlar (Skedullu)
+// Yeni API: MatÃ§lar (Skedullu)
 app.get("/api/matches/:date", async (req, res) => {
     const { date } = req.params;
     try {
@@ -612,7 +623,7 @@ app.get("/api/matches/:date", async (req, res) => {
     }
 });
 
-// Yeni API: Matç Hadisələri (Qollar, Kartlar)
+// Yeni API: MatÃ§ HadisÉ™lÉ™ri (Qollar, Kartlar)
 app.get("/api/match/:id/incidents", async (req, res) => {
     const id = req.params.id;
     try {
@@ -636,7 +647,7 @@ app.get("/api/match/:id/incidents", async (req, res) => {
     }
 });
 
-// Yeni API: Matç Statistikası
+// Yeni API: MatÃ§ StatistikasÄ±
 app.get("/api/match/:id/statistics", async (req, res) => {
     const id = req.params.id;
     try {
@@ -653,7 +664,7 @@ app.get("/api/match/:id/statistics", async (req, res) => {
     }
 });
 
-// Yeni API: H2H (Head to Head) Matçlar - Native Sofascore API
+// Yeni API: H2H (Head to Head) MatÃ§lar - Native Sofascore API
 app.get("/api/match/:id/h2h", async (req, res) => {
     const id = req.params.id;
     try {
@@ -665,7 +676,7 @@ app.get("/api/match/:id/h2h", async (req, res) => {
     }
 });
 
-// Matç detallarını vahid endpoint-də birləşdiririk (bloklanmamaq üçün)
+// MatÃ§ detallarÄ±nÄ± vahid endpoint-dÉ™ birlÉ™ÅŸdiririk (bloklanmamaq Ã¼Ã§Ã¼n)
 app.get("/api/match/:id/details", async (req, res) => {
     const id = req.params.id;
     try {
@@ -708,7 +719,7 @@ app.get("/api/match/:id/details", async (req, res) => {
 
 
 
-// Yeni API: Canlı Liqa Cədvəli üçün Proxy
+// Yeni API: CanlÄ± Liqa CÉ™dvÉ™li Ã¼Ã§Ã¼n Proxy
 app.get("/api/standings/:tourId/:seasonId", async (req, res) => {
     try {
         const { tourId, seasonId } = req.params;
@@ -723,7 +734,7 @@ app.get("/api/standings/:tourId/:seasonId", async (req, res) => {
     }
 });
 
-// Yeni API: Populyar Liqalar siyahısı
+// Yeni API: Populyar Liqalar siyahÄ±sÄ±
 app.get("/api/top-leagues", async (req, res) => {
     try {
         const data = await getCachedData("top_leagues", async () => {
@@ -739,7 +750,7 @@ app.get("/api/top-leagues", async (req, res) => {
     }
 });
 
-// Yeni API: Bütün Kategoriyalar (Ölkələr)
+// Yeni API: BÃ¼tÃ¼n Kategoriyalar (Ã–lkÉ™lÉ™r)
 app.get("/api/categories", async (req, res) => {
     try {
         const data = await getCachedData("categories", async () => {
@@ -755,7 +766,7 @@ app.get("/api/categories", async (req, res) => {
     }
 });
 
-// Yeni API: Kateqoriya üzrə Liqalar
+// Yeni API: Kateqoriya Ã¼zrÉ™ Liqalar
 app.get("/api/category/:id/tournaments", async (req, res) => {
     try {
         const data = await getCachedData(`category_tournaments_${req.params.id}`, async () => {
@@ -768,7 +779,7 @@ app.get("/api/category/:id/tournaments", async (req, res) => {
     }
 });
 
-// Yeni API: Turnir Məlumatı (Single League Info)
+// Yeni API: Turnir MÉ™lumatÄ± (Single League Info)
 app.get("/api/tournament/:id", async (req, res) => {
     try {
         const type = req.query.isUnique === 'false' ? 'tournament' : 'unique-tournament';
@@ -782,7 +793,7 @@ app.get("/api/tournament/:id", async (req, res) => {
     }
 });
 
-// Yeni API: Turnir Mövsümləri (Seasons)
+// Yeni API: Turnir MÃ¶vsÃ¼mlÉ™ri (Seasons)
 app.get("/api/tournament/:id/seasons", async (req, res) => {
     try {
         const type = req.query.isUnique === 'false' ? 'tournament' : 'unique-tournament';
@@ -796,7 +807,7 @@ app.get("/api/tournament/:id/seasons", async (req, res) => {
     }
 });
 
-// Yeni API: Qlobal Axtarış
+// Yeni API: Qlobal AxtarÄ±ÅŸ
 app.get("/api/search", async (req, res) => {
     try {
         const { q } = req.query;
@@ -808,7 +819,7 @@ app.get("/api/search", async (req, res) => {
     }
 });
 
-// Yeni API: Bombardirlər (Top Players)
+// Yeni API: BombardirlÉ™r (Top Players)
 app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
     try {
         const { id, sid } = req.params;
@@ -821,24 +832,24 @@ app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
         res.status(500).json({ error: true });
     }
 });
-// Yeni API: Şifrə Sıfırlama Kodu Göndər (OTP)
+// Yeni API: ÅifrÉ™ SÄ±fÄ±rlama Kodu GÃ¶ndÉ™r (OTP)
 app.post("/api/auth/send-otp", async (req, res) => {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ success: false, message: "Email lazımdır." });
+    if (!email) return res.status(400).json({ success: false, message: "Email lazÄ±mdÄ±r." });
     console.log(`[AUTH] Sending OTP to: ${email}`);
 
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
-    const expiry = Date.now() + 3 * 60 * 1000; // 3 dəqiqə valid
+    const expiry = Date.now() + 3 * 60 * 1000; // 3 dÉ™qiqÉ™ valid
 
     try {
         let user = await getUserByEmail(email) || { email: email, resendCount: 0 };
 
-        // Gündəlik Limit Yoxlanışı (5 dəfə)
+        // GÃ¼ndÉ™lik Limit YoxlanÄ±ÅŸÄ± (5 dÉ™fÉ™)
         const today = new Date().toISOString().split('T')[0];
         
         if (user.lastResendDate === today) {
             if (user.resendCount >= 5) {
-                return res.status(429).json({ success: false, message: "Gündəlik limitiniz (5 dəfə) dolub. Sabah yenidən cəhd edin." });
+                return res.status(429).json({ success: false, message: "GÃ¼ndÉ™lik limitiniz (5 dÉ™fÉ™) dolub. Sabah yenidÉ™n cÉ™hd edin." });
             }
             user.resendCount++;
         } else {
@@ -853,33 +864,33 @@ app.post("/api/auth/send-otp", async (req, res) => {
         const mailOptions = {
             from: '"Rabona Media" <typingmaster.az@gmail.com>',
             to: email,
-            subject: 'Şifrə Sıfırlama Kodunuz - Rabona Media',
+            subject: 'ÅifrÉ™ SÄ±fÄ±rlama Kodunuz - Rabona Media',
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
                     <h2 style="color: #3b82f6;">Rabona Media LIVE</h2>
                     <p>Salam,</p>
-                    <p>Şifrənizi sıfırlamaq üçün tələb göndərdiniz. Sizin birdəfəlik təsdiq kodunuz (OTP):</p>
+                    <p>ÅifrÉ™nizi sÄ±fÄ±rlamaq Ã¼Ã§Ã¼n tÉ™lÉ™b gÃ¶ndÉ™rdiniz. Sizin birdÉ™fÉ™lik tÉ™sdiq kodunuz (OTP):</p>
                     <div style="font-size: 32px; font-weight: bold; color: #ef4444; padding: 15px 30px; background: #f1f5f9; border-radius: 8px; display: inline-block; margin: 10px 0; letter-spacing: 5px;">
                         ${otp}
                     </div>
-                    <p>Bu kod <b>3 dəqiqə</b> ərzində etibarlıdır.</p>
-                    <p>Əgər bunu siz etməmisinizsə, zəhmət olmasa bu emaili nəzərə almayın.</p>
+                    <p>Bu kod <b>3 dÉ™qiqÉ™</b> É™rzindÉ™ etibarlÄ±dÄ±r.</p>
+                    <p>ÆgÉ™r bunu siz etmÉ™misinizsÉ™, zÉ™hmÉ™t olmasa bu emaili nÉ™zÉ™rÉ™ almayÄ±n.</p>
                     <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-                    <p style="font-size: 12px; color: #94a3b8;">Bu avtomatik göndərilən bir mesajdır, cavab yazmayın.</p>
+                    <p style="font-size: 12px; color: #94a3b8;">Bu avtomatik gÃ¶ndÉ™rilÉ™n bir mesajdÄ±r, cavab yazmayÄ±n.</p>
                 </div>
             `
         };
 
         await transporter.sendMail(mailOptions);
-        res.json({ success: true, message: "OTP kod email ünvanınıza göndərildi." });
+        res.json({ success: true, message: "OTP kod email Ã¼nvanÄ±nÄ±za gÃ¶ndÉ™rildi." });
 
     } catch (error) {
         console.error("OTP Error:", error);
-        res.status(500).json({ success: false, message: "Email göndərilərkən xəta baş verdi." });
+        res.status(500).json({ success: false, message: "Email gÃ¶ndÉ™rilÉ™rkÉ™n xÉ™ta baÅŸ verdi." });
     }
 });
 
-// Yeni API: OTP Kodu Yoxla (Sadəcə Doğrulama)
+// Yeni API: OTP Kodu Yoxla (SadÉ™cÉ™ DoÄŸrulama)
 app.post("/api/auth/check-otp", async (req, res) => {
     const { email, otp } = req.body;
     try {
@@ -889,20 +900,20 @@ app.post("/api/auth/check-otp", async (req, res) => {
         
         if (!user) {
             console.log(`[AUTH] OTP mismatch for ${email}`);
-            return res.status(400).json({ success: false, message: "Kod yanlışdır." });
+            return res.status(400).json({ success: false, message: "Kod yanlÄ±ÅŸdÄ±r." });
         }
         if (Date.now() > user.otpExpiry) {
             console.log(`[AUTH] OTP expired for ${email}`);
-            return res.status(400).json({ success: false, message: "Kodun vaxtı bitib." });
+            return res.status(400).json({ success: false, message: "Kodun vaxtÄ± bitib." });
         }
 
-        res.json({ success: true, message: "Kod təsdiqləndi. Yeni şifrəni daxil edin." });
+        res.json({ success: true, message: "Kod tÉ™sdiqlÉ™ndi. Yeni ÅŸifrÉ™ni daxil edin." });
     } catch (e) {
         res.status(500).json({ success: false });
     }
 });
 
-// Yeni API: Şifrəni Final Olaraq Dəyiş
+// Yeni API: ÅifrÉ™ni Final Olaraq DÉ™yiÅŸ
 app.post("/api/auth/verify-otp", async (req, res) => {
     const { email, otp, newPassword } = req.body;
     
@@ -910,14 +921,14 @@ app.post("/api/auth/verify-otp", async (req, res) => {
         const user = await getUserByEmail(email);
         
         if (!user || user.otp !== otp) {
-            return res.status(400).json({ success: false, message: "Kod yanlışdır." });
+            return res.status(400).json({ success: false, message: "Kod yanlÄ±ÅŸdÄ±r." });
         }
         
         if (Date.now() > user.otpExpiry) {
-            return res.status(400).json({ success: false, message: "Kodun vaxtı bitib." });
+            return res.status(400).json({ success: false, message: "Kodun vaxtÄ± bitib." });
         }
 
-        // ===== FIREBASE ŞİFRƏ DEYİŞİKLİYİ ======
+        // ===== FIREBASE ÅÄ°FRÆ DEYÄ°ÅÄ°KLÄ°YÄ° ======
         if (firebaseInitialized) {
             try {
                 const firebaseUser = await admin.auth().getUserByEmail(email);
@@ -927,56 +938,56 @@ app.post("/api/auth/verify-otp", async (req, res) => {
                 console.log(`[AUTH] Firebase password successfully updated for UID: ${firebaseUser.uid}`);
             } catch (fbError) {
                 console.error("[AUTH] Firebase update password error:", fbError);
-                return res.status(500).json({ success: false, message: "Firebase hesabınızla əlaqə yaradıla bilmədi. Şifrə yenilənmədi." });
+                return res.status(500).json({ success: false, message: "Firebase hesabÄ±nÄ±zla É™laqÉ™ yaradÄ±la bilmÉ™di. ÅifrÉ™ yenilÉ™nmÉ™di." });
             }
         } else {
             console.warn("[AUTH] Firebase not initialized, skipping Firebase Auth password update.");
         }
 
-        // OTP-ni təmizlə və şifrəni hash-ləyərək saxla
+        // OTP-ni tÉ™mizlÉ™ vÉ™ ÅŸifrÉ™ni hash-lÉ™yÉ™rÉ™k saxla
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(newPassword, salt);
         delete user.otp;
         delete user.otpExpiry;
         await saveUser(user);
-        res.json({ success: true, message: "Şifrə uğurla dəyişdirildi." });
+        res.json({ success: true, message: "ÅifrÉ™ uÄŸurla dÉ™yiÅŸdirildi." });
 
     } catch (e) {
         res.status(500).json({ success: false });
     }
 });
 
-// Yeni API: Profil Məlumatlarını Yenilə
+// Yeni API: Profil MÉ™lumatlarÄ±nÄ± YenilÉ™
 app.post("/api/auth/update-profile", async (req, res) => {
     const { email, displayName, status, profilePic } = req.body;
     
-    if (!email) return res.status(400).json({ success: false, message: "Email lazımdır." });
+    if (!email) return res.status(400).json({ success: false, message: "Email lazÄ±mdÄ±r." });
 
     try {
-        let user = await getUserByEmail(email) || { email: email, username: displayName || email.split('@')[0], status: status || "ProScore istifadəçisi" };
+        let user = await getUserByEmail(email) || { email: email, username: displayName || email.split('@')[0], status: status || "ProScore istifadÉ™Ã§isi" };
         if (displayName) user.username = displayName;
         if (status !== undefined) user.status = status;
         if (profilePic !== undefined) user.profilePic = profilePic;
         await saveUser(user);
-        res.json({ success: true, message: "Profil uğurla yeniləndi." });
+        res.json({ success: true, message: "Profil uÄŸurla yenilÉ™ndi." });
     } catch (e) {
         console.error("Update profile error:", e);
-        res.status(500).json({ success: false, message: "Server xətası baş verdi." });
+        res.status(500).json({ success: false, message: "Server xÉ™tasÄ± baÅŸ verdi." });
     }
 });
 
-// Yeni API: Profil Məlumatlarını Gətir
+// Yeni API: Profil MÉ™lumatlarÄ±nÄ± GÉ™tir
 app.get("/api/auth/profile/:email", async (req, res) => {
     const { email } = req.params;
     try {
         const user = await getUserByEmail(email);
-        if (!user) return res.status(404).json({ success: false, message: "İstifadəçi tapılmadı." });
+        if (!user) return res.status(404).json({ success: false, message: "Ä°stifadÉ™Ã§i tapÄ±lmadÄ±." });
 
         res.json({
             success: true,
             data: {
                 displayName: user.username,
-                status: user.status || "ProScore istifadəçisi",
+                status: user.status || "ProScore istifadÉ™Ã§isi",
                 profilePic: user.profilePic || "U"
             }
         });
@@ -988,6 +999,8 @@ app.get("/api/auth/profile/:email", async (req, res) => {
 // FCM Device & Favorites Tracking
 const REG_FILE = "./registrations.json";
 let fcmRegistrations = {}; // { token: { favorites: [] } }
+const WEB_PUSH_FILE = "./webpush_registrations.json";
+let webPushRegistrations = {}; // { deviceId: { subscription, favorites, leagues } }
 
 // Persistent History for sync
 const NOTIF_HISTORY_FILE = "./notif_history.json";
@@ -1028,6 +1041,26 @@ async function loadRegistrations() {
 }
 loadRegistrations();
 
+async function loadWebPushRegistrations() {
+    if (db) {
+        try {
+            const snap = await db.collection('webpush_registrations').doc('devices').get();
+            if (snap.exists) {
+                webPushRegistrations = snap.data() || {};
+                console.log(`[WebPush] Loaded ${Object.keys(webPushRegistrations).length} registrations from Firestore.`);
+                return;
+            }
+        } catch (e) { console.error("[WebPush] Firestore load error:", e.message); }
+    }
+    try {
+        if (fs.existsSync(WEB_PUSH_FILE)) {
+            webPushRegistrations = JSON.parse(fs.readFileSync(WEB_PUSH_FILE, "utf-8"));
+            console.log(`[WebPush] Loaded ${Object.keys(webPushRegistrations).length} registrations from file.`);
+        }
+    } catch (e) { console.error("[WebPush] File load error:", e.message); }
+}
+loadWebPushRegistrations();
+
 function saveRegistrations() {
     // Save to Firestore (non-blocking)
     if (db) {
@@ -1040,12 +1073,100 @@ function saveRegistrations() {
     } catch (e) { console.error("[FCM] File save error:", e.message); }
 }
 
+function saveWebPushRegistrations() {
+    if (db) {
+        db.collection('webpush_registrations').doc('devices').set(webPushRegistrations)
+            .catch(e => console.error("[WebPush] Firestore save error:", e.message));
+    }
+    try {
+        fs.writeFileSync(WEB_PUSH_FILE, JSON.stringify(webPushRegistrations, null, 2));
+    } catch (e) { console.error("[WebPush] File save error:", e.message); }
+}
+
+function normalizeIdList(list) {
+    return Array.isArray(list)
+        ? [...new Set(list.map(item => item?.toString()).filter(Boolean))]
+        : [];
+}
+
+function getFavoritePayloadFromReg(reg) {
+    return {
+        favorites: normalizeIdList(reg?.favorites),
+        leagues: normalizeIdList(reg?.leagues)
+    };
+}
+
+function collectFavoriteRecipients(matchId, leagueId) {
+    const matchKey = matchId?.toString();
+    const leagueKey = leagueId?.toString();
+    const recipients = [];
+
+    Object.entries(fcmRegistrations).forEach(([token, reg]) => {
+        const { favorites, leagues } = getFavoritePayloadFromReg(reg);
+        if (favorites.includes(matchKey) || leagues.includes(leagueKey)) {
+            recipients.push({ channel: "fcm", id: token, reg });
+        }
+    });
+
+    Object.entries(webPushRegistrations).forEach(([deviceId, reg]) => {
+        const { favorites, leagues } = getFavoritePayloadFromReg(reg);
+        if (favorites.includes(matchKey) || leagues.includes(leagueKey)) {
+            recipients.push({ channel: "webpush", id: deviceId, reg });
+        }
+    });
+
+    return recipients;
+}
+
+function removeInvalidWebPushRegistration(deviceId) {
+    if (webPushRegistrations[deviceId]) {
+        delete webPushRegistrations[deviceId];
+        saveWebPushRegistrations();
+    }
+}
+
+async function sendWebPushMessage(deviceId, payload) {
+    const reg = webPushRegistrations[deviceId];
+    if (!reg?.subscription?.endpoint) return false;
+
+    try {
+        await webpush.sendNotification(reg.subscription, JSON.stringify(payload), {
+            TTL: 60,
+            urgency: payload.urgency || "high"
+        });
+        return true;
+    } catch (err) {
+        console.error(`[WebPush] Send error for ${deviceId}:`, err.statusCode || err.message);
+        if (err.statusCode === 404 || err.statusCode === 410) {
+            removeInvalidWebPushRegistration(deviceId);
+        }
+        return false;
+    }
+}
+
+function createPushPayload({ title, body, matchId, type, tag, requireInteraction = false }) {
+    return {
+        title,
+        body,
+        icon: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
+        badge: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
+        tag,
+        vibrate: [300, 100, 300],
+        requireInteraction,
+        data: {
+            matchId: matchId?.toString() || "",
+            type: type || "general",
+            url: "/"
+        }
+    };
+}
+
 app.post("/api/fcm/register", (req, res) => {
     const { token, favorites, leagues } = req.body;
     if (token) {
         fcmRegistrations[token] = { 
-            favorites: favorites || [], 
-            leagues: leagues || [],
+            favorites: normalizeIdList(favorites), 
+            leagues: normalizeIdList(leagues),
             lastUpdated: Date.now() 
         };
         saveRegistrations();
@@ -1054,6 +1175,39 @@ app.post("/api/fcm/register", (req, res) => {
     } else {
         res.status(400).json({ success: false, message: "Token is required" });
     }
+});
+
+app.get("/api/push/public-key", (req, res) => {
+    res.json({ success: true, publicKey: VAPID_PUBLIC_KEY });
+});
+
+app.post("/api/push/subscribe", (req, res) => {
+    const { deviceId, subscription, favorites, leagues, platform, userAgent } = req.body || {};
+    if (!deviceId || !subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
+        return res.status(400).json({ success: false, message: "deviceId and valid subscription are required" });
+    }
+
+    webPushRegistrations[deviceId] = {
+        subscription,
+        favorites: normalizeIdList(favorites),
+        leagues: normalizeIdList(leagues),
+        platform: platform || "webpush",
+        userAgent: userAgent || "",
+        lastUpdated: Date.now()
+    };
+    saveWebPushRegistrations();
+    console.log(`[WebPush] Device updated. Device: ${deviceId}, Matches: ${(favorites || []).length}, Leagues: ${(leagues || []).length}`);
+    res.json({ success: true });
+});
+
+app.post("/api/push/unsubscribe", (req, res) => {
+    const { deviceId } = req.body || {};
+    if (!deviceId) {
+        return res.status(400).json({ success: false, message: "deviceId is required" });
+    }
+    delete webPushRegistrations[deviceId];
+    saveWebPushRegistrations();
+    res.json({ success: true });
 });
 
 // Reminder Persistence
@@ -1101,7 +1255,7 @@ app.post("/api/fcm/test-push", async (req, res) => {
     const message = {
         notification: {
             title: "Rabona Media",
-            body: "Təbriklər! Arxa plan bildirişləri artıq aktivdir 🚀"
+            body: "Təbriklər! Arxa plan bildirişləri artıq aktivdir."
         },
         data: { type: 'test' },
         android: {
@@ -1136,8 +1290,32 @@ app.post("/api/fcm/test-push", async (req, res) => {
     }
 });
 
-// YENI YOXLANIS UCUN (KƏNAR VASİTƏ)
-// Bu linkə kompüterdən girdiyinizdə BÜTÜN qeydiyyatdan keçmiş cihazlara (o cümlədən bağlı olan iPhone-a) bildiriş göndərəcək
+app.post("/api/push/test", async (req, res) => {
+    const { deviceId } = req.body || {};
+    if (!deviceId) {
+        return res.status(400).json({ success: false, message: "deviceId required" });
+    }
+    if (!webPushRegistrations[deviceId]) {
+        return res.status(404).json({ success: false, message: "Device not found" });
+    }
+
+    try {
+        const payload = createPushPayload({
+            title: "Rabona Media",
+            body: "Test bildirişi uğurla göndərildi. Arxa plan bildirişləri hazırdır.",
+            type: "test",
+            tag: `test-${deviceId}`,
+            requireInteraction: true
+        });
+        await sendWebPushMessage(deviceId, payload);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    }
+});
+
+// YENI YOXLANIS UCUN (KÆNAR VASÄ°TÆ)
+// Bu linkÉ™ kompÃ¼terdÉ™n girdiyinizdÉ™ BÃœTÃœN qeydiyyatdan keÃ§miÅŸ cihazlara (o cÃ¼mlÉ™dÉ™n baÄŸlÄ± olan iPhone-a) bildiriÅŸ gÃ¶ndÉ™rÉ™cÉ™k
 app.get("/api/fcm/broadcast-test", async (req, res) => {
     if (!firebaseInitialized) return res.status(500).send("Firebase qoşulmayıb");
     
@@ -1146,7 +1324,7 @@ app.get("/api/fcm/broadcast-test", async (req, res) => {
 
     const message = {
         notification: {
-            title: "Xüsusi Test Bildirişi 📡",
+            title: "Xüsusi Test Bildirişi",
             body: "Əgər tətbiq tam bağlıdırsa və bu bildiriş gəlirsə, hər şey əla işləyir!"
         },
         data: { type: 'test' },
@@ -1188,7 +1366,7 @@ setInterval(async () => {
         const liveData = await getLiveEventsData();
         if (!liveData || !Array.isArray(liveData.events)) return;
 
-        if (Object.keys(fcmRegistrations).length === 0) return;
+        if (Object.keys(fcmRegistrations).length === 0 && Object.keys(webPushRegistrations).length === 0) return;
         
         const events = liveData.events;
         
@@ -1202,7 +1380,7 @@ setInterval(async () => {
             if (prev) {
                 if (hs > prev.homeScore || as > prev.awayScore) {
                     const title = `Rabona Media`;
-                    const body = `${ev.homeTeam.name} ${hs} - ${as} ${ev.awayTeam.name}\nQol vuruldu! ⚽`;
+                    const body = `${ev.homeTeam.name} ${hs} - ${as} ${ev.awayTeam.name}\nQol vuruldu! âš½`;
                     
                     console.log(`[GOAL] ${ev.homeTeam.name} - ${ev.awayTeam.name} GOOOL!`);
 
@@ -1220,12 +1398,11 @@ setInterval(async () => {
                     if (serverNotifHistory.length > 50) serverNotifHistory.pop();
                     saveNotifHistory();
 
-                    const tokensToNotify = Object.keys(fcmRegistrations).filter(token => {
-                        const reg = fcmRegistrations[token];
-                        return (reg.favorites && reg.favorites.includes(matchId)) || (reg.leagues && reg.leagues.includes(leagueId));
-                    });
-                    
-                    if (tokensToNotify.length > 0 && firebaseInitialized) {
+                    const recipients = collectFavoriteRecipients(matchId, leagueId);
+                    const fcmRecipients = recipients.filter(r => r.channel === "fcm");
+                    const webPushRecipients = recipients.filter(r => r.channel === "webpush");
+
+                    if (fcmRecipients.length > 0 && firebaseInitialized) {
                         const message = {
                             notification: { title, body },
                             data: { matchId: matchId, type: 'goal' },
@@ -1246,11 +1423,25 @@ setInterval(async () => {
                             }
                         };
                         
-                        tokensToNotify.forEach(token => {
+                        fcmRecipients.forEach(({ id: token }) => {
                             admin.messaging().send({ ...message, token })
                                 .catch(err => {
                                     if (err.code === 'messaging/registration-token-not-registered') delete fcmRegistrations[token];
                                 });
+                        });
+                    }
+
+                    if (webPushRecipients.length > 0) {
+                        const payload = createPushPayload({
+                            title,
+                            body,
+                            matchId,
+                            type: "goal",
+                            tag: `goal-${matchId}`,
+                            requireInteraction: true
+                        });
+                        webPushRecipients.forEach(({ id: deviceId }) => {
+                            sendWebPushMessage(deviceId, payload);
                         });
                     }
                 }
@@ -1262,9 +1453,58 @@ setInterval(async () => {
     }
 }, 20000);
 
+async function sendReminderToRecipient(recipient, payload) {
+    if (recipient.channel === "fcm") {
+        if (!firebaseInitialized) return false;
+        try {
+            await admin.messaging().send({
+                notification: { title: payload.title, body: payload.body },
+                data: { matchId: payload.matchId.toString(), type: payload.type },
+                token: recipient.id,
+                android: {
+                    priority: "high",
+                    notification: {
+                        sound: "default",
+                        channelId: "goal_notifications",
+                        notificationPriority: "PRIORITY_MAX"
+                    }
+                },
+                apns: { payload: { aps: { sound: "default", badge: 1, contentAvailable: true } } },
+                webpush: {
+                    headers: { Urgency: "high" },
+                    notification: {
+                        icon: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
+                        badge: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
+                        requireInteraction: true,
+                        tag: payload.tag
+                    },
+                    fcm_options: { link: "/" }
+                }
+            });
+            return true;
+        } catch (err) {
+            if (err.code === "messaging/registration-token-not-registered") {
+                delete fcmRegistrations[recipient.id];
+                saveRegistrations();
+            }
+            console.error("[Reminder][FCM] Send error:", err.message);
+            return false;
+        }
+    }
+
+    return sendWebPushMessage(recipient.id, createPushPayload({
+        title: payload.title,
+        body: payload.body,
+        matchId: payload.matchId,
+        type: payload.type,
+        tag: payload.tag,
+        requireInteraction: true
+    }));
+}
+
 // --- Reminder Worker for Upcoming Favorited Matches ---
 setInterval(async () => {
-    if (Object.keys(fcmRegistrations).length === 0 || !firebaseInitialized) return;
+    if (Object.keys(fcmRegistrations).length === 0 && Object.keys(webPushRegistrations).length === 0) return;
 
     try {
         const todayStr = new Date().toISOString().split('T')[0];
@@ -1272,8 +1512,6 @@ setInterval(async () => {
         tomorrow.setDate(tomorrow.getDate() + 1);
         const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-        // Fetch events for today and tomorrow
-        // We use direct fetching to ensure background correctness, but Sofa API is cached at CDN level anyway
         const [resToday, resTomorrow] = await Promise.all([
             fetchFromSofa(`/sport/football/scheduled-events/${todayStr}`).catch(() => null),
             fetchFromSofa(`/sport/football/scheduled-events/${tomorrowStr}`).catch(() => null)
@@ -1287,96 +1525,63 @@ setInterval(async () => {
         if (allUpcomingEvents.length === 0) return;
 
         const nowSec = Math.floor(Date.now() / 1000);
+        const recipients = [
+            ...Object.entries(fcmRegistrations).map(([id, reg]) => ({ channel: "fcm", id, reg })),
+            ...Object.entries(webPushRegistrations).map(([id, reg]) => ({ channel: "webpush", id, reg }))
+        ];
 
-        for (const token in fcmRegistrations) {
-            const reg = fcmRegistrations[token];
-            if (!reg.favorites || reg.favorites.length === 0) continue;
+        for (const recipient of recipients) {
+            const favorites = normalizeIdList(recipient.reg?.favorites);
+            if (favorites.length === 0) continue;
 
-            reg.favorites.forEach(favId => {
+            for (const favId of favorites) {
                 const match = allUpcomingEvents.find(ev => ev.id.toString() === favId.toString());
-                if (!match) return;
+                if (!match?.startTimestamp) continue;
 
-                const startTimestamp = match.startTimestamp;
-                if (!startTimestamp) return;
+                const timeUntilStart = match.startTimestamp - nowSec;
+                const reminderKey = `${recipient.channel}:${recipient.id}`;
 
-                const timeUntilStart = startTimestamp - nowSec;
-                
-                if (!remindersSent[token]) remindersSent[token] = {};
-                if (!remindersSent[token][favId]) remindersSent[token][favId] = { timestamp: Date.now() };
+                if (!remindersSent[reminderKey]) remindersSent[reminderKey] = {};
+                if (!remindersSent[reminderKey][favId]) remindersSent[reminderKey][favId] = { timestamp: Date.now() };
 
-                const state = remindersSent[token][favId];
+                const state = remindersSent[reminderKey][favId];
 
-                // 1. 30 Minutes Reminder (Between 20 and 40 minutes before start)
                 if (timeUntilStart > 0 && timeUntilStart <= 40 * 60 && timeUntilStart >= 20 * 60 && !state.soon) {
-                    const title = `Xatırlatma: ${match.homeTeam.name} - ${match.awayTeam.name}`;
-                    const body = `Oyunun başlamasına təxminən 30 dəqiqə qaldı! ⏳`;
-                    
-                    admin.messaging().send({
-                        notification: { title, body },
-                        data: { matchId: favId.toString(), type: 'reminder_soon' },
-                        token: token,
-                        android: { 
-                            priority: 'high',
-                            notification: { 
-                                sound: 'default',
-                                channel_id: 'goal_notifications',
-                                notification_priority: 'priority_max'
-                            } 
-                        },
-                        apns: { payload: { aps: { sound: 'default', badge: 1, content_available: true } } },
-                        webpush: { 
-                            headers: { Urgency: 'high' },
-                            notification: { icon: 'https://www.sofascore.com/favicon.ico', requireInteraction: true } 
-                        }
-                    }).then(() => {
+                    const sent = await sendReminderToRecipient(recipient, {
+                        title: `Xatırlatma: ${match.homeTeam.name} - ${match.awayTeam.name}`,
+                        body: "Oyunun başlamasına təxminən 30 dəqiqə qaldı.",
+                        matchId: favId,
+                        type: "reminder_soon",
+                        tag: `soon-${favId}`
+                    });
+                    if (sent) {
                         state.soon = true;
                         state.timestamp = Date.now();
                         saveReminders();
-                        console.log(`[Reminder] Sent 'Soon' notification for match ${favId}`);
-                    }).catch(err => {
-                        if (err.code === 'messaging/registration-token-not-registered') delete fcmRegistrations[token];
-                    });
+                    }
                 }
 
-                // 2. Match Started Reminder (Between 0 and -10 minutes start)
-                // Note: The main live tracker handles goals, this handles the start whistle
-                const isStarted = match.status?.type === 'inprogress' || (timeUntilStart <= 0 && timeUntilStart >= -600);
+                const isStarted = match.status?.type === "inprogress" || (timeUntilStart <= 0 && timeUntilStart >= -600);
                 if (isStarted && !state.started) {
-                    const title = `Oyun Başladı! ⚽`;
-                    const body = `${match.homeTeam.name} - ${match.awayTeam.name} oyunu start götürdü.`;
-                    
-                    admin.messaging().send({
-                        notification: { title, body },
-                        data: { matchId: favId.toString(), type: 'reminder_started' },
-                        token: token,
-                        android: { 
-                            priority: 'high',
-                            notification: { 
-                                sound: 'default',
-                                channel_id: 'goal_notifications',
-                                notification_priority: 'priority_max'
-                            } 
-                        },
-                        apns: { payload: { aps: { sound: 'default', badge: 1, content_available: true } } },
-                        webpush: { 
-                            headers: { Urgency: 'high' },
-                            notification: { icon: 'https://www.sofascore.com/favicon.ico', requireInteraction: true } 
-                        }
-                    }).then(() => {
+                    const sent = await sendReminderToRecipient(recipient, {
+                        title: "Oyun başladı",
+                        body: `${match.homeTeam.name} - ${match.awayTeam.name} oyunu başladı.`,
+                        matchId: favId,
+                        type: "reminder_started",
+                        tag: `started-${favId}`
+                    });
+                    if (sent) {
                         state.started = true;
                         state.timestamp = Date.now();
                         saveReminders();
-                        console.log(`[Reminder] Sent 'Started' notification for match ${favId}`);
-                    }).catch(err => {
-                        if (err.code === 'messaging/registration-token-not-registered') delete fcmRegistrations[token];
-                    });
+                    }
                 }
-            });
+            }
         }
     } catch (e) {
         console.error("[Reminder Worker] Error:", e.name, e.message);
     }
-}, 5 * 60 * 1000); // Check every 5 minutes
+}, 5 * 60 * 1000);
 
 app.get("/api/ping", (req, res) => {
     res.json({ status: "alive", version: "v6", timestamp: new Date().toISOString() });
@@ -1390,10 +1595,10 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server ${PORT} portunda aktivdir.`);
 
-    // ─── RENDER KEEP-ALIVE ────────────────────────────────────────────────────
-    // Render free plan serveri 15 dəqiqəlik hərəkətsizlikdən sonra yuxuya göndərir.
-    // Bu interval hər 10 dəqiqədə bir özünə sorğu vurur - serveri daima ayaq üstündə saxlayır.
-    // RENDER_EXTERNAL_URL mühit dəyişəni Render tərəfindən avtomatik təyin edilir.
+    // â”€â”€â”€ RENDER KEEP-ALIVE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Render free plan serveri 15 dÉ™qiqÉ™lik hÉ™rÉ™kÉ™tsizlikdÉ™n sonra yuxuya gÃ¶ndÉ™rir.
+    // Bu interval hÉ™r 10 dÉ™qiqÉ™dÉ™ bir Ã¶zÃ¼nÉ™ sorÄŸu vurur - serveri daima ayaq Ã¼stÃ¼ndÉ™ saxlayÄ±r.
+    // RENDER_EXTERNAL_URL mÃ¼hit dÉ™yiÅŸÉ™ni Render tÉ™rÉ™findÉ™n avtomatik tÉ™yin edilir.
     const getSelfUrl = () => {
         if (process.env.RENDER_EXTERNAL_URL) return process.env.RENDER_EXTERNAL_URL;
         if (process.env.RENDER_SERVICE_NAME) return `https://${process.env.RENDER_SERVICE_NAME}.onrender.com`;
@@ -1417,5 +1622,7 @@ app.listen(PORT, "0.0.0.0", () => {
             console.log(`[Keep-Alive] External proxy ping OK via ${proxyUrl.split('/')[2]} to prevent Render sleep`);
         } catch(e) {}
     }, 3 * 60 * 1000); // 3 minutes strictly prevents Render sleep
-    // ─────────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 });
+
+

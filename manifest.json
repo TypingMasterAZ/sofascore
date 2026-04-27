@@ -1,7 +1,7 @@
 {
   "name": "Rabona Media LIVE",
   "short_name": "Rabona Media",
-  "description": "Canl? idman n?tic?l?ri v? statistikalar.",
+  "description": "Canlı idman nəticələri və statistikalar.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

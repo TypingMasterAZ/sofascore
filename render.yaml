@@ -16,3 +16,9 @@ services:
         value: https://script.google.com/macros/s/AKfycbwFuXK4oHJIAjMoCxPEMeh5hH5jn10PGYEEo048pnmQLFNQoI-M0Fqr5-NZ1wyITYJQrQ/exec
       - key: RAPIDAPI_KEY
         sync: false
+      - key: WEB_PUSH_PUBLIC_KEY
+        sync: false
+      - key: WEB_PUSH_PRIVATE_KEY
+        sync: false
+      - key: WEB_PUSH_SUBJECT
+        sync: false

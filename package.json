@@ -13,8 +13,9 @@
     "express": "^4.22.1",
     "firebase": "^12.11.0",
     "firebase-admin": "^13.7.0",
-    "jsonwebtoken": "^9.0.3",
     "https-proxy-agent": "^7.0.6",
-    "nodemailer": "^8.0.4"
+    "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^8.0.4",
+    "web-push": "^3.6.7"
   }
 }

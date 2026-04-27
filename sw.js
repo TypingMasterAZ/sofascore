@@ -1,4 +1,4 @@
-const CACHE_NAME = 'proscore-shell-v7';
+const CACHE_NAME = 'proscore-shell-v8';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json?v=2',
@@ -99,6 +99,30 @@ function limitCacheSize(name, maxItems) {
     });
   });
 }
+
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  let payload = {};
+  try {
+    payload = event.data.json();
+  } catch (e) {
+    payload = { title: 'Rabona Media', body: event.data.text() };
+  }
+
+  const title = payload.title || 'Rabona Media';
+  const options = {
+    body: payload.body || 'Yeni bildiriş var.',
+    icon: payload.icon || 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
+    badge: payload.badge || 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
+    vibrate: payload.vibrate || [200, 100, 200],
+    requireInteraction: !!payload.requireInteraction,
+    tag: payload.tag || 'general',
+    data: payload.data || {}
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
