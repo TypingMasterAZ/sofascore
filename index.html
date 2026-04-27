@@ -2841,9 +2841,9 @@
 
 <body>
     <div class="auth-overlay" id="authOverlay">
-        <div class="auth-overlay-icon">ğŸ†</div>
-        <div class="auth-overlay-title">XoÅŸ GÉ™lmisiniz!</div>
-        <div class="auth-overlay-text">ProScore ailÉ™sinÉ™ qoÅŸulun vÉ™ bÃ¼tÃ¼n imkanlardan yararlanÄ±n.</div>
+        <div class="auth-overlay-icon">&#127942;</div>
+        <div class="auth-overlay-title">Xos Gelmisiniz!</div>
+        <div class="auth-overlay-text">ProScore ailesine qosulun ve butun imkanlardan yararlanin.</div>
     </div>
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
     <div class="sidebar" id="sidebar">
@@ -2853,21 +2853,21 @@
                 R</div>
             <div>
                 <div style="font-weight:900; font-size:18px;">Rabona Media</div>
-                <div style="font-size:12px; color:var(--text-muted);">CanlÄ± NÉ™ticÉ™lÉ™r</div>
+                <div style="font-size:12px; color:var(--text-muted);">Canli Neticeler</div>
             </div>
         </div>
         <div class="sidebar-nav">
-            <div class="side-item active" onclick="switchMainView('matches'); toggleSidebar()"><i>âš½</i> GÃ¼nÃ¼n OyunlarÄ±</div>
-            <div class="side-item" onclick="toggleLiveFilter(null); switchMainView('matches'); toggleSidebar()"><i>ğŸ”´</i> CanlÄ± Hesablar</div>
-            <div class="side-item" onclick="switchMainView('leagues'); toggleSidebar()"><i>ğŸ†</i> BÃ¼tÃ¼n Liqalar</div>
-            <div class="side-item" onclick="switchMainView('favorites'); toggleSidebar()"><i>â­</i> FavoritlÉ™rim</div>
+            <div class="side-item active" onclick="switchMainView('matches'); toggleSidebar()"><i>&#9917;</i> Gunun Oyunlari</div>
+            <div class="side-item" onclick="toggleLiveFilter(null); switchMainView('matches'); toggleSidebar()"><i>&#128308;</i> Canli Hesablar</div>
+            <div class="side-item" onclick="switchMainView('leagues'); toggleSidebar()"><i>&#127942;</i> Butun Liqalar</div>
+            <div class="side-item" onclick="switchMainView('favorites'); toggleSidebar()"><i>&#11088;</i> Favoritlerim</div>
             <hr style="border:none; border-top:1px solid var(--border); margin:10px 0;">
-            <div class="side-item" onclick="switchMainView('notifications'); toggleSidebar()"><i>ğŸ””</i> BildiriÅŸlÉ™r</div>
-            <div class="side-item" onclick="switchMainView('profile'); toggleSidebar()"><i>âš™ï¸</i> TÉ™nzimlÉ™mÉ™lÉ™r</div>
-            <div class="side-item" id="sidebarAuthLink" onclick="switchMainView('auth'); toggleSidebar()"><i>ğŸ”‘</i> GiriÅŸ / Qeydiyyat</div>
+            <div class="side-item" onclick="switchMainView('notifications'); toggleSidebar()"><i>&#128276;</i> Bildirisler</div>
+            <div class="side-item" onclick="switchMainView('profile'); toggleSidebar()"><i>&#9881;</i> Tenzimlemeler</div>
+            <div class="side-item" id="sidebarAuthLink" onclick="switchMainView('auth'); toggleSidebar()"><i>&#128273;</i> Giris / Qeydiyyat</div>
             <hr style="border:none; border-top:1px solid var(--border); margin:10px 0;">
             <div class="social-section">
-                <span class="social-title">Bizi Ä°zlÉ™yin</span>
+                <span class="social-title">Bizi Izleyin</span>
                 <div class="social-buttons">
                     <a href="https://www.instagram.com/rabonamedia/" target="_blank" class="social-btn instagram" title="Instagram">
                         <i class="fab fa-instagram"></i>
@@ -2885,8 +2885,8 @@
         <div class="top-navbar">
             <header>
                 <div class="header-left">
-                    <span class="back-btn" id="backBtn" onclick="goBack()">â€¹</span>
-                    <span class="menu-icon" id="menuBtn" onclick="toggleSidebar()">â˜°</span>
+                    <span class="back-btn" id="backBtn" onclick="goBack()">&lsaquo;</span>
+                    <span class="menu-icon" id="menuBtn" onclick="toggleSidebar()">&#9776;</span>
                 </div>
 
                 <div class="logo" id="logoTitle">RABONA MEDIA</div>
@@ -2897,14 +2897,14 @@
                     </div>
                     <div class="notification-bell" id="notifBell" onclick="switchMainView('notifications')">
                         <span id="notifBadge" class="notification-badge"></span>
-                        ğŸ””
+                        &#128276;
                     </div>
-                    <span class="search-icon" onclick="toggleSearch()">ğŸ”</span>
+                    <span class="search-icon" onclick="toggleSearch()">&#128269;</span>
                 </div>
             </header>
 
             <div class="date-tabs" id="dateTabsContainer">
-                <!-- TarixlÉ™r JS ilÉ™ bura gÉ™lÉ™cÉ™k -->
+                <!-- Tarixler JS ile bura gelecek -->
             </div>
         </div>
 
@@ -2914,13 +2914,13 @@
             <div class="container active" id="matchView">
                 <div class="search-wrapper" style="display: none; margin-bottom: 10px;">
                     <div class="search-input-box">
-                        <span class="search-icon">ğŸ”</span>
-                        <input type="text" id="matchSearchTerm" placeholder="Komanda vÉ™ ya liqa axtar..."
+                        <span class="search-icon">&#128269;</span>
+                        <input type="text" id="matchSearchTerm" placeholder="Komanda ve ya liqa axtar..."
                             oninput="applyFilters()">
                     </div>
                 </div>
                 <div id="syncStatusOverlay" class="sync-status" style="display: none;">
-                    <i class="fas fa-sync fa-spin"></i> YenilÉ™nir...
+                    <i class="fas fa-sync fa-spin"></i> Yenilenir...
                 </div>
                 <div id="matchList">
                     <div class="loader-wrapper">
@@ -2947,8 +2947,8 @@
             <div id="leaguesView" class="container">
                 <div class="search-wrapper" style="display: none; margin-bottom: 10px;">
                     <div class="search-input-box">
-                        <span class="search-icon">ğŸ”</span>
-                        <input type="text" id="leagueSearchTerm" placeholder="Liqa vÉ™ ya Ã¶lkÉ™ axtar..."
+                        <span class="search-icon">&#128269;</span>
+                        <input type="text" id="leagueSearchTerm" placeholder="Liqa ve ya olke axtar..."
                             oninput="renderLeaguesView()">
                     </div>
                 </div>
@@ -3294,21 +3294,21 @@
         </div>
 
         <!-- Bottom Navigation -->
-        <div class="bottom-nav">
+            <div class="bottom-nav">
             <div class="nav-item active" id="navMatches" onclick="switchMainView('matches')">
-                <div class="nav-icon">âš½</div>
+                <div class="nav-icon">&#9917;</div>
                 <span>Oyunlar</span>
             </div>
             <div class="nav-item" id="navLeagues" onclick="switchMainView('leagues')">
-                <div class="nav-icon">ğŸ†</div>
+                <div class="nav-icon">&#127942;</div>
                 <span>Liqalar</span>
             </div>
             <div class="nav-item" id="navFavorites" onclick="switchMainView('favorites')">
-                <div class="nav-icon">â­</div>
-                <span>FavoritlÉ™r</span>
+                <div class="nav-icon">&#11088;</div>
+                <span>Favoritler</span>
             </div>
             <div class="nav-item" id="navProfile" onclick="switchMainView('profile')">
-                <div class="nav-icon">ğŸ‘¤</div>
+                <div class="nav-icon">&#128100;</div>
                 <span>Profil</span>
             </div>
         </div>
@@ -3425,8 +3425,8 @@
                 const container = document.getElementById('dateTabsContainer');
                 if (!container) return;
                 const today = new Date();
-                const days = ['Bazar', 'B.ErtÉ™si', 'Ã‡.AxÅŸamÄ±', 'Ã‡É™rÅŸÉ™nbÉ™', 'C.AxÅŸamÄ±', 'CÃ¼mÉ™', 'ÅÉ™nbÉ™'];
-                const months = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Ä°yun', 'Ä°yul', 'Avq', 'Sent', 'Okt', 'Noy', 'Dek'];
+                const days = ['Bazar', 'B.Ertesi', 'C.Axsam', 'Cersenbe', 'C.Axsam', 'Cume', 'Senbe'];
+                const months = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyun', 'Iyul', 'Avq', 'Sent', 'Okt', 'Noy', 'Dek'];
                 
                 let html = '';
                 for (let i = -7; i <= 30; i++) {
@@ -3438,7 +3438,7 @@
                     
                     html += `
                         <div class="date-tab ${activeClass}" onclick="selectDate('${dateStr}', this)">
-                            <span class="day-name">${isToday ? 'BU GÃœN' : days[d.getDay()].toUpperCase()}</span>
+                            <span class="day-name">${isToday ? 'BU GUN' : days[d.getDay()].toUpperCase()}</span>
                             <span class="date-num">${d.getDate()} ${months[d.getMonth()]}</span>
                         </div>
                     `;
@@ -3601,12 +3601,12 @@
                                 const hs = ev.homeScore.current;
                                 const as = ev.awayScore.current;
                                 const title = `Rabona Media: ${ev.homeTeam.name} - ${ev.awayTeam.name} GOOOL!`;
-                                const body = `${ev.homeTeam.name} ${hs} - ${as} ${ev.awayTeam.name}. Hesab dÉ™yiÅŸdi!`;
+                                const body = `${ev.homeTeam.name} ${hs} - ${as} ${ev.awayTeam.name}. Hesab deyisdi!`;
                                 this.addNotification('goal', title, body, ev.id);
                             }
                             // Check for Match Start
                             else if (prev.status === 'notstarted' && ev.status.type === 'inprogress') {
-                                this.addNotification('start', 'Oyun BaÅŸladÄ±', `${ev.homeTeam.name} - ${ev.awayTeam.name} oyunu baÅŸladÄ±!`, ev.id);
+                                this.addNotification('start', 'Oyun Basladi', `${ev.homeTeam.name} - ${ev.awayTeam.name} oyunu basladi!`, ev.id);
                             }
                         }
                         this.lastEventState.set(ev.id, { h: ev.homeScore.current, a: ev.awayScore.current, status: ev.status.type });
@@ -4472,7 +4472,7 @@
                 <span class="score-val ${isLive ? 'is-live' : ''}">${homeScore}</span>
                 <span class="score-val ${isLive ? 'is-live' : ''}">${awayScore}</span>
             </div>
-            <div class="fav-star ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavoriteMatch('${m.id}', this)">${isFav ? 'â˜…' : 'â˜†'}</div>
+                <div class="fav-star ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavoriteMatch('${m.id}', this)">${isFav ? '&#9733;' : '&#9734;'}</div>
         </div>`;
             }
 
@@ -4541,7 +4541,7 @@
                                 <span class="league-title">${group.name}</span>
                             </div>
                         </div>
-                        <div class="fav-star ${isFav ? 'active' : ''}" style="margin-right:15px;" onclick="toggleFavoriteLeague('${group.id}', '${group.name.replace(/'/g, "\\'")}', '${group.country.replace(/'/g, "\\'")}', this)">${isFav ? 'â˜…' : 'â˜†'}</div>
+                        <div class="fav-star ${isFav ? 'active' : ''}" style="margin-right:15px;" onclick="toggleFavoriteLeague('${group.id}', '${group.name.replace(/'/g, "\\'")}', '${group.country.replace(/'/g, "\\'")}', this)">${isFav ? '&#9733;' : '&#9734;'}</div>
                         <span class="chevron" onclick="toggleCollapsible(this.parentElement)">â–¼</span>
                     </div>
                     <div class="league-matches">
@@ -4658,7 +4658,7 @@
                                     <span class="league-card-name">${l.name}</span>
                                 </div>
                             </div>
-                            <div class="fav-star ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavoriteLeague('${l.id}', '${safeName}', '${safeCountry}', this)">${isFav ? 'â˜…' : 'â˜†'}</div>
+                            <div class="fav-star ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavoriteLeague('${l.id}', '${safeName}', '${safeCountry}', this)">${isFav ? '&#9733;' : '&#9734;'}</div>
                         </div>`;
                     });
 
@@ -4709,7 +4709,7 @@
                                             <span class="league-card-name">${l.name || 'Liqa'}</span>
                                         </div>
                                     </div>
-                                    <div class="fav-star ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavoriteLeague('${l.id}', '${safeName}', '${safeCountry}', this)">${isFav ? 'â˜…' : 'â˜†'}</div>
+                                    <div class="fav-star ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavoriteLeague('${l.id}', '${safeName}', '${safeCountry}', this)">${isFav ? '&#9733;' : '&#9734;'}</div>
                                 </div>`;
                             });
                         } else {
@@ -5194,7 +5194,7 @@
                                 <span class="league-card-name">${l.name}</span>
                             </div>
                         </div>
-                        <div class="fav-star active" onclick="toggleFavoriteLeague('${l.id}', '${l.name.replace(/'/g, "\\'")}', '${l.country.replace(/'/g, "\\'")}', this); renderFavoritesView();">â˜…</div>
+                        <div class="fav-star active" onclick="toggleFavoriteLeague('${l.id}', '${l.name.replace(/'/g, "\\'")}', '${l.country.replace(/'/g, "\\'")}', this); renderFavoritesView();">&#9733;</div>
                     </div>`;
                     });
                 }
