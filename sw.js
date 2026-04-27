@@ -1,7 +1,7 @@
-const CACHE_NAME = 'proscore-shell-v6';
+const CACHE_NAME = 'proscore-shell-v7';
 const ASSETS_TO_CACHE = [
   '/',
-  '/manifest.json',
+  '/manifest.json?v=2',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css'
 ];
