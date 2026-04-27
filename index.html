@@ -3679,31 +3679,31 @@
                     if (this.history.length === 0) {
                         container.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">ğŸ””</div>
-                        <div class="empty-state-title">BildiriÅŸ yoxdur</div>
-                        <div class="empty-state-text">Qollar vÉ™ digÉ™r Ã¶nÉ™mli hadisÉ™lÉ™r burada gÃ¶rÃ¼nÉ™cÉ™k.</div>
+                        <div class="empty-state-icon">&#128276;</div>
+                        <div class="empty-state-title">Bildiris yoxdur</div>
+                        <div class="empty-state-text">Qollar ve diger onemli hadiseler burada gorunecek.</div>
                     </div>`;
                         return;
                     }
 
                     let html = `
                 <div class="notif-header-actions">
-                    <span style="font-weight:800; opacity:0.6;">SON HADÄ°SÆLÆR</span>
-                    <div class="clear-all-btn" onclick="notificationMgr.clearAllHistory()">ğŸ—‘ï¸ HAMSINI SÄ°L</div>
+                    <span style="font-weight:800; opacity:0.6;">SON HADISELER</span>
+                    <div class="clear-all-btn" onclick="notificationMgr.clearAllHistory()">&#128465; HAMSINI SIL</div>
                 </div>
             `;
 
                     html += this.history.map(n => `
                 <div class="notification-item ${n.unread ? 'unread' : ''}" onclick="openMatchById('${n.matchId}'); notificationMgr.markRead(${n.id})">
                     <div class="notification-icon-box">
-                        ${n.type === 'goal' ? 'âš½' : 'ğŸ“¢'}
+                        ${n.type === 'goal' ? '&#9917;' : '&#128226;'}
                     </div>
                     <div class="notification-info">
                         <span class="notification-title">${n.title}</span>
                         <span class="notification-body">${n.body}</span>
                         <span class="notification-time">${n.time}</span>
                     </div>
-                    <div class="notif-delete-btn" onclick="event.stopPropagation(); window.notificationMgr.deleteNotification('${n.id}')">âœ•</div>
+                    <div class="notif-delete-btn" onclick="event.stopPropagation(); window.notificationMgr.deleteNotification('${n.id}')">&#10005;</div>
                 </div>
             `).join('');
 
@@ -3929,9 +3929,9 @@
                 
                 <div class="modal-tabs" style="background:var(--card); border-bottom:1px solid rgba(255,255,255,0.05); border-top:1px solid rgba(255,255,255,0.05); position:relative; z-index:1;">
                     <button class="tab-btn ${hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueMatches', this)">OYUNLAR</button>
-                    <button class="tab-btn ${!hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueStandings', this)">CÆDVÆL</button>
-                    <button class="tab-btn" onclick="switchLeagueTab('leagueTopPlayers', this)">BOMBARDÄ°RLÆR</button>
-                    <button class="tab-btn" onclick="switchLeagueTab('leagueInfo', this)">MÆLUMAT</button>
+                    <button class="tab-btn ${!hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueStandings', this)">CEDVEL</button>
+                    <button class="tab-btn" onclick="switchLeagueTab('leagueTopPlayers', this)">BOMBARDIRLER</button>
+                    <button class="tab-btn" onclick="switchLeagueTab('leagueInfo', this)">MELUMAT</button>
                 </div>
                 
                 <div class="league-tab-content ${hasMatches ? 'active' : ''}" id="leagueMatches" style="${!hasMatches ? 'display:none;' : ''}">
@@ -5957,14 +5957,14 @@
                 const msgEl = document.getElementById('toastMsg');
                 const iconEl = document.getElementById('toastIcon');
 
-                let icon = 'âœ¨';
-                if (type === 'success') icon = 'âœ…';
-                else if (type === 'error') icon = 'âŒ';
-                else if (type === 'info') icon = 'â„¹ï¸';
+                let icon = '&#10024;';
+                if (type === 'success') icon = '&#9989;';
+                else if (type === 'error') icon = '&#10060;';
+                else if (type === 'info') icon = '&#8505;';
 
                 toast.className = 'toast show ' + type;
                 msgEl.innerText = msg;
-                iconEl.innerText = icon;
+                iconEl.innerHTML = icon;
 
                 clearTimeout(toastTimer);
                 toastTimer = setTimeout(() => {
