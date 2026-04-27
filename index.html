@@ -4751,6 +4751,37 @@
                 return assistName ? `<div class="timeline-sub-player">Assist: ${assistName}</div>` : "";
             }
 
+            async function fetchDirectSofaJson(path) {
+                const directUrl = `https://api.sofascore.com/api/v1${path}`;
+                const res = await fetchWithRetry(directUrl, { cache: 'no-store' });
+                if (!res.ok) throw new Error(`SofaScore direct xətası: ${res.status}`);
+                return res.json();
+            }
+
+            async function fetchMatchDetailsData(id) {
+                let data = null;
+                try {
+                    const res = await fetch(API_BASE_URL + `/api/match/${id}/details`, { cache: 'no-store' });
+                    if (!res.ok) throw new Error(`Server xətası: ${res.status}`);
+                    data = await res.json();
+                } catch (serverErr) {
+                    console.warn("Match details API failed, trying browser SofaScore fallback:", serverErr.message);
+                }
+
+                const hasIncidents = data && data.incidents && Array.isArray(data.incidents.incidents);
+                if (hasIncidents) return data;
+
+                const [incidentsResult, statsResult] = await Promise.allSettled([
+                    fetchDirectSofaJson(`/event/${id}/incidents`),
+                    fetchDirectSofaJson(`/event/${id}/statistics`)
+                ]);
+
+                return {
+                    incidents: incidentsResult.status === 'fulfilled' ? incidentsResult.value : (data?.incidents || { incidents: [] }),
+                    stats: statsResult.status === 'fulfilled' ? statsResult.value : (data?.stats || null)
+                };
+            }
+
             async function updateModalStatsAndIncidents(id, options = {}) {
                 const now = Date.now();
                 if (!options.force && modalDetailsLastFetch[id] && (now - modalDetailsLastFetch[id] < 45000)) {
