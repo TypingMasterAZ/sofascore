@@ -33,7 +33,7 @@
         // Initialize Firebase before any other calls
         firebase.initializeApp(firebaseConfig);
         
-        // M?H?M: registerFCMToken funksiyas?n? qlobal olaraq təyin edirik
+        // MUHUM: registerFCMToken funksiyasini qlobal olaraq teyin edirik
         window.registerFCMToken = function() {
             console.log("[FCM] Push Notification qeydiyyatı başladılır...");
             const messaging = firebase.messaging();
@@ -44,11 +44,11 @@
                     console.log('Notification permission granted.');
                     
                     // Token al
-                    messaging.getToken() // Parametr olmadan yoxlayırıq. VAPID key lazımdırsa bura Əlavə ediləc?k.
+                    messaging.getToken() // Parametr olmadan yoxlayiriq. VAPID key lazimdirdisa bura elave edilecek.
                     .then((currentToken) => {
                         if (currentToken) {
-                            console.log('[FCM] Token al?nd?:', currentToken);
-                            // Server? göndər
+                            console.log('[FCM] Token alindi:', currentToken);
+                            // Servere gonder
                             sendTokenToServer(currentToken);
                         } else {
                             console.log('No registration token available. Request permission to generate one.');
@@ -63,7 +63,7 @@
         };
 
         function sendTokenToServer(token) {
-            // API_BASE_URL ola bilər ki h?l? təyin olunmay?b
+            // API_BASE_URL hele teyin olunmamis ola biler
             const baseUrl = window.API_BASE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000' : '');
             fetch(baseUrl + '/api/fcm/register', {
                 method: 'POST',
@@ -76,8 +76,8 @@
                     leagues: typeof favLeagues !== 'undefined' ? favLeagues.map(l => l.id) : []
                 })
             }).then(res => res.json())
-              .then(data => console.log('[FCM] Token server? qeyd olundu:', data))
-              .catch(err => console.error('[FCM] Server? qeydiyyat xətası:', err));
+              .then(data => console.log('[FCM] Token servere qeyd olundu:', data))
+              .catch(err => console.error('[FCM] Servere qeydiyyat xetasi:', err));
         }
 
         // Set Firebase language to Azerbaijani
@@ -3179,19 +3179,19 @@
                         <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9); margin-bottom: 5px;">Qol Bildiriş Səsi</span>
                         <div class="sound-grid">
                             <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" onclick="selectSound(this.dataset.url, this)">
-                                <i>âš½</i>
+                                <i>&#9917;</i>
                                 <span>Goal 1</span>
-                                <div class="play-indicator">â–¶</div>
+                                <div class="play-indicator">&#9654;</div>
                             </div>
                             <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3" onclick="selectSound(this.dataset.url, this)">
-                                <i>ğŸ“£</i>
+                                <i>&#128226;</i>
                                 <span>Goal 2</span>
-                                <div class="play-indicator">â–¶</div>
+                                <div class="play-indicator">&#9654;</div>
                             </div>
                             <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/1004/1004-preview.mp3" onclick="selectSound(this.dataset.url, this)">
-                                <i>ğŸ</i>
+                                <i>&#127937;</i>
                                 <span>Whistle</span>
-                                <div class="play-indicator">â–¶</div>
+                                <div class="play-indicator">&#9654;</div>
                             </div>
                         </div>
                     </div>
@@ -5352,7 +5352,7 @@
                         vapidKey: 'BPAPOqZmGdoTDrIgfoFD99QaV6bmdgab9eXNZQNjkKAzuCqsrnIdtnzi8rX99lLGHiDlp3L4fx64EBezAGHytOY' 
                     }).catch(err => {
                         console.error("[FCM] Token Error:", err);
-                        showToast("FCM Token al?nmad?: " + err.message, "error");
+                        showToast("FCM token alinmadi: " + err.message, "error");
                         throw err;
                     });
 
@@ -6232,7 +6232,7 @@
                     const avatarEl = document.getElementById('profileAvatar');
                     
                     if (nameEl) nameEl.innerText = "İstifadəçi";
-                    if (statusEl) statusEl.innerText = "Daxil olunmay?b";
+                    if (statusEl) statusEl.innerText = "Daxil olunmayib";
                     
                     if (avatarEl) {
                         avatarEl.style.backgroundImage = "none";
