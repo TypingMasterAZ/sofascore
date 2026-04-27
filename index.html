@@ -2974,21 +2974,21 @@
             <!-- 5. Notifications View -->
             <div class="container" id="notificationsView">
                 <div id="notificationsContent" style="padding: 16px;">
-                    <!-- Səsli Bildiriş T?limat? -->
+                    <!-- Səsli Bildiriş Təlimatı -->
                     <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 16px; padding: 18px; margin-bottom: 24px; position: relative; overflow: hidden;">
-                        <div style="position: absolute; top: -10px; right: -10px; font-size: 60px; opacity: 0.1; transform: rotate(15deg);">ğŸ””</div>
+                        <div style="position: absolute; top: -10px; right: -10px; font-size: 60px; opacity: 0.1; transform: rotate(15deg);">&#128276;</div>
                         <h4 style="margin: 0 0 10px; font-size: 16px; display: flex; align-items: center; gap: 8px;">
-                            <span>ğŸ”Š</span> Səsli Bildiriş Gəlmir?
+                            <span>&#128266;</span> Səsli Bildiriş Gəlmir?
                         </h4>
                         <ul style="margin: 0; padding: 0 0 0 20px; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-                            <li><b>Android:</b> Proqramlar > Chrome > Bildirişlər > <b>"Geyim"</b> (v? ya G?l?n qollar) b?lm?sind? səsin aktiv oldu?undan Əmin olun.</li>
-                            <li><b>Batareya:</b> Chrome üçün "Batareya Qənaəti" rejimini <b>"M?hdudiyy?tsiz"</b> (Unrestricted) edin.</li>
-                            <li><b>iOS:</b> Saytı mütləq "Ana Ekrana Əlavə Et" d?ym?si ilə telefona quraşdırın.</li>
+                            <li><b>Android:</b> Proqramlar > Chrome > Bildirişlər > <b>"Gələn qollar"</b> bölməsində səsin aktiv olduğundan əmin olun.</li>
+                            <li><b>Batareya:</b> Chrome üçün "Batareya Qənaəti" rejimini <b>"Məhdudiyyətsiz"</b> edin.</li>
+                            <li><b>iOS:</b> Saytı mütləq "Ana Ekrana Əlavə Et" düyməsi ilə telefona quraşdırın.</li>
                         </ul>
                     </div>
 
                     <div class="empty-state">
-                        <div class="empty-state-icon">ğŸ””</div>
+                        <div class="empty-state-icon">&#128276;</div>
                         <div class="empty-state-title">Bildiriş yoxdur</div>
                         <div class="empty-state-text">Qollar və digər önəmli hadisələr burada görünəcək.</div>
                     </div>
@@ -3022,8 +3022,8 @@
                         <label
                             style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Şifrə</label>
                         <div class="password-wrapper">
-                            <input type="password" id="authPassword" class="profile-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢">
-                            <span class="toggle-password" onclick="togglePasswordVisibility('authPassword', this)">ğŸ‘ï¸</span>
+                            <input type="password" id="authPassword" class="profile-input" placeholder="********">
+                            <span class="toggle-password" onclick="togglePasswordVisibility('authPassword', this)">&#128065;</span>
                         </div>
                     </div>
                     <div id="forgotPassLink" style="text-align:right; margin-bottom:15px;">
@@ -3180,17 +3180,17 @@
                         <div class="sound-grid">
                             <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" onclick="selectSound(this.dataset.url, this)">
                                 <i>&#9917;</i>
-                                <span>Goal 1</span>
+                                <span>Qol 1</span>
                                 <div class="play-indicator">&#9654;</div>
                             </div>
                             <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3" onclick="selectSound(this.dataset.url, this)">
                                 <i>&#128226;</i>
-                                <span>Goal 2</span>
+                                <span>Qol 2</span>
                                 <div class="play-indicator">&#9654;</div>
                             </div>
                             <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/1004/1004-preview.mp3" onclick="selectSound(this.dataset.url, this)">
                                 <i>&#127937;</i>
-                                <span>Whistle</span>
+                                <span>Fit</span>
                                 <div class="play-indicator">&#9654;</div>
                             </div>
                         </div>
@@ -3221,34 +3221,34 @@
                     <div id="testPushRow" class="profile-row" style="display:none; padding:12px 16px; background:rgba(59, 130, 246, 0.05); border-radius:12px; margin: 10px 16px; border: 1px dashed rgba(59, 130, 246, 0.3);">
                         <div style="flex:1;">
                             <div style="font-size:14px; font-weight:700; color:var(--primary);">Bildirişləri Yoxla</div>
-                            <div style="font-size:11px; color:var(--text-muted);">Cihaz?n bildiriş q?bul etdiyini yoxlayın.</div>
+                            <div style="font-size:11px; color:var(--text-muted);">Cihazın bildiriş qəbul etdiyini yoxlayın.</div>
                         </div>
                         <button onclick="sendTestPush()" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">YOXLA</button>
                     </div>
 
                     <!-- DEBUG INFO SECTION -->
                     <div id="debugSettings" style="display:none; padding:15px; margin:10px 16px; background:rgba(255,255,0,0.05); border:1px solid rgba(255,255,0,0.2); border-radius:12px;">
-                        <div style="font-size:11px; font-weight:800; margin-bottom:5px; color:#ffcc00;">D?AQNOST?KA (DEBUG)</div>
+                        <div style="font-size:11px; font-weight:800; margin-bottom:5px; color:#ffcc00;">DİAQNOSTİKA (DEBUG)</div>
                         <div id="debugTokenBox" style="font-size:10px; color:rgba(255,255,255,0.6); word-break:break-all; font-family:monospace;">Token tapılmadı</div>
                         <div id="debugPermBox" style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:5px;">İcazə: yoxlanılır...</div>
                     </div>
 
                     <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
                         onclick="document.getElementById('debugSettings').style.display = 'block'; showToast('Diaqnostika paneli açıldı')">
-                        <span style="font-size:12px; font-weight:600; color:var(--text-muted);">Sazlama Məlumatlar (Debug)</span>
+                        <span style="font-size:12px; font-weight:600; color:var(--text-muted);">Sazlama Məlumatları (Debug)</span>
                         <i class="fas fa-chevron-right" style="font-size:10px; color:var(--text-muted);"></i>
                     </div>
 
                     <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
                         onclick="clearAllData()">
                         <span style="font-size:15px; font-weight:600; color:#ef4444;">Bütün Məlumatlar Sil</span>
-                            <span>ğŸ—‘ï¸</span>
+                            <span>&#128465;</span>
                         </div>
                         <div id="logoutBtnBox" class="profile-row"
                             style="margin-top:20px; border-top:1px solid rgba(255,255,255,0.05); cursor:pointer;"
                             onclick="logoutUser()">
-                            <span style="font-size:15px; font-weight:700; color:#ef4444;">Hesabdan ??x</span>
-                            <span style="font-size:18px;">ğŸšª</span>
+                            <span style="font-size:15px; font-weight:700; color:#ef4444;">Hesabdan Çıx</span>
+                            <span style="font-size:18px;">&#128682;</span>
                         </div>
 
                     </div>
@@ -3567,6 +3567,65 @@
                 ['yoxlayın', 'yoxlayın'],
                 ['yoxlayırıq', 'yoxlayırıq'],
                 ['Zəhmət', 'Zəhmət']
+                ,['r?ng', 'rəng']
+                ,['yax??', 'yaxşı']
+                ,['T?limat?', 'Təlimatı']
+                ,['v? ya G?l?n qollar', 'və ya gələn qollar']
+                ,['b?lm?sind?', 'bölməsində']
+                ,['oldu?undan', 'olduğundan']
+                ,['M?hdudiyy?tsiz', 'Məhdudiyyətsiz']
+                ,['d?ym?si', 'düyməsi']
+                ,['d?ym?sin?', 'düyməsinə']
+                ,['v?', 'və']
+                ,['?zv?', 'üzvü']
+                ,['q?bul', 'qəbul']
+                ,['D?AQNOST?KA', 'DİAQNOSTİKA']
+                ,['ba? verdi', 'baş verdi']
+                ,['??b?k?', 'şəbəkə']
+                ,['ba?lant?s?', 'bağlantısı']
+                ,['b?rpas?n?', 'bərpasını']
+                ,['fetch-l?rin', 'fetch-lərin']
+                ,['qar??s?n?', 'qarşısını']
+                ,['qal?b', 'qalıb']
+                ,['Axtar??', 'Axtarış']
+                ,['s?zg?ci', 'süzgəci']
+                ,['?n yeni', 'Ən yeni']
+                ,['Bilinm?y?n', 'Bilinməyən']
+                ,['?ox sayda', 'çox sayda']
+                ,['ne??', 'neçə']
+                ,['c?hd', 'cəhd']
+                ,['axtar??', 'axtarış']
+                ,['ed?', 'edə']
+                ,['Liqas?', 'Liqası']
+                ,['Beyn?lxalq', 'Beynəlxalq']
+                ,['G?r?kirs?', 'Gərəkirsə']
+                ,['Oyun?u', 'Oyunçu']
+                ,['datas?', 'datası']
+                ,['favoritl?r?', 'favoritlərə']
+                ,['favoritl?rd?n', 'favoritlərdən']
+                ,['??xar?ld?', 'çıxarıldı']
+                ,['Serverl?', 'Serverlə']
+                ,['Oyunlar?', 'Oyunları']
+                ,['liqalar?', 'liqaları']
+                ,['favoritl?riniz?', 'favoritlərinizə']
+                ,['bo?', 'boş']
+                ,['Payla?', 'Paylaş']
+                ,['ailəsin?', 'ailəsinə']
+                ,['Ke?', 'Keç']
+                ,['yanl??d?r', 'yanlışdır']
+                ,['art?q', 'artıq']
+                ,['format?d?r', 'formatıdır']
+                ,['?ox z?ifdir', 'çox zəifdir']
+                ,['ver? bilm?di', 'verə bilmədi']
+                ,['d??m?r', 'düşmür']
+                ,['??x?? Et?', 'Çıxış Et?']
+                ,['??xmaq', 'çıxmaq']
+                ,['??x?ld?.', 'çıxıldı.']
+                ,['olunmay?b', 'olunmayıb']
+                ,['saniy?d?n', 'saniyədən']
+                ,['d?yi?diyi', 'dəyişdiyi']
+                ,['d?yi?ir', 'dəyişir']
+                ,['y?klindiyind?', 'yükləndiyində']
             ];
 
             function applyAzPlaceholderFixes(text) {
