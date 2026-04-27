@@ -144,107 +144,279 @@ app.use((req, res, next) => {
 });
 
 const SOFA_API = "https://api.sofascore.com/api/v1";
-const GAS_PROXY_URL = process.env.GAS_PROXY_URL || "https://script.google.com/macros/s/AKfycbxsHV0KhThLoQkzK5anpcQzb6-MdDed2bSIRWltFl46eHWVFQ-BJ4hNJgonVlgcX42_Ig/exec";
+const RAPIDAPI_HOST = "sofascore.p.rapidapi.com";
+const GAS_PROXIES = [
+    process.env.GAS_PROXY_URL,
+    "https://script.google.com/macros/s/AKfycbwFuXK4oHJIAjMoCxPEMeh5hH5jn10PGYEEo048pnmQLFNQoI-M0Fqr5-NZ1wyITYJQrQ/exec",
+    "https://script.google.com/macros/s/AKfycbxsHV0KhThLoQkzK5anpcQzb6-MdDed2bSIRWltFl46eHWVFQ-BJ4hNJgonVlgcX42_Ig/exec"
+].filter(Boolean);
+
+let currentProxyIndex = 0;
+function getNextProxy() {
+    if (GAS_PROXIES.length === 0) return null;
+    const proxy = GAS_PROXIES[currentProxyIndex];
+    currentProxyIndex = (currentProxyIndex + 1) % GAS_PROXIES.length;
+    return proxy;
+}
 const HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
-    "Accept": "*/*",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Referer": "https://www.sofascore.com/",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9,az;q=0.8",
+    "Referer": "https://www.sofascore.com/football/livescore",
     "Origin": "https://www.sofascore.com",
     "Cache-Control": "no-cache",
-    "sec-ch-ua": '"Google Chrome";v="133", "Not:A-Brand";v="8", "Chromium";v="133"',
-    "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": '"Windows"',
-    "sec-fetch-dest": "empty",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "same-site"
+    "Pragma": "no-cache"
 };
 
-async function fetchFromSofa(path, params = {}) {
-    let result = null;
+const USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
+];
+
+function getRandomUA() {
+    return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+}
+
+async function legacyFetchFromSofa(path, params = {}) {
     let lastError = null;
 
-    const tryFetch = async (type) => {
+    // Strategy 1: Try all GAS Proxies
+    for (let i = 0; i < GAS_PROXIES.length; i++) {
+        const proxyUrl = getNextProxy();
         try {
-            let res;
-            if (type === 'proxy') {
-                console.log(`[PROXY FETCH via GAS] Path: ${path}`);
-                if (!GAS_PROXY_URL) throw new Error("GAS_PROXY_URL is not set");
-                
-                // Construct parameters for GAS Proxy
-                const queryParams = new URLSearchParams(params);
-                queryParams.append('path', path);
-                
-                res = await axios.get(GAS_PROXY_URL, { 
-                    params: queryParams,
-                    timeout: 15000 
-                });
-            } else if (type === 'direct') {
-                console.log(`[DIRECT FETCH] Path: ${path}`);
-                res = await axios.get(`${SOFA_API}${path}`, { 
-                    headers: HEADERS,
-                    params: params,
-                    timeout: 10000
-                });
-            } else {
-                return null;
-            }
+            console.log(`[PROXY TRY] ${proxyUrl.substring(0, 50)}... for ${path}`);
+            const queryParams = new URLSearchParams(params);
+            queryParams.append('path', path);
+            
+            const res = await axios.get(proxyUrl, { 
+                params: queryParams,
+                timeout: 15000 
+            });
 
-            // Məlumat string formatında gəlibsə, JSON-a çeviririk
-            if (res.data && typeof res.data === 'string') {
-                if (res.data.trim().startsWith('<!doctype') || res.data.trim().startsWith('<html')) {
-                    throw new Error("HTML response received");
+            let data = res.data;
+            if (data && typeof data === 'string') {
+                if (data.trim().startsWith('<!doctype') || data.trim().startsWith('<html')) {
+                    console.warn(`[PROXY BLOCKED] HTML response from proxy`);
+                    continue;
                 }
-                try { res.data = JSON.parse(res.data); } catch (e) {}
+                try { data = JSON.parse(data); } catch (e) {}
             }
 
-            // Əgər cavab 200 HTTP kodu qaytarıb, amma daxilində "error" obyekti varsa (məsələn 403 Forbidden)
-            if (res.data && res.data.error) {
-                throw new Error(`API Error: ${res.data.error.code} - ${res.data.error.reason}`);
+            if (data && data.error && (data.error.code === 403 || data.error.code === 404)) {
+                console.warn(`[PROXY API ERROR] ${data.error.code} for ${path}`);
+                continue;
             }
 
-            return res;
+            if (data) {
+                console.log(`[PROXY SUCCESS] ${path}`);
+                return { data };
+            }
+        } catch (e) {
+            console.error(`[PROXY FAILED] ${path}: ${e.message}`);
+            lastError = e;
+        }
+    }
+
+    // Strategy 2: Direct Sofascore API (with retries)
+    for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+            console.log(`[DIRECT TRY] ${path} (attempt ${attempt + 1})`);
+            const headers = { ...HEADERS, "User-Agent": getRandomUA() };
+            const res = await axios.get(`${SOFA_API}${path}`, { 
+                headers: headers,
+                params: params,
+                timeout: 10000
+            });
+
+            let data = res.data;
+            if (data && typeof data === 'string') {
+                if (data.trim().startsWith('<!doctype') || data.trim().startsWith('<html')) {
+                    throw new Error("HTML response (Blocked)");
+                }
+                try { data = JSON.parse(data); } catch (e) {}
+            }
+
+            console.log(`[DIRECT SUCCESS] ${path}`);
+            return { data };
+        } catch (e) {
+            console.error(`[DIRECT FAILED] ${path}: ${e.message}`);
+            lastError = e;
+            if (attempt < 2) {
+                await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+            }
+        }
+    }
+
+    throw new Error(`Bütün bağlantı cəhdləri uğursuz oldu: ${lastError ? lastError.message : 'Unknown'}`);
+}
+
+const SOFA_DIRECT_TIMEOUT = 12000;
+const SOFA_PROXY_TIMEOUT = 4000;
+const inFlightSofaFetches = new Map();
+let sofaRequestQueue = Promise.resolve();
+let lastSofaRequestAt = 0;
+
+function stableParamsKey(params = {}) {
+    return JSON.stringify(Object.keys(params).sort().reduce((acc, key) => {
+        acc[key] = params[key];
+        return acc;
+    }, {}));
+}
+
+function normalizeSofaData(data) {
+    if (data && typeof data === 'string') {
+        const text = data.trim();
+        if (text.startsWith('<!doctype') || text.startsWith('<html')) {
+            throw new Error("HTML response received instead of JSON");
+        }
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            throw new Error("Invalid JSON response");
+        }
+    }
+
+    if (data && data.error) {
+        const err = data.error;
+        const code = err.code || err.status || "unknown";
+        const reason = err.reason || err.message || "API error";
+        throw new Error(`API Error: ${code} - ${reason}`);
+    }
+
+    return data;
+}
+
+function normalizeIncidentsData(data) {
+    if (!data) return null;
+    if (Array.isArray(data)) return { incidents: data };
+    if (Array.isArray(data.incidents)) return data;
+    if (data.data) return normalizeIncidentsData(data.data);
+    return data;
+}
+
+async function fetchRapidApiIncidents(matchId) {
+    const rapidApiKey = process.env.RAPIDAPI_KEY;
+    if (!rapidApiKey) return null;
+
+    const response = await axios.get(`https://${RAPIDAPI_HOST}/matches/get-incidents`, {
+        headers: {
+            "x-rapidapi-key": rapidApiKey,
+            "x-rapidapi-host": RAPIDAPI_HOST
+        },
+        params: { matchId },
+        timeout: 12000
+    });
+
+    return normalizeIncidentsData(response.data);
+}
+
+function shouldRetrySofa(error) {
+    const status = error.response?.status;
+    return !status || status >= 500;
+}
+
+async function runSofaRequest(fn) {
+    const run = sofaRequestQueue.catch(() => {}).then(async () => {
+        const waitMs = Math.max(0, 800 - (Date.now() - lastSofaRequestAt));
+        if (waitMs > 0) {
+            await new Promise(resolve => setTimeout(resolve, waitMs));
+        }
+        try {
+            return await fn();
+        } finally {
+            lastSofaRequestAt = Date.now();
+        }
+    });
+    sofaRequestQueue = run.catch(() => {});
+    return run;
+}
+
+async function fetchFromSofa(path, params = {}) {
+    const key = `${path}:${stableParamsKey(params)}`;
+    if (inFlightSofaFetches.has(key)) {
+        return inFlightSofaFetches.get(key);
+    }
+
+    const fetchPromise = fetchFromSofaUncached(path, params).finally(() => {
+        inFlightSofaFetches.delete(key);
+    });
+    inFlightSofaFetches.set(key, fetchPromise);
+    return fetchPromise;
+}
+
+async function fetchFromSofaUncached(path, params = {}) {
+    let lastError = null;
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            console.log(`[DIRECT TRY] ${path} (attempt ${attempt + 1})`);
+            const headers = { ...HEADERS, "User-Agent": getRandomUA() };
+            const res = await runSofaRequest(() => axios.get(`${SOFA_API}${path}`, {
+                headers,
+                params,
+                timeout: SOFA_DIRECT_TIMEOUT
+            }));
+
+            const data = normalizeSofaData(res.data);
+            if (data) {
+                console.log(`[DIRECT SUCCESS] ${path}`);
+                return { data };
+            }
         } catch (e) {
             lastError = e;
-            console.error(`[${type.toUpperCase()} FAILED] ${path}: ${e.message}`);
-            return null;
+            console.error(`[DIRECT FAILED] ${path}: ${e.message}`);
+            if (attempt === 0 && shouldRetrySofa(e)) {
+                await new Promise(r => setTimeout(r, 800));
+                continue;
+            }
+            break;
         }
-    };
-
-    // Strategiya 1: Əvvəlcə GAS Proxy
-    if (GAS_PROXY_URL) {
-        result = await tryFetch('proxy');
-    }
-    
-    // Strategiya 2: Əgər Proxy alınmadısa (məsələn error verdisə), Direct yoxla
-    if (!result) {
-        result = await tryFetch('direct');
     }
 
-    if (!result) {
-        throw new Error(`Bütün bağlantı cəhdləri uğursuz oldu. Son xəta: ${lastError ? lastError.message : 'Unknown'}`);
+    for (let i = 0; i < GAS_PROXIES.length; i++) {
+        if ([403, 404].includes(lastError?.response?.status)) {
+            break;
+        }
+        const proxyUrl = getNextProxy();
+        try {
+            console.log(`[PROXY TRY] ${proxyUrl.substring(0, 50)}... for ${path}`);
+            const queryParams = new URLSearchParams(params);
+            queryParams.set('path', path);
+
+            const res = await runSofaRequest(() => axios.get(proxyUrl, {
+                params: queryParams,
+                timeout: SOFA_PROXY_TIMEOUT
+            }));
+
+            const data = normalizeSofaData(res.data);
+            if (data) {
+                console.log(`[PROXY SUCCESS] ${path}`);
+                return { data };
+            }
+        } catch (e) {
+            lastError = e;
+            console.error(`[PROXY FAILED] ${path}: ${e.message}`);
+        }
     }
 
-    return result;
+    throw new Error(`Butun baglanti cehdleri ugursuz oldu: ${lastError ? lastError.message : 'Unknown'}`);
 }
 
 // Diagnostic Endpoint Enhanced
 app.get("/api/debug/proxy", async (req, res) => {
     const diagnostic = {
         timestamp: new Date().toISOString(),
-        proxy_configured: !!GAS_PROXY_URL,
-        proxy_prefix: GAS_PROXY_URL ? GAS_PROXY_URL.substring(0, 40) + "..." : "NONE",
+        proxy_configured: GAS_PROXIES.length > 0,
+        proxy_count: GAS_PROXIES.length,
         sofa_api: SOFA_API,
         node_version: process.version,
         env_keys: Object.keys(process.env).filter(key => key.includes("GAS") || key.includes("URL") || key.includes("API")),
         test_fetch: null
     };
 
-    if (GAS_PROXY_URL) {
+    if (GAS_PROXIES.length > 0) {
         try {
             console.log("[DEBUG] Testing proxy connectivity...");
             const start = Date.now();
-            const test = await axios.get(GAS_PROXY_URL, { 
+            const test = await axios.get(GAS_PROXIES[0], { 
                 params: { path: "/sport/football/events/live" },
                 timeout: 5000
             });
@@ -288,6 +460,35 @@ const CACHE_TIMES = {
     STATIC: 60 * 60 * 1000    // 1 saat
 };
 
+let lastScores = {};
+let globalLiveEvents = null;
+let lastLiveFetchTime = 0;
+let lastLiveFetchAttemptTime = 0;
+let liveFetchPromise = null;
+
+const FALLBACK_TOP_LEAGUES = [
+    { id: 7, name: "UEFA Champions League", category: { id: 1465, name: "Europe" } },
+    { id: 679, name: "UEFA Europa League", category: { id: 1465, name: "Europe" } },
+    { id: 14643, name: "UEFA Conference League", category: { id: 1465, name: "Europe" } },
+    { id: 17, name: "Premier League", category: { id: 1, name: "England" } },
+    { id: 8, name: "LaLiga", category: { id: 32, name: "Spain" } },
+    { id: 23, name: "Serie A", category: { id: 31, name: "Italy" } },
+    { id: 35, name: "Bundesliga", category: { id: 30, name: "Germany" } },
+    { id: 34, name: "Ligue 1", category: { id: 7, name: "France" } },
+    { id: 52, name: "Super Lig", category: { id: 46, name: "Turkey" } }
+];
+
+const FALLBACK_CATEGORIES = [
+    { id: 1, name: "England" },
+    { id: 32, name: "Spain" },
+    { id: 31, name: "Italy" },
+    { id: 30, name: "Germany" },
+    { id: 7, name: "France" },
+    { id: 46, name: "Turkey" },
+    { id: 1465, name: "Europe" },
+    { id: 170, name: "Azerbaijan" }
+];
+
 async function getCachedData(key, fetchFn, ttl) {
     const now = Date.now();
     if (cache[key] && (now - cache[key].timestamp < ttl)) {
@@ -299,9 +500,63 @@ async function getCachedData(key, fetchFn, ttl) {
     // Random jitter (100ms - 500ms) to avoid robotic patterns
     await new Promise(resolve => setTimeout(resolve, Math.random() * 400 + 100));
     
-    const data = await fetchFn();
-    cache[key] = { data, timestamp: now };
-    return data;
+    try {
+        const data = await fetchFn();
+        cache[key] = { data, timestamp: Date.now() };
+        return data;
+    } catch (error) {
+        if (cache[key]) {
+            console.warn(`[CACHE STALE] Key: ${key}. Returning stale data after fetch error: ${error.message}`);
+            return cache[key].data;
+        }
+        throw error;
+    }
+}
+
+async function getLiveEventsData() {
+    const now = Date.now();
+    const hasUsableCache = globalLiveEvents && Array.isArray(globalLiveEvents.events);
+    if (hasUsableCache && (now - lastLiveFetchTime < CACHE_TIMES.LIVE)) {
+        return globalLiveEvents;
+    }
+
+    if (hasUsableCache && (now - lastLiveFetchAttemptTime < CACHE_TIMES.LIVE)) {
+        return {
+            ...globalLiveEvents,
+            stale: true,
+            staleSince: new Date(lastLiveFetchTime).toISOString()
+        };
+    }
+
+    if (!liveFetchPromise) {
+        lastLiveFetchAttemptTime = now;
+        liveFetchPromise = (async () => {
+            const result = await fetchFromSofa("/sport/football/events/live");
+            const data = result.data;
+            if (!data || !Array.isArray(data.events)) {
+                throw new Error("Live response missing events array");
+            }
+            globalLiveEvents = data;
+            lastLiveFetchTime = Date.now();
+            return globalLiveEvents;
+        })().finally(() => {
+            liveFetchPromise = null;
+        });
+    }
+
+    try {
+        return await liveFetchPromise;
+    } catch (error) {
+        if (hasUsableCache) {
+            console.warn(`[LIVE STALE] Returning cached live events after fetch error: ${error.message}`);
+            return {
+                ...globalLiveEvents,
+                stale: true,
+                staleSince: new Date(lastLiveFetchTime).toISOString()
+            };
+        }
+        throw error;
+    }
 }
 
 // API vasitəçisi (Komanda məlumatları və heyət üçün)
@@ -326,15 +581,8 @@ app.get("/api/matches/live", async (req, res) => {
     res.set('Expires', '0');
 
     try {
-        // ALWAYS fetch fresh data, OR use background cached data if very recent (< 10 seconds)
-        // This makes the frontend loading completely instantaneous when the site is opened.
-        if (globalLiveEvents && (Date.now() - lastLiveFetchTime < 10000)) {
-            return res.json(globalLiveEvents);
-        }
-        const result = await fetchFromSofa("/sport/football/events/live");
-        globalLiveEvents = result.data;
-        lastLiveFetchTime = Date.now();
-        res.json(result.data);
+        const data = await getLiveEventsData();
+        res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Live matches: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
         res.status(500).json({ error: true, message: error.message, details: error.response?.data?.substring?.(0, 100) });
@@ -362,30 +610,22 @@ app.get("/api/matches/:date", async (req, res) => {
 app.get("/api/match/:id/incidents", async (req, res) => {
     const id = req.params.id;
     try {
-        const rapidApiKey = process.env.RAPIDAPI_KEY || '2f8ef458aemsha05f2f0c4ce9b06p1f15fejsn702617d3780e';
-        const response = await axios.get('https://sofascore.p.rapidapi.com/matches/get-incidents', {
-            headers: {
-                'x-rapidapi-key': rapidApiKey,
-                'x-rapidapi-host': 'sofascore.p.rapidapi.com'
-            },
-            params: { matchId: id }
-        });
-        
-        if (response.data) {
-            cache[`incidents_${id}`] = { data: response.data, timestamp: Date.now() };
-            return res.json(response.data);
-        }
-
-        if (cache[`incidents_${id}`]) {
-            return res.json(cache[`incidents_${id}`].data);
-        }
-
-        throw new Error("No data available");
+        const data = await getCachedData(`incidents_${id}`, async () => {
+            try {
+                const result = await fetchFromSofa(`/event/${id}/incidents`);
+                return normalizeIncidentsData(result.data);
+            } catch (error) {
+                console.warn(`[INCIDENTS FALLBACK] Native incidents failed for ${id}: ${error.message}`);
+                const fallback = await fetchRapidApiIncidents(id);
+                if (fallback) return fallback;
+                throw error;
+            }
+        }, 10000); // 10s cache
+        res.json(data);
     } catch (error) {
-        console.error(`[RAPIDAPI ERROR] Match incidents ${id}: ${error.message}`);
-        if (cache[`incidents_${id}`]) {
-            return res.json(cache[`incidents_${id}`].data);
-        }
+        console.error(`[API ERROR] Match incidents ${id}: ${error.message}`);
+        const cached = cache[`incidents_${id}`];
+        if (cached) return res.json(cached.data);
         res.status(500).json({ error: true, message: error.message });
     }
 });
@@ -394,47 +634,28 @@ app.get("/api/match/:id/incidents", async (req, res) => {
 app.get("/api/match/:id/statistics", async (req, res) => {
     const id = req.params.id;
     try {
-        const rapidApiKey = process.env.RAPIDAPI_KEY || '2f8ef458aemsha05f2f0c4ce9b06p1f15fejsn702617d3780e';
         const data = await getCachedData(`stats_${id}`, async () => {
-            const result = await axios.get('https://sofascore.p.rapidapi.com/matches/get-statistics', {
-                headers: {
-                    'x-rapidapi-key': rapidApiKey,
-                    'x-rapidapi-host': 'sofascore.p.rapidapi.com'
-                },
-                params: { matchId: id }
-            });
+            const result = await fetchFromSofa(`/event/${id}/statistics`);
             return result.data;
-        }, 30000);
+        }, 30000); // 30s cache
         res.json(data);
     } catch (error) {
-        console.error(`[RAPIDAPI ERROR] Match statistics ${id}: ${error.message}`);
+        console.error(`[API ERROR] Match statistics ${id}: ${error.message}`);
         const cached = cache[`stats_${id}`];
         if (cached) return res.json(cached.data);
         res.status(500).json({ error: true, message: error.message });
     }
 });
 
-// Yeni API: H2H (Head to Head) Matçlar - RapidAPI vasitəsilə
+// Yeni API: H2H (Head to Head) Matçlar - Native Sofascore API
 app.get("/api/match/:id/h2h", async (req, res) => {
     const id = req.params.id;
     try {
-        const rapidApiKey = process.env.RAPIDAPI_KEY || '2f8ef458aemsha05f2f0c4ce9b06p1f15fejsn702617d3780e';
-        const params = { customId: id, ...req.query };
-        const response = await axios.get('https://sofascore.p.rapidapi.com/matches/get-h2h-events', {
-            headers: {
-                'x-rapidapi-key': rapidApiKey,
-                'x-rapidapi-host': 'sofascore.p.rapidapi.com'
-            },
-            params: params
-        });
-        res.json(response.data);
+        const result = await fetchFromSofa(`/event/${id}/h2h-events`);
+        res.json(result.data);
     } catch (error) {
-        console.error(`[RAPIDAPI ERROR] Match H2H ${id}: ${error.message}`);
-        if (error.response) {
-             res.status(error.response.status).json(error.response.data);
-        } else {
-             res.status(500).json({ error: true, message: error.message });
-        }
+        console.error(`[API ERROR] Match H2H ${id}: ${error.message}`);
+        res.status(500).json({ error: true, message: error.message });
     }
 });
 
@@ -442,30 +663,39 @@ app.get("/api/match/:id/h2h", async (req, res) => {
 app.get("/api/match/:id/details", async (req, res) => {
     const id = req.params.id;
     try {
-        const rapidApiKey = process.env.RAPIDAPI_KEY || '2f8ef458aemsha05f2f0c4ce9b06p1f15fejsn702617d3780e';
-        const headers = {
-            'x-rapidapi-key': rapidApiKey,
-            'x-rapidapi-host': 'sofascore.p.rapidapi.com'
-        };
+        const optionalCachedFetch = (key, path, ttl) => getCachedData(key, async () => {
+            try {
+                const result = await fetchFromSofa(path);
+                return key.startsWith("incidents_") ? normalizeIncidentsData(result.data) : result.data;
+            } catch (error) {
+                if (error.response?.status === 404 || error.message.includes("404")) {
+                    return null;
+                }
+                if (key.startsWith("incidents_")) {
+                    console.warn(`[INCIDENTS FALLBACK] Native details incidents failed for ${id}: ${error.message}`);
+                    const fallback = await fetchRapidApiIncidents(id);
+                    if (fallback) return fallback;
+                }
+                throw error;
+            }
+        }, ttl).catch(() => null);
 
-        const incidentsResponse = await axios.get('https://sofascore.p.rapidapi.com/matches/get-incidents', {
-            headers: headers,
-            params: { matchId: id }
-        }).catch(e => null);
-        
-        await new Promise(r => setTimeout(r, 500)); 
-        
-        const statsResponse = await axios.get('https://sofascore.p.rapidapi.com/matches/get-statistics', {
-            headers: headers,
-            params: { matchId: id }
-        }).catch(e => null);
+        // Goal scorers live in incidents. Fetch them first and keep statistics optional
+        // so one blocked stats request does not hide goals from the match modal.
+        const incidents = await optionalCachedFetch(`incidents_${id}`, `/event/${id}/incidents`, 20000);
+
+        let stats = null;
+        if (req.query.stats !== "0") {
+            await new Promise(resolve => setTimeout(resolve, 900));
+            stats = await optionalCachedFetch(`stats_${id}`, `/event/${id}/statistics`, 60000);
+        }
 
         res.json({
-            incidents: incidentsResponse ? incidentsResponse.data : null,
-            stats: statsResponse ? statsResponse.data : null
+            incidents,
+            stats
         });
     } catch (error) {
-        console.error(`[RAPIDAPI ERROR] Match details main ${id}: ${error.message}`);
+        console.error(`[API ERROR] Match details main ${id}: ${error.message}`);
         res.status(500).json({ error: true });
     }
 });
@@ -497,7 +727,9 @@ app.get("/api/top-leagues", async (req, res) => {
         res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Top Leagues: ${error.message}`);
-        res.status(500).json({ error: true, message: error.message, details: error.response?.data?.substring?.(0, 100) });
+        const fallback = { uniqueTournaments: FALLBACK_TOP_LEAGUES, fallback: true };
+        cache.top_leagues = { data: fallback, timestamp: Date.now() };
+        res.json(fallback);
     }
 });
 
@@ -511,7 +743,9 @@ app.get("/api/categories", async (req, res) => {
         res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Categories: ${error.message}`);
-        res.status(500).json({ error: true, message: error.message, details: error.response?.data?.substring?.(0, 100) });
+        const fallback = { categories: FALLBACK_CATEGORIES, fallback: true };
+        cache.categories = { data: fallback, timestamp: Date.now() };
+        res.json(fallback);
     }
 });
 
@@ -943,21 +1177,14 @@ app.get("/api/fcm/broadcast-test", async (req, res) => {
 });
 
 // Background Worker for Live Matches Push Notifications
-let lastScores = {};
-let globalLiveEvents = null;
-let lastLiveFetchTime = 0;
-
 setInterval(async () => {
     try {
-        const result = await fetchFromSofa("/sport/football/events/live");
-        if (!result || !result.data || !result.data.events) return;
-        
-        globalLiveEvents = result.data;
-        lastLiveFetchTime = Date.now();
+        const liveData = await getLiveEventsData();
+        if (!liveData || !Array.isArray(liveData.events)) return;
 
         if (Object.keys(fcmRegistrations).length === 0) return;
         
-        const events = result.data.events;
+        const events = liveData.events;
         
         events.forEach(ev => {
             const matchId = ev.id.toString();

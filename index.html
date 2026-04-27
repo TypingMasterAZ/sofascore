@@ -4269,16 +4269,19 @@
 
             async function fetchData(param = null, isForced = false) {
                 let url = '';
-                let isDirectSofa = true;
+                let dataCacheKey = 'live';
                 
                 if (param === 'live' || isLiveFiltered) {
                     url = API_BASE_URL + '/api/matches/live';
+                    dataCacheKey = 'live';
                 } else {
                     const dateToFetch = param || selectedDate || new Date().toISOString().split('T')[0];
                     url = API_BASE_URL + `/api/matches/${dateToFetch}`;
+                    dataCacheKey = dateToFetch;
                 }
 
                 let fetchOptions = { cache: 'no-store' };
+                const eventsCacheKey = `cached_events_${dataCacheKey}`;
                 
                 if (isForced) {
                     const syncIcon = document.getElementById('syncIcon');
@@ -4330,6 +4333,15 @@
                         allEvents = [];
                     }
 
+                    try {
+                        localStorage.setItem(eventsCacheKey, JSON.stringify({
+                            events: allEvents,
+                            timestamp: Date.now()
+                        }));
+                    } catch (cacheErr) {
+                        console.warn("Events cache write failed:", cacheErr.message);
+                    }
+
                     // Auto-update open modal scores
                     if (typeof currentOpenMatchId !== 'undefined' && currentOpenMatchId) {
                         const m = allEvents.find(e => e.id.toString() === currentOpenMatchId.toString());
@@ -4349,17 +4361,35 @@
                         }
                         // Oyun aciqdirsa qollar ve statisikalar daimi silinib yenilensin (background refresh)
                         if (typeof updateModalStatsAndIncidents === 'function') {
-                            updateModalStatsAndIncidents(currentOpenMatchId);
+                            updateModalStatsAndIncidents(currentOpenMatchId, { background: true });
                         }
                     }
 
                     if (window.notificationMgr) notificationMgr.checkUpdates(allEvents);
+                    window._lastFetchError = false;
                     applyFilters();
                     if (syncOverlay) syncOverlay.style.display = 'none';
                     
                 } catch (e) {
                     console.error("Matches fetch error:", e);
                     window._lastFetchError = true;
+                    let restoredFromCache = false;
+                    try {
+                        const cachedRaw = localStorage.getItem(eventsCacheKey);
+                        const cachedData = cachedRaw ? JSON.parse(cachedRaw) : null;
+                        if (cachedData && Array.isArray(cachedData.events)) {
+                            allEvents = cachedData.events;
+                            restoredFromCache = true;
+                        }
+                    } catch (cacheErr) {
+                        console.warn("Events cache read failed:", cacheErr.message);
+                    }
+
+                    if (restoredFromCache || (allEvents && allEvents.length > 0)) {
+                        applyFilters();
+                    } else {
+                        renderMatchView({});
+                    }
                 } finally {
                     const syncIcon = document.getElementById('syncIcon');
                     if (syncIcon) syncIcon.classList.remove('fa-spin');
@@ -4697,12 +4727,34 @@
             /* Native Modal Logic */
             let modalUpdateInterval = null;
             let currentOpenMatchId = null;
+            let modalDetailsInFlight = null;
+            const modalDetailsLastFetch = {};
 
-            async function updateModalStatsAndIncidents(id) {
+            function getIncidentPlayerName(incident) {
+                return incident.playerName || incident.player?.name || incident.player?.shortName || incident.playerIn?.name || "Oyuncu";
+            }
+
+            function getAssistText(incident) {
+                const assistName = incident.assist1?.name || incident.assist1?.shortName || incident.assist2?.name || "";
+                return assistName ? `<div class="timeline-sub-player">Assist: ${assistName}</div>` : "";
+            }
+
+            async function updateModalStatsAndIncidents(id, options = {}) {
+                const now = Date.now();
+                if (!options.force && modalDetailsLastFetch[id] && (now - modalDetailsLastFetch[id] < 45000)) {
+                    return;
+                }
+                if (modalDetailsInFlight === id) {
+                    return;
+                }
+                modalDetailsInFlight = id;
+
                 try {
                     // İndi iki ayrı sorğu yerinə, bir dəfəyə hər ikisini çəkirik
                     const res = await fetch(API_BASE_URL + `/api/match/${id}/details`, { cache: 'no-store' });
                     const data = await res.json();
+                    modalDetailsLastFetch[id] = Date.now();
+                    if (currentOpenMatchId && currentOpenMatchId.toString() !== id.toString()) return;
                     
                     const dataI = data.incidents || { incidents: [] };
                     const dataS = data.stats || { statistics: [] };
@@ -4714,7 +4766,7 @@
                         tHtml += incidents.map(g => {
                             const isHome = g.isHome;
                             let icon = g.incidentType === "goal" ? "⚽" : (g.incidentType === "card" ? (g.incidentClass === "yellow" ? "🟨" : "🟥") : "🔄");
-                            let player = g.player ? g.player.name : "Oyunçu";
+                            let player = getIncidentPlayerName(g);
                             let subText = "";
                             let detail = "";
 
@@ -4724,6 +4776,7 @@
                                 detail = "Əvəzetmə";
                             } else if (g.incidentType === "goal") {
                                 detail = g.incidentClass === "ownGoal" ? "Avtoqol" : (g.incidentClass === "penalty" ? "Penalti" : "Qol");
+                                subText = getAssistText(g);
                             } else if (g.incidentType === "card") {
                                 detail = g.incidentClass === "yellow" ? "Sarı Kart" : "Qırmızı Kart";
                             }
@@ -4779,6 +4832,8 @@
                     }
                 } catch (e) {
                     console.error("Modal sync error", e);
+                } finally {
+                    if (modalDetailsInFlight === id) modalDetailsInFlight = null;
                 }
             }
 
@@ -4806,7 +4861,7 @@
                 document.getElementById("goalsBox").innerHTML = skelHtml;
                 document.getElementById("statsBox").innerHTML = `<div class="loader-wrapper"><div class="skel-header skeleton" style="height:20px;width:30%;margin:auto;"></div><div class="skel-header skeleton" style="height:8px;margin-top:20px;"></div><div class="skel-header skeleton" style="height:8px;margin-top:20px;"></div></div>`;
 
-                await updateModalStatsAndIncidents(id);
+                await updateModalStatsAndIncidents(id, { force: true });
             }
 
             function openMatchById(id) {
@@ -5877,7 +5932,7 @@
                 if (liveBtn) liveBtn.scrollIntoView({ behavior: 'auto', inline: 'center' });
             }, 300);
             // Show loading on boot only if no cache exists
-            if (document.getElementById('matchList') && !localStorage.getItem('cached_events_default')) {
+            if (document.getElementById('matchList') && !localStorage.getItem('cached_events_live')) {
                 document.getElementById('matchList').innerHTML = `
                     <div class="loader-wrapper">
                         <div style="text-align:center; padding:50px;">
