@@ -143,7 +143,9 @@ app.use((req, res, next) => {
     next();
 });
 
-const SOFA_API = "https://api.sofascore.com/api/v1";
+const SOFA_API = process.env.SOFA_API_BASE || "https://api.sofascore.com/api/v1";
+const SOFA_WEB_API = "https://www.sofascore.com/api/v1";
+const SOFA_APIS = [...new Set([SOFA_API, SOFA_WEB_API])];
 const RAPIDAPI_HOST = "sofascore.p.rapidapi.com";
 const GAS_PROXIES = [
     process.env.GAS_PROXY_URL,
@@ -345,29 +347,33 @@ async function fetchFromSofa(path, params = {}) {
 async function fetchFromSofaUncached(path, params = {}) {
     let lastError = null;
 
-    for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-            console.log(`[DIRECT TRY] ${path} (attempt ${attempt + 1})`);
-            const headers = { ...HEADERS, "User-Agent": getRandomUA() };
-            const res = await runSofaRequest(() => axios.get(`${SOFA_API}${path}`, {
-                headers,
-                params,
-                timeout: SOFA_DIRECT_TIMEOUT
-            }));
+    for (const baseUrl of SOFA_APIS) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                const host = new URL(baseUrl).hostname;
+                console.log(`[DIRECT TRY] ${host}${path} (attempt ${attempt + 1})`);
+                const headers = { ...HEADERS, "User-Agent": getRandomUA() };
+                const res = await runSofaRequest(() => axios.get(`${baseUrl}${path}`, {
+                    headers,
+                    params,
+                    timeout: SOFA_DIRECT_TIMEOUT
+                }));
 
-            const data = normalizeSofaData(res.data);
-            if (data) {
-                console.log(`[DIRECT SUCCESS] ${path}`);
-                return { data };
+                const data = normalizeSofaData(res.data);
+                if (data) {
+                    console.log(`[DIRECT SUCCESS] ${host}${path}`);
+                    return { data };
+                }
+            } catch (e) {
+                lastError = e;
+                const host = (() => { try { return new URL(baseUrl).hostname; } catch (_) { return baseUrl; } })();
+                console.error(`[DIRECT FAILED] ${host}${path}: ${e.message}`);
+                if (attempt === 0 && shouldRetrySofa(e)) {
+                    await new Promise(r => setTimeout(r, 800));
+                    continue;
+                }
+                break;
             }
-        } catch (e) {
-            lastError = e;
-            console.error(`[DIRECT FAILED] ${path}: ${e.message}`);
-            if (attempt === 0 && shouldRetrySofa(e)) {
-                await new Promise(r => setTimeout(r, 800));
-                continue;
-            }
-            break;
         }
     }
 
@@ -406,7 +412,7 @@ app.get("/api/debug/proxy", async (req, res) => {
         timestamp: new Date().toISOString(),
         proxy_configured: GAS_PROXIES.length > 0,
         proxy_count: GAS_PROXIES.length,
-        sofa_api: SOFA_API,
+        sofa_api: SOFA_APIS,
         node_version: process.version,
         env_keys: Object.keys(process.env).filter(key => key.includes("GAS") || key.includes("URL") || key.includes("API")),
         test_fetch: null
