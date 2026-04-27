@@ -33,22 +33,22 @@
         // Initialize Firebase before any other calls
         firebase.initializeApp(firebaseConfig);
         
-        // M?H?M: registerFCMToken funksiyas?n? qlobal olaraq t?yin edirik
+        // M?H?M: registerFCMToken funksiyas?n? qlobal olaraq təyin edirik
         window.registerFCMToken = function() {
-            console.log("[FCM] Push Notification qeydiyyat? ba?lad?l?r...");
+            console.log("[FCM] Push Notification qeydiyyatı başladılır...");
             const messaging = firebase.messaging();
             
-            // Notification icaz?si ist?
+            // Notification icazəsi istə
             Notification.requestPermission().then((permission) => {
                 if (permission === 'granted') {
                     console.log('Notification permission granted.');
                     
                     // Token al
-                    messaging.getToken() // Parametr olmadan yoxlay?r?q. VAPID key laz?md?rsa bura ?lav? edil?c?k.
+                    messaging.getToken() // Parametr olmadan yoxlayırıq. VAPID key lazımdırsa bura Əlavə ediləc?k.
                     .then((currentToken) => {
                         if (currentToken) {
                             console.log('[FCM] Token al?nd?:', currentToken);
-                            // Server? g?nd?r
+                            // Server? göndər
                             sendTokenToServer(currentToken);
                         } else {
                             console.log('No registration token available. Request permission to generate one.');
@@ -63,7 +63,7 @@
         };
 
         function sendTokenToServer(token) {
-            // API_BASE_URL ola bil?r ki h?l? t?yin olunmay?b
+            // API_BASE_URL ola bilər ki h?l? təyin olunmay?b
             const baseUrl = window.API_BASE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000' : '');
             fetch(baseUrl + '/api/fcm/register', {
                 method: 'POST',
@@ -77,7 +77,7 @@
                 })
             }).then(res => res.json())
               .then(data => console.log('[FCM] Token server? qeyd olundu:', data))
-              .catch(err => console.error('[FCM] Server? qeydiyyat x?tas?:', err));
+              .catch(err => console.error('[FCM] Server? qeydiyyat xətası:', err));
         }
 
         // Set Firebase language to Azerbaijani
@@ -2235,7 +2235,7 @@
             right: -2px;
             min-width: 16px;
             height: 16px;
-            background: #ef4444; /* Q?rm?z? r?ng */
+            background: #ef4444; /* Qırmızı r?ng */
             color: white;
             border-radius: 50%;
             border: 1.5px solid var(--bg);
@@ -2644,7 +2644,7 @@
         }
 
         .clear-all-btn {
-            color: #ef4444; /* Q?rm?z? r?ng daha yax?? olar */
+            color: #ef4444; /* Qırmızı r?ng daha yax?? olar */
             font-weight: 700;
             font-size: 13px;
             cursor: pointer;
@@ -2974,23 +2974,23 @@
             <!-- 5. Notifications View -->
             <div class="container" id="notificationsView">
                 <div id="notificationsContent" style="padding: 16px;">
-                    <!-- S?sli Bildiri? T?limat? -->
+                    <!-- Səsli Bildiriş T?limat? -->
                     <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 16px; padding: 18px; margin-bottom: 24px; position: relative; overflow: hidden;">
                         <div style="position: absolute; top: -10px; right: -10px; font-size: 60px; opacity: 0.1; transform: rotate(15deg);">ğŸ””</div>
                         <h4 style="margin: 0 0 10px; font-size: 16px; display: flex; align-items: center; gap: 8px;">
-                            <span>ğŸ”Š</span> S?sli Bildiri? G?lmir?
+                            <span>ğŸ”Š</span> Səsli Bildiriş Gəlmir?
                         </h4>
                         <ul style="margin: 0; padding: 0 0 0 20px; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-                            <li><b>Android:</b> Proqramlar > Chrome > Bildiri?l?r > <b>"Geyim"</b> (v? ya G?l?n qollar) b?lm?sind? s?sin aktiv oldu?undan ?min olun.</li>
-                            <li><b>Batareya:</b> Chrome ???n "Batareya Q?na?ti" rejimini <b>"M?hdudiyy?tsiz"</b> (Unrestricted) edin.</li>
-                            <li><b>iOS:</b> Sayt? m?tl?q "Ana Ekrana ?lav? Et" d?ym?si il? telefona qura?d?r?n.</li>
+                            <li><b>Android:</b> Proqramlar > Chrome > Bildirişlər > <b>"Geyim"</b> (v? ya G?l?n qollar) b?lm?sind? səsin aktiv oldu?undan Əmin olun.</li>
+                            <li><b>Batareya:</b> Chrome üçün "Batareya Qənaəti" rejimini <b>"M?hdudiyy?tsiz"</b> (Unrestricted) edin.</li>
+                            <li><b>iOS:</b> Saytı mütləq "Ana Ekrana Əlavə Et" d?ym?si ilə telefona quraşdırın.</li>
                         </ul>
                     </div>
 
                     <div class="empty-state">
                         <div class="empty-state-icon">ğŸ””</div>
-                        <div class="empty-state-title">Bildiri? yoxdur</div>
-                        <div class="empty-state-text">Qollar v? dig?r ?n?mli hadis?l?r burada g?r?n?c?k.</div>
+                        <div class="empty-state-title">Bildiriş yoxdur</div>
+                        <div class="empty-state-text">Qollar və digər önəmli hadisələr burada görünəcək.</div>
                     </div>
                 </div>
             </div>
@@ -2999,18 +2999,18 @@
             <div class="container" id="authView">
                 <div class="auth-container">
                     <div class="auth-tabs">
-                        <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Giri?</div>
+                        <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Giriş</div>
                         <div class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">Qeydiyyat</div>
                     </div>
 
-                    <h2 id="authTitle" style="margin-bottom:8px;">Xo? G?lmisiniz</h2>
+                    <h2 id="authTitle" style="margin-bottom:8px;">Xoş Gəlmisiniz</h2>
                     <p id="authSubtitle" style="color:var(--text-muted); font-size:14px; margin-bottom:20px;">Davam
-                        etm?k ???n daxil olun</p>
+                        etmək üçün daxil olun</p>
 
                     <div style="text-align:left; margin-bottom:12px;">
                         <label
-                            style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">?stifad??i
-                            Ad?</label>
+                            style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">İstifadəçi
+                            Adı</label>
                         <input type="text" id="authUsername" class="profile-input" placeholder="Azad123">
                     </div>
                     <div id="emailField" style="text-align:left; margin-bottom:12px; display:none;">
@@ -3020,14 +3020,14 @@
                     </div>
                     <div style="text-align:left; margin-bottom:12px;">
                         <label
-                            style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">?ifr?</label>
+                            style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Şifrə</label>
                         <div class="password-wrapper">
                             <input type="password" id="authPassword" class="profile-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢">
                             <span class="toggle-password" onclick="togglePasswordVisibility('authPassword', this)">ğŸ‘ï¸</span>
                         </div>
                     </div>
                     <div id="forgotPassLink" style="text-align:right; margin-bottom:15px;">
-                        <span style="color:var(--primary); font-size:13px; cursor:pointer; font-weight:600;" onclick="toggleForgotView(true)">?ifr?ni unutmusunuz?</span>
+                        <span style="color:var(--primary); font-size:13px; cursor:pointer; font-weight:600;" onclick="toggleForgotView(true)">Şifrəni unutmusunuz?</span>
                     </div>
 
                     <div id="authError" class="auth-error"></div>
@@ -3035,32 +3035,32 @@
                     <button class="save-btn" id="authSubmitBtn" onclick="handleAuthSubmit()" style="margin-top:5px;">Daxil Ol</button>
 
                     <div id="alreadyHaveAccount" style="text-align:center; margin-top:15px; display:none;">
-                        <span style="color:var(--text-muted); font-size:14px;">Hesab?n?z var? </span>
+                        <span style="color:var(--text-muted); font-size:14px;">Hesabınız var? </span>
                         <span style="color:var(--primary); font-size:14px; cursor:pointer; font-weight:700;" onclick="switchAuthTab('login')">Daxil Olun</span>
                     </div>
 
                          <!-- Forgot Password Flow (Hidden by default) -->
                     <div id="forgotView" style="display:none;">
                         <div class="forgot-card" style="padding: 40px 30px;">
-                            <h3 style="margin-bottom:20px; font-size: 26px; font-weight: 900; letter-spacing: -0.5px;">?ifr? S?f?rlama</h3>
+                            <h3 style="margin-bottom:20px; font-size: 26px; font-weight: 900; letter-spacing: -0.5px;">Şifrə Sıfırlama</h3>
                             
                             <div id="forgotStep1" style="display:flex; flex-direction:column; align-items:center; padding: 10px 0;">
                                 <div style="margin-bottom: 25px; display:inline-flex; justify-content:center; align-items:center; width:64px; height:64px; border-radius:50%; background:rgba(59, 130, 246, 0.1); color:var(--primary); font-size:28px;">
                                     ğŸ“§
                                 </div>
-                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">Hesab?n?z?n email ?nvan?n? daxil edin, biz siz? 4 r?q?mli t?sdiq kodu g?nd?r?c?yik.</p>
+                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">Hesabınızın email ünvanını daxil edin, biz sizə 4 rəqəmli təsdiq kodu göndərəcəyik.</p>
                                 <div style="text-align:left; margin-bottom:25px; width:100%;">
-                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-left: 4px;">Email ?nvan?</label>
+                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-left: 4px;">Email ünvanı</label>
                                     <input type="email" id="resetEmail" class="profile-input" placeholder="misal@mail.com" style="margin-top:10px; height: 52px; font-size: 16px; border-radius: 14px;">
                                 </div>
-                                <button class="save-btn" onclick="handleSendResetOTP()" style="height: 54px; font-size: 16px; border-radius: 14px; margin-top: 10px;">Kod G?nd?r</button>
+                                <button class="save-btn" onclick="handleSendResetOTP()" style="height: 54px; font-size: 16px; border-radius: 14px; margin-top: 10px;">Kod Göndər</button>
                             </div>
 
                             <div id="forgotStep2" style="display:none; flex-direction:column; align-items:center; padding: 10px 0;">
                                 <div style="margin-bottom: 25px; display:inline-flex; justify-content:center; align-items:center; width:64px; height:64px; border-radius:50%; background:rgba(59, 130, 246, 0.1); color:var(--primary); font-size:28px;">
                                     ğŸ”
                                 </div>
-                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">G?nd?ril?n 4 r?q?mli t?sdiq kodunu daxil edin.</p>
+                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">Göndərilən 4 rəqəmli təsdiq kodunu daxil edin.</p>
                                 
                                 <div class="otp-container" style="display:flex; gap:16px; justify-content:center; margin-bottom:30px; width:100%;">
                                     <input type="text" class="otp-input" inputmode="numeric" pattern="[0-9]*" maxlength="1" oninput="handleOTPInput(this, 0)" onkeydown="handleOTPBack(event, 0)" style="width: 55px; height: 65px; border-radius: 14px; font-size: 32px;">
@@ -3074,10 +3074,10 @@
                                     <span id="otpCountdown" style="font-weight:900; color:var(--live); font-variant-numeric: tabular-nums; font-size: 16px;">03:00</span>
                                 </div>
 
-                                <button class="save-btn" id="verifyBtn" onclick="handleCheckOTP()" style="height: 54px; font-size: 16px; border-radius: 14px; width: 100%; margin-top: 5px;">Kodu T?sdiql?</button>
+                                <button class="save-btn" id="verifyBtn" onclick="handleCheckOTP()" style="height: 54px; font-size: 16px; border-radius: 14px; width: 100%; margin-top: 5px;">Kodu Təsdiqlə</button>
                                 
                                 <div id="resendBox" style="display:none; text-align:center; margin-top:25px; width: 100%;">
-                                    <span style="color:var(--primary); font-size:15px; cursor:pointer; font-weight:700; text-decoration:none;" onclick="handleSendResetOTP(true)">Kodu Yenid?n G?nd?r</span>
+                                    <span style="color:var(--primary); font-size:15px; cursor:pointer; font-weight:700; text-decoration:none;" onclick="handleSendResetOTP(true)">Kodu Yenidən Göndər</span>
                                 </div>
                             </div>
 
@@ -3085,27 +3085,27 @@
                                 <div style="margin-bottom: 25px; display:inline-flex; justify-content:center; align-items:center; width:64px; height:64px; border-radius:50%; background:rgba(59, 130, 246, 0.1); color:var(--primary); font-size:28px;">
                                     ğŸ”‘
                                 </div>
-                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">T?hl?k?sizliyiniz ???n yeni v? g?cl? ?ifr? t?yin edin.</p>
+                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">Təhlükəsizliyiniz üçün yeni v? güclü Şifrə təyin edin.</p>
                                 <div style="text-align:left; margin-bottom:20px; width: 100%;">
-                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-left:4px;">Yeni ?ifr?</label>
+                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-left:4px;">Yeni Şifrə</label>
                                     <div class="password-wrapper">
                                         <input type="password" id="newPassword" class="profile-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" style="margin-top:10px; height: 52px; font-size: 16px; border-radius: 14px;">
                                         <span class="toggle-password" onclick="togglePasswordVisibility('newPassword', this)">ğŸ‘ï¸</span>
                                     </div>
                                 </div>
                                 <div style="text-align:left; margin-bottom:30px; width: 100%;">
-                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-left:4px;">?ifr?nin T?krar?</label>
+                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-left:4px;">Şifrənin Təkrarı</label>
                                     <div class="password-wrapper">
                                         <input type="password" id="confirmPassword" class="profile-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" style="margin-top:10px; height: 52px; font-size: 16px; border-radius: 14px;">
                                         <span class="toggle-password" onclick="togglePasswordVisibility('confirmPassword', this)">ğŸ‘ï¸</span>
                                     </div>
                                 </div>
-                                <button class="save-btn" onclick="handleFinalReset()" style="height: 54px; font-size: 16px; border-radius: 14px; width: 100%; margin-top: 5px;">?ifr?ni Yenil?</button>
+                                <button class="save-btn" onclick="handleFinalReset()" style="height: 54px; font-size: 16px; border-radius: 14px; width: 100%; margin-top: 5px;">Şifrəni Yenilə</button>
                             </div>
 
                             <div style="margin-top:25px; border-top: 1px solid var(--border); padding-top: 20px;">
                                 <span style="color:var(--text-muted); font-size:14px; cursor:pointer; font-weight:600; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="toggleForgotView(false)">
-                                    <i style="font-style: normal; font-size: 18px;">â†</i> Geri qay?t
+                                    <i style="font-style: normal; font-size: 18px;">â†</i> Geri qayıt
                                 </span>
                             </div>
                         </div>
@@ -3126,12 +3126,12 @@
                             </div>
                         </div>
                         <div class="avatar-edit-label" onclick="triggerPicUpload()">
-                            <i class="fas fa-image"></i> ??kli D?yi?
+                            <i class="fas fa-image"></i> ??kli Dəyiş
                         </div>
                     </div>
                     
                     <div class="profile-info-box">
-                        <div id="profileDisplayName" style="font-size:24px; font-weight:900; letter-spacing: -0.8px; color:#fff;">?stifad??i</div>
+                        <div id="profileDisplayName" style="font-size:24px; font-weight:900; letter-spacing: -0.8px; color:#fff;">İstifadəçi</div>
                         <div id="profileUserStatus" style="color:var(--text-muted); font-size:14px; font-weight: 600; opacity:0.8;">ProScore Premium ?zv?</div>
                         
                         <div class="profile-actions-row">
@@ -3148,26 +3148,26 @@
                 </div>
 
 
-                <span class="profile-section-title">Hesab M?lumatlar?</span>
+                <span class="profile-section-title">Hesab Məlumatlar</span>
                 <div style="margin-bottom: 20px;">
                     <div class="profile-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                        <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">?stifad??i Ad?</label>
-                        <input type="text" id="usernameInput" class="profile-input" style="margin-top:0; border:none; background:rgba(255,255,255,0.03); padding:14px;" placeholder="Ad?n?z? daxil edin" value="?stifad??i">
+                        <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">İstifadəçi Ad?</label>
+                        <input type="text" id="usernameInput" class="profile-input" style="margin-top:0; border:none; background:rgba(255,255,255,0.03); padding:14px;" placeholder="Ad?n?z? daxil edin" value="İstifadəçi">
                     </div>
                     <div class="profile-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
                         <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Status</label>
-                        <input type="text" id="statusInput" class="profile-input" style="margin-top:0; border:none; background:rgba(255,255,255,0.03); padding:14px;" placeholder="Statusunuz" value="ProScore istifad??isi">
+                        <input type="text" id="statusInput" class="profile-input" style="margin-top:0; border:none; background:rgba(255,255,255,0.03); padding:14px;" placeholder="Statusunuz" value="ProScore istifadəçisi">
                     </div>
                     <div style="padding: 15px 16px;">
-                        <button class="save-btn" onclick="saveProfile()" style="margin-top:0; height:52px; border-radius: 14px; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);">M?lumatlar? Saxla</button>
+                        <button class="save-btn" onclick="saveProfile()" style="margin-top:0; height:52px; border-radius: 14px; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);">Məlumatlar Saxla</button>
                     </div>
                 </div>
 
 
-                <span class="profile-section-title">T?NZ?ML?M?L?R</span>
+                <span class="profile-section-title">TƏNZİMLƏMƏLƏR</span>
                 <div style="background: transparent;">
                     <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Ba?lan??c S?hif?</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Başlanğıc Səhifə</span>
                         <select id="defaultViewSelect" class="profile-input"
                             style="width:auto; margin-top:0; padding:8px 16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);"
                             onchange="updateSetting('defaultView', this.value)">
@@ -3176,7 +3176,7 @@
                         </select>
                     </div>
                     <div class="profile-row" style="flex-direction: column; align-items: flex-start;">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9); margin-bottom: 5px;">Qol Bildiri? S?si</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9); margin-bottom: 5px;">Qol Bildiriş Səsi</span>
                         <div class="sound-grid">
                             <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" onclick="selectSound(this.dataset.url, this)">
                                 <i>âš½</i>
@@ -3196,21 +3196,21 @@
                         </div>
                     </div>
                     <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Yaln?z Favoritl?r</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Yalnız Favoritlər</span>
                         <label class="toggle-switch">
                             <input type="checkbox" id="onlyFavNotifToggle" onchange="updateSetting('onlyFavNotif', this.checked)">
                             <span class="slider"></span>
                         </label>
                     </div>
                     <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Brauzer Bildiri?l?ri</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Brauzer Bildirişləri</span>
                         <label class="toggle-switch">
                             <input type="checkbox" id="browserNotifToggle" onchange="toggleBrowserNotifications(this.checked)">
                             <span class="slider"></span>
                         </label>
                     </div>
                     <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">S?sli Bildiri?</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Səsli Bildiriş</span>
                         <label class="toggle-switch">
                             <input type="checkbox" id="soundNotifToggle" onchange="updateSetting('soundEnabled', this.checked)">
                             <span class="slider"></span>
@@ -3220,28 +3220,28 @@
                     <!-- TEST PUSH SECTION -->
                     <div id="testPushRow" class="profile-row" style="display:none; padding:12px 16px; background:rgba(59, 130, 246, 0.05); border-radius:12px; margin: 10px 16px; border: 1px dashed rgba(59, 130, 246, 0.3);">
                         <div style="flex:1;">
-                            <div style="font-size:14px; font-weight:700; color:var(--primary);">Bildiri?l?ri Yoxla</div>
-                            <div style="font-size:11px; color:var(--text-muted);">Cihaz?n bildiri? q?bul etdiyini yoxlay?n.</div>
+                            <div style="font-size:14px; font-weight:700; color:var(--primary);">Bildirişləri Yoxla</div>
+                            <div style="font-size:11px; color:var(--text-muted);">Cihaz?n bildiriş q?bul etdiyini yoxlayın.</div>
                         </div>
                         <button onclick="sendTestPush()" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">YOXLA</button>
                     </div>
 
                     <!-- DEBUG INFO SECTION -->
                     <div id="debugSettings" style="display:none; padding:15px; margin:10px 16px; background:rgba(255,255,0,0.05); border:1px solid rgba(255,255,0,0.2); border-radius:12px;">
-                        <div style="font-size:11px; font-weight:800; margin-bottom:5px; color:#ffcc00;">DIAQNOST?KA (DEBUG)</div>
-                        <div id="debugTokenBox" style="font-size:10px; color:rgba(255,255,255,0.6); word-break:break-all; font-family:monospace;">Token tap?lmad?</div>
-                        <div id="debugPermBox" style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:5px;">?caz?: yoxlan?l?r...</div>
+                        <div style="font-size:11px; font-weight:800; margin-bottom:5px; color:#ffcc00;">D?AQNOST?KA (DEBUG)</div>
+                        <div id="debugTokenBox" style="font-size:10px; color:rgba(255,255,255,0.6); word-break:break-all; font-family:monospace;">Token tapılmadı</div>
+                        <div id="debugPermBox" style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:5px;">İcazə: yoxlanılır...</div>
                     </div>
 
                     <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
-                        onclick="document.getElementById('debugSettings').style.display = 'block'; showToast('Diaqnostika paneli a??ld?')">
-                        <span style="font-size:12px; font-weight:600; color:var(--text-muted);">Sazlama M?lumatlar? (Debug)</span>
+                        onclick="document.getElementById('debugSettings').style.display = 'block'; showToast('Diaqnostika paneli açıldı')">
+                        <span style="font-size:12px; font-weight:600; color:var(--text-muted);">Sazlama Məlumatlar (Debug)</span>
                         <i class="fas fa-chevron-right" style="font-size:10px; color:var(--text-muted);"></i>
                     </div>
 
                     <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
                         onclick="clearAllData()">
-                        <span style="font-size:15px; font-weight:600; color:#ef4444;">B?t?n M?lumatlar? Sil</span>
+                        <span style="font-size:15px; font-weight:600; color:#ef4444;">Bütün Məlumatlar Sil</span>
                             <span>ğŸ—‘ï¸</span>
                         </div>
                         <div id="logoutBtnBox" class="profile-row"
@@ -3336,10 +3336,10 @@
             const auth = firebase.auth();
 
             try {
-            // API ?nvan?n?n t?yin edilm?si (Lokal v? ya Render)
+            // API ünvanının təyin edilm?si (Lokal v? ya Render)
             const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:';
             const isRender = window.location.hostname.includes('onrender.com');
-            // D?QQ?T: Render-d?n ald???n?z ?nvan? a?a??dak? DEPLOYED_URL hiss?sin? yaz?n
+            // DİQQƏT: Render-d?n aldüçün?z ünvanı aşağıdakı DEPLOYED_URL hissəsin? yazın
             const DEPLOYED_URL = 'https://proscore-live.onrender.com';
             const API_BASE_URL = (isLocalhost || isRender || !DEPLOYED_URL) ? '' : DEPLOYED_URL;
             console.log("API Base URL:", API_BASE_URL || "Local/SameOrigin");
@@ -3367,206 +3367,206 @@
             }
 
             const azTextFixes = [
-                ['Profil ???n daxil olun', 'Profil üçün daxil olun'],
-                ['etm?k ???n daxil olun', 'etmək üçün daxil olun'],
-                ['Qollar v? dig?r ?n?mli hadis?l?r burada g?r?n?c?k.', 'Qollar və digər önəmli hadisələr burada görünəcək.'],
-                ['Canl? idman n?tic?l?ri v? statistikalar.', 'Canlı idman nəticələri və statistikalar.'],
-                ['Xo? G?lmisiniz', 'Xoş Gəlmisiniz'],
-                ['Bildiri? yoxdur', 'Bildiriş yoxdur'],
-                ['B?t?n Liqalar', 'Bütün Liqalar'],
-                ['G?n?n Oyunlar?', 'Günün Oyunları'],
-                ['Canl? Hesablar', 'Canlı Hesablar'],
-                ['Favoritl?r', 'Favoritlər'],
-                ['Favoritl?riniz', 'Favoritləriniz'],
-                ['T?nziml?m?l?r', 'Tənzimləmələr'],
-                ['T?NZ?ML?M?L?R', 'TƏNZİMLƏMƏLƏR'],
-                ['C?dv?l', 'Cədvəl'],
-                ['M?lumat', 'Məlumat'],
-                ['Bombardir m?lumat?', 'Bombardir məlumatı'],
-                ['Giri?', 'Giriş'],
-                ['?ifr?', 'Şifrə'],
-                ['?ifr?ni', 'Şifrəni'],
-                ['?ifr?nin', 'Şifrənin'],
-                ['?ifr?l?r', 'Şifrələr'],
-                ['?stifad??i', 'İstifadəçi'],
-                ['?caz?', 'İcazə'],
-                ['?lav?', 'Əlavə'],
-                ['?lk?', 'Ölkə'],
-                ['?lk?l?r', 'Ölkələr'],
-                ['?minsiniz?', 'Əminsiniz?'],
-                ['?min', 'Əmin'],
-                ['?n?mli', 'önəmli'],
-                ['?ndi', 'İndi'],
-                ['?nternet', 'İnternet'],
-                ['?nvan?n?n', 'ünvanının'],
-                ['?nvan?n?', 'ünvanını'],
-                ['?nvan?', 'ünvanı'],
-                ['???n', 'üçün'],
-                ['?st?', 'üstə'],
-                ['?st', 'üst'],
-                ['?v?zetm?', 'Əvəzetmə'],
-                ['a?a??dak?', 'aşağıdakı'],
-                ['a??ld?', 'açıldı'],
-                ['a??b', 'açıb'],
-                ['Az?rbaycan', 'Azərbaycan'],
-                ['Ba?lan??c', 'Başlanğıc'],
-                ['ba?lad?l?r', 'başladılır'],
-                ['ba?lad?', 'başladı'],
-                ['Ba?lant?', 'Bağlantı'],
-                ['bildiri?l?ri', 'bildirişləri'],
-                ['Bildiri?l?ri', 'Bildirişləri'],
-                ['bildiri?l?r', 'bildirişlər'],
-                ['Bildiri?l?r', 'Bildirişlər'],
-                ['bildiri?', 'bildiriş'],
-                ['Bildiri?', 'Bildiriş'],
-                ['b?t?n', 'bütün'],
-                ['B?t?n', 'Bütün'],
-                ['canl?', 'canlı'],
-                ['Canl?', 'Canlı'],
-                ['d?qiq?', 'dəqiqə'],
-                ['d?f?', 'dəfə'],
-                ['d?nya', 'dünya'],
-                ['D?QQ?T', 'DİQQƏT'],
-                ['d?st?kl?mir', 'dəstəkləmir'],
-                ['D?st?kl?nmir', 'Dəstəklənmir'],
-                ['D?yi?', 'Dəyiş'],
-                ['etm?k', 'etmək'],
-                ['f?rqli', 'fərqli'],
-                ['g?cl?', 'güclü'],
-                ['g?ldiniz', 'gəldiniz'],
-                ['g?ldin', 'gəldin'],
-                ['G?lmisiniz', 'Gəlmisiniz'],
-                ['G?lmir?', 'Gəlmir?'],
-                ['g?nd?rilir', 'göndərilir'],
-                ['g?nd?rildi', 'göndərildi'],
-                ['G?nd?ril?n', 'Göndərilən'],
-                ['g?nd?r?c?yik', 'göndərəcəyik'],
-                ['g?nd?rin', 'göndərin'],
-                ['g?nd?r', 'göndər'],
-                ['G?nd?r', 'Göndər'],
-                ['g?r?n?c?k', 'görünəcək'],
-                ['g?r?kirs?', 'gərəkirsə'],
-                ['g?r?', 'görə'],
-                ['g?zl?nilir', 'gözlənilir'],
-                ['G?zl?yin', 'Gözləyin'],
-                ['g?zl?', 'gözlə'],
-                ['g?n', 'gün'],
-                ['gizl?dilib', 'gizlədilib'],
-                ['h?mi??lik', 'həmişəlik'],
-                ['h?mi??', 'həmişə'],
-                ['h?r?k?ti', 'hərəkəti'],
-                ['h?min', 'həmin'],
-                ['h?r', 'hər'],
-                ['H?r', 'Hər'],
-                ['Hadis?', 'Hadisə'],
-                ['hadis?l?r', 'hadisələr'],
-                ['He?', 'Heç'],
-                ['Hesab?n?zdan', 'Hesabınızdan'],
-                ['Hesab?n?z?n', 'Hesabınızın'],
-                ['Hesab?n?z', 'Hesabınız'],
-                ['icaz?ni', 'icazəni'],
-                ['icaz?si', 'icazəsi'],
-                ['icaz?', 'icazə'],
-                ['il?', 'ilə'],
-                ['ist?yirsiniz?', 'istəyirsiniz?'],
-                ['ist?diyiniz?', 'istədiyiniz?'],
-                ['ist?', 'istə'],
-                ['istifad??isi', 'istifadəçisi'],
-                ['istifad?', 'istifadə'],
-                ['ki?ik', 'kiçik'],
-                ['klikl?yin', 'klikləyin'],
-                ['L?tf?n', 'Lütfən'],
-                ['laz?md?rsa', 'lazımdırsa'],
-                ['m?hdudiyy?t', 'məhdudiyyət'],
-                ['m?lumatlar?n?z', 'məlumatlarınız'],
-                ['m?lumatlar?', 'məlumatlar'],
-                ['M?lumatlar?', 'Məlumatlar'],
-                ['M?lumatlar', 'Məlumatlar'],
-                ['m?lumatlar', 'məlumatlar'],
-                ['m?lumat?', 'məlumatı'],
-                ['m?lumat', 'məlumat'],
-                ['M?lumat', 'Məlumat'],
-                ['m?mk?n', 'mümkün'],
-                ['m?tl?q', 'mütləq'],
-                ['m?v?qq?ti', 'müvəqqəti'],
-                ['m?vcud', 'mövcud'],
-                ['M?vs?m', 'Mövsüm'],
-                ['N?tic?l?ri', 'Nəticələri'],
-                ['N?tic?l?r', 'Nəticələr'],
-                ['N?tic?', 'Nəticə'],
-                ['Oyun?u', 'Oyunçu'],
-                ['Q?na?ti', 'Qənaəti'],
-                ['Q?rm?z?', 'Qırmızı'],
-                ['qay?t', 'qayıt'],
-                ['qeydiyyat?', 'qeydiyyatı'],
-                ['qo?ulun', 'qoşulun'],
-                ['qura?d?r?n', 'quraşdırın'],
-                ['r?q?mli', 'rəqəmli'],
-                ['S?f?rlama', 'Sıfırlama'],
-                ['s?f?rlay?b', 'sıfırlayıb'],
-                ['S?hif?', 'Səhifə'],
-                ['s?hif?sind?n', 'səhifəsindən'],
-                ['S?per', 'Süper'],
-                ['S?sli', 'Səsli'],
-                ['S?si', 'Səsi'],
-                ['s?sin', 'səsin'],
-                ['Sar?', 'Sarı'],
-                ['saxlan?l?r', 'saxlanılır'],
-                ['saxlan?ld?', 'saxlanıldı'],
-                ['Sayt?', 'Saytı'],
-                ['se?in', 'seçin'],
-                ['Sil?', 'Sil'],
-                ['silin?c?k', 'silinəcək'],
-                ['silm?k', 'silmək'],
-                ['siz?', 'sizə'],
-                ['sor?u', 'sorğu'],
-                ['T?hl?k?sizliyiniz', 'Təhlükəsizliyiniz'],
-                ['T?krar?', 'Təkrarı'],
-                ['t?nziml?m?l?rind?n', 'tənzimləmələrindən'],
-                ['t?nziml?m?', 'tənzimləmə'],
-                ['T?nziml?m?', 'Tənzimləmə'],
-                ['t?sdiq', 'təsdiq'],
-                ['T?sdiql?', 'Təsdiqlə'],
-                ['t?yin', 'təyin'],
-                ['tap?lmad?', 'tapılmadı'],
-                ['tarix??sini', 'tarixçəsini'],
-                ['Turnirl?r', 'Turnirlər'],
-                ['u?urludur', 'uğurludur'],
-                ['u?ursuz', 'uğursuz'],
+                ['Profil üçün daxil olun', 'Profil üçün daxil olun'],
+                ['etmək üçün daxil olun', 'etmək üçün daxil olun'],
+                ['Qollar və digər önəmli hadisələr burada görünəcək.', 'Qollar və digər önəmli hadisələr burada görünəcək.'],
+                ['Canlı idman nəticələri və statistikalar.', 'Canlı idman nəticələri və statistikalar.'],
+                ['Xoş Gəlmisiniz', 'Xoş Gəlmisiniz'],
+                ['Bildiriş yoxdur', 'Bildiriş yoxdur'],
+                ['Bütün Liqalar', 'Bütün Liqalar'],
+                ['Günün Oyunları', 'Günün Oyunları'],
+                ['Canlı Hesablar', 'Canlı Hesablar'],
+                ['Favoritlər', 'Favoritlər'],
+                ['Favoritləriniz', 'Favoritləriniz'],
+                ['Tənzimləmələr', 'Tənzimləmələr'],
+                ['TƏNZİMLƏMƏLƏR', 'TƏNZİMLƏMƏLƏR'],
+                ['Cədvəl', 'Cədvəl'],
+                ['Məlumat', 'Məlumat'],
+                ['Bombardir məlumatı', 'Bombardir məlumatı'],
+                ['Giriş', 'Giriş'],
+                ['Şifrə', 'Şifrə'],
+                ['Şifrəni', 'Şifrəni'],
+                ['Şifrənin', 'Şifrənin'],
+                ['Şifrələr', 'Şifrələr'],
+                ['İstifadəçi', 'İstifadəçi'],
+                ['İcazə', 'İcazə'],
+                ['Əlavə', 'Əlavə'],
+                ['Ölkə', 'Ölkə'],
+                ['Ölkələr', 'Ölkələr'],
+                ['Əminsiniz?', 'Əminsiniz?'],
+                ['Əmin', 'Əmin'],
+                ['önəmli', 'önəmli'],
+                ['İndi', 'İndi'],
+                ['İnternet', 'İnternet'],
+                ['ünvanının', 'ünvanının'],
+                ['ünvanını', 'ünvanını'],
+                ['ünvanı', 'ünvanı'],
+                ['üçün', 'üçün'],
+                ['üstə', 'üstə'],
+                ['üst', 'üst'],
+                ['Əvəzetmə', 'Əvəzetmə'],
+                ['aşağıdakı', 'aşağıdakı'],
+                ['açıldı', 'açıldı'],
+                ['açıb', 'açıb'],
+                ['Azərbaycan', 'Azərbaycan'],
+                ['Başlanğıc', 'Başlanğıc'],
+                ['başladılır', 'başladılır'],
+                ['başladı', 'başladı'],
+                ['Bağlantı', 'Bağlantı'],
+                ['bildirişləri', 'bildirişləri'],
+                ['Bildirişləri', 'Bildirişləri'],
+                ['bildirişlər', 'bildirişlər'],
+                ['Bildirişlər', 'Bildirişlər'],
+                ['bildiriş', 'bildiriş'],
+                ['Bildiriş', 'Bildiriş'],
+                ['bütün', 'bütün'],
+                ['Bütün', 'Bütün'],
+                ['canlı', 'canlı'],
+                ['Canlı', 'Canlı'],
+                ['dəqiqə', 'dəqiqə'],
+                ['dəfə', 'dəfə'],
+                ['dünya', 'dünya'],
+                ['DİQQƏT', 'DİQQƏT'],
+                ['dəstəkləmir', 'dəstəkləmir'],
+                ['Dəstəklənmir', 'Dəstəklənmir'],
+                ['Dəyiş', 'Dəyiş'],
+                ['etmək', 'etmək'],
+                ['fərqli', 'fərqli'],
+                ['güclü', 'güclü'],
+                ['gəldiniz', 'gəldiniz'],
+                ['gəldin', 'gəldin'],
+                ['Gəlmisiniz', 'Gəlmisiniz'],
+                ['Gəlmir?', 'Gəlmir?'],
+                ['göndərilir', 'göndərilir'],
+                ['göndərildi', 'göndərildi'],
+                ['Göndərilən', 'Göndərilən'],
+                ['göndərəcəyik', 'göndərəcəyik'],
+                ['göndərin', 'göndərin'],
+                ['göndər', 'göndər'],
+                ['Göndər', 'Göndər'],
+                ['görünəcək', 'görünəcək'],
+                ['gərəkirsə', 'gərəkirsə'],
+                ['görə', 'görə'],
+                ['gözlənilir', 'gözlənilir'],
+                ['Gözləyin', 'Gözləyin'],
+                ['gözlə', 'gözlə'],
+                ['gün', 'gün'],
+                ['gizlədilib', 'gizlədilib'],
+                ['həmişəlik', 'həmişəlik'],
+                ['həmişə', 'həmişə'],
+                ['hərəkəti', 'hərəkəti'],
+                ['həmin', 'həmin'],
+                ['hər', 'hər'],
+                ['Hər', 'Hər'],
+                ['Hadisə', 'Hadisə'],
+                ['hadisələr', 'hadisələr'],
+                ['Heç', 'Heç'],
+                ['Hesabınızdan', 'Hesabınızdan'],
+                ['Hesabınızın', 'Hesabınızın'],
+                ['Hesabınız', 'Hesabınız'],
+                ['icazəni', 'icazəni'],
+                ['icazəsi', 'icazəsi'],
+                ['icazə', 'icazə'],
+                ['ilə', 'ilə'],
+                ['istəyirsiniz?', 'istəyirsiniz?'],
+                ['istədiyiniz?', 'istədiyiniz?'],
+                ['istə', 'istə'],
+                ['istifadəçisi', 'istifadəçisi'],
+                ['istifadə', 'istifadə'],
+                ['kiçik', 'kiçik'],
+                ['klikləyin', 'klikləyin'],
+                ['Lütfən', 'Lütfən'],
+                ['lazımdırsa', 'lazımdırsa'],
+                ['məhdudiyyət', 'məhdudiyyət'],
+                ['məlumatlarınız', 'məlumatlarınız'],
+                ['məlumatlar', 'məlumatlar'],
+                ['Məlumatlar', 'Məlumatlar'],
+                ['Məlumatlar', 'Məlumatlar'],
+                ['məlumatlar', 'məlumatlar'],
+                ['məlumatı', 'məlumatı'],
+                ['məlumat', 'məlumat'],
+                ['Məlumat', 'Məlumat'],
+                ['mümkün', 'mümkün'],
+                ['mütləq', 'mütləq'],
+                ['müvəqqəti', 'müvəqqəti'],
+                ['mövcud', 'mövcud'],
+                ['Mövsüm', 'Mövsüm'],
+                ['Nəticələri', 'Nəticələri'],
+                ['Nəticələr', 'Nəticələr'],
+                ['Nəticə', 'Nəticə'],
+                ['Oyunçu', 'Oyunçu'],
+                ['Qənaəti', 'Qənaəti'],
+                ['Qırmızı', 'Qırmızı'],
+                ['qayıt', 'qayıt'],
+                ['qeydiyyatı', 'qeydiyyatı'],
+                ['qoşulun', 'qoşulun'],
+                ['quraşdırın', 'quraşdırın'],
+                ['rəqəmli', 'rəqəmli'],
+                ['Sıfırlama', 'Sıfırlama'],
+                ['sıfırlayıb', 'sıfırlayıb'],
+                ['Səhifə', 'Səhifə'],
+                ['səhifəsindən', 'səhifəsindən'],
+                ['Süper', 'Süper'],
+                ['Səsli', 'Səsli'],
+                ['Səsi', 'Səsi'],
+                ['səsin', 'səsin'],
+                ['Sarı', 'Sarı'],
+                ['saxlanılır', 'saxlanılır'],
+                ['saxlanıldı', 'saxlanıldı'],
+                ['Saytı', 'Saytı'],
+                ['seçin', 'seçin'],
+                ['Sil', 'Sil'],
+                ['silinəcək', 'silinəcək'],
+                ['silmək', 'silmək'],
+                ['sizə', 'sizə'],
+                ['sorğu', 'sorğu'],
+                ['Təhlükəsizliyiniz', 'Təhlükəsizliyiniz'],
+                ['Təkrarı', 'Təkrarı'],
+                ['tənzimləmələrindən', 'tənzimləmələrindən'],
+                ['tənzimləmə', 'tənzimləmə'],
+                ['Tənzimləmə', 'Tənzimləmə'],
+                ['təsdiq', 'təsdiq'],
+                ['Təsdiqlə', 'Təsdiqlə'],
+                ['təyin', 'təyin'],
+                ['tapılmadı', 'tapılmadı'],
+                ['tarixçəsini', 'tarixçəsini'],
+                ['Turnirlər', 'Turnirlər'],
+                ['uğurludur', 'uğurludur'],
+                ['uğursuz', 'uğursuz'],
                 ['unutmusunuz?', 'unutmusunuz?'],
-                ['uy?un', 'uyğun'],
-                ['v?ziyy?t', 'vəziyyət'],
-                ['vasit?sil?', 'vasitəsilə'],
-                ['vaxt?', 'vaxtı'],
-                ['Verilm?di', 'Verilmədi'],
-                ['verm?di', 'vermədi'],
-                ['x?b?r', 'xəbər'],
-                ['x?tas?', 'xətası'],
-                ['x?tan?', 'xətanı'],
-                ['x?ta', 'xəta'],
-                ['X?ta', 'Xəta'],
-                ['xanalar?', 'xanaları'],
-                ['Xo?', 'Xoş'],
-                ['Y?kl?m?', 'Yükləmə'],
-                ['y?kl?nir', 'yüklənir'],
-                ['Y?kl?nir', 'Yüklənir'],
-                ['Yadda?a', 'Yaddaşa'],
-                ['Yadda?dak?', 'Yaddaşdakı'],
-                ['Yaln?z', 'Yalnız'],
-                ['Yanl??', 'Yanlış'],
-                ['yaz?n', 'yazın'],
-                ['yenid?n', 'yenidən'],
-                ['Yenid?n', 'Yenidən'],
-                ['yenil?n?rk?n', 'yenilənərkən'],
-                ['yenil?nm?lidir', 'yenilənməlidir'],
-                ['yenil?ndi', 'yeniləndi'],
-                ['yenil?', 'yenilə'],
-                ['Yenil?', 'Yenilə'],
-                ['yerin?', 'yerinə'],
-                ['yoxlan?l?r', 'yoxlanılır'],
-                ['yoxlay?n', 'yoxlayın'],
-                ['yoxlay?r?q', 'yoxlayırıq'],
-                ['Z?hm?t', 'Zəhmət']
+                ['uyğun', 'uyğun'],
+                ['vəziyyət', 'vəziyyət'],
+                ['vasitəsilə', 'vasitəsilə'],
+                ['vaxtı', 'vaxtı'],
+                ['Verilmədi', 'Verilmədi'],
+                ['vermədi', 'vermədi'],
+                ['xəbər', 'xəbər'],
+                ['xətası', 'xətası'],
+                ['xətanı', 'xətanı'],
+                ['xəta', 'xəta'],
+                ['Xəta', 'Xəta'],
+                ['xanaları', 'xanaları'],
+                ['Xoş', 'Xoş'],
+                ['Yükləmə', 'Yükləmə'],
+                ['yüklənir', 'yüklənir'],
+                ['Yüklənir', 'Yüklənir'],
+                ['Yaddaşa', 'Yaddaşa'],
+                ['Yaddaşdakı', 'Yaddaşdakı'],
+                ['Yalnız', 'Yalnız'],
+                ['Yanlış', 'Yanlış'],
+                ['yazın', 'yazın'],
+                ['yenidən', 'yenidən'],
+                ['Yenidən', 'Yenidən'],
+                ['yenilənərkən', 'yenilənərkən'],
+                ['yenilənməlidir', 'yenilənməlidir'],
+                ['yeniləndi', 'yeniləndi'],
+                ['yenilə', 'yenilə'],
+                ['Yenilə', 'Yenilə'],
+                ['yerinə', 'yerinə'],
+                ['yoxlanılır', 'yoxlanılır'],
+                ['yoxlayın', 'yoxlayın'],
+                ['yoxlayırıq', 'yoxlayırıq'],
+                ['Zəhmət', 'Zəhmət']
             ];
 
             function applyAzPlaceholderFixes(text) {
@@ -3708,15 +3708,15 @@
                 const items = document.querySelectorAll('.sidebar .side-item');
                 items.forEach(item => {
                     const text = item.innerText.toLowerCase();
-                    if (view === 'matches' && (text.includes('oyun') || text.includes('canl?'))) {
+                    if (view === 'matches' && (text.includes('oyun') || text.includes('canlı'))) {
                          // We'll handle this more specifically if needed
                     } else if (view === 'leagues' && text.includes('liqa')) {
                         item.classList.add('active');
                     } else if (view === 'favorites' && text.includes('favorit')) {
                         item.classList.add('active');
-                    } else if (view === 'profile' && text.includes('t?nziml?m?')) {
+                    } else if (view === 'profile' && text.includes('tənzimləmə')) {
                         item.classList.add('active');
-                    } else if (view === 'notifications' && text.includes('bildiri?')) {
+                    } else if (view === 'notifications' && text.includes('bildiriş')) {
                         item.classList.add('active');
                     }
                 });
@@ -3908,7 +3908,7 @@
                             }
                             // Check for Match Start
                             else if (prev.status === 'notstarted' && ev.status.type === 'inprogress') {
-                                this.addNotification('start', 'Oyun Basladi', `${ev.homeTeam.name} - ${ev.awayTeam.name} oyunu basladi!`, ev.id);
+                                this.addNotification('start', 'Oyun Başladı', `${ev.homeTeam.name} - ${ev.awayTeam.name} oyunu başladı!`, ev.id);
                             }
                         }
                         this.lastEventState.set(ev.id, { h: ev.homeScore.current, a: ev.awayScore.current, status: ev.status.type });
@@ -4024,7 +4024,7 @@
                 }
 
                 deleteNotification(id) {
-                    // ID simvol dizisi ola bil?r, ona g?r? == istifad? edirik
+                    // ID simvol dizisi ola bilər, ona görə == istifadə edirik
                     this.history = this.history.filter(n => n.id.toString() !== id.toString());
                     localStorage.setItem('notifHistory', JSON.stringify(this.history));
                     this.unreadCount = this.history.filter(n => n.unread).length;
@@ -4033,7 +4033,7 @@
                 }
 
                 clearAllHistory() {
-                    if (confirm('B?t?n bildiri? tarix??sini silm?k ist?yirsiniz?')) {
+                    if (confirm('Bütün bildiriş tarixçəsini silmək istəyirsiniz?')) {
                         this.history = [];
                         this.unreadCount = 0;
                         localStorage.setItem('notifHistory', JSON.stringify(this.history));
@@ -4082,7 +4082,7 @@
                     document.getElementById('profileView').classList.add('active');
                     document.getElementById('navProfile').classList.add('active');
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'PROF?L';
+                    document.getElementById('logoTitle').innerText = 'PROFİL';
                     hideBackBtn();
                     mc.style.paddingTop = '80px';
                     loadProfile();
@@ -4100,7 +4100,7 @@
                     document.getElementById('leaguesView').classList.add('active');
                     document.getElementById('navLeagues').classList.add('active');
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'L?QALAR';
+                    document.getElementById('logoTitle').innerText = 'LİQALAR';
                     hideBackBtn();
                     mc.style.paddingTop = '80px';
                     renderLeaguesView();
@@ -4109,7 +4109,7 @@
                     document.getElementById('favoritesView').classList.add('active');
                     document.getElementById('navFavorites').classList.add('active');
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'FAVOR?TL?R';
+                    document.getElementById('logoTitle').innerText = 'FAVORİTLƏR';
                     hideBackBtn();
                     mc.style.paddingTop = '80px';
                     renderFavoritesView();
@@ -4119,7 +4119,7 @@
                     if (!auth.currentUser) {
                         setTimeout(() => {
                             if (!auth.currentUser) {
-                                showToast('Profil ???n daxil olun');
+                                showToast('Profil üçün daxil olun');
                                 switchMainView('auth');
                             } else {
                                 // Now we have user, proceed to show profile
@@ -4137,7 +4137,7 @@
                     document.getElementById('authView').classList.add('active');
                     document.getElementById('navProfile').classList.add('active');
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'QEYD?YYAT';
+                    document.getElementById('logoTitle').innerText = 'QEYDİYYAT';
                     hideBackBtn();
                     mc.style.paddingTop = '65px'; // Reduced padding to remove gap
                     switchAuthTab('login'); // Always default to login and reset button
@@ -4146,7 +4146,7 @@
                     document.getElementById('notificationsView').classList.add('active');
                     document.getElementById('navLeagues').classList.remove('active'); // Reset other navs
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'B?LD?R??L?R';
+                    document.getElementById('logoTitle').innerText = 'BİLDİRİŞLƏR';
                     showBackBtn();
                     notificationMgr.renderHistory();
                     notificationMgr.markAllAsRead();
@@ -4179,13 +4179,13 @@
                 }
 
                 if (!group && tourId) {
-                    group = { id: tourId, name: "Liqa", country: "Y?kl?nir...", catId: 1, isUnique: isUnique, matches: [], seasonId: null };
+                    group = { id: tourId, name: "Liqa", country: "Yüklənir...", catId: 1, isUnique: isUnique, matches: [], seasonId: null };
                     
                     try {
                         const entity = await fetchLeagueInfoData(tourId, isUnique);
                         if (entity) {
                             group.name = entity.name || "Liqa";
-                            group.country = entity.category ? entity.category.name : "?lk?";
+                            group.country = entity.category ? entity.category.name : "Ölkə";
                             group.catId = entity.category ? entity.category.id : 1;
                         }
                     } catch(e) { console.error("League info fetch error:", e); }
@@ -4219,7 +4219,7 @@
                 const hasMatches = group.matches && group.matches.length > 0;
                 const matchesHtml = hasMatches
                     ? group.matches.map(m => createMatchRow(m, group)).join("")
-                    : `<div style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600;">Bu g?n ???n oyun tap?lmad?. <br><span style="font-size:12px; font-weight:400; opacity:0.7;">C?dv?l? (Puan Durumu) ke?id ed?r?k xal durumuna baxa bil?rsiniz.</span></div>`;
+                    : `<div style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600;">Bu gün üçün oyun tapılmadı. <br><span style="font-size:12px; font-weight:400; opacity:0.7;">Cədvələ keçid edərək xal durumuna baxa bilərsiniz.</span></div>`;
 
                 const html = `
             <div class="league-group" style="margin-top:20px; border-radius: 12px 12px 0 0; border-bottom: none;">
@@ -4231,9 +4231,9 @@
                 
                 <div class="modal-tabs" style="background:var(--card); border-bottom:1px solid rgba(255,255,255,0.05); border-top:1px solid rgba(255,255,255,0.05); position:relative; z-index:1;">
                     <button class="tab-btn ${hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueMatches', this)">OYUNLAR</button>
-                    <button class="tab-btn ${!hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueStandings', this)">CEDVEL</button>
-                    <button class="tab-btn" onclick="switchLeagueTab('leagueTopPlayers', this)">BOMBARDIRLER</button>
-                    <button class="tab-btn" onclick="switchLeagueTab('leagueInfo', this)">MELUMAT</button>
+                    <button class="tab-btn ${!hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueStandings', this)">CƏDVƏL</button>
+                    <button class="tab-btn" onclick="switchLeagueTab('leagueTopPlayers', this)">BOMBARDİRLƏR</button>
+                    <button class="tab-btn" onclick="switchLeagueTab('leagueInfo', this)">MƏLUMAT</button>
                 </div>
                 
                 <div class="league-tab-content ${hasMatches ? 'active' : ''}" id="leagueMatches" style="${!hasMatches ? 'display:none;' : ''}">
@@ -4252,14 +4252,14 @@
                             <span style="font-weight:600">${group.name}</span>
                         </div>
                         <div style="margin-bottom:15px; display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:10px;">
-                            <span style="color:var(--text-muted)">?lk?:</span>
+                            <span style="color:var(--text-muted)">Ölkə:</span>
                             <span style="font-weight:600">${group.country}</span>
                         </div>
                          <div style="margin-bottom:15px; display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:10px;">
-                            <span style="color:var(--text-muted)">M?vs?m:</span>
-                            <span style="font-weight:600">${group.seasonId ? '2023/2024' : 'Aktiv M?vs?m'}</span>
+                            <span style="color:var(--text-muted)">Mövsüm:</span>
+                            <span style="font-weight:600">${group.seasonId ? '2023/2024' : 'Aktiv Mövsüm'}</span>
                         </div>
-                        <p style="font-size:12px; color:var(--text-muted); text-align:center; margin-top:20px;">Rabona Media LIVE vasit?sil? b?t?n d?nya liqalar?n? anl?q izl?y? bil?rsiniz.</p>
+                        <p style="font-size:12px; color:var(--text-muted); text-align:center; margin-top:20px;">Rabona Media LIVE vasitəsilə bütün dünya liqalarını anlıq izləyə bilərsiniz.</p>
                     </div>
                 </div>
             </div>
@@ -4333,7 +4333,7 @@
                         }
                     } else {
                         if (currentStandingsTourId === tourId && document.getElementById('leagueStandings').innerHTML.includes('skeleton')) {
-                            document.getElementById('leagueStandings').innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>C?dv?l m?lumat? yoxdur.</div>";
+                            document.getElementById('leagueStandings').innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Cədvəl məlumatı yoxdur.</div>";
                         }
                     }
                 } catch (e) {
@@ -4378,11 +4378,11 @@
                         html += '</div>';
                         box.innerHTML = html;
                     } else {
-                        box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Bombardir m?lumat? tap?lmad?.</div>";
+                        box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Bombardir məlumatı tapılmadı.</div>";
                     }
                 } catch (e) {
                     console.error("Top players load error", e);
-                    box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Y?kl?m? x?tas? ba? verdi.</div>";
+                    box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Yükləmə xətası ba? verdi.</div>";
                 }
             }
 
@@ -4390,7 +4390,7 @@
                 currentStandingsTourId = tourId;
                 const box = document.getElementById('leagueStandings');
                 if (!seasonId || !tourId) {
-                    box.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>C?dv?l sistemi m?vcud deyil.</div>";
+                    box.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Cədvəl sistemi mövcud deyil.</div>";
                     return;
                 }
 
@@ -4422,9 +4422,9 @@
             };
 
             async function fetchWithRetry(url, options = {}, retries = 4, backoff = 3000) {
-                // iOS PWA-larda ??b?k? ba?lant?s? b?rpas?n? g?zl?
+                // iOS PWA-larda ??b?k? ba?lant?s? b?rpas?n? gözlə
                 if (!navigator.onLine) {
-                    console.log("[RETRY] Offline â€” ??b?k? g?zl?nilir...");
+                    console.log("[RETRY] Offline â€” ??b?k? gözlənilir...");
                     await new Promise(resolve => {
                         const onlineCb = () => { window.removeEventListener('online', onlineCb); resolve(); };
                         window.addEventListener('online', onlineCb);
@@ -4432,7 +4432,7 @@
                     });
                 }
 
-                // AbortController il? 20 saniy?lik timeout â€” iOS-da donuq fetch-l?rin qar??s?n? al?r
+                // AbortController ilə 20 saniy?lik timeout â€” iOS-da donuq fetch-l?rin qar??s?n? al?r
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 35000);
 
@@ -4440,7 +4440,7 @@
                     const res = await fetch(url, { ...options, signal: controller.signal });
                     clearTimeout(timeoutId);
                     if (!res.ok && retries > 0 && (res.status >= 502 && res.status <= 504)) {
-                        console.log(`[RETRY] Server cavab vermir (${res.status}). ${backoff}ms sonra yenid?n...`);
+                        console.log(`[RETRY] Server cavab vermir (${res.status}). ${backoff}ms sonra yenidən...`);
                         await new Promise(r => setTimeout(r, backoff));
                         return fetchWithRetry(url, options, retries - 1, backoff + 2000);
                     }
@@ -4449,7 +4449,7 @@
                     clearTimeout(timeoutId);
                     if (retries > 0) {
                         const reason = err.name === 'AbortError' ? 'Timeout (35s)' : err.message;
-                        console.log(`[RETRY] X?ta: ${reason}. ${backoff}ms sonra yenid?n (${retries} qal?b)...`);
+                        console.log(`[RETRY] Xəta: ${reason}. ${backoff}ms sonra yenidən (${retries} qal?b)...`);
                         await new Promise(r => setTimeout(r, backoff));
                         return fetchWithRetry(url, options, retries - 1, backoff + 2000);
                     }
@@ -4600,7 +4600,7 @@
                             <div class="loader-wrapper">
                                 <div style="text-align:center; padding:50px;">
                                     <i class="fas fa-circle-notch fa-spin" style="font-size:32px; color:var(--primary); margin-bottom:15px;"></i>
-                                    <div style="font-weight:600; color:var(--text-muted);">?n yeni m?lumatlar y?kl?nir...</div>
+                                    <div style="font-weight:600; color:var(--text-muted);">?n yeni məlumatlar yüklənir...</div>
                                 </div>
                             </div>`;
                     }
@@ -4610,7 +4610,7 @@
                     let dataEvents;
                     try {
                         const resEvents = await fetchWithRetry(url, fetchOptions);
-                        if (!resEvents.ok) throw new Error(`Server x?tas?: ${resEvents.status}`);
+                        if (!resEvents.ok) throw new Error(`Server xətası: ${resEvents.status}`);
                         dataEvents = await resEvents.json();
                     } catch (serverErr) {
                         const directUrl = `https://api.sofascore.com/api/v1${sofaFallbackPath}`;
@@ -4626,9 +4626,9 @@
                         } catch (e) {}
                     }
 
-                    // Backend x?tan? 200 il? qaytarsa bel?, onu tutmaq ???n:
+                    // Backend xətanı 200 ilə qaytarsa bel?, onu tutmaq üçün:
                     if (dataEvents && dataEvents.error) {
-                        throw new Error(`API Proxy Error: ${dataEvents.error.code || 'Bilinm?y?n'} - ${dataEvents.error.reason || 'X?ta'}`);
+                        throw new Error(`API Proxy Error: ${dataEvents.error.code || 'Bilinm?y?n'} - ${dataEvents.error.reason || 'Xəta'}`);
                     }
 
                     if (dataEvents && dataEvents.events) {
@@ -4800,9 +4800,9 @@
 
                 if (keys.length === 0) {
                     if (window._lastFetchError) {
-                        list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600; color:var(--live);'>SofaScore serveri m?v?qq?ti m?hdudiyy?t qoyub (?ox sayda sor?u). Bir ne?? d?qiq? sonra yenid?n c?hd edin.</div>";
+                        list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600; color:var(--live);'>SofaScore serveri müvəqqəti məhdudiyyət qoyub (?ox sayda sorğu). Bir ne?? dəqiqə sonra yenidən c?hd edin.</div>";
                     } else {
-                        list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600;'>He? bir oyun tap?lmad?.</div>";
+                        list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600;'>Heç bir oyun tapılmadı.</div>";
                     }
                     return;
                 }
@@ -4822,7 +4822,7 @@
                     const chunk = renderKeys.slice(i, i + 5);
                     if (chunk.length === 0) {
                         if (keys.length > maxLeaguesToRender) {
-                            list.insertAdjacentHTML('beforeend', `<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">Qalan ${keys.length - maxLeaguesToRender} liqa gizl?dilib (performans ???n). C?dv?l s?hif?sind?n axtar?? ed? bil?rsiniz.</div>`);
+                            list.insertAdjacentHTML('beforeend', `<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">Qalan ${keys.length - maxLeaguesToRender} liqa gizlədilib (performans üçün). Cədvəl səhifəsindən axtar?? ed? bilərsiniz.</div>`);
                         }
                         return;
                     }
@@ -4888,7 +4888,7 @@
                     }
 
                     if (leagues.length === 0) {
-                        leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">Bu ?lk? ???n aktiv liqa tap?lmad?.</div>`;
+                        leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">Bu Ölkə üçün aktiv liqa tapılmadı.</div>`;
                         return;
                     }
 
@@ -4899,7 +4899,7 @@
                 </div>
             `).join("");
                 } catch (e) {
-                    leagueContainer.innerHTML = `<div style="padding:15px; color:var(--live); text-align:center; font-size:12px;">X?ta ba? verdi.</div>`;
+                    leagueContainer.innerHTML = `<div style="padding:15px; color:var(--live); text-align:center; font-size:12px;">Xəta ba? verdi.</div>`;
                 }
             }
 
@@ -4923,15 +4923,15 @@
                     { id: 23, name: "Serie A", country: "Italy" },
                     { id: 37, name: "Bundesliga", country: "Germany" },
                     { id: 34, name: "Ligue 1", country: "France" },
-                    { id: 203, name: "S?per Lig", country: "Turkey" },
-                    { id: 709, name: "Az?rbaycan Premyer Liqas?", country: "Azerbaijan" },
+                    { id: 203, name: "Süper Lig", country: "Turkey" },
+                    { id: 709, name: "Azərbaycan Premyer Liqas?", country: "Azerbaijan" },
                     { id: 10783, name: "UEFA Nations League", country: "Eurasia" },
                     { id: 16, name: "FIFA World Cup", country: "World" },
                     { id: 1, name: "European Championship", country: "Eurasia" }
                 ];
 
                 if (!searchTerm) {
-                    html += `<div class="category-header"><span>Populyar Turnirl?r</span></div>`;
+                    html += `<div class="category-header"><span>Populyar Turnirlər</span></div>`;
                     
                     // Priority: If topLeaguesRaw is empty, use a fallback set to ensure UI is never empty
                     let displayPopular = topLeaguesRaw && topLeaguesRaw.length > 0 ? topLeaguesRaw : [
@@ -4940,7 +4940,7 @@
                         { id: 8, name: "La Liga", category: { name: "Spain", id: 32 } },
                         { id: 23, name: "Serie A", category: { name: "Italy", id: 31 } },
                         { id: 37, name: "Bundesliga", category: { name: "Germany", id: 30 } },
-                        { id: 203, name: "S?per Lig", category: { name: "Turkey", id: 52 } },
+                        { id: 203, name: "Süper Lig", category: { name: "Turkey", id: 52 } },
                         { id: 709, name: "Premyer Liqa", category: { name: "Azerbaijan", id: 875 } }
                     ];
 
@@ -4966,13 +4966,13 @@
 
                     // 2. Discovery Section: All Countries (Categories)
                     if (allCategoriesGlobal && allCategoriesGlobal.length > 0) {
-                        html += `<div class="category-header"><span>B?t?n ?lk?l?r (${allCategoriesGlobal.length})</span></div>`;
+                        html += `<div class="category-header"><span>Bütün Ölkələr (${allCategoriesGlobal.length})</span></div>`;
                         allCategoriesGlobal.forEach(cat => {
-                            const safeCatName = (cat.name || "?lk?").replace(/'/g, "\\'");
+                            const safeCatName = (cat.name || "Ölkə").replace(/'/g, "\\'");
                             html += `
                             <div class="category-row" onclick="toggleCategory('${cat.id}', '${safeCatName}', this)">
                                 <img class="category-flag" src="https://www.sofascore.com/api/v1/category/${cat.id}/image" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
-                                <span class="category-name">${cat.name || '?lk?'}</span>
+                                <span class="category-name">${cat.name || 'Ölkə'}</span>
                                 <span class="chevron" style="opacity:0.4; font-size:12px; margin-left:auto;">â–¼</span>
                             </div>`;
                         });
@@ -4993,7 +4993,7 @@
                             results = data.results.filter(r => r.type === "uniqueTournament").map(r => r.entity);
                         }
 
-                        html += `<div class="category-header"><span>Axtar?? N?tic?l?ri: ${results.length} Liqa</span></div>`;
+                        html += `<div class="category-header"><span>Axtar?? Nəticələri: ${results.length} Liqa</span></div>`;
                         
                         if (results.length > 0) {
                             results.forEach(l => {
@@ -5018,14 +5018,14 @@
                             html += `
                             <div class="empty-state" style="padding:60px 20px;">
                                 <div style="font-size:40px; margin-bottom:20px;">ğŸ”</div>
-                                <div style="font-weight:700; font-size:18px; margin-bottom:10px;">N?tic? tap?lmad?</div>
-                                <div style="color:var(--text-muted); font-size:14px;">"${searchTerm}" ???n uy?un liqa tap?lmad?. G?r?kirs?, f?rqli adlar yoxlay?n.</div>
+                                <div style="font-weight:700; font-size:18px; margin-bottom:10px;">Nəticə tapılmadı</div>
+                                <div style="color:var(--text-muted); font-size:14px;">"${searchTerm}" üçün uyğun liqa tapılmadı. G?r?kirs?, fərqli adlar yoxlayın.</div>
                             </div>`;
                         }
 
                         list.innerHTML = html;
                     } catch (e) {
-                        list.innerHTML = `<div class="empty-state" style="padding:60px 20px;">Axtar??da x?ta ba? verdi. Z?hm?t olmasa yenid?n yoxlay?n.</div>`;
+                        list.innerHTML = `<div class="empty-state" style="padding:60px 20px;">Axtar??da xəta ba? verdi. Zəhmət olmasa yenidən yoxlayın.</div>`;
                     }
                 }, 500);
             }
@@ -5037,7 +5037,7 @@
             const modalDetailsLastFetch = {};
 
             function getIncidentPlayerName(incident) {
-                return incident.playerName || incident.player?.name || incident.player?.shortName || incident.playerIn?.name || "Oyuncu";
+                return incident.playerName || incident.player?.name || incident.player?.shortName || incident.playerIn?.name || "Oyun?u";
             }
 
             function getAssistText(incident) {
@@ -5048,7 +5048,7 @@
             async function fetchDirectSofaJson(path) {
                 const directUrl = `https://api.sofascore.com/api/v1${path}`;
                 const res = await fetchWithRetry(directUrl, { cache: 'no-store' });
-                if (!res.ok) throw new Error(`SofaScore direct x?tas?: ${res.status}`);
+                if (!res.ok) throw new Error(`SofaScore direct xətası: ${res.status}`);
                 return res.json();
             }
 
@@ -5151,7 +5151,7 @@
                 modalDetailsInFlight = id;
 
                 try {
-                    // ?ndi iki ayr? sor?u yerin?, bir d?f?y? h?r ikisini ??kirik
+                    // İndi iki ayr? sorğu yerinə, bir dəfəy? hər ikisini ??kirik
                     const data = await fetchMatchDetailsData(id);
                     modalDetailsLastFetch[id] = Date.now();
                     if (currentOpenMatchId && currentOpenMatchId.toString() !== id.toString()) return;
@@ -5171,14 +5171,14 @@
                             let detail = "";
 
                             if (g.incidentType === "substitution") {
-                                player = g.playerIn ? g.playerIn.name : "Oyun?u";
+                                player = g.playerIn ? g.playerIn.name : "Oyunçu";
                                 subText = `<div class="timeline-sub-player">ğŸ”½ ${g.playerOut ? g.playerOut.name : ''}</div>`;
-                                detail = "?v?zetm?";
+                                detail = "Əvəzetmə";
                             } else if (g.incidentType === "goal") {
                                 detail = g.incidentClass === "ownGoal" ? "Avtoqol" : (g.incidentClass === "penalty" ? "Penalti" : "Qol");
                                 subText = getAssistText(g);
                             } else if (g.incidentType === "card") {
-                                detail = g.incidentClass === "yellow" ? "Sar? Kart" : "Q?rm?z? Kart";
+                                detail = g.incidentClass === "yellow" ? "Sarı Kart" : "Qırmızı Kart";
                             }
 
                             return `
@@ -5195,7 +5195,7 @@
                         tHtml += '</div>';
                         document.getElementById("goalsBox").innerHTML = tHtml;
                     } else {
-                        document.getElementById("goalsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Hadis? tap?lmad?</div>";
+                        document.getElementById("goalsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Hadisə tapılmadı</div>";
                     }
 
                     // Render Stats (Premium)
@@ -5228,7 +5228,7 @@
                         });
                         document.getElementById("statsBox").innerHTML = sHtml;
                     } else {
-                        document.getElementById("statsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Statistika tap?lmad?</div>";
+                        document.getElementById("statsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Statistika tapılmadı</div>";
                     }
                 } catch (e) {
                     console.error("Modal sync error", e);
@@ -5273,7 +5273,7 @@
                     const safeGroupName = match.tournament.name.replace(/'/g, "\\'");
                     openMatch(match.id, match.homeTeam.id, match.awayTeam.id, safeHomeName, safeAwayName, match.homeScore.current, match.awayScore.current, timeRaw, safeGroupName);
                 } else {
-                    showToast("Oyun datas? yenil?n?rk?n tap?lmad?.");
+                    showToast("Oyun datas? yenilənərkən tapılmadı.");
                 }
             }
 
@@ -5314,7 +5314,7 @@
                         favMatches.push(match);
                         btn.innerHTML = 'â˜…';
                         btn.classList.add('active');
-                        showToast('Oyun favoritl?r? ?lav? edildi');
+                        showToast('Oyun favoritl?r? Əlavə edildi');
                     }
                 } else {
                     favMatches.splice(idx, 1);
@@ -5330,7 +5330,7 @@
                 try {
                     const status = Notification.permission;
                     if (document.getElementById('debugPermBox')) {
-                        document.getElementById('debugPermBox').innerText = '?caz?: ' + status;
+                        document.getElementById('debugPermBox').innerText = 'İcazə: ' + status;
                     }
 
                     if (status !== 'granted') {
@@ -5361,7 +5361,7 @@
                         messaging.onMessage((payload) => {
                             console.log('[FCM] Foreground message received:', payload);
                             const notificationTitle = payload.notification?.title || payload.data?.title || "Rabona Media";
-                            const notificationBody = payload.notification?.body || payload.data?.body || "Yeni x?b?r var.";
+                            const notificationBody = payload.notification?.body || payload.data?.body || "Yeni xəbər var.";
                             
                             if (window.notificationMgr) {
                                 window.notificationMgr.history.unshift({
@@ -5428,12 +5428,12 @@
             window.sendTestPush = async function() {
                 const token = localStorage.getItem('fcmToken');
                 if (!token) {
-                    showToast('Bildiri? tokeni tap?lmad?. Z?hm?t olmasa bildiri?l?ri yenid?n aktiv edin.', 'error');
+                    showToast('Bildiriş tokeni tapılmadı. Zəhmət olmasa bildirişləri yenidən aktiv edin.', 'error');
                     return;
                 }
 
                 try {
-                    showToast('Test bildiri?i g?nd?rilir...');
+                    showToast('Test bildirişi göndərilir...');
                     const res = await fetch(API_BASE_URL + '/api/fcm/test-push', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -5441,12 +5441,12 @@
                     });
                     const data = await res.json();
                     if (data.success) {
-                        showToast('Test bildiri?i g?nd?rildi! ğŸš€', 'success');
+                        showToast('Test bildirişi göndərildi! ğŸš€', 'success');
                     } else {
-                        showToast('X?ta: ' + data.message, 'error');
+                        showToast('Xəta: ' + data.message, 'error');
                     }
                 } catch (e) {
-                    showToast('Serverl? ?laq? x?tas?', 'error');
+                    showToast('Serverl? ?laq? xətası', 'error');
                 }
                 registerFCMToken();
             }
@@ -5458,7 +5458,7 @@
                     favLeagues.push({ id, name, country });
                     btn.innerHTML = 'â˜…';
                     btn.classList.add('active');
-                    showToast('Liqa favoritl?r? ?lav? edildi');
+                    showToast('Liqa favoritl?r? Əlavə edildi');
                 } else {
                     favLeagues.splice(idx, 1);
                     btn.innerHTML = 'â˜†';
@@ -5475,8 +5475,8 @@
                     container.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-state-icon">â­</div>
-                    <div class="empty-state-title">Favoritl?riniz yoxdur</div>
-                    <div class="empty-state-text">Oyunlar? v? ya liqalar? favoritl?riniz? ?lav? ed?r?k burada g?r? bil?rsiniz.</div>
+                    <div class="empty-state-title">Favoritləriniz yoxdur</div>
+                    <div class="empty-state-text">Oyunlar? v? ya liqalar? favoritl?riniz? Əlavə ed?r?k burada görə bilərsiniz.</div>
                 </div>`;
                     return;
                 }
@@ -5489,7 +5489,7 @@
                         const groupKey = Object.keys(groupedDataGlobal).find(k => k.startsWith(l.name));
                         html += `
                     <div class="league-card">
-                        <div style="display:flex; align-items:center; gap:16px; flex:1;" onclick="${groupKey ? `openSingleLeague('${groupKey.replace(/'/g, "\\'")}')` : `showToast('Liqa m?lumat? tap?lmad?')`}">
+                        <div style="display:flex; align-items:center; gap:16px; flex:1;" onclick="${groupKey ? `openSingleLeague('${groupKey.replace(/'/g, "\\'")}')` : `showToast('Liqa məlumatı tapılmadı')`}">
                             <img class="league-card-logo" src="https://www.sofascore.com/api/v1/tournament/${l.id}/image" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzFmMjkzZCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIvPjwvc3ZnPg=='">
                             <div class="league-card-info">
                                 <span class="league-card-country">${l.country}</span>
@@ -5520,8 +5520,8 @@
                 const sInput = document.getElementById('statusInput');
                 const saveBtn = document.querySelector('.container#profileView .save-btn');
                 
-                let newName = uInput ? uInput.value.trim() : '?stifad??i';
-                let newStatus = sInput ? sInput.value.trim() : 'ProScore istifad??isi';
+                let newName = uInput ? uInput.value.trim() : 'İstifadəçi';
+                let newStatus = sInput ? sInput.value.trim() : 'ProScore istifadəçisi';
 
                 if (!newName) {
                     showToast('Ad bo? ola bilm?z!');
@@ -5529,7 +5529,7 @@
                 }
 
                 if (saveBtn) {
-                    saveBtn.innerText = 'Yadda saxlan?l?r...';
+                    saveBtn.innerText = 'Yadda saxlanılır...';
                     saveBtn.disabled = true;
                 }
 
@@ -5562,13 +5562,13 @@
                     }));
                     
                     updateAuthUI();
-                    showToast('Profil m?lumatlar? yenil?ndi');
+                    showToast('Profil məlumatlar yeniləndi');
                 } catch (e) {
                     console.error("Save profile error:", e);
-                    showToast('X?ta ba? verdi');
+                    showToast('Xəta ba? verdi');
                 } finally {
                     if (saveBtn) {
-                        saveBtn.innerText = 'M?lumatlar? Saxla';
+                        saveBtn.innerText = 'Məlumatlar Saxla';
                         saveBtn.disabled = false;
                     }
                 }
@@ -5584,7 +5584,7 @@
                 if (!file) return;
 
                 if (file.size > 2 * 1024 * 1024) { // Limit 2MB
-                    showToast('??kil 2MB-dan ki?ik olmal?d?r!', 'error');
+                    showToast('??kil 2MB-dan kiçik olmal?d?r!', 'error');
                     return;
                 }
 
@@ -5593,17 +5593,17 @@
                     const base64 = e.target.result;
                     localStorage.setItem('profileImage', base64);
                     updateAuthUI();
-                    showToast('Profil ??kli yenil?ndi', 'success');
+                    showToast('Profil ??kli yeniləndi', 'success');
                 }
                 reader.readAsDataURL(file);
             }
 
             function loadProfile() {
-                let currentName = '?stifad??i';
+                let currentName = 'İstifadəçi';
                 if (auth.currentUser) {
-                    currentName = auth.currentUser.displayName || (auth.currentUser.email ? auth.currentUser.email.split('@')[0] : '?stifad??i');
+                    currentName = auth.currentUser.displayName || (auth.currentUser.email ? auth.currentUser.email.split('@')[0] : 'İstifadəçi');
                 }
-                const profile = JSON.parse(localStorage.getItem('userProfile') || `{"name":"${currentName}", "status":"ProScore istifad??isi"}`);
+                const profile = JSON.parse(localStorage.getItem('userProfile') || `{"name":"${currentName}", "status":"ProScore istifadəçisi"}`);
 
                 const uInput = document.getElementById('usernameInput');
                 const sInput = document.getElementById('statusInput');
@@ -5653,7 +5653,7 @@
                     if (fNotif) fNotif.checked = !!userSettings.onlyFavNotif;
                     
                     const dbg = document.getElementById('debugSettings');
-                    if(dbg) dbg.innerText = "Yadda?dak? v?ziyy?t: " + JSON.stringify(userSettings);
+                    if(dbg) dbg.innerText = "Yaddaşdakı vəziyyət: " + JSON.stringify(userSettings);
                 }, 100);
                 const theme = localStorage.getItem('theme') || 'dark';
                 if (theme === 'light') {
@@ -5670,9 +5670,9 @@
                 try {
                     userSettings[key] = val;
                     localStorage.setItem('userSettings', JSON.stringify(userSettings));
-                    showToast('T?nziml?m? yadda saxlan?ld?');
+                    showToast('Tənzimləmə yadda saxlanıldı');
                 } catch (e) {
-                    showToast('Yadda?a yazmaq m?mk?n olmad?: ' + e.message, 'error');
+                    showToast('Yaddaşa yazmaq mümkün olmad?: ' + e.message, 'error');
                 }
             }
 
@@ -5701,15 +5701,15 @@
                     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
                     if (!("Notification" in window)) {
-                        let msg = 'Sizin brauzeriniz bildiri?l?ri d?st?kl?mir.';
+                        let msg = 'Sizin brauzeriniz bildirişləri dəstəkləmir.';
                         let icon = 'âš ï¸';
                         
                         if (isIOS && !isStandalone) {
-                            msg = 'iPhone-da bildiri?l?r ???n: \n1. Payla? (Share) d?ym?sin? klikl?yin.\n2. "Ana ekrana ?lav? et" (Add to Home Screen) se?in.\n3. Proqram? h?min ekrandan a??b yenid?n yoxlay?n.';
+                            msg = 'iPhone-da bildirişlər üçün: \n1. Payla? (Share) d?ym?sin? klikləyin.\n2. "Ana ekrana Əlavə et" (Add to Home Screen) seçin.\n3. Proqram? həmin ekrandan açıb yenidən yoxlayın.';
                             icon = 'ğŸ“±';
                         }
 
-                        showDialog({ title: 'D?st?kl?nmir', message: msg, icon: icon });
+                        showDialog({ title: 'Dəstəklənmir', message: msg, icon: icon });
                         document.getElementById('browserNotifToggle').checked = false;
                         return;
                     }
@@ -5718,12 +5718,12 @@
                         if (permission === "granted") {
                             updateSetting('browserNotifEnabled', true);
                             registerFCMToken();
-                            showToast('Bildiri?l?r aktiv edildi', 'success');
+                            showToast('Bildirişlər aktiv edildi', 'success');
                         } else {
                             if (permission !== 'unsupported') {
                                 showDialog({
-                                    title: '?caz? Verilm?di',
-                                    message: 'Brauzer bildiri?l?r? icaz? verm?di. L?tf?n brauzer t?nziml?m?l?rind?n icaz?ni s?f?rlay?b yenid?n c?hd edin.',
+                                    title: 'İcazə Verilmədi',
+                                    message: 'Brauzer bildirişlər? icazə vermədi. Lütfən brauzer tənzimləmələrindən icazəni sıfırlayıb yenidən c?hd edin.',
                                     icon: 'ğŸš«'
                                 });
                             }
@@ -5740,8 +5740,8 @@
 
             function clearAllData() {
                 showDialog({
-                    title: 'B?t?n M?lumatlar? Sil?',
-                    message: 'B?t?n favoritl?riniz v? profil m?lumatlar?n?z h?mi??lik silin?c?k. Bu h?r?k?ti geri qaytarmaq m?mk?n deyil.',
+                    title: 'Bütün Məlumatlar Sil',
+                    message: 'Bütün favoritl?riniz v? profil məlumatlarınız həmişəlik silinəcək. Bu hərəkəti geri qaytarmaq mümkün deyil.',
                     icon: 'ğŸ—‘ï¸',
                     type: 'confirm',
                     isDanger: true,
@@ -5793,8 +5793,8 @@
 
                 if (tab === 'login') {
                     tabL.classList.add('active');
-                    document.getElementById('authTitle').innerText = 'Xo? G?lmisiniz';
-                    document.getElementById('authSubtitle').innerText = 'Davam etm?k ???n daxil olun';
+                    document.getElementById('authTitle').innerText = 'Xoş Gəlmisiniz';
+                    document.getElementById('authSubtitle').innerText = 'Davam etmək üçün daxil olun';
                     if (btn) btn.innerText = 'Daxil Ol';
                     if (emailField) emailField.style.display = 'block'; // Firebase login requires email
                     if (forgotLink) forgotLink.style.display = 'block';
@@ -5804,7 +5804,7 @@
                 } else {
                     tabR.classList.add('active');
                     document.getElementById('authTitle').innerText = 'Yeni Hesab';
-                    document.getElementById('authSubtitle').innerText = 'ProScore ail?sin? qo?ulun';
+                    document.getElementById('authSubtitle').innerText = 'ProScore ailəsin? qoşulun';
                     if (btn) btn.innerText = 'Qeydiyyatdan Ke?';
                     if (emailField) emailField.style.display = 'block';
                     if (forgotLink) forgotLink.style.display = 'none';
@@ -5845,13 +5845,13 @@
                 const btn = document.getElementById('authSubmitBtn');
 
                 if (!email || !password || (!isLogin && !username)) {
-                    if (errorDiv) errorDiv.innerText = 'Z?hm?t olmasa b?t?n xanalar? doldurun.';
+                    if (errorDiv) errorDiv.innerText = 'Zəhmət olmasa bütün xanaları doldurun.';
                     return;
                 }
 
                 if (errorDiv) errorDiv.innerText = '';
                 if (btn) {
-                    btn.innerText = 'G?zl?yin...';
+                    btn.innerText = 'Gözləyin...';
                     btn.disabled = true;
                     btn.style.opacity = '0.7';
                 }
@@ -5874,7 +5874,7 @@
                             }
                         } catch(e) { console.warn("Could not sync profile from server."); }
 
-                        showToast(`Xo? g?ldin, ${userCredential.user.displayName || userCredential.user.email}!`);
+                        showToast(`Xoş gəldin, ${userCredential.user.displayName || userCredential.user.email}!`);
                         switchMainView('profile');
                     } else {
                         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
@@ -5887,17 +5887,17 @@
                             body: JSON.stringify({
                                 email: email,
                                 displayName: username,
-                                status: "ProScore istifad??isi"
+                                status: "ProScore istifadəçisi"
                             })
                         });
 
                         // Local sync
                         localStorage.setItem('userProfile', JSON.stringify({
                             name: username,
-                            status: "ProScore istifad??isi"
+                            status: "ProScore istifadəçisi"
                         }));
 
-                        showToast('Qeydiyyat u?urludur! Xo? g?ldiniz.');
+                        showToast('Qeydiyyat uğurludur! Xoş gəldiniz.');
                         switchMainView('profile');
                     }
                     
@@ -5908,14 +5908,14 @@
 
                 } catch (error) {
                     console.error("Firebase auth error:", error);
-                    let errMsg = "Bir x?ta ba? verdi.";
+                    let errMsg = "Bir xəta ba? verdi.";
                     switch (error.code) {
-                        case 'auth/user-not-found': errMsg = "?stifad??i tap?lmad?."; break;
-                        case 'auth/wrong-password': errMsg = "?ifr? yanl??d?r. Yenid?n c?hd edin."; break; // User specifically asked for this check
-                        case 'auth/invalid-credential': errMsg = "Email v? ya ?ifr? yanl??d?r."; break;
-                        case 'auth/email-already-in-use': errMsg = "Bu email art?q istifad? olunub."; break;
-                        case 'auth/invalid-email': errMsg = "Yanl?? email format?."; break;
-                        case 'auth/weak-password': errMsg = "?ifr? ?ox z?ifdir (?n az 6 simvol)."; break;
+                        case 'auth/user-not-found': errMsg = "İstifadəçi tapılmadı."; break;
+                        case 'auth/wrong-password': errMsg = "Şifrə yanl??d?r. Yenidən c?hd edin."; break; // User specifically asked for this check
+                        case 'auth/invalid-credential': errMsg = "Email v? ya Şifrə yanl??d?r."; break;
+                        case 'auth/email-already-in-use': errMsg = "Bu email art?q istifadə olunub."; break;
+                        case 'auth/invalid-email': errMsg = "Yanlış email format?d?r."; break;
+                        case 'auth/weak-password': errMsg = "Şifrə ?ox z?ifdir (?n az 6 simvol)."; break;
                         default: errMsg = error.message;
                     }
                     if (errorDiv) {
@@ -6024,7 +6024,7 @@
                     if (seconds <= 0) {
                         clearInterval(otpInterval);
                         display.innerText = "00:00";
-                        showToast("Vaxt bitdi. Kodu yenid?n g?nd?rin.");
+                        showToast("Vaxt bitdi. Kodu yenidən göndərin.");
                         inputs.forEach(i => i.classList.add('expired'));
                         verifyBtn.disabled = true;
                         resendBox.style.display = 'block';
@@ -6053,11 +6053,11 @@
                         document.getElementById('forgotStep2').style.display = 'flex';
                         startOTPCountdown();
                     } else {
-                        showToast(data.message || 'X?ta ba? verdi');
+                        showToast(data.message || 'Xəta ba? verdi');
                     }
                 } catch (e) {
                     console.error("Reset OTP error:", e);
-                    showToast('X?ta ba? verdi. Serverl? ?laq? k?sildi.');
+                    showToast('Xəta ba? verdi. Serverl? ?laq? k?sildi.');
                 }
             }
 
@@ -6067,7 +6067,7 @@
                 const otp = Array.from(inputs).map(i => i.value).join('');
 
                 if (otp.length < 4) {
-                    showToast('4 r?q?mli kodu daxil edin!');
+                    showToast('4 rəqəmli kodu daxil edin!');
                     return;
                 }
 
@@ -6084,9 +6084,9 @@
                         console.error(`[AUTH] Check OTP status error: ${res.status}`, errorText);
                         try {
                             const errorData = JSON.parse(errorText);
-                            showToast(errorData.message || 'Server x?tas? ba? verdi.');
+                            showToast(errorData.message || 'Server xətası ba? verdi.');
                         } catch(e) {
-                            showToast('Server cavab ver? bilm?di (X?ta: ' + res.status + ')');
+                            showToast('Server cavab ver? bilm?di (Xəta: ' + res.status + ')');
                         }
                         return;
                     }
@@ -6101,7 +6101,7 @@
                     }
                 } catch (e) {
                     console.error("[AUTH] Check OTP Exception:", e);
-                    showToast('Ba?lant? x?tas?. ?nternet ba?lant?n?z? yoxlay?n.');
+                    showToast('Bağlantı xətası. İnternet ba?lant?n?z? yoxlayın.');
                 }
             }
 
@@ -6113,11 +6113,11 @@
                 const confirmPassword = document.getElementById('confirmPassword').value.trim();
 
                 if (!newPassword || !confirmPassword) {
-                    showToast('B?t?n xanalar? doldurun!');
+                    showToast('Bütün xanaları doldurun!');
                     return;
                 }
                 if (newPassword !== confirmPassword) {
-                    showToast('?ifr?l?r ?st-?st? d??m?r!');
+                    showToast('Şifrələr üst-üstə d??m?r!');
                     return;
                 }
 
@@ -6133,9 +6133,9 @@
                         console.error(`[AUTH] Verify OTP error: ${res.status}`, errorText);
                         try {
                             const errorData = JSON.parse(errorText);
-                            showToast(errorData.message || 'X?ta ba? verdi.');
+                            showToast(errorData.message || 'Xəta ba? verdi.');
                         } catch(e) {
-                            showToast('Server x?tas? (' + res.status + ')');
+                            showToast('Server xətası (' + res.status + ')');
                         }
                         return;
                     }
@@ -6146,18 +6146,18 @@
                         clearInterval(otpInterval);
                         toggleForgotView(false);
                     } else {
-                        showToast(data.message || 'X?ta ba? verdi');
+                        showToast(data.message || 'Xəta ba? verdi');
                     }
                 } catch (e) {
                     console.error("[AUTH] Verify OTP Exception:", e);
-                    showToast('X?ta ba? verdi.');
+                    showToast('Xəta ba? verdi.');
                 }
             }
 
             window.logoutUser = function() {
                 showDialog({
                     title: '??x?? Et?',
-                    message: 'Hesab?n?zdan ??xmaq ist?diyiniz? ?minsiniz?',
+                    message: 'Hesabınızdan ??xmaq istədiyiniz? Əminsiniz?',
                     icon: 'ğŸšª',
                     type: 'confirm',
                     onConfirm: () => {
@@ -6231,7 +6231,7 @@
                     const statusEl = document.getElementById('profileUserStatus');
                     const avatarEl = document.getElementById('profileAvatar');
                     
-                    if (nameEl) nameEl.innerText = "?stifad??i";
+                    if (nameEl) nameEl.innerText = "İstifadəçi";
                     if (statusEl) statusEl.innerText = "Daxil olunmay?b";
                     
                     if (avatarEl) {
@@ -6337,7 +6337,7 @@
                     <div class="loader-wrapper">
                         <div style="text-align:center; padding:50px;">
                             <i class="fas fa-circle-notch fa-spin" style="font-size:32px; color:var(--primary); margin-bottom:15px;"></i>
-                            <div style="font-weight:600; color:var(--text-muted);">M?lumatlar y?kl?nir...</div>
+                            <div style="font-weight:600; color:var(--text-muted);">Məlumatlar yüklənir...</div>
                         </div>
                     </div>`;
             }
@@ -6357,7 +6357,7 @@
                                     const liveMatch = data.events.find(m => m.id.toString() === fm.id.toString());
                                     if (liveMatch) {
                                         updatedFavs.push(liveMatch);
-                                        // D?qiq?, qol v? ya status d?yi?ibs? yenil?
+                                        // D?qiq?, qol v? ya status d?yi?ibs? yenilə
                                         if (JSON.stringify(fm.homeScore) !== JSON.stringify(liveMatch.homeScore) || 
                                             JSON.stringify(fm.awayScore) !== JSON.stringify(liveMatch.awayScore) ||
                                             JSON.stringify(fm.time) !== JSON.stringify(liveMatch.time) ||
@@ -6369,8 +6369,8 @@
                                     }
                                 });
                                 
-                                // H?r 10 saniy?d?n bir Date.now() d?yi?diyi ???n getMatchTime vaxt? d?yi?ir.
-                                // Ona g?r? d? UI h?mi?? yenil?nm?lidir.
+                                // Hər 10 saniy?d?n bir Date.now() d?yi?diyi üçün getMatchTime vaxtı d?yi?ir.
+                                // Ona görə d? UI həmişə yenilənməlidir.
                                 favMatches = updatedFavs;
                                 localStorage.setItem('favMatches', JSON.stringify(favMatches));
                                 
@@ -6435,7 +6435,7 @@
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
                     }).catch(err => {
-                        console.warn('SW qeydiyyat? u?ursuz:', err);
+                        console.warn('SW qeydiyyatı uğursuz:', err);
                     });
                 });
             }
@@ -6451,7 +6451,7 @@
 
 
 
-            // Uygulama y?klendi?inde default view'e ge?
+            // Uygulama y?klindiyind? default view'? ke?
             if (userSettings && userSettings.defaultView === 'leagues') {
                 setTimeout(() => switchMainView('leagues'), 100);
             }
