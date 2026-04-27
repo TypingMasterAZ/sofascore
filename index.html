@@ -3344,6 +3344,96 @@
             const API_BASE_URL = (isLocalhost || isRender || !DEPLOYED_URL) ? '' : DEPLOYED_URL;
             console.log("API Base URL:", API_BASE_URL || "Local/SameOrigin");
 
+            const mojibakePattern = /(?:[ÃÅÄÉÆÂâ][^<\n\r\t]{0,3}|ğŸ|�)/;
+
+            function suspiciousScore(str) {
+                return (str.match(/[ÃÅÄÉÆÂâ�]/g) || []).length + ((str.match(/ğŸ/g) || []).length * 2);
+            }
+
+            function decodeMojibake(text) {
+                if (!text || typeof text !== 'string' || !mojibakePattern.test(text)) return text;
+                try {
+                    const bytes = new Uint8Array(Array.from(text, ch => ch.charCodeAt(0) & 0xFF));
+                    const decoded = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+                    if (!decoded || decoded.includes('\u0000')) return text;
+
+                    const before = suspiciousScore(text);
+                    const after = suspiciousScore(decoded);
+                    if (after < before || /[əğıöüşçƏĞİÖÜŞÇ]/.test(decoded)) {
+                        return decoded;
+                    }
+                } catch (e) {}
+                return text;
+            }
+
+            function repairNodeText(node) {
+                if (!node || !node.nodeValue) return;
+                const fixed = decodeMojibake(node.nodeValue);
+                if (fixed !== node.nodeValue) node.nodeValue = fixed;
+            }
+
+            function repairElementText(el) {
+                if (!el || el.nodeType !== Node.ELEMENT_NODE) return;
+                ['placeholder', 'title', 'aria-label'].forEach(attr => {
+                    const value = el.getAttribute(attr);
+                    if (!value) return;
+                    const fixed = decodeMojibake(value);
+                    if (fixed !== value) el.setAttribute(attr, fixed);
+                });
+
+                if ((el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && el.value) {
+                    const fixedValue = decodeMojibake(el.value);
+                    if (fixedValue !== el.value) el.value = fixedValue;
+                }
+            }
+
+            function repairAzerbaijaniText(root = document.body) {
+                if (!root) return;
+                if (root.nodeType === Node.TEXT_NODE) {
+                    repairNodeText(root);
+                    return;
+                }
+
+                repairElementText(root);
+
+                const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null);
+                let current = walker.currentNode;
+                while (current) {
+                    if (current.nodeType === Node.TEXT_NODE) repairNodeText(current);
+                    else if (current.nodeType === Node.ELEMENT_NODE) repairElementText(current);
+                    current = walker.nextNode();
+                }
+            }
+
+            function startAzerbaijaniTextRepair() {
+                repairAzerbaijaniText(document.body);
+
+                const observer = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (mutation.type === 'characterData') {
+                            repairNodeText(mutation.target);
+                            return;
+                        }
+
+                        if (mutation.type === 'attributes' && mutation.target) {
+                            repairElementText(mutation.target);
+                        }
+
+                        mutation.addedNodes.forEach((node) => {
+                            repairAzerbaijaniText(node);
+                        });
+                    });
+                });
+
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true,
+                    attributes: true,
+                    attributeFilter: ['placeholder', 'title', 'aria-label', 'value']
+                });
+            }
+
             let allEvents = [];
             let groupedDataGlobal = {};
             let isLiveFiltered = true;
@@ -6040,6 +6130,7 @@
                     </div>`;
             }
 
+            startAzerbaijaniTextRepair();
             fetchData();
             syncFavoritesLive();
             function syncFavoritesLive() {
