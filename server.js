@@ -1,7 +1,5 @@
 const express = require("express");
-const fs = require("fs");
-const fsPromises = require("fs").promises;
-// Version: 1.1.6 - Optimized fetch + Improved UI
+// Version: 2.0.0 - Keep-Alive Fix + Render Sleep Prevention
 console.log("-----------------------------------------");
 console.log(`[STARTUP] Server booting at ${new Date().toISOString()}`);
 console.log("-----------------------------------------");
@@ -11,6 +9,7 @@ const axios = require("axios");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const app = express();
+const fs = require("fs");
 const nodemailer = require("nodemailer");
 const admin = require("firebase-admin");
 
@@ -58,13 +57,64 @@ if (!firebaseInitialized && fs.existsSync("./serviceAccountKey.json")) {
   }
 }
 
+let db = null; // Firestore instance
+
 if (firebaseInitialized) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
   });
+  try {
+    db = admin.firestore();
+    db.settings({ ignoreUndefinedProperties: true });
+    console.log("[Firestore] Connected successfully.");
+  } catch (e) {
+    console.error("[Firestore] Connection error:", e.message);
+  }
 } else {
   console.warn("[WARNING] Firebase Admin SDK not initialized. Push notifications will not work.");
 }
+
+// ─── FIRESTORE USER HELPERS ───────────────────────────────────────────────────
+async function getUsers() {
+    if (db) {
+        try {
+            const snapshot = await db.collection('users').get();
+            return snapshot.docs.map(d => d.data());
+        } catch (e) { console.error("[Firestore] getUsers error:", e.message); }
+    }
+    if (fs.existsSync("./users.json")) {
+        try { return JSON.parse(fs.readFileSync("./users.json", "utf-8")); } catch(e) {}
+    }
+    return [];
+}
+
+async function saveUser(userData) {
+    const key = (userData.email || userData.username || String(userData.id || Date.now())).replace(/[^a-zA-Z0-9_\-]/g, '_');
+    if (db) {
+        try { await db.collection('users').doc(key).set(userData, { merge: true }); return; }
+        catch (e) { console.error("[Firestore] saveUser error:", e.message); }
+    }
+    let users = [];
+    if (fs.existsSync("./users.json")) {
+        try { users = JSON.parse(fs.readFileSync("./users.json", "utf-8")); } catch(e) {}
+    }
+    const idx = users.findIndex(u => u.email === userData.email || u.username === userData.username);
+    if (idx !== -1) users[idx] = { ...users[idx], ...userData };
+    else users.push(userData);
+    fs.writeFileSync("./users.json", JSON.stringify(users, null, 2));
+}
+
+async function getUserByEmail(email) {
+    if (db) {
+        try {
+            const snap = await db.collection('users').where('email', '==', email).limit(1).get();
+            if (!snap.empty) return snap.docs[0].data();
+        } catch (e) { console.error("[Firestore] getUserByEmail error:", e.message); }
+    }
+    const users = await getUsers();
+    return users.find(u => u.email === email) || null;
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Nodemailer Tənzimləmələri (OTP göndərmək üçün)
 // DİQQƏT: Buraya öz email və tətbiq şifrənizi (App Password) yazmalısınız
@@ -94,213 +144,88 @@ app.use((req, res, next) => {
 });
 
 const SOFA_API = "https://api.sofascore.com/api/v1";
-const GAS_PROXY_URL = process.env.GAS_PROXY_URL;
-const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY; // Optional: from api-football.com free plan
-
-// Rotating User-Agent pool to reduce block chance
-const USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0"
-];
-
-const ACCEPT_LANGS = [
-    "en-US,en;q=0.9",
-    "en-GB,en;q=0.9",
-    "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7",
-    "fr-FR,fr;q=0.9,en-US;q=0.8"
-];
-
-function getHeaders() {
-    const ua = USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
-    const lang = ACCEPT_LANGS[Math.floor(Math.random() * ACCEPT_LANGS.length)];
-    return {
-        "User-Agent": ua,
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Language": lang,
-        "Accept-Encoding": "gzip, deflate, br",
-        "Referer": "https://www.sofascore.com/",
-        "Origin": "https://www.sofascore.com",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache",
-        "sec-ch-ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"Windows"',
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-site",
-        "Connection": "keep-alive",
-        "DNT": "1",
-        "Upgrade-Insecure-Requests": "1"
-    };
-}
-
-// Last-good-response cache — serves stale data if ALL sources fail
-const lastGoodData = {};
-
-function isHtml(data) {
-    if (typeof data !== 'string') return false;
-    const t = data.trim().toLowerCase();
-    return t.startsWith('<!doctype') || t.startsWith('<html');
-}
-
-function isSofaError(data) {
-    // SofaScore returns {error:{code:403}} when blocking
-    if (data && typeof data === 'object' && data.error && data.error.code) return true;
-    return false;
-}
-
-async function tryFetch(url, options = {}) {
-    const result = await axios.get(url, { timeout: 12000, ...options });
-    if (isHtml(result.data)) throw new Error('HTML_RESPONSE');
-    if (isSofaError(result.data)) throw new Error(`SOFA_BLOCKED:${result.data.error.code}`);
-    return result;
-}
-
-// Sleep helper
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const GAS_PROXY_URL = process.env.GAS_PROXY_URL || "https://script.google.com/macros/s/AKfycbxsHV0KhThLoQkzK5anpcQzb6-MdDed2bSIRWltFl46eHWVFQ-BJ4hNJgonVlgcX42_Ig/exec";
+const HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "Accept": "*/*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.sofascore.com/",
+    "Origin": "https://www.sofascore.com",
+    "Cache-Control": "no-cache",
+    "sec-ch-ua": '"Google Chrome";v="133", "Not:A-Brand";v="8", "Chromium";v="133"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site"
+};
 
 async function fetchFromSofa(path, params = {}) {
-    const cacheKey = path;
-    const fullUrl = `${SOFA_API}${path}`;
-    const encodedUrl = encodeURIComponent(fullUrl);
+    let result = null;
+    let lastError = null;
 
-    // --- Attempt 1: GAS Proxy (if configured) ---
-    if (GAS_PROXY_URL) {
+    const tryFetch = async (type) => {
         try {
-            console.log(`[GAS PROXY] ${path}`);
-            const result = await tryFetch(GAS_PROXY_URL, {
-                params: { path, ...params, _t: Date.now() }
-            });
-            lastGoodData[cacheKey] = { data: result.data, ts: Date.now() };
-            return result;
+            let res;
+            if (type === 'proxy') {
+                console.log(`[PROXY FETCH via GAS] Path: ${path}`);
+                if (!GAS_PROXY_URL) throw new Error("GAS_PROXY_URL is not set");
+                
+                // Construct parameters for GAS Proxy
+                const queryParams = new URLSearchParams(params);
+                queryParams.append('path', path);
+                
+                res = await axios.get(GAS_PROXY_URL, { 
+                    params: queryParams,
+                    timeout: 15000 
+                });
+            } else if (type === 'direct') {
+                console.log(`[DIRECT FETCH] Path: ${path}`);
+                res = await axios.get(`${SOFA_API}${path}`, { 
+                    headers: HEADERS,
+                    params: params,
+                    timeout: 10000
+                });
+            } else {
+                return null;
+            }
+
+            // Məlumat string formatında gəlibsə, JSON-a çeviririk
+            if (res.data && typeof res.data === 'string') {
+                if (res.data.trim().startsWith('<!doctype') || res.data.trim().startsWith('<html')) {
+                    throw new Error("HTML response received");
+                }
+                try { res.data = JSON.parse(res.data); } catch (e) {}
+            }
+
+            // Əgər cavab 200 HTTP kodu qaytarıb, amma daxilində "error" obyekti varsa (məsələn 403 Forbidden)
+            if (res.data && res.data.error) {
+                throw new Error(`API Error: ${res.data.error.code} - ${res.data.error.reason}`);
+            }
+
+            return res;
         } catch (e) {
-            console.warn(`[GAS PROXY FAIL] ${path}: ${e.message}`);
+            lastError = e;
+            console.error(`[${type.toUpperCase()} FAILED] ${path}: ${e.message}`);
+            return null;
         }
+    };
+
+    // Strategiya 1: Əvvəlcə GAS Proxy
+    if (GAS_PROXY_URL) {
+        result = await tryFetch('proxy');
+    }
+    
+    // Strategiya 2: Əgər Proxy alınmadısa (məsələn error verdisə), Direct yoxla
+    if (!result) {
+        result = await tryFetch('direct');
     }
 
-    // --- Attempt 2: Direct SofaScore with rotating UA ---
-    try {
-        console.log(`[DIRECT] ${path}`);
-        const result = await tryFetch(fullUrl, {
-            headers: getHeaders(),
-            params: { ...params, _t: Date.now() }
-        });
-        lastGoodData[cacheKey] = { data: result.data, ts: Date.now() };
-        return result;
-    } catch (e) {
-        console.warn(`[DIRECT FAIL] ${path}: ${e.message} | Status: ${e.response?.status}`);
+    if (!result) {
+        throw new Error(`Bütün bağlantı cəhdləri uğursuz oldu. Son xəta: ${lastError ? lastError.message : 'Unknown'}`);
     }
 
-    // --- Attempt 3: Direct with extra delay (jitter bypass) ---
-    try {
-        await sleep(Math.random() * 1500 + 500);
-        console.log(`[DIRECT-DELAY] ${path}`);
-        const h = getHeaders();
-        // Add cookie-like header that real browsers send
-        h['X-Forwarded-For'] = `${Math.floor(Math.random()*200)+20}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}`;
-        const result = await tryFetch(fullUrl, { headers: h });
-        lastGoodData[cacheKey] = { data: result.data, ts: Date.now() };
-        return result;
-    } catch (e) {
-        console.warn(`[DIRECT-DELAY FAIL] ${path}: ${e.message}`);
-    }
-
-    // --- Attempt 4: AllOrigins public CORS proxy ---
-    try {
-        console.log(`[ALLORIGINS PROXY] ${path}`);
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodedUrl}`;
-        const result = await tryFetch(proxyUrl, { timeout: 10000 });
-        const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
-        if (isSofaError(parsed)) throw new Error('SOFA_BLOCKED_VIA_ALLORIGINS');
-        const wrapped = { ...result, data: parsed };
-        lastGoodData[cacheKey] = { data: parsed, ts: Date.now() };
-        return wrapped;
-    } catch (e) {
-        console.warn(`[ALLORIGINS FAIL] ${path}: ${e.message}`);
-    }
-
-    // --- Attempt 5: ThingProxy ---
-    try {
-        console.log(`[THINGPROXY] ${path}`);
-        const proxyUrl = `https://thingproxy.freeboard.io/fetch/${fullUrl}`;
-        const result = await tryFetch(proxyUrl, { timeout: 12000 });
-        const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
-        if (isSofaError(parsed)) throw new Error('SOFA_BLOCKED_VIA_THINGPROXY');
-        const wrapped = { ...result, data: parsed };
-        lastGoodData[cacheKey] = { data: parsed, ts: Date.now() };
-        return wrapped;
-    } catch (e) {
-        console.warn(`[THINGPROXY FAIL] ${path}: ${e.message}`);
-    }
-
-    // --- Attempt 6: corsproxy.io ---
-    try {
-        console.log(`[CORSPROXY] ${path}`);
-        const proxyUrl = `https://corsproxy.io/?${encodedUrl}`;
-        const result = await tryFetch(proxyUrl, { timeout: 10000 });
-        const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
-        if (isSofaError(parsed)) throw new Error('SOFA_BLOCKED_VIA_CORSPROXY');
-        const wrapped = { ...result, data: parsed };
-        lastGoodData[cacheKey] = { data: parsed, ts: Date.now() };
-        return wrapped;
-    } catch (e) {
-        console.warn(`[CORSPROXY FAIL] ${path}: ${e.message}`);
-    }
-
-    // --- Attempt 7: codetabs ---
-    try {
-        console.log(`[CODETABS] ${path}`);
-        const proxyUrl2 = `https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`;
-        const result = await tryFetch(proxyUrl2, { timeout: 10000 });
-        const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
-        if (isSofaError(parsed)) throw new Error('SOFA_BLOCKED_VIA_CODETABS');
-        const wrapped = { ...result, data: parsed };
-        lastGoodData[cacheKey] = { data: parsed, ts: Date.now() };
-        return wrapped;
-    } catch (e) {
-        console.warn(`[CODETABS FAIL] ${path}: ${e.message}`);
-    }
-
-    // --- Attempt 8: cors-proxy.htmldriven.com ---
-    try {
-        console.log(`[HTMLDRIVEN] ${path}`);
-        const proxyUrl3 = `https://cors-proxy.htmldriven.com/?url=${fullUrl}`;
-        const result = await tryFetch(proxyUrl3, { timeout: 10000 });
-        const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
-        const wrapped = { ...result, data: parsed };
-        lastGoodData[cacheKey] = { data: parsed, ts: Date.now() };
-        return wrapped;
-    } catch (e) {
-        console.warn(`[HTMLDRIVEN FAIL] ${path}: ${e.message}`);
-    }
-
-    // --- Attempt 9: Scraper API Fallback (Random Public CORS Anywhere) ---
-    const publicProxies = [
-        "https://cors-anywhere.herokuapp.com/",
-        "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all"
-    ];
-    // We only try one of these as they are often down
-    try {
-        const base = "https://corsproxy.io/?";
-        const result = await tryFetch(base + encodedUrl, { timeout: 10000 });
-        const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
-        lastGoodData[cacheKey] = { data: parsed, ts: Date.now() };
-        return { ...result, data: parsed };
-    } catch(e) {}
-
-    // --- Fallback: Serve last known good data (max 15 minutes stale) ---
-    const stale = lastGoodData[cacheKey];
-    if (stale && (Date.now() - stale.ts) < 15 * 60 * 1000) {
-        console.warn(`[STALE DATA] Serving cached data for ${path} (age: ${Math.round((Date.now() - stale.ts)/1000)}s)`);
-        return { data: stale.data, status: 200, stale: true };
-    }
-
-    // All attempts failed
-    throw new Error(`Bütün sorğu üsulları uğursuz oldu: ${path}. SofaScore bloklanmış ola bilər.`);
+    return result;
 }
 
 // Diagnostic Endpoint Enhanced
@@ -394,94 +319,6 @@ app.get("/api/team/:id", async (req, res) => {
     }
 });
 
-// API-Football live match normalizer
-async function fetchLiveFromApiFootball() {
-    if (!API_FOOTBALL_KEY) throw new Error('API_FOOTBALL_KEY not configured');
-    const resp = await axios.get('https://v3.football.api-sports.io/fixtures?live=all', {
-        headers: {
-            'x-apisports-key': API_FOOTBALL_KEY,
-            'x-rapidapi-host': 'v3.football.api-sports.io'
-        },
-        timeout: 12000
-    });
-    if (!resp.data || !resp.data.response) throw new Error('Invalid API-Football response');
-    const events = resp.data.response.map(f => ({
-        id: f.fixture.id,
-        homeTeam: { name: f.teams.home.name, id: f.teams.home.id },
-        awayTeam: { name: f.teams.away.name, id: f.teams.away.id },
-        homeScore: { current: f.goals.home || 0 },
-        awayScore: { current: f.goals.away || 0 },
-        tournament: {
-            name: f.league.name,
-            uniqueTournament: { id: f.league.id, name: f.league.name }
-        },
-        status: {
-            type: f.fixture.status.short === 'FT' ? 'finished' : 'inprogress',
-            description: f.fixture.status.long,
-            elapsed: f.fixture.status.elapsed
-        },
-        startTimestamp: Math.floor(new Date(f.fixture.date).getTime() / 1000),
-        _source: 'api-football'
-    }));
-    console.log(`[API-Football] Got ${events.length} live matches`);
-    return { events };
-}
-
-// ESPN Public API - no key needed, good for live match fallback
-async function fetchLiveFromESPN() {
-    // ESPN soccer scoreboard - all live matches
-    const resp = await axios.get('https://site.api.espn.com/apis/site/v2/sports/soccer/all/scoreboard', {
-        params: { limit: 200 },
-        timeout: 12000,
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'application/json'
-        }
-    });
-    if (!resp.data || !resp.data.events) throw new Error('Invalid ESPN response');
-
-    // Only live/in-progress events
-    const liveEvents = resp.data.events.filter(e => {
-        const status = e.status && e.status.type && e.status.type.state;
-        return status === 'in';
-    });
-
-    // Normalize ESPN format to SofaScore-like format
-    const events = liveEvents.map((e, idx) => {
-        const comp = e.competitions && e.competitions[0];
-        const home = comp && comp.competitors && comp.competitors.find(c => c.homeAway === 'home');
-        const away = comp && comp.competitors && comp.competitors.find(c => c.homeAway === 'away');
-        const league = e.season && e.season.slug ? e.season.slug : (e.name || 'Unknown League');
-        const leagueId = 90000 + idx; // synthetic ID to avoid conflict with SofaScore IDs
-
-        return {
-            id: 80000000 + idx, // synthetic unique ID
-            homeTeam: { name: home ? home.team.displayName : 'Home', id: home ? parseInt(home.team.id) : 0 },
-            awayTeam: { name: away ? away.team.displayName : 'Away', id: away ? parseInt(away.team.id) : 0 },
-            homeScore: { current: home ? parseInt(home.score || 0) : 0 },
-            awayScore: { current: away ? parseInt(away.score || 0) : 0 },
-            tournament: {
-                name: e.season && e.season.displayName ? e.season.displayName : league,
-                id: leagueId,
-                uniqueTournament: { id: leagueId, name: e.season && e.season.displayName ? e.season.displayName : league },
-                category: { name: 'International', id: 1 }
-            },
-            status: {
-                type: 'inprogress',
-                description: e.status && e.status.displayClock ? e.status.displayClock : 'LIVE'
-            },
-            time: {
-                currentPeriodStartTimestamp: null
-            },
-            startTimestamp: comp ? Math.floor(new Date(comp.startDate).getTime() / 1000) : Math.floor(Date.now() / 1000),
-            _source: 'espn'
-        };
-    });
-
-    console.log(`[ESPN] Got ${events.length} live matches`);
-    return { events };
-}
-
 // Yeni API: Canlı Matçlar
 app.get("/api/matches/live", async (req, res) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -489,46 +326,18 @@ app.get("/api/matches/live", async (req, res) => {
     res.set('Expires', '0');
 
     try {
-        // Optimization: If we have very fresh data (< 15s) from background worker, use it
-        if (globalLiveEvents && globalLiveEvents.events && (Date.now() - lastLiveFetchTime < 15000)) {
-            console.log(`[LIVE] Serving fresh background data (age: ${Math.round((Date.now() - lastLiveFetchTime)/1000)}s)`);
+        // ALWAYS fetch fresh data, OR use background cached data if very recent (< 10 seconds)
+        // This makes the frontend loading completely instantaneous when the site is opened.
+        if (globalLiveEvents && (Date.now() - lastLiveFetchTime < 10000)) {
             return res.json(globalLiveEvents);
         }
-
         const result = await fetchFromSofa("/sport/football/events/live");
         globalLiveEvents = result.data;
         lastLiveFetchTime = Date.now();
         res.json(result.data);
-    } catch (sofaError) {
-        console.warn(`[LIVE] SofaScore failed (${sofaError.message}), trying API-Football...`);
-        // Try API-Football as second resort
-        try {
-            const afData = await fetchLiveFromApiFootball();
-            globalLiveEvents = afData;
-            lastLiveFetchTime = Date.now();
-            return res.json(afData);
-        } catch (afError) {
-            console.warn(`[LIVE] API-Football failed (${afError.message}), trying ESPN...`);
-        }
-        // Try ESPN as third resort (no key needed!)
-        try {
-            const espnData = await fetchLiveFromESPN();
-            globalLiveEvents = espnData;
-            lastLiveFetchTime = Date.now();
-            return res.json(espnData);
-        } catch (espnError) {
-            console.error(`[LIVE] ESPN also failed: ${espnError.message}`);
-        }
-        // If we have stale global data (< 5 min), return it
-        if (globalLiveEvents && globalLiveEvents.events && (Date.now() - lastLiveFetchTime < 5 * 60 * 1000)) {
-            console.warn(`[LIVE STALE] Serving stale live events (age: ${Math.round((Date.now() - lastLiveFetchTime)/1000)}s)`);
-            res.set('X-Data-Stale', 'true');
-            return res.json(globalLiveEvents);
-        } else {
-            // Return empty events array gracefully - client will show "no live games" 
-            console.warn(`[LIVE EMPTY] All sources failed, returning empty events.`);
-            res.json({ events: [], error: false, message: 'No live data available. Try again shortly.' });
-        }
+    } catch (error) {
+        console.error(`[API ERROR] Live matches: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
+        res.status(500).json({ error: true, message: error.message, details: error.response?.data?.substring?.(0, 100) });
     }
 });
 
@@ -536,10 +345,12 @@ app.get("/api/matches/live", async (req, res) => {
 app.get("/api/matches/:date", async (req, res) => {
     const { date } = req.params;
     try {
+        const today = new Date().toISOString().split('T')[0];
+        const ttl = (date === today) ? 30 * 1000 : CACHE_TIMES.SCHEDULED; // 30s cache for today
         const data = await getCachedData(`matches_${date}`, async () => {
             const result = await fetchFromSofa(`/sport/football/scheduled-events/${date}`);
             return result.data;
-        }, CACHE_TIMES.SCHEDULED);
+        }, ttl);
         res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Scheduled matches for date ${date}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
@@ -549,48 +360,129 @@ app.get("/api/matches/:date", async (req, res) => {
 
 // Yeni API: Matç Hadisələri (Qollar, Kartlar)
 app.get("/api/match/:id/incidents", async (req, res) => {
+    const id = req.params.id;
     try {
-        const { id } = req.params;
-        const result = await fetchFromSofa(`/event/${id}/incidents`);
-        res.json(result.data);
+        const rapidApiKey = process.env.RAPIDAPI_KEY || '2f8ef458aemsha05f2f0c4ce9b06p1f15fejsn702617d3780e';
+        const response = await axios.get('https://sofascore.p.rapidapi.com/matches/get-incidents', {
+            headers: {
+                'x-rapidapi-key': rapidApiKey,
+                'x-rapidapi-host': 'sofascore.p.rapidapi.com'
+            },
+            params: { matchId: id }
+        });
+        
+        if (response.data) {
+            cache[`incidents_${id}`] = { data: response.data, timestamp: Date.now() };
+            return res.json(response.data);
+        }
+
+        if (cache[`incidents_${id}`]) {
+            return res.json(cache[`incidents_${id}`].data);
+        }
+
+        throw new Error("No data available");
     } catch (error) {
-        console.error(`[API ERROR] Match incidents ${req.params.id}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
+        console.error(`[RAPIDAPI ERROR] Match incidents ${id}: ${error.message}`);
+        if (cache[`incidents_${id}`]) {
+            return res.json(cache[`incidents_${id}`].data);
+        }
         res.status(500).json({ error: true, message: error.message });
     }
 });
 
 // Yeni API: Matç Statistikası
 app.get("/api/match/:id/statistics", async (req, res) => {
+    const id = req.params.id;
     try {
-        const { id } = req.params;
-        const result = await fetchFromSofa(`/event/${id}/statistics`);
-        res.json(result.data);
+        const rapidApiKey = process.env.RAPIDAPI_KEY || '2f8ef458aemsha05f2f0c4ce9b06p1f15fejsn702617d3780e';
+        const data = await getCachedData(`stats_${id}`, async () => {
+            const result = await axios.get('https://sofascore.p.rapidapi.com/matches/get-statistics', {
+                headers: {
+                    'x-rapidapi-key': rapidApiKey,
+                    'x-rapidapi-host': 'sofascore.p.rapidapi.com'
+                },
+                params: { matchId: id }
+            });
+            return result.data;
+        }, 30000);
+        res.json(data);
     } catch (error) {
-        console.error(`[API ERROR] Match statistics ${req.params.id}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
+        console.error(`[RAPIDAPI ERROR] Match statistics ${id}: ${error.message}`);
+        const cached = cache[`stats_${id}`];
+        if (cached) return res.json(cached.data);
         res.status(500).json({ error: true, message: error.message });
     }
 });
 
-// Yeni API: Turnirin mövsümləri
-app.get("/api/tournament/:id/seasons", async (req, res) => {
+// Yeni API: H2H (Head to Head) Matçlar - RapidAPI vasitəsilə
+app.get("/api/match/:id/h2h", async (req, res) => {
+    const id = req.params.id;
     try {
-        const { id } = req.params;
-        const result = await fetchFromSofa(`/unique-tournament/${id}/seasons`);
-        res.json(result.data);
+        const rapidApiKey = process.env.RAPIDAPI_KEY || '2f8ef458aemsha05f2f0c4ce9b06p1f15fejsn702617d3780e';
+        const params = { customId: id, ...req.query };
+        const response = await axios.get('https://sofascore.p.rapidapi.com/matches/get-h2h-events', {
+            headers: {
+                'x-rapidapi-key': rapidApiKey,
+                'x-rapidapi-host': 'sofascore.p.rapidapi.com'
+            },
+            params: params
+        });
+        res.json(response.data);
     } catch (error) {
-        console.error(`[API ERROR] Tournament seasons ${req.params.id}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
-        res.status(500).json({ error: true, message: error.message });
+        console.error(`[RAPIDAPI ERROR] Match H2H ${id}: ${error.message}`);
+        if (error.response) {
+             res.status(error.response.status).json(error.response.data);
+        } else {
+             res.status(500).json({ error: true, message: error.message });
+        }
     }
 });
+
+// Matç detallarını vahid endpoint-də birləşdiririk (bloklanmamaq üçün)
+app.get("/api/match/:id/details", async (req, res) => {
+    const id = req.params.id;
+    try {
+        const rapidApiKey = process.env.RAPIDAPI_KEY || '2f8ef458aemsha05f2f0c4ce9b06p1f15fejsn702617d3780e';
+        const headers = {
+            'x-rapidapi-key': rapidApiKey,
+            'x-rapidapi-host': 'sofascore.p.rapidapi.com'
+        };
+
+        const incidentsResponse = await axios.get('https://sofascore.p.rapidapi.com/matches/get-incidents', {
+            headers: headers,
+            params: { matchId: id }
+        }).catch(e => null);
+        
+        await new Promise(r => setTimeout(r, 500)); 
+        
+        const statsResponse = await axios.get('https://sofascore.p.rapidapi.com/matches/get-statistics', {
+            headers: headers,
+            params: { matchId: id }
+        }).catch(e => null);
+
+        res.json({
+            incidents: incidentsResponse ? incidentsResponse.data : null,
+            stats: statsResponse ? statsResponse.data : null
+        });
+    } catch (error) {
+        console.error(`[RAPIDAPI ERROR] Match details main ${id}: ${error.message}`);
+        res.status(500).json({ error: true });
+    }
+});
+
+
 
 // Yeni API: Canlı Liqa Cədvəli üçün Proxy
 app.get("/api/standings/:tourId/:seasonId", async (req, res) => {
     try {
         const { tourId, seasonId } = req.params;
-        const result = await fetchFromSofa(`/unique-tournament/${tourId}/season/${seasonId}/standings/total`);
-        res.json(result.data);
+        const data = await getCachedData(`standings_${tourId}_${seasonId}`, async () => {
+            const result = await fetchFromSofa(`/unique-tournament/${tourId}/season/${seasonId}/standings/total`);
+            return result.data;
+        }, CACHE_TIMES.STATIC);
+        res.json(data);
     } catch (error) {
-        console.error(`[API ERROR] Standings tour=${tourId} season=${seasonId}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
+        console.error(`[API ERROR] Standings tour=${req.params.tourId} season=${req.params.seasonId}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
         res.status(500).json({ error: true, message: error.message });
     }
 });
@@ -626,38 +518,25 @@ app.get("/api/categories", async (req, res) => {
 // Yeni API: Kateqoriya üzrə Liqalar
 app.get("/api/category/:id/tournaments", async (req, res) => {
     try {
-        const result = await fetchFromSofa(`/category/${req.params.id}/unique-tournaments`);
-        res.json(result.data);
+        const data = await getCachedData(`category_tournaments_${req.params.id}`, async () => {
+            const result = await fetchFromSofa(`/category/${req.params.id}/unique-tournaments`);
+            return result.data;
+        }, CACHE_TIMES.STATIC);
+        res.json(data);
     } catch (error) {
         res.status(500).json({ error: true });
     }
 });
 
 // Yeni API: Turnir Məlumatı (Single League Info)
-// Alias üçün unique-tournament
-app.get("/api/unique-tournament/:id", async (req, res) => {
-    try {
-        const result = await fetchFromSofa(`/unique-tournament/${req.params.id}`);
-        res.json(result.data);
-    } catch (error) {
-        res.status(500).json({ error: true });
-    }
-});
-
-app.get("/api/unique-tournament/:id/seasons", async (req, res) => {
-    try {
-        const result = await fetchFromSofa(`/unique-tournament/${req.params.id}/seasons`);
-        res.json(result.data);
-    } catch (error) {
-        res.status(500).json({ error: true });
-    }
-});
-
-// Mövcud tournament marşrutları
 app.get("/api/tournament/:id", async (req, res) => {
     try {
-        const result = await fetchFromSofa(`/unique-tournament/${req.params.id}`);
-        res.json(result.data);
+        const type = req.query.isUnique === 'false' ? 'tournament' : 'unique-tournament';
+        const data = await getCachedData(`tournament_${type}_${req.params.id}`, async () => {
+            const result = await fetchFromSofa(`/${type}/${req.params.id}`);
+            return result.data;
+        }, CACHE_TIMES.STATIC);
+        res.json(data);
     } catch (error) {
         res.status(500).json({ error: true });
     }
@@ -666,8 +545,12 @@ app.get("/api/tournament/:id", async (req, res) => {
 // Yeni API: Turnir Mövsümləri (Seasons)
 app.get("/api/tournament/:id/seasons", async (req, res) => {
     try {
-        const result = await fetchFromSofa(`/unique-tournament/${req.params.id}/seasons`);
-        res.json(result.data);
+        const type = req.query.isUnique === 'false' ? 'tournament' : 'unique-tournament';
+        const data = await getCachedData(`seasons_${type}_${req.params.id}`, async () => {
+            const result = await fetchFromSofa(`/${type}/${req.params.id}/seasons`);
+            return result.data;
+        }, CACHE_TIMES.STATIC);
+        res.json(data);
     } catch (error) {
         res.status(500).json({ error: true });
     }
@@ -689,8 +572,11 @@ app.get("/api/search", async (req, res) => {
 app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
     try {
         const { id, sid } = req.params;
-        const result = await fetchFromSofa(`/unique-tournament/${id}/season/${sid}/top-players/overall`);
-        res.json(result.data);
+        const data = await getCachedData(`topplayers_${id}_${sid}`, async () => {
+            const result = await fetchFromSofa(`/unique-tournament/${id}/season/${sid}/top-players/overall`);
+            return result.data;
+        }, CACHE_TIMES.STATIC);
+        res.json(data);
     } catch (error) {
         res.status(500).json({ error: true });
     }
@@ -705,21 +591,10 @@ app.post("/api/auth/send-otp", async (req, res) => {
     const expiry = Date.now() + 3 * 60 * 1000; // 3 dəqiqə valid
 
     try {
-        let users = [];
-        if (fs.existsSync("./users.json")) {
-            users = JSON.parse(fs.readFileSync("./users.json", "utf-8"));
-        }
-
-        let userIdx = users.findIndex(u => u.email === email);
-        if (userIdx === -1) {
-            // Əgər istifadəçi yalnız Firebase-də varsa və localda yoxdursa, onu yaradırıq
-            users.push({ email: email, resendCount: 0 });
-            userIdx = users.length - 1;
-        }
+        let user = await getUserByEmail(email) || { email: email, resendCount: 0 };
 
         // Gündəlik Limit Yoxlanışı (5 dəfə)
         const today = new Date().toISOString().split('T')[0];
-        const user = users[userIdx];
         
         if (user.lastResendDate === today) {
             if (user.resendCount >= 5) {
@@ -733,7 +608,7 @@ app.post("/api/auth/send-otp", async (req, res) => {
 
         user.otp = otp;
         user.otpExpiry = expiry;
-        fs.writeFileSync("./users.json", JSON.stringify(users, null, 2));
+        await saveUser(user);
 
         const mailOptions = {
             from: '"Rabona Media" <typingmaster.az@gmail.com>',
@@ -768,9 +643,8 @@ app.post("/api/auth/send-otp", async (req, res) => {
 app.post("/api/auth/check-otp", async (req, res) => {
     const { email, otp } = req.body;
     try {
-        if (!fs.existsSync("./users.json")) return res.status(404).json({ success: false });
-        let users = JSON.parse(fs.readFileSync("./users.json", "utf-8"));
-        const user = users.find(u => u.email === email && u.otp === otp);
+        const userData = await getUserByEmail(email);
+        const user = (userData && userData.otp === otp) ? userData : null;
         console.log(`[AUTH] Checking OTP for ${email}: ${otp ? 'Provided' : 'Missing'}`);
         
         if (!user) {
@@ -793,12 +667,9 @@ app.post("/api/auth/verify-otp", async (req, res) => {
     const { email, otp, newPassword } = req.body;
     
     try {
-        if (!fs.existsSync("./users.json")) return res.status(404).json({ success: false });
-        let users = JSON.parse(fs.readFileSync("./users.json", "utf-8"));
+        const user = await getUserByEmail(email);
         
-        const user = users.find(u => u.email === email && u.otp === otp);
-        
-        if (!user) {
+        if (!user || user.otp !== otp) {
             return res.status(400).json({ success: false, message: "Kod yanlışdır." });
         }
         
@@ -825,11 +696,9 @@ app.post("/api/auth/verify-otp", async (req, res) => {
         // OTP-ni təmizlə və şifrəni hash-ləyərək saxla
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(newPassword, salt);
-        
         delete user.otp;
         delete user.otpExpiry;
-        
-        fs.writeFileSync("./users.json", JSON.stringify(users, null, 2));
+        await saveUser(user);
         res.json({ success: true, message: "Şifrə uğurla dəyişdirildi." });
 
     } catch (e) {
@@ -844,23 +713,11 @@ app.post("/api/auth/update-profile", async (req, res) => {
     if (!email) return res.status(400).json({ success: false, message: "Email lazımdır." });
 
     try {
-        let users = [];
-        if (fs.existsSync("./users.json")) {
-            users = JSON.parse(fs.readFileSync("./users.json", "utf-8"));
-        }
-        
-        let userIdx = users.findIndex(u => u.email === email);
-        if (userIdx === -1) {
-            users.push({ email: email, username: displayName || email.split('@')[0], status: status || "ProScore istifadəçisi" });
-            userIdx = users.length - 1;
-        }
-
-        const user = users[userIdx];
+        let user = await getUserByEmail(email) || { email: email, username: displayName || email.split('@')[0], status: status || "ProScore istifadəçisi" };
         if (displayName) user.username = displayName;
         if (status !== undefined) user.status = status;
         if (profilePic !== undefined) user.profilePic = profilePic;
-
-        fs.writeFileSync("./users.json", JSON.stringify(users, null, 2));
+        await saveUser(user);
         res.json({ success: true, message: "Profil uğurla yeniləndi." });
     } catch (e) {
         console.error("Update profile error:", e);
@@ -872,10 +729,7 @@ app.post("/api/auth/update-profile", async (req, res) => {
 app.get("/api/auth/profile/:email", async (req, res) => {
     const { email } = req.params;
     try {
-        if (!fs.existsSync("./users.json")) return res.status(404).json({ success: false });
-        let users = JSON.parse(fs.readFileSync("./users.json", "utf-8"));
-        const user = users.find(u => u.email === email);
-        
+        const user = await getUserByEmail(email);
         if (!user) return res.status(404).json({ success: false, message: "İstifadəçi tapılmadı." });
 
         res.json({
@@ -912,27 +766,38 @@ function saveNotifHistory() {
 }
 loadNotifHistory();
 
-function loadRegistrations() {
+async function loadRegistrations() {
+    // Try Firestore first
+    if (db) {
+        try {
+            const snap = await db.collection('fcm_registrations').doc('tokens').get();
+            if (snap.exists) {
+                fcmRegistrations = snap.data() || {};
+                console.log(`[FCM] Loaded ${Object.keys(fcmRegistrations).length} registrations from Firestore.`);
+                return;
+            }
+        } catch (e) { console.error("[FCM] Firestore load error:", e.message); }
+    }
+    // Fallback: local file
     try {
         if (fs.existsSync(REG_FILE)) {
             fcmRegistrations = JSON.parse(fs.readFileSync(REG_FILE, "utf-8"));
             console.log(`[FCM] Loaded ${Object.keys(fcmRegistrations).length} registrations from file.`);
         }
-    } catch (e) {
-        console.error("[FCM] Error loading registrations:", e.message);
-    }
+    } catch (e) { console.error("[FCM] File load error:", e.message); }
 }
 loadRegistrations();
 
 function saveRegistrations() {
-    try {
-        // Use async writeFile to avoid blocking the event loop
-        fsPromises.writeFile(REG_FILE, JSON.stringify(fcmRegistrations, null, 2)).catch(err => {
-            console.error("[FCM] Save failed:", err);
-        });
-    } catch (e) {
-        console.error("[FCM] Error saving registrations:", e.message);
+    // Save to Firestore (non-blocking)
+    if (db) {
+        db.collection('fcm_registrations').doc('tokens').set(fcmRegistrations)
+            .catch(e => console.error("[FCM] Firestore save error:", e.message));
     }
+    // Also keep local fallback
+    try {
+        fs.writeFileSync(REG_FILE, JSON.stringify(fcmRegistrations, null, 2));
+    } catch (e) { console.error("[FCM] File save error:", e.message); }
 }
 
 app.post("/api/fcm/register", (req, res) => {
@@ -1084,48 +949,15 @@ let lastLiveFetchTime = 0;
 
 setInterval(async () => {
     try {
-        const today = new Date().toISOString().split('T')[0];
-        // Fetch from BOTH live endpoint and scheduled endpoint to ensure 100% coverage
-        const [liveRes, scheduledRes] = await Promise.all([
-            fetchFromSofa("/sport/football/events/live").catch(() => null),
-            fetchFromSofa(`/sport/football/scheduled-events/${today}`).catch(() => null)
-        ]);
-
-        let mergedEvents = [];
-        let seenIds = new Set();
-
-        const processResult = (res) => {
-            if (res && res.data && res.data.events) {
-                res.data.events.forEach(ev => {
-                    if (!seenIds.has(ev.id)) {
-                        // Only add if live (inprogress) or if from liveRes
-                        if (ev.status?.type === 'inprogress' || res === liveRes) {
-                            mergedEvents.push(ev);
-                            seenIds.add(ev.id);
-                        }
-                    }
-                });
-            }
-        };
-
-        processResult(liveRes);
-        processResult(scheduledRes);
-
-        if (mergedEvents.length === 0) {
-            console.log("[Worker] No events found in SofaScore, falling back to ESPN...");
-            const espn = await fetchLiveFromESPN().catch(() => null);
-            if (espn && espn.events) {
-                mergedEvents = espn.events;
-            }
-        }
-
-        globalLiveEvents = { events: mergedEvents };
+        const result = await fetchFromSofa("/sport/football/events/live");
+        if (!result || !result.data || !result.data.events) return;
+        
+        globalLiveEvents = result.data;
         lastLiveFetchTime = Date.now();
-        console.log(`[Worker] Synced ${mergedEvents.length} live matches (SofaScore Hybrid)`);
 
         if (Object.keys(fcmRegistrations).length === 0) return;
         
-        const events = mergedEvents;
+        const events = result.data.events;
         
         events.forEach(ev => {
             const matchId = ev.id.toString();
@@ -1195,7 +1027,7 @@ setInterval(async () => {
     } catch (e) {
         console.error("[Background Tracker] Error:", e.message);
     }
-}, 12000);
+}, 20000);
 
 // --- Reminder Worker for Upcoming Favorited Matches ---
 setInterval(async () => {
@@ -1314,7 +1146,7 @@ setInterval(async () => {
 }, 5 * 60 * 1000); // Check every 5 minutes
 
 app.get("/api/ping", (req, res) => {
-    res.json({ status: "alive", timestamp: new Date().toISOString() });
+    res.json({ status: "alive", version: "v6", timestamp: new Date().toISOString() });
 });
 
 app.get("/", (req, res) => {
@@ -1324,43 +1156,33 @@ app.get("/", (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server ${PORT} portunda aktivdir.`);
-    
-    // Aggressive Keep-Alive (2 dəqiqədən bir kənar trafik imitasiyası)
-    setInterval(async () => {
-        let renderUrl = process.env.RENDER_EXTERNAL_URL;
-        if (!renderUrl && process.env.RENDER_SERVICE_NAME) {
-            renderUrl = `https://${process.env.RENDER_SERVICE_NAME}.onrender.com`;
-        }
-        
-        const targetUrl = renderUrl || detectedHostUrl;
-        
-        if (targetUrl && targetUrl.startsWith('http')) {
-            const timestamp = Date.now();
-            const pingUrls = [
-                `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl + '/api/ping?t=' + timestamp)}`,
-                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl + '/api/ping?t=' + timestamp)}`,
-                `https://thingproxy.freeboard.io/fetch/${targetUrl}/api/ping?t=${timestamp}`,
-                `https://corsproxy.io/?${encodeURIComponent(targetUrl + '/api/ping?t=' + timestamp)}`,
-                `${targetUrl}/api/ping?t=${timestamp}`
-            ];
 
-            for (const pUrl of pingUrls) {
-                try {
-                    await axios.get(pUrl, {
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ProScore-Ping/2.0',
-                            'Cache-Control': 'no-cache'
-                        },
-                        timeout: 10000
-                    });
-                    console.log(`[Keep-Alive] Ping OK: ${pUrl.split('/')[2]}`);
-                    break;
-                } catch (err) {
-                    // Fail silently, try next proxy
-                }
-            }
-        } else {
-            console.warn("[Keep-Alive] Server URL tapılmadı.");
-        }
-    }, 2 * 60 * 1000); // Hər 2 dəqiqədən bir vurur
+    // ─── RENDER KEEP-ALIVE ────────────────────────────────────────────────────
+    // Render free plan serveri 15 dəqiqəlik hərəkətsizlikdən sonra yuxuya göndərir.
+    // Bu interval hər 10 dəqiqədə bir özünə sorğu vurur - serveri daima ayaq üstündə saxlayır.
+    // RENDER_EXTERNAL_URL mühit dəyişəni Render tərəfindən avtomatik təyin edilir.
+    const getSelfUrl = () => {
+        if (process.env.RENDER_EXTERNAL_URL) return process.env.RENDER_EXTERNAL_URL;
+        if (process.env.RENDER_SERVICE_NAME) return `https://${process.env.RENDER_SERVICE_NAME}.onrender.com`;
+        return detectedHostUrl;
+    };
+
+    setInterval(async () => {
+        const targetUrl = getSelfUrl();
+        if (!targetUrl || !targetUrl.startsWith('http')) return;
+
+        try { await axios.get(`${targetUrl}/api/ping?t=${Date.now()}`, { timeout: 10000 }); } catch(e) {}
+
+        try {
+            const fallbackUrls = [
+                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl + '/api/ping?proxy=1&t=' + Date.now())}`,
+                `https://crossorigin.me/${targetUrl}/api/ping?proxy=2&t=${Date.now()}`,
+                `https://yacdn.org/proxy/${targetUrl}/api/ping?proxy=3&t=${Date.now()}`
+            ];
+            const proxyUrl = fallbackUrls[Math.floor(Math.random() * fallbackUrls.length)];
+            await axios.get(proxyUrl, { timeout: 15000 });
+            console.log(`[Keep-Alive] External proxy ping OK via ${proxyUrl.split('/')[2]} to prevent Render sleep`);
+        } catch(e) {}
+    }, 3 * 60 * 1000); // 3 minutes strictly prevents Render sleep
+    // ─────────────────────────────────────────────────────────────────────────
 });

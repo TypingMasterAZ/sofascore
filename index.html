@@ -8,7 +8,7 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="referrer" content="no-referrer">
     <meta name="theme-color" content="#0a101f">
-    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Rabona Media LIVE</title>
     <link rel="manifest" href="manifest.json">
@@ -32,6 +32,53 @@
         // Initialize Firebase before any other calls
         firebase.initializeApp(firebaseConfig);
         
+        // MÜHÜM: registerFCMToken funksiyasını qlobal olaraq təyin edirik
+        window.registerFCMToken = function() {
+            console.log("[FCM] Push Notification qeydiyyatı başladılır...");
+            const messaging = firebase.messaging();
+            
+            // Notification icazəsi istə
+            Notification.requestPermission().then((permission) => {
+                if (permission === 'granted') {
+                    console.log('Notification permission granted.');
+                    
+                    // Token al
+                    messaging.getToken() // Parametr olmadan yoxlayırıq. VAPID key lazımdırsa bura əlavə ediləcək.
+                    .then((currentToken) => {
+                        if (currentToken) {
+                            console.log('[FCM] Token alındı:', currentToken);
+                            // Serverə göndər
+                            sendTokenToServer(currentToken);
+                        } else {
+                            console.log('No registration token available. Request permission to generate one.');
+                        }
+                    }).catch((err) => {
+                        console.log('An error occurred while retrieving token. ', err);
+                    });
+                } else {
+                    console.log('Unable to get permission to notify.');
+                }
+            });
+        };
+
+        function sendTokenToServer(token) {
+            // API_BASE_URL ola bilər ki hələ təyin olunmayıb
+            const baseUrl = window.API_BASE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000' : '');
+            fetch(baseUrl + '/api/fcm/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    token: token,
+                    favorites: typeof favMatches !== 'undefined' ? favMatches.map(m => m.id) : [],
+                    leagues: typeof favLeagues !== 'undefined' ? favLeagues.map(l => l.id) : []
+                })
+            }).then(res => res.json())
+              .then(data => console.log('[FCM] Token serverə qeyd olundu:', data))
+              .catch(err => console.error('[FCM] Serverə qeydiyyat xətası:', err));
+        }
+
         // Set Firebase language to Azerbaijani
         if (typeof firebase !== 'undefined' && firebase.auth) {
             firebase.auth().languageCode = 'az';
@@ -42,6 +89,7 @@
             --bg: #020617;
             --card: #0f172a;
             --primary: #3b82f6;
+            --primary-rgb: 59, 130, 246;
             --live: #ef4444;
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
@@ -385,67 +433,19 @@
         }
 
         .sync-status {
-            background: rgba(59, 130, 246, 0.08);
+            background: rgba(var(--primary-rgb), 0.1);
             color: var(--primary);
             text-align: center;
-            padding: 10px;
-            font-size: 12px;
-            font-weight: 700;
-            border-radius: 12px;
-            margin: 12px 16px;
+            padding: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 8px;
+            margin: 10px 0;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            border: 1px solid rgba(59, 130, 246, 0.15);
-            animation: fadeIn 0.4s ease;
-            backdrop-filter: blur(5px);
-        }
-
-        .empty-state {
-            padding: 80px 20px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.6s ease;
-        }
-
-        .empty-state-icon {
-            font-size: 56px;
-            margin-bottom: 24px;
-            background: var(--gradient-card);
-            width: 100px;
-            height: 100px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3), inset 0 0 20px rgba(255,255,255,0.05);
-            border: 1px solid var(--glass-border);
-            animation: float 4s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0) rotate(0); }
-            50% { transform: translateY(-12px) rotate(5deg); }
-        }
-
-        .empty-state-title {
-            font-size: 22px;
-            font-weight: 900;
-            color: var(--text-main);
-            margin-bottom: 12px;
-            letter-spacing: -0.5px;
-        }
-
-        .empty-state-text {
-            font-size: 15px;
-            color: var(--text-muted);
-            max-width: 280px;
-            line-height: 1.6;
-            margin-bottom: 24px;
+            animation: fadeIn 0.3s ease;
         }
 
         .loader-wrapper {
@@ -1048,7 +1048,7 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 100vh;
+            height: 100dvh; height: 100vh;
             background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(5px);
             -webkit-backdrop-filter: blur(5px);
@@ -1608,9 +1608,7 @@
             filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.4));
         }
 
-        .fav-star:active {
-            transform: scale(0.8);
-        }
+
 
         .empty-state {
             display: flex;
@@ -2434,7 +2432,7 @@
             top: 0;
             left: -280px;
             width: 280px;
-            height: 100vh;
+            height: 100dvh; height: 100vh;
             background: var(--bg);
             z-index: 2500;
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2457,7 +2455,7 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 100vh;
+            height: 100dvh; height: 100vh;
             background: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(4px);
             z-index: 2400;
@@ -2680,7 +2678,7 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 100vh;
+            height: 100dvh; height: 100vh;
             background: var(--bg);
             z-index: 5000;
             display: none;
@@ -2893,7 +2891,7 @@
                 <div class="logo" id="logoTitle">RABONA MEDIA</div>
 
                 <div class="header-right">
-                    <div class="notification-bell" id="syncBtn" onclick="fetchData('live', true)" style="margin-right: 2px;">
+                    <div class="notification-bell" id="syncBtn" onclick="fetchData(null, true)" style="margin-right: 2px;">
                         <i class="fas fa-sync-alt" id="syncIcon"></i>
                     </div>
                     <div class="notification-bell" id="notifBell" onclick="switchMainView('notifications')">
@@ -3234,17 +3232,6 @@
                         <div id="debugPermBox" style="font-size:10px; color:rgba(255,255,255,0.6); margin-top:5px;">İcazə: yoxlanılır...</div>
                     </div>
 
-                    <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Qaranlıq Tema</span>
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <span id="themeStatus" style="font-size:12px; color:var(--text-muted);">Aktiv</span>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="themeToggle" checked onchange="toggleTheme()">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-
                     <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
                         onclick="document.getElementById('debugSettings').style.display = 'block'; showToast('Diaqnostika paneli açıldı')">
                         <span style="font-size:12px; font-weight:600; color:var(--text-muted);">Sazlama Məlumatları (Debug)</span>
@@ -3342,25 +3329,23 @@
         <div id="toast" class="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
 
         <script>
-            console.log("SCRIPT START: index.html VERSION 1.1.2 running");
+            console.log("SCRIPT START: index.html VERSION 1.1.0 running");
 
             const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"defaultView": "matches"}');
             const auth = firebase.auth();
 
             try {
             // API Ünvanının təyin edilməsi (Lokal və ya Render)
-            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:';
             const isRender = window.location.hostname.includes('onrender.com');
             // DİQQƏT: Render-dən aldığınız ünvanı aşağıdakı DEPLOYED_URL hissəsinə yazın
-            const DEPLOYED_URL = 'https://canli-57xq.onrender.com'; 
+            const DEPLOYED_URL = 'https://proscore-live.onrender.com';
             const API_BASE_URL = (isLocalhost || isRender || !DEPLOYED_URL) ? '' : DEPLOYED_URL;
-            console.log("SCRIPT START: index.html VERSION 1.1.7 running");
             console.log("API Base URL:", API_BASE_URL || "Local/SameOrigin");
 
             let allEvents = [];
             let groupedDataGlobal = {};
             let isLiveFiltered = true;
-            let lastSyncTime = null;
 
             /* Storage & Settings */
             let favMatches = JSON.parse(localStorage.getItem('favMatches') || '[]');
@@ -3895,7 +3880,7 @@
                     
                     try {
                         const path = isUnique ? 'unique-tournament' : 'tournament';
-                        const tInfo = await fetch(API_BASE_URL + `/api/${path}/${tourId}`);
+                        const tInfo = await fetch(API_BASE_URL + `/api/tournament/${tourId}?isUnique=${isUnique}`);
                         const tData = await tInfo.json();
                         const entity = isUnique ? tData.uniqueTournament : tData.tournament;
                         if (entity) {
@@ -3907,7 +3892,7 @@
 
                     try {
                         const path = isUnique ? 'unique-tournament' : 'tournament';
-                        const cInfo = await fetch(API_BASE_URL + `/api/${path}/${tourId}/seasons`);
+                        const cInfo = await fetch(API_BASE_URL + `/api/tournament/${tourId}/seasons?isUnique=${isUnique}`);
                         const cData = await cInfo.json();
                         group.seasonId = cData.seasons && cData.seasons[0] ? cData.seasons[0].id : null;
                     } catch(e) { console.error("Seasons info error:", e); }
@@ -3927,7 +3912,7 @@
 
                 if (!group.seasonId) {
                     try {
-                        const sResp = await fetch(API_BASE_URL + `/api/tournament/${group.id}/seasons`);
+                        const sResp = await fetch(API_BASE_URL + `/api/tournament/${group.id}/seasons?isUnique=true`);
                         const sData = await sResp.json();
                         group.seasonId = sData.seasons && sData.seasons[0] ? sData.seasons[0].id : null;
                     } catch(e) { console.error("Secondary seasons fetch error:", e); }
@@ -3942,7 +3927,7 @@
                 const html = `
             <div class="league-group" style="margin-top:20px; border-radius: 12px 12px 0 0; border-bottom: none;">
                 <div class="league-header" style="justify-content:center; flex-direction:column; padding:24px; background: transparent; border:none; pointer-events:none;">
-                    <img src="${logoUrl}" style="width:70px; height:70px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.5)" onerror="this.src='${fallBack}'; this.onerror=function(){this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzFmMjkzZCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIvPjwvc3ZnPg=='}">
+                    <img src="${logoUrl}" style="width:70px; height:70px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.5)" onerror="this.onerror=null; this.src='${fallBack}';">
                     <div style="font-size:22px; font-weight:900; margin-top:16px; text-align:center; width:100%; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-wrap:break-word;">${group.name}</div>
                     <div style="font-size:14px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-top:4px; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${group.country}</div>
                 </div>
@@ -4031,7 +4016,7 @@
                         <tr style="transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
                             <td style="font-weight:700; color:var(--text-muted);">${row.position}</td>
                             <td class="team-cell">
-                                <img class="team-logo club-logo" src="https://www.sofascore.com/api/v1/team/${row.team.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
+                                <img class="team-logo club-logo" src="https://www.sofascore.com/api/v1/team/${row.team.id}/image" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
                                 <span>${row.team.name}</span>
                             </td>
                             <td>${row.matches}</td>
@@ -4087,7 +4072,7 @@
                             html += `
                             <div class="player-row">
                                 <span class="player-rank">${index + 1}</span>
-                                <img class="player-img" src="https://www.sofascore.com/api/v1/player/${p.player.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
+                                <img class="player-img" src="https://www.sofascore.com/api/v1/player/${p.player.id}/image" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
                                 <div class="player-info">
                                     <span class="player-name">${p.player.name}</span>
                                     <span class="player-team">${p.team ? p.team.name : 'Unknown Team'}</span>
@@ -4142,34 +4127,36 @@
             };
 
             async function fetchWithRetry(url, options = {}, retries = 4, backoff = 3000) {
-                // Determine if device is offline (common when iOS PWAs wake up and Wi-Fi needs 1-2 sec to attach)
+                // iOS PWA-larda şəbəkə bağlantısı bərpasını gözlə
                 if (!navigator.onLine) {
-                    console.log("[RETRY] Offline detected. Waiting for network...");
+                    console.log("[RETRY] Offline — şəbəkə gözlənilir...");
                     await new Promise(resolve => {
-                        const onlineCb = () => {
-                            window.removeEventListener('online', onlineCb);
-                            resolve();
-                        };
+                        const onlineCb = () => { window.removeEventListener('online', onlineCb); resolve(); };
                         window.addEventListener('online', onlineCb);
-                        // Also try after 5 seconds just in case navigator.onLine is inaccurate
                         setTimeout(onlineCb, 5000);
                     });
                 }
 
+                // AbortController ilə 20 saniyəlik timeout — iOS-da donuq fetch-lərin qarşısını alır
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 35000);
+
                 try {
-                    const res = await fetch(url, options);
-                    if (!res.ok && retries > 0 && (res.status === 504 || res.status === 502 || res.status === 503)) {
-                        console.log(`[RETRY] Server waking up? Status ${res.status}. Retrying in ${backoff}ms...`);
+                    const res = await fetch(url, { ...options, signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    if (!res.ok && retries > 0 && (res.status >= 502 && res.status <= 504)) {
+                        console.log(`[RETRY] Server cavab vermir (${res.status}). ${backoff}ms sonra yenidən...`);
                         await new Promise(r => setTimeout(r, backoff));
                         return fetchWithRetry(url, options, retries - 1, backoff + 2000);
                     }
                     return res;
                 } catch (err) {
-                    // Pure network errors (like "Failed to fetch" on iOS wake)
+                    clearTimeout(timeoutId);
                     if (retries > 0) {
-                        console.log(`[RETRY] Fetch error (network issue or timeout). Retrying in ${backoff}ms...`, err.message);
+                        const reason = err.name === 'AbortError' ? 'Timeout (35s)' : err.message;
+                        console.log(`[RETRY] Xəta: ${reason}. ${backoff}ms sonra yenidən (${retries} qalıb)...`);
                         await new Promise(r => setTimeout(r, backoff));
-                        return fetchWithRetry(url, options, retries - 1, backoff + 3000); // 3000, 6000, 9000...
+                        return fetchWithRetry(url, options, retries - 1, backoff + 2000);
                     }
                     throw err;
                 }
@@ -4216,30 +4203,14 @@
             }
 
             function applyFilters() {
-                console.log("Applying filters... allEvents count:", allEvents.length, "isLiveFiltered:", isLiveFiltered);
+                console.log("Applying filters... allEvents count:", allEvents.length);
                 let listRaw = allEvents;
                 if (isLiveFiltered) {
-                    // When live filter is ON, /api/matches/live already returns only live events.
-                    // But we still filter in case combined data contains non-live events.
                     listRaw = allEvents.filter(m => {
-                        const s = m.status;
-                        if (!s) return false;
-                        return s.type === 'inprogress' || 
-                               (s.description && (
-                                   s.description.toUpperCase() === 'HT' || 
-                                   s.description.toUpperCase() === 'ET' || 
-                                   s.description.includes("'")
-                               ));
-                    });
-                } else if (selectedDate) {
-                    listRaw = allEvents.filter(m => {
-                        if (!m.startTimestamp) return false;
-                        try {
-                            const eventDate = new Date(m.startTimestamp * 1000).toISOString().split('T')[0];
-                            return eventDate === selectedDate;
-                        } catch (e) {
-                            return false;
-                        }
+                        if (!m.status) return false;
+                        if (m.status.type === 'inprogress') return true;
+                        const desc = (m.status.description || "").toUpperCase();
+                        return desc === 'HT' || desc === 'HALFTIME' || desc === 'HALF TIME' || desc === 'ET' || desc === 'EXTRA TIME' || desc === 'LIVE' || desc.includes("'");
                     });
                 }
 
@@ -4297,44 +4268,28 @@
             }
 
             async function fetchData(param = null, isForced = false) {
-                let url;
+                let url = '';
+                let isDirectSofa = true;
                 
-                // If param is explicitly 'live', or we are in live-filter mode with no date selected
-                if (param === 'live' || (isLiveFiltered && !selectedDate)) {
-                    url = '/api/matches/live';
+                if (param === 'live' || isLiveFiltered) {
+                    url = API_BASE_URL + '/api/matches/live';
                 } else {
-                    const dateToFetch = (param && param !== 'live') ? param : (selectedDate || new Date().toISOString().split('T')[0]);
-                    url = `/api/matches/${dateToFetch}`;
+                    const dateToFetch = param || selectedDate || new Date().toISOString().split('T')[0];
+                    url = API_BASE_URL + `/api/matches/${dateToFetch}`;
                 }
 
+                let fetchOptions = { cache: 'no-store' };
+                
                 if (isForced) {
-                    url += (url.includes('?') ? '&' : '?') + 'force=' + Date.now();
                     const syncIcon = document.getElementById('syncIcon');
                     if (syncIcon) syncIcon.classList.add('fa-spin');
                 }
 
-                console.log("Fetching data from:", url);
+                console.log("Fetching data directly from:", url);
                 
                 const syncOverlay = document.getElementById('syncStatusOverlay');
                 
-                // --- HYBRID DATA POLICY ---
-                const cacheKey = 'cached_events_' + (param || 'default');
-                const cacheTimeKey = cacheKey + '_time';
-                const cachedData = localStorage.getItem(cacheKey);
-                const cachedTime = parseInt(localStorage.getItem(cacheTimeKey) || '0');
-                const now = Date.now();
-                
-                if (cachedData && (!allEvents || allEvents.length === 0)) {
-                    try {
-                        allEvents = JSON.parse(cachedData);
-                        applyFilters();
-                        
-                        // If data is > 30s old, show "Updating" overlay
-                        if (now - cachedTime > 30000 && syncOverlay) {
-                            syncOverlay.style.display = 'flex';
-                        }
-                    } catch(e) {}
-                }
+                // --- HYBRID DATA POLICY REMOVED FOR FRESHNESS ---
 
                 if (!allEvents || allEvents.length === 0 || isForced) {
                     const list = document.getElementById("matchList");
@@ -4345,121 +4300,70 @@
                             <div class="loader-wrapper">
                                 <div style="text-align:center; padding:50px;">
                                     <i class="fas fa-circle-notch fa-spin" style="font-size:32px; color:var(--primary); margin-bottom:15px;"></i>
-                                    <div style="font-weight:600; color:var(--text-muted);">Sinxronlaşdırılır...</div>
+                                    <div style="font-weight:600; color:var(--text-muted);">Ən yeni məlumatlar yüklənir...</div>
                                 </div>
                             </div>`;
                     }
                 }
                 
                 try {
-                    let wakeUpTimer = null;
-                    if (!allEvents || allEvents.length === 0) {
-                        wakeUpTimer = setTimeout(() => {
-                            showToast("Server oyadılır, lütfən 10-15 saniyə gözləyin... 🚀", 'info');
-                        }, 4500);
-                    }
-
-                    const resEvents = await fetchWithRetry(API_BASE_URL + url);
-                    if (wakeUpTimer) clearTimeout(wakeUpTimer);
+                    const resEvents = await fetchWithRetry(url, fetchOptions);
+                    if (!resEvents.ok) throw new Error(`Server xətası: ${resEvents.status}`);
+                    let dataEvents = await resEvents.json();
                     
-                    if (!resEvents.ok) {
-                        // If live endpoint fails (500), fallback to today's scheduled matches
-                        if (param === 'live' && resEvents.status === 500) {
-                            console.warn('[FALLBACK] Live API failed (500), fetching today\'s scheduled matches...');
-                            const todayStr = new Date().toISOString().split('T')[0];
-                            const fallbackRes = await fetchWithRetry(API_BASE_URL + `/api/matches/${todayStr}`);
-                            if (fallbackRes.ok) {
-                                const fallbackData = await fallbackRes.json();
-                                allEvents = (fallbackData && fallbackData.events) ? fallbackData.events : (Array.isArray(fallbackData) ? fallbackData : []);
-                                // When showing fallback, turn off live filter so user sees all today's games
-                                isLiveFiltered = false;
-                                selectedDate = todayStr;
-                                // Update date tab UI
-                                document.querySelectorAll('.date-tab').forEach(t => t.classList.remove('active'));
-                                const todayTabs = document.querySelectorAll('.date-tab:not(.live-tab)');
-                                todayTabs.forEach(t => { if (t.onclick && t.onclick.toString().includes(todayStr)) t.classList.add('active'); });
-                                localStorage.setItem('cached_events_' + todayStr, JSON.stringify(allEvents));
-                                localStorage.setItem('cached_events_' + todayStr + '_time', Date.now().toString());
-                                if (window.showToast) showToast('Canlı server məlumatı əlçatmaz, bu günün oyunları göstərilir', 'info');
-                            } else {
-                                throw new Error(`Server xətası: ${resEvents.status}`);
-                            }
-                        } else {
-                            throw new Error(`Server xətası: ${resEvents.status}`);
-                        }
-                    } else {
-                        const dataEvents = await resEvents.json();
-                        
-                        if (dataEvents && dataEvents.events) {
-                            allEvents = dataEvents.events;
-                        } else if (Array.isArray(dataEvents)) {
-                            allEvents = dataEvents;
-                        } else {
-                            allEvents = [];
-                        }
-
-                        // Save fresh data + timestamp
-                        localStorage.setItem(cacheKey, JSON.stringify(allEvents));
-                        localStorage.setItem(cacheTimeKey, Date.now().toString());
+                    if (typeof dataEvents === 'string') {
+                        try {
+                            dataEvents = JSON.parse(dataEvents);
+                        } catch (e) {}
                     }
 
-                    // Synchronize Favorites
-                    if (allEvents.length > 0) {
-                        let updatedFavs = [];
-                        let favsChanged = false;
-                        favMatches.forEach(fm => {
-                            const liveMatch = allEvents.find(m => m.id.toString() === fm.id.toString());
-                            if (liveMatch) {
-                                updatedFavs.push(liveMatch);
-                                if (JSON.stringify(fm.homeScore) !== JSON.stringify(liveMatch.homeScore) || 
-                                    JSON.stringify(fm.awayScore) !== JSON.stringify(liveMatch.awayScore) ||
-                                    fm.status?.description !== liveMatch.status?.description) {
-                                    favsChanged = true;
+                    // Backend xətanı 200 ilə qaytarsa belə, onu tutmaq üçün:
+                    if (dataEvents && dataEvents.error) {
+                        throw new Error(`API Proxy Error: ${dataEvents.error.code || 'Bilinməyən'} - ${dataEvents.error.reason || 'Xəta'}`);
+                    }
+
+                    if (dataEvents && dataEvents.events) {
+                        allEvents = dataEvents.events;
+                    } else if (Array.isArray(dataEvents)) {
+                        allEvents = dataEvents;
+                    } else {
+                        allEvents = [];
+                    }
+
+                    // Auto-update open modal scores
+                    if (typeof currentOpenMatchId !== 'undefined' && currentOpenMatchId) {
+                        const m = allEvents.find(e => e.id.toString() === currentOpenMatchId.toString());
+                        if (m) {
+                            const scoreEl = document.getElementById("scoreM");
+                            if (scoreEl) scoreEl.innerText = `${m.homeScore?.current || 0} - ${m.awayScore?.current || 0}`;
+                            const timeRaw = typeof getMatchTime === 'function' ? getMatchTime(m) : '';
+                            const tb = document.getElementById("timeM");
+                            if (tb) {
+                                tb.innerHTML = timeRaw;
+                                if (timeRaw.includes("'") || timeRaw === 'HT' || timeRaw === 'LIVE' || timeRaw === 'ET') {
+                                    tb.classList.add("is-live");
+                                } else {
+                                    tb.classList.remove("is-live");
                                 }
-                            } else { updatedFavs.push(fm); }
-                        });
-                        if (favsChanged) {
-                            favMatches = updatedFavs;
-                            localStorage.setItem('favMatches', JSON.stringify(favMatches));
-                            if (document.getElementById('favoritesView').classList.contains('active')) renderFavoritesView();
+                            }
+                        }
+                        // Oyun aciqdirsa qollar ve statisikalar daimi silinib yenilensin (background refresh)
+                        if (typeof updateModalStatsAndIncidents === 'function') {
+                            updateModalStatsAndIncidents(currentOpenMatchId);
                         }
                     }
 
                     if (window.notificationMgr) notificationMgr.checkUpdates(allEvents);
-                    lastSyncTime = new Date();
                     applyFilters();
                     if (syncOverlay) syncOverlay.style.display = 'none';
                     
                 } catch (e) {
                     console.error("Matches fetch error:", e);
-                    // If live fetch failed and we have cached data, show it
-                    const cachedFallback = localStorage.getItem('cached_events_' + new Date().toISOString().split('T')[0]);
-                    if (cachedFallback && (!allEvents || allEvents.length === 0)) {
-                        try {
-                            allEvents = JSON.parse(cachedFallback);
-                            isLiveFiltered = false;
-                            selectedDate = new Date().toISOString().split('T')[0];
-                            applyFilters();
-                            if (window.showToast) showToast('Serverə qoşulmaq mümkün olmadı, köhnə data göstərilir', 'info');
-                        } catch(cacheErr) {}
-                    } else {
-                        // Show error state in match list
-                        const list = document.getElementById('matchList');
-                        if (list && (!allEvents || allEvents.length === 0)) {
-                            list.innerHTML = `
-                                <div class="loader-wrapper" style="text-align:center; padding:50px;">
-                                    <div style="font-size:40px; margin-bottom:15px;">⚠️</div>
-                                    <div style="font-weight:700; font-size:16px; margin-bottom:10px; color:var(--text-main);">Server məlumatı gətirə bilmir</div>
-                                    <div style="color:var(--text-muted); font-size:14px; margin-bottom:20px;">SofaScore API müvəqqəti olaraq əlçatmazdır.</div>
-                                    <button onclick="fetchData('live', true)" style="background:var(--primary); color:white; border:none; padding:12px 24px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer;">Yenidən Cəhd Et</button>
-                                </div>`;
-                        }
-                        if (window.showToast) showToast('Server xətası: Məlumat əlçatmaz.', 'error');
-                    }
+                    window._lastFetchError = true;
                 } finally {
                     const syncIcon = document.getElementById('syncIcon');
                     if (syncIcon) syncIcon.classList.remove('fa-spin');
-                    if (syncOverlay && (!allEvents || allEvents.length === 0)) syncOverlay.style.display = 'none';
+                    if (syncOverlay) syncOverlay.style.display = 'none';
                 }
 
                 if (topLeaguesRaw.length === 0) {
@@ -4522,11 +4426,11 @@
             <div class="${timeClass}">${formattedMinute}</div>
             <div class="match-teams">
                 <div class="team-line">
-                    <img class="team-logo club-logo" loading="lazy" src="https://www.sofascore.com/api/v1/team/${m.homeTeam.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
+                    <img class="team-logo club-logo" src="https://www.sofascore.com/api/v1/team/${m.homeTeam.id}/image" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
                     <span class="team-name">${m.homeTeam.name}</span>
                 </div>
                 <div class="team-line">
-                    <img class="team-logo club-logo" loading="lazy" src="https://www.sofascore.com/api/v1/team/${m.awayTeam.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
+                    <img class="team-logo club-logo" src="https://www.sofascore.com/api/v1/team/${m.awayTeam.id}/image" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
                     <span class="team-name">${m.awayTeam.name}</span>
                 </div>
             </div>
@@ -4545,50 +4449,59 @@
                 return { logoUrl, fallBack };
             }
 
+            let renderAnimationFrameId = null;
+
             function renderMatchView(grouped) {
                 const list = document.getElementById("matchList");
                 if (!list) return;
 
+                if (renderAnimationFrameId) {
+                    cancelAnimationFrame(renderAnimationFrameId);
+                    renderAnimationFrameId = null;
+                }
+
                 const keys = Object.keys(grouped).filter(k => grouped[k].matches.length > 0);
 
                 if (keys.length === 0) {
-                    list.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-state-icon">⚽</div>
-                            <div class="empty-state-title">${isLiveFiltered ? 'Canlı oyun yoxdur' : 'Oyun tapılmadı'}</div>
-                            <div class="empty-state-text">${isLiveFiltered ? 'Hal-hazırda heç bir futbol oyunu canlı yayımlanmır.' : 'Seçilmiş tarix üçün oyun tapılmadı.'}</div>
-                            <button class="save-btn" style="margin-top:20px; width:auto; padding:10px 24px;" onclick="fetchData()">
-                                <i class="fas fa-sync-alt"></i> Yenilə
-                            </button>
-                        </div>`;
+                    if (window._lastFetchError) {
+                        list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600; color:var(--live);'>SofaScore serveri müvəqqəti məhdudiyyət qoyub (Çox sayda sorğu). Bir neçə dəqiqə sonra yenidən cəhd edin.</div>";
+                    } else {
+                        list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600;'>Heç bir oyun tapılmadı.</div>";
+                    }
                     return;
                 }
-
-                let html = "";
                 
-                if (lastSyncTime && isLiveFiltered) {
-                    html += `
-                        <div class="sync-status">
-                            <i class="fas fa-history"></i>
-                            Yeniləndi: ${lastSyncTime.toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                        </div>
-                    `;
-                }
+                window._lastFetchError = false;
 
                 // --- Optimization for iOS Crash Prevention ---
-                // We clear the list content before generating new heavy HTML to help JS GC
                 list.innerHTML = ''; 
+                
+                // Use chunking to prevent iOS WebKit Out-Of-Memory crashes from massive synchronous DOM generation
+                // And explicitly limit maximum leagues rendered to prevent DOM bloat on very busy days
+                const maxLeaguesToRender = 40; 
+                const renderKeys = keys.slice(0, maxLeaguesToRender);
+                
+                let i = 0;
+                function renderChunk() {
+                    const chunk = renderKeys.slice(i, i + 5);
+                    if (chunk.length === 0) {
+                        if (keys.length > maxLeaguesToRender) {
+                            list.insertAdjacentHTML('beforeend', `<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">Qalan ${keys.length - maxLeaguesToRender} liqa gizlədilib (performans üçün). Cədvəl səhifəsindən axtarış edə bilərsiniz.</div>`);
+                        }
+                        return;
+                    }
+                    
+                    let html = "";
+                    for (const key of chunk) {
+                        const group = grouped[key];
+                        const isFav = favLeagues.some(f => f.id.toString() === group.id.toString());
+                        const { logoUrl, fallBack } = getLeagueLogoData(group);
 
-                for (const key of keys) {
-                    const group = grouped[key];
-                    const isFav = favLeagues.some(f => f.id.toString() === group.id.toString());
-                    const { logoUrl, fallBack } = getLeagueLogoData(group);
-
-                    html += `
+                        html += `
                 <div class="league-group">
                     <div class="league-header">
                         <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;" onclick="toggleCollapsible(this.parentElement)">
-                            <img class="club-logo" loading="lazy" src="${logoUrl}" onerror="this.src='${fallBack}'; this.onerror=function(){this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzFmMjkzZCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIvPjwvc3ZnPg=='}">
+                            <img class="club-logo" src="${logoUrl}" onerror="this.onerror=null; this.src='${fallBack}';">
                             <div class="league-title-box">
                                 <span class="league-country">${group.country}</span>
                                 <span class="league-title">${group.name}</span>
@@ -4601,13 +4514,17 @@
                         ${group.matches.map(m => createMatchRow(m, group)).join("")}
                     </div>
                 </div>`;
+                    }
+                    
+                    list.insertAdjacentHTML('beforeend', html);
+                    i += 5;
+                    
+                    if (i < renderKeys.length) {
+                        renderAnimationFrameId = requestAnimationFrame(renderChunk);
+                    }
                 }
                 
-                // Using a DocumentFragment or simple batch update
-                list.innerHTML = html;
-                
-                // Post-render cleanup hint
-                html = null; 
+                renderAnimationFrameId = requestAnimationFrame(renderChunk);
             }
 
             window.toggleCategory = async function(catId, catName, element) {
@@ -4641,7 +4558,7 @@
 
                     leagueContainer.innerHTML = leagues.map(l => `
                 <div class="league-sub-row" onclick="openSingleLeague('${l.id}')">
-                    <img class="league-sub-logo club-logo" src="https://www.sofascore.com/api/v1/unique-tournament/${l.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzFmMjkzZCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIvPjwvc3ZnPg=='">
+                    <img class="league-sub-logo club-logo" src="https://www.sofascore.com/api/v1/unique-tournament/${l.id}/image" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzFmMjkzZCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIvPjwvc3ZnPg=='">
                     <span class="league-sub-name">${l.name}</span>
                 </div>
             `).join("");
@@ -4701,7 +4618,7 @@
                         html += `
                         <div class="league-card" onclick="openSingleLeague('${l.id}')">
                             <div style="display:flex; align-items:center; gap:16px; flex:1; min-width:0;">
-                                <img class="league-card-logo" loading="lazy" src="https://www.sofascore.com/api/v1/unique-tournament/${l.id}/image" onerror="this.src='https://www.sofascore.com/api/v1/category/${catId}/image'">
+                                <img class="league-card-logo" src="https://www.sofascore.com/api/v1/unique-tournament/${l.id}/image" onerror="this.onerror=null; this.src='https://www.sofascore.com/api/v1/category/${catId}/image'">
                                 <div class="league-card-info">
                                     <span class="league-card-country">${countryName}</span>
                                     <span class="league-card-name">${l.name}</span>
@@ -4718,7 +4635,7 @@
                             const safeCatName = (cat.name || "Ölkə").replace(/'/g, "\\'");
                             html += `
                             <div class="category-row" onclick="toggleCategory('${cat.id}', '${safeCatName}', this)">
-                                <img class="category-flag" loading="lazy" src="https://www.sofascore.com/api/v1/category/${cat.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
+                                <img class="category-flag" src="https://www.sofascore.com/api/v1/category/${cat.id}/image" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
                                 <span class="category-name">${cat.name || 'Ölkə'}</span>
                                 <span class="chevron" style="opacity:0.4; font-size:12px; margin-left:auto;">▼</span>
                             </div>`;
@@ -4752,7 +4669,7 @@
                                 html += `
                                 <div class="league-card" onclick="openSingleLeague('${l.id}')">
                                     <div style="display:flex; align-items:center; gap:16px; flex:1; min-width:0;">
-                                        <img class="league-card-logo club-logo" loading="lazy" src="https://www.sofascore.com/api/v1/unique-tournament/${l.id}/image" onerror="this.src='https://www.sofascore.com/api/v1/category/${catId}/image'">
+                                        <img class="league-card-logo club-logo" src="https://www.sofascore.com/api/v1/unique-tournament/${l.id}/image" onerror="this.onerror=null; this.src='https://www.sofascore.com/api/v1/category/${catId}/image'">
                                         <div class="league-card-info">
                                             <span class="league-card-country">${countryName}</span>
                                             <span class="league-card-name">${l.name || 'Liqa'}</span>
@@ -4778,36 +4695,17 @@
             }
 
             /* Native Modal Logic */
-            window.openMatch = async function(id, idH, idA, nameH, nameA, sH, sA, timeRaw, league) {
-                document.body.classList.add('modal-open');
-                const modal = document.getElementById("detailsModal");
-                modal.style.display = "flex";
-                setTimeout(() => modal.classList.add("show"), 10);
+            let modalUpdateInterval = null;
+            let currentOpenMatchId = null;
 
-                document.getElementById("logoH").src = `https://www.sofascore.com/api/v1/team/${idH}/image`;
-                document.getElementById("logoA").src = `https://www.sofascore.com/api/v1/team/${idA}/image`;
-                document.getElementById("nameH").innerText = nameH;
-                document.getElementById("nameA").innerText = nameA;
-                document.getElementById("scoreM").innerText = `${sH} - ${sA}`;
-
-                const isLive = timeRaw.includes("'") || timeRaw === 'HT' || timeRaw === 'LIVE' || timeRaw === 'ET';
-                const tb = document.getElementById("timeM");
-                tb.innerHTML = timeRaw;
-                if (isLive) tb.classList.add("is-live"); else tb.classList.remove("is-live");
-                document.getElementById("leagueM").innerText = league;
-
-                // Skeleton loaders inside modal
-                const skelHtml = `<div class="loader-wrapper"><div class="skel-row"><div class="skel-time skeleton"></div><div class="skel-teams"><div class="skel-team skeleton"></div></div></div><div class="skel-row"><div class="skel-time skeleton"></div><div class="skel-teams"><div class="skel-team skeleton" style="width:60%"></div></div></div></div>`;
-                document.getElementById("goalsBox").innerHTML = skelHtml;
-                document.getElementById("statsBox").innerHTML = `<div class="loader-wrapper"><div class="skel-header skeleton" style="height:20px;width:30%;margin:auto;"></div><div class="skel-header skeleton" style="height:8px;margin-top:20px;"></div><div class="skel-header skeleton" style="height:8px;margin-top:20px;"></div></div>`;
-
+            async function updateModalStatsAndIncidents(id) {
                 try {
-                    const [resI, resS] = await Promise.all([
-                        fetch(API_BASE_URL + `/api/match/${id}/incidents`),
-                        fetch(API_BASE_URL + `/api/match/${id}/statistics`)
-                    ]);
-                    const dataI = await resI.json();
-                    const dataS = await resS.json();
+                    // İndi iki ayrı sorğu yerinə, bir dəfəyə hər ikisini çəkirik
+                    const res = await fetch(API_BASE_URL + `/api/match/${id}/details`, { cache: 'no-store' });
+                    const data = await res.json();
+                    
+                    const dataI = data.incidents || { incidents: [] };
+                    const dataS = data.stats || { statistics: [] };
 
                     // Render Incidents (Timeline)
                     const incidents = (dataI.incidents || []).filter(i => ["goal", "card", "substitution"].includes(i.incidentType));
@@ -4822,7 +4720,7 @@
 
                             if (g.incidentType === "substitution") {
                                 player = g.playerIn ? g.playerIn.name : "Oyunçu";
-                                subText = `<div class="timeline-sub-player">⬅️ ${g.playerOut ? g.playerOut.name : ''}</div>`;
+                                subText = `<div class="timeline-sub-player">🔽 ${g.playerOut ? g.playerOut.name : ''}</div>`;
                                 detail = "Əvəzetmə";
                             } else if (g.incidentType === "goal") {
                                 detail = g.incidentClass === "ownGoal" ? "Avtoqol" : (g.incidentClass === "penalty" ? "Penalti" : "Qol");
@@ -4880,9 +4778,35 @@
                         document.getElementById("statsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Statistika tapılmadı</div>";
                     }
                 } catch (e) {
-                    document.getElementById("goalsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Xəta baş verdi</div>";
-                    document.getElementById("statsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Xəta baş verdi</div>";
+                    console.error("Modal sync error", e);
                 }
+            }
+
+            window.openMatch = async function(id, idH, idA, nameH, nameA, sH, sA, timeRaw, league) {
+                currentOpenMatchId = id;
+                document.body.classList.add('modal-open');
+                const modal = document.getElementById("detailsModal");
+                modal.style.display = "flex";
+                setTimeout(() => modal.classList.add("show"), 10);
+
+                document.getElementById("logoH").src = `https://www.sofascore.com/api/v1/team/${idH}/image`;
+                document.getElementById("logoA").src = `https://www.sofascore.com/api/v1/team/${idA}/image`;
+                document.getElementById("nameH").innerText = nameH;
+                document.getElementById("nameA").innerText = nameA;
+                document.getElementById("scoreM").innerText = `${sH} - ${sA}`;
+
+                const isLive = timeRaw.includes("'") || timeRaw === 'HT' || timeRaw === 'LIVE' || timeRaw === 'ET';
+                const tb = document.getElementById("timeM");
+                tb.innerHTML = timeRaw;
+                if (isLive) tb.classList.add("is-live"); else tb.classList.remove("is-live");
+                document.getElementById("leagueM").innerText = league;
+
+                // Skeleton loaders inside modal
+                const skelHtml = `<div class="loader-wrapper"><div class="skel-row"><div class="skel-time skeleton"></div><div class="skel-teams"><div class="skel-team skeleton"></div></div></div><div class="skel-row"><div class="skel-time skeleton"></div><div class="skel-teams"><div class="skel-team skeleton" style="width:60%"></div></div></div></div>`;
+                document.getElementById("goalsBox").innerHTML = skelHtml;
+                document.getElementById("statsBox").innerHTML = `<div class="loader-wrapper"><div class="skel-header skeleton" style="height:20px;width:30%;margin:auto;"></div><div class="skel-header skeleton" style="height:8px;margin-top:20px;"></div><div class="skel-header skeleton" style="height:8px;margin-top:20px;"></div></div>`;
+
+                await updateModalStatsAndIncidents(id);
             }
 
             function openMatchById(id) {
@@ -4906,6 +4830,7 @@
             }
 
             function closeModal() {
+                currentOpenMatchId = null;
                 const modal = document.getElementById("detailsModal");
                 if (modal) {
                     modal.classList.remove("show");
@@ -4943,9 +4868,10 @@
                     showToast('Oyun favoritlərdən çıxarıldı');
                 }
                 localStorage.setItem('favMatches', JSON.stringify(favMatches));
+                registerFCMToken();
             }
 
-            window.registerFCMToken = async function registerFCMToken() {
+            async function registerFCMToken() {
                 try {
                     const status = Notification.permission;
                     if (document.getElementById('debugPermBox')) {
@@ -4976,6 +4902,47 @@
                     });
 
                     if (token) {
+                        // Handle foreground messages
+                        messaging.onMessage((payload) => {
+                            console.log('[FCM] Foreground message received:', payload);
+                            const notificationTitle = payload.notification?.title || payload.data?.title || "Rabona Media";
+                            const notificationBody = payload.notification?.body || payload.data?.body || "Yeni xəbər var.";
+                            
+                            if (window.notificationMgr) {
+                                window.notificationMgr.history.unshift({
+                                    id: Date.now(),
+                                    type: payload.data?.type || 'goal',
+                                    title: notificationTitle,
+                                    body: notificationBody,
+                                    matchId: payload.data?.matchId,
+                                    time: new Date().toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' }),
+                                    unread: true
+                                });
+                                if (window.notificationMgr.history.length > 50) window.notificationMgr.history.pop();
+                                localStorage.setItem('notifHistory', JSON.stringify(window.notificationMgr.history));
+                                window.notificationMgr.unreadCount++;
+                                window.notificationMgr.updateBadge();
+                                
+                                if (document.getElementById('notificationsView').classList.contains('active')) {
+                                    window.notificationMgr.renderHistory();
+                                }
+                                
+                                // Show native notification
+                                if (userSettings.browserNotifEnabled && Notification.permission === "granted") {
+                                    new Notification(notificationTitle, {
+                                        body: notificationBody,
+                                        icon: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
+                                        data: payload.data
+                                    });
+                                }
+                                
+                                // Play sound
+                                if (userSettings.soundEnabled) {
+                                    window.notificationMgr.audio.play().catch(() => {});
+                                }
+                            }
+                        });
+
                         localStorage.setItem('fcmToken', token);
                         if (document.getElementById('debugTokenBox')) {
                             document.getElementById('debugTokenBox').innerText = 'Token: ' + token;
@@ -5026,6 +4993,7 @@
                 } catch (e) {
                     showToast('Serverlə əlaqə xətası', 'error');
                 }
+                registerFCMToken();
             }
 
             function toggleFavoriteLeague(id, name, country, btn) {
@@ -5067,7 +5035,7 @@
                         html += `
                     <div class="league-card">
                         <div style="display:flex; align-items:center; gap:16px; flex:1;" onclick="${groupKey ? `openSingleLeague('${groupKey.replace(/'/g, "\\'")}')` : `showToast('Liqa məlumatı tapılmadı')`}">
-                            <img class="league-card-logo" src="https://www.sofascore.com/api/v1/tournament/${l.id}/image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzFmMjkzZCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIvPjwvc3ZnPg=='">
+                            <img class="league-card-logo" src="https://www.sofascore.com/api/v1/tournament/${l.id}/image" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzFmMjkzZCI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIvPjwvc3ZnPg=='">
                             <div class="league-card-info">
                                 <span class="league-card-country">${l.country}</span>
                                 <span class="league-card-name">${l.name}</span>
@@ -5919,56 +5887,79 @@
                     </div>`;
             }
 
-            // Initial fetch — always start with live matches
-            fetchData('live');
-            
-            let liveRefreshInterval = setInterval(() => {
+            fetchData();
+            syncFavoritesLive();
+            function syncFavoritesLive() {
+                if (typeof favMatches !== 'undefined' && favMatches.length > 0) {
+                    fetch(API_BASE_URL + '/api/matches/live', { cache: 'no-store' })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data && data.events) {
+                                let updatedFavs = [];
+                                let hasChanges = false;
+                                favMatches.forEach(fm => {
+                                    const liveMatch = data.events.find(m => m.id.toString() === fm.id.toString());
+                                    if (liveMatch) {
+                                        updatedFavs.push(liveMatch);
+                                        // Dəqiqə, qol və ya status dəyişibsə yenilə
+                                        if (JSON.stringify(fm.homeScore) !== JSON.stringify(liveMatch.homeScore) || 
+                                            JSON.stringify(fm.awayScore) !== JSON.stringify(liveMatch.awayScore) ||
+                                            JSON.stringify(fm.time) !== JSON.stringify(liveMatch.time) ||
+                                            fm.status.description !== liveMatch.status.description) {
+                                            hasChanges = true;
+                                        }
+                                    } else {
+                                        updatedFavs.push(fm);
+                                    }
+                                });
+                                
+                                // Hər 10 saniyədən bir Date.now() dəyişdiyi üçün getMatchTime vaxtı dəyişir.
+                                // Ona görə də UI həmişə yenilənməlidir.
+                                favMatches = updatedFavs;
+                                localStorage.setItem('favMatches', JSON.stringify(favMatches));
+                                
+                                if (document.getElementById('favoritesView') && document.getElementById('favoritesView').classList.contains('active')) {
+                                    renderFavoritesView();
+                                }
+                            }
+                        }).catch(err => console.log("Fav live sync err:", err));
+                }
+            }
+
+            setInterval(() => {
                 if (document.visibilityState === 'visible') {
-                    if (isLiveFiltered) {
-                        fetchData('live');
-                    } else {
-                        fetchData(selectedDate);
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    const isToday = selectedDate === todayStr;
+                    
+                    if (isLiveFiltered || isToday) {
+                        fetchData();
                     }
                     generateDateTabs();
+                    syncFavoritesLive();
                 }
             }, 30000);
 
-            // Sync ON RESUME (When app is opened/unlocked)
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible') {
-                    console.log("[Sync] App resumed, forcing fresh data...");
-                    if (isLiveFiltered) {
-                        fetchData('live', true);
-                    } else {
-                        fetchData(selectedDate, true);
-                    }
-                }
-            });
-
             // Enhanced Keep-Alive Ping
             function pingServer() {
-                console.log("[Keep-Alive] Pinging backend at " + new Date().toLocaleTimeString());
                 fetch(API_BASE_URL + '/api/ping')
                     .then(r => r.json())
-                    .then(data => console.log("[Keep-Alive] Server is awake:", data.status))
+                    .then(d => console.log("[Keep-Alive] Server OK:", d.status))
                     .catch(err => console.warn("[Keep-Alive] Ping failed:", err.message));
             }
 
-            // Initial ping
+            // Initial ping on load
             pingServer();
 
-            // Periodic ping every 10 minutes
-            setInterval(() => {
-                if (document.visibilityState === 'visible') {
-                    pingServer();
-                }
-            }, 10 * 60 * 1000);
+            // Periodic ping every 10 minutes (keeps Render from sleeping)
+            setInterval(() => pingServer(), 10 * 60 * 1000);
 
-            // Ping when user returns to the tab to ensure server stays awake during use
+            // Single visibilitychange handler: sync data + ping when app resumes
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') {
-                    console.log("[Keep-Alive] Tab became visible, pinging...");
+                    console.log("[App] Resumed — refreshing data and pinging server...");
                     pingServer();
+                    fetchData(null, true);
+                    syncFavoritesLive();
                 }
             });
 
@@ -5976,13 +5967,29 @@
             loadProfile();
             updateAuthUI();
 
-            // Sync FCM on boot if already granted
-            if ("Notification" in window && Notification.permission === "granted") {
-                setTimeout(() => { window.registerFCMToken && window.registerFCMToken(); }, 3000);
-            }
 
             } catch (err) {
                 console.error("FATAL SCRIPT ERROR:", err);
+            }
+
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/sw.js').then(reg => {
+                        console.log('SW registered:', reg.scope);
+                        if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    }).catch(err => {
+                        console.warn('SW qeydiyyatı uğursuz:', err);
+                    });
+                });
+            }
+
+            // Sync FCM on boot if already granted
+            try {
+                if ("Notification" in window && Notification.permission === "granted") {
+                    setTimeout(() => { registerFCMToken(); }, 3000);
+                }
+            } catch(e) {
+                console.warn("Notification permission check failed", e);
             }
 
 
