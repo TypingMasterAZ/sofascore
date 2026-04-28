@@ -478,6 +478,8 @@ const CACHE_TIMES = {
 };
 
 let lastScores = {};
+let liveGoalIncidentState = {};
+let goalNotificationState = {};
 let globalLiveEvents = null;
 let lastLiveFetchTime = 0;
 let lastLiveFetchAttemptTime = 0;
@@ -618,6 +620,70 @@ async function getLiveEventsData(forceFresh = false, preferImmediateCache = fals
     }
 }
 
+function extractGoalIncidents(data) {
+    const incidents = normalizeIncidentsData(data)?.incidents || [];
+    return incidents.filter(incident => incident?.incidentType === "goal");
+}
+
+function buildGoalIncidentKey(incident) {
+    const scorer =
+        incident?.player?.id ||
+        incident?.playerName ||
+        incident?.player?.name ||
+        incident?.playerIn?.id ||
+        incident?.playerIn?.name ||
+        "unknown";
+    return [
+        incident?.time ?? "na",
+        incident?.addedTime ?? "0",
+        incident?.isHome ? "home" : "away",
+        incident?.incidentClass || "regular",
+        scorer
+    ].join(":");
+}
+
+function markGoalNotification(matchId, marker) {
+    const matchKey = matchId?.toString();
+    if (!matchKey || !marker) return;
+    if (!goalNotificationState[matchKey]) goalNotificationState[matchKey] = {};
+    goalNotificationState[matchKey][marker] = Date.now();
+}
+
+function hasRecentGoalNotification(matchId, marker, maxAgeMs = 3 * 60 * 1000) {
+    const matchKey = matchId?.toString();
+    const ts = goalNotificationState[matchKey]?.[marker];
+    if (!ts) return false;
+    return (Date.now() - ts) <= maxAgeMs;
+}
+
+function pruneGoalNotificationState(maxAgeMs = 6 * 60 * 60 * 1000) {
+    const now = Date.now();
+    Object.keys(goalNotificationState).forEach(matchId => {
+        Object.keys(goalNotificationState[matchId] || {}).forEach(marker => {
+            if (now - goalNotificationState[matchId][marker] > maxAgeMs) {
+                delete goalNotificationState[matchId][marker];
+            }
+        });
+        if (Object.keys(goalNotificationState[matchId] || {}).length === 0) {
+            delete goalNotificationState[matchId];
+        }
+    });
+}
+
+async function getMatchIncidentsData(matchId) {
+    return getCachedData(`incidents_${matchId}`, async () => {
+        try {
+            const result = await fetchFromSofa(`/event/${matchId}/incidents`);
+            return normalizeIncidentsData(result.data);
+        } catch (error) {
+            console.warn(`[INCIDENTS FALLBACK] Native incidents failed for ${matchId}: ${error.message}`);
+            const fallback = await fetchRapidApiIncidents(matchId);
+            if (fallback) return fallback;
+            throw error;
+        }
+    }, 6000);
+}
+
 // API vasitÉ™Ã§isi (Komanda mÉ™lumatlarÄ± vÉ™ heyÉ™t Ã¼Ã§Ã¼n)
 app.get("/api/team/:id", async (req, res) => {
     try {
@@ -640,7 +706,8 @@ app.get("/api/matches/live", async (req, res) => {
     res.set('Expires', '0');
 
     try {
-        const data = await getLiveEventsData(false, true);
+        const allowImmediateCache = req.query.fast === "1";
+        const data = await getLiveEventsData(false, allowImmediateCache);
         res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Live matches: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
@@ -669,17 +736,7 @@ app.get("/api/matches/:date", async (req, res) => {
 app.get("/api/match/:id/incidents", async (req, res) => {
     const id = req.params.id;
     try {
-        const data = await getCachedData(`incidents_${id}`, async () => {
-            try {
-                const result = await fetchFromSofa(`/event/${id}/incidents`);
-                return normalizeIncidentsData(result.data);
-            } catch (error) {
-                console.warn(`[INCIDENTS FALLBACK] Native incidents failed for ${id}: ${error.message}`);
-                const fallback = await fetchRapidApiIncidents(id);
-                if (fallback) return fallback;
-                throw error;
-            }
-        }, 10000); // 10s cache
+        const data = await getMatchIncidentsData(id);
         res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Match incidents ${id}: ${error.message}`);
@@ -1495,6 +1552,11 @@ setInterval(async () => {
             
             if (prev) {
                 if (hs > prev.homeScore || as > prev.awayScore) {
+                    const scoreMarker = `score-${hs}-${as}`;
+                    if (hasRecentGoalNotification(matchId, scoreMarker, 90 * 1000)) {
+                        lastScores[matchId] = { homeScore: hs, awayScore: as };
+                        return;
+                    }
                     const title = `Rabona Media`;
                     const body = `${ev.homeTeam.name} ${hs} - ${as} ${ev.awayTeam.name}. Qol vuruldu.`;
                     
@@ -1560,6 +1622,8 @@ setInterval(async () => {
                             sendWebPushMessage(deviceId, payload);
                         });
                     }
+
+                    markGoalNotification(matchId, scoreMarker);
                 }
             }
             lastScores[matchId] = { homeScore: hs, awayScore: as };
@@ -1568,6 +1632,132 @@ setInterval(async () => {
         console.error("[Background Tracker] Error:", e.message);
     }
 }, 8000);
+
+setInterval(async () => {
+    try {
+        const favoriteMatchIds = new Set();
+
+        Object.values(fcmRegistrations).forEach(reg => {
+            normalizeIdList(reg?.favorites).forEach(id => favoriteMatchIds.add(id.toString()));
+        });
+        Object.values(webPushRegistrations).forEach(reg => {
+            normalizeIdList(reg?.favorites).forEach(id => favoriteMatchIds.add(id.toString()));
+        });
+
+        if (favoriteMatchIds.size === 0) return;
+
+        const liveData = await getLiveEventsData(true);
+        if (!liveData?.events?.length) return;
+
+        const favoriteLiveMatches = liveData.events.filter(ev =>
+            favoriteMatchIds.has(ev.id?.toString()) &&
+            (ev.status?.type === "inprogress" || ["HT", "HALFTIME", "EXTRA TIME", "ET"].includes((ev.status?.description || "").toUpperCase()))
+        );
+
+        for (const ev of favoriteLiveMatches) {
+            const matchId = ev.id.toString();
+            const leagueId = (ev.tournament?.uniqueTournament?.id || ev.tournament?.id || "").toString();
+
+            let incidentsData = null;
+            try {
+                incidentsData = await getMatchIncidentsData(matchId);
+            } catch (e) {
+                console.warn(`[Goal Incidents] ${matchId} incidents unavailable: ${e.message}`);
+                continue;
+            }
+
+            const goalIncidents = extractGoalIncidents(incidentsData);
+            const goalKeys = goalIncidents.map(buildGoalIncidentKey);
+
+            if (!liveGoalIncidentState[matchId]) {
+                liveGoalIncidentState[matchId] = new Set(goalKeys);
+                continue;
+            }
+
+            const knownKeys = liveGoalIncidentState[matchId];
+            const newGoalIncidents = goalIncidents.filter(incident => !knownKeys.has(buildGoalIncidentKey(incident)));
+
+            goalKeys.forEach(key => knownKeys.add(key));
+            if (newGoalIncidents.length === 0) continue;
+
+            const recipients = collectFavoriteRecipients(matchId, leagueId);
+            if (recipients.length === 0) continue;
+
+            for (const incident of newGoalIncidents) {
+                const incidentKey = buildGoalIncidentKey(incident);
+                if (hasRecentGoalNotification(matchId, incidentKey)) continue;
+
+                const scorerName =
+                    incident.playerName ||
+                    incident.player?.name ||
+                    incident.player?.shortName ||
+                    incident.playerIn?.name ||
+                    "Oyunçu";
+                const minuteText = incident.time ? `${incident.time}'` : "Canlı";
+                const goalLabel =
+                    incident.incidentClass === "ownGoal" ? "Avtoqol" :
+                    incident.incidentClass === "penalty" ? "Penaltidən qol" :
+                    "Qol";
+                const title = "Rabona Media";
+                const body = `${minuteText} ${goalLabel}: ${scorerName}. ${ev.homeTeam.name} ${ev.homeScore?.current || 0} - ${ev.awayScore?.current || 0} ${ev.awayTeam.name}`;
+
+                const fcmRecipients = recipients.filter(r => r.channel === "fcm");
+                const webPushRecipients = recipients.filter(r => r.channel === "webpush");
+
+                if (fcmRecipients.length > 0 && firebaseInitialized) {
+                    const message = {
+                        notification: { title, body },
+                        data: { matchId, type: "goal" },
+                        android: {
+                            priority: "high",
+                            notification: { sound: "default", channelId: "goal_notifications" }
+                        },
+                        apns: { payload: { aps: { sound: "default", badge: 1, contentAvailable: true } } },
+                        webpush: {
+                            headers: { Urgency: "high" },
+                            notification: {
+                                vibrate: [500, 110, 500],
+                                icon: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
+                                badge: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
+                                tag: `goal-${matchId}-${incident.time || "live"}`,
+                                renotify: true
+                            },
+                            fcm_options: { link: "/" }
+                        }
+                    };
+
+                    fcmRecipients.forEach(({ id: token }) => {
+                        admin.messaging().send({ ...message, token }).catch(err => {
+                            if (err.code === "messaging/registration-token-not-registered") {
+                                delete fcmRegistrations[token];
+                            }
+                        });
+                    });
+                }
+
+                if (webPushRecipients.length > 0) {
+                    const payload = createPushPayload({
+                        title,
+                        body,
+                        matchId,
+                        type: "goal",
+                        tag: `goal-${matchId}-${incident.time || "live"}`,
+                        requireInteraction: true
+                    });
+                    webPushRecipients.forEach(({ id: deviceId }) => {
+                        sendWebPushMessage(deviceId, payload);
+                    });
+                }
+
+                markGoalNotification(matchId, incidentKey);
+            }
+        }
+
+        pruneGoalNotificationState();
+    } catch (e) {
+        console.error("[Goal Incident Worker] Error:", e.message);
+    }
+}, 12000);
 
 async function sendReminderToRecipient(recipient, payload) {
     if (recipient.channel === "fcm") {

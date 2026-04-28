@@ -4601,7 +4601,10 @@
                 if (document.getElementById('leaguesView').classList.contains('active')) renderLeaguesView();
             }
 
-            function restoreEventsFromCache(cacheKey, maxAgeMs = 2 * 60 * 1000) {
+            const LIVE_BOOT_CACHE_MAX_AGE = 45 * 1000;
+            const SCHEDULED_BOOT_CACHE_MAX_AGE = 5 * 60 * 1000;
+
+            function restoreEventsFromCache(cacheKey, maxAgeMs = LIVE_BOOT_CACHE_MAX_AGE) {
                 try {
                     const cachedRaw = localStorage.getItem(cacheKey);
                     const cachedData = cachedRaw ? JSON.parse(cachedRaw) : null;
@@ -4615,6 +4618,31 @@
                     console.warn("Events cache read failed:", cacheErr.message);
                 }
                 return false;
+            }
+
+            async function fetchJsonOrThrow(targetUrl, options = {}, errorPrefix = 'Sorğu xətası') {
+                const response = await fetchWithRetry(targetUrl, options);
+                if (!response.ok) {
+                    throw new Error(`${errorPrefix}: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data && data.error) {
+                    throw new Error(`${errorPrefix}: ${data.message || data.reason || 'API xətası'}`);
+                }
+                return data;
+            }
+
+            async function fetchEventsFromBestSource(localUrl, sofaPath, options = {}) {
+                const directUrl = `https://api.sofascore.com/api/v1${sofaPath}`;
+                try {
+                    return await Promise.any([
+                        fetchJsonOrThrow(directUrl, options, 'SofaScore direct xətası'),
+                        fetchJsonOrThrow(localUrl, options, 'Server xətası')
+                    ]);
+                } catch (aggregateError) {
+                    const firstReason = Array.isArray(aggregateError?.errors) ? aggregateError.errors[0] : aggregateError;
+                    throw firstReason || new Error('Heç bir mənbədən məlumat alınmadı');
+                }
             }
 
             async function fetchData(param = null, isForced = false) {
@@ -4645,7 +4673,7 @@
                 const syncOverlay = document.getElementById('syncStatusOverlay');
                 if (!isForced && (!allEvents || allEvents.length === 0)) {
                     const isLiveCache = dataCacheKey === 'live';
-                    restoreEventsFromCache(eventsCacheKey, isLiveCache ? 2 * 60 * 1000 : 10 * 60 * 1000);
+                    restoreEventsFromCache(eventsCacheKey, isLiveCache ? LIVE_BOOT_CACHE_MAX_AGE : SCHEDULED_BOOT_CACHE_MAX_AGE);
                 }
                 
                 // --- HYBRID DATA POLICY REMOVED FOR FRESHNESS ---
@@ -4666,18 +4694,7 @@
                 }
                 
                 try {
-                    let dataEvents;
-                    try {
-                        const resEvents = await fetchWithRetry(url, fetchOptions);
-                        if (!resEvents.ok) throw new Error(`Server xətası: ${resEvents.status}`);
-                        dataEvents = await resEvents.json();
-                    } catch (serverErr) {
-                        const directUrl = `https://api.sofascore.com/api/v1${sofaFallbackPath}`;
-                        console.warn("Local API failed, trying browser SofaScore fallback:", serverErr.message);
-                        const directRes = await fetchWithRetry(directUrl, fetchOptions);
-                        if (!directRes.ok) throw serverErr;
-                        dataEvents = await directRes.json();
-                    }
+                    let dataEvents = await fetchEventsFromBestSource(url, sofaFallbackPath, fetchOptions);
                     
                     if (typeof dataEvents === 'string') {
                         try {
@@ -4739,7 +4756,7 @@
                 } catch (e) {
                     console.error("Matches fetch error:", e);
                     window._lastFetchError = true;
-                    const restoredFromCache = restoreEventsFromCache(eventsCacheKey, dataCacheKey === 'live' ? 2 * 60 * 1000 : 10 * 60 * 1000);
+                    const restoredFromCache = restoreEventsFromCache(eventsCacheKey, dataCacheKey === 'live' ? LIVE_BOOT_CACHE_MAX_AGE : SCHEDULED_BOOT_CACHE_MAX_AGE);
 
                     if (restoredFromCache || (allEvents && allEvents.length > 0)) {
                         applyFilters();
@@ -6658,16 +6675,16 @@
             startAzerbaijaniTextRepair();
             fetchData();
             const todayBootKey = new Date().toISOString().split('T')[0];
-            restoreEventsFromCache('cached_events_live', 2 * 60 * 1000);
+            restoreEventsFromCache('cached_events_live', LIVE_BOOT_CACHE_MAX_AGE);
             if (selectedDate === todayBootKey && !isLiveFiltered) {
-                restoreEventsFromCache(`cached_events_${todayBootKey}`, 10 * 60 * 1000);
+                restoreEventsFromCache(`cached_events_${todayBootKey}`, SCHEDULED_BOOT_CACHE_MAX_AGE);
             }
             syncFavoritesLive();
             function syncFavoritesLive() {
                 if (typeof favMatches !== 'undefined' && favMatches.length > 0) {
                     const liveSource = Array.isArray(allEvents) && allEvents.length > 0
                         ? Promise.resolve({ events: allEvents })
-                        : fetch(API_BASE_URL + '/api/matches/live', { cache: 'no-store' }).then(r => r.json());
+                        : fetchEventsFromBestSource(API_BASE_URL + '/api/matches/live', '/sport/football/events/live', { cache: 'no-store' });
 
                     liveSource.then(data => {
                         if (data && data.events) {
