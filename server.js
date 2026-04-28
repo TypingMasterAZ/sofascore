@@ -183,9 +183,129 @@ const HEADERS = {
 const USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
 ];
+const LIVESCORES_LIVE_URL = "https://www.livescores.com/football/live/";
 
 function getRandomUA() {
     return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+}
+
+function decodeHtmlEntities(value = "") {
+    return value
+        .replace(/&#x27;/g, "'")
+        .replace(/&#39;/g, "'")
+        .replace(/&amp;/g, "&")
+        .replace(/&quot;/g, '"')
+        .replace(/&nbsp;/g, " ")
+        .replace(/&#x2F;/g, "/")
+        .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+        .replace(/<[^>]+>/g, "")
+        .trim();
+}
+
+function slugToTitle(slug = "") {
+    return slug
+        .split('-')
+        .filter(Boolean)
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+}
+
+function createPseudoIdFromText(text = "") {
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+        hash = ((hash << 5) - hash) + text.charCodeAt(i);
+        hash |= 0;
+    }
+    return Math.abs(hash) + 900000000;
+}
+
+function mapLiveScoreStatus(rawStatus = "") {
+    const cleaned = decodeHtmlEntities(rawStatus).toUpperCase();
+    if (cleaned.includes("'")) {
+        return { type: "inprogress", description: cleaned };
+    }
+    if (cleaned === "HT") return { type: "inprogress", description: "HT" };
+    if (cleaned === "ET") return { type: "inprogress", description: "ET" };
+    if (cleaned === "LIVE") return { type: "inprogress", description: "LIVE" };
+    if (cleaned === "FT") return { type: "finished", description: "FT" };
+    return { type: "inprogress", description: cleaned || "LIVE" };
+}
+
+function parseLiveScoresHtml(html) {
+    const events = [];
+    const blockRegex = /<div class="Ba">([\s\S]*?)<\/div>\s*<div class="Ye[\s\S]*?data-eventId="(\d+)"[\s\S]*?<span class="lh hh kh">([\s\S]*?)<\/span>[\s\S]*?<span class="Yg"><span class="ah">([\s\S]*?)<\/span><\/span>[\s\S]*?<span class="dh">([\s\S]*?)<\/span>[\s\S]*?<span class="eh">([\s\S]*?)<\/span>[\s\S]*?<span class="Zg"><span class="ah">([\s\S]*?)<\/span>/g;
+
+    let match;
+    while ((match = blockRegex.exec(html)) !== null) {
+        const headerHtml = match[1] || "";
+        const eventId = match[2];
+        const rawStatus = match[3];
+        const homeName = decodeHtmlEntities(match[4]);
+        const homeScore = Number.parseInt(decodeHtmlEntities(match[5]) || "0", 10) || 0;
+        const awayScore = Number.parseInt(decodeHtmlEntities(match[6]) || "0", 10) || 0;
+        const awayName = decodeHtmlEntities(match[7]);
+
+        const tournamentSlugMatch = headerHtml.match(/href="\/football\/([^\/"]+)\/"/i);
+        const stageSlugMatch = headerHtml.match(/href="\/football\/[^\/"]+\/([^\/"]+)\/"/i);
+        const tournamentTitleMatch = headerHtml.match(/<span class="Ea">([\s\S]*?)<\/span>/i);
+        const stageTitleMatch = headerHtml.match(/<span class="Fa">([\s\S]*?)<\/span>/i);
+        const dateTitleMatch = headerHtml.match(/<span class="Ca">([\s\S]*?)<\/span>/i);
+
+        const tournamentTitle = decodeHtmlEntities(tournamentTitleMatch?.[1]) || slugToTitle(tournamentSlugMatch?.[1] || "LiveScore");
+        const stageTitle = decodeHtmlEntities(stageTitleMatch?.[1]) || slugToTitle(stageSlugMatch?.[1] || "");
+        const tournamentName = stageTitle ? `${tournamentTitle}, ${stageTitle}` : tournamentTitle;
+        const tournamentId = createPseudoIdFromText(`${tournamentSlugMatch?.[1] || tournamentTitle}:${stageSlugMatch?.[1] || stageTitle}`);
+        const startTsRaw = html.slice(Math.max(0, match.index), Math.min(html.length, match.index + 1200)).match(/data-favouritesDetails="football-\d+-(\d+)"/i)?.[1];
+        const startTimestamp = startTsRaw ? Math.floor(Number(startTsRaw) / 1000) : null;
+
+        events.push({
+            id: Number(eventId),
+            slug: eventId,
+            startTimestamp,
+            status: mapLiveScoreStatus(rawStatus),
+            homeTeam: { id: createPseudoIdFromText(`home:${homeName}`), name: homeName },
+            awayTeam: { id: createPseudoIdFromText(`away:${awayName}`), name: awayName },
+            homeScore: { current: homeScore },
+            awayScore: { current: awayScore },
+            tournament: {
+                id: tournamentId,
+                name: tournamentName,
+                category: {
+                    id: createPseudoIdFromText(`category:${tournamentTitle}`),
+                    name: tournamentTitle
+                },
+                uniqueTournament: {
+                    id: tournamentId,
+                    name: tournamentName,
+                    category: {
+                        id: createPseudoIdFromText(`category:${tournamentTitle}`),
+                        name: tournamentTitle
+                    }
+                }
+            },
+            season: dateTitleMatch?.[1] ? { id: createPseudoIdFromText(`season:${decodeHtmlEntities(dateTitleMatch[1])}`) } : undefined,
+            source: "livescores-scrape"
+        });
+    }
+
+    return { events };
+}
+
+async function fetchLiveFromLiveScoresScrape() {
+    const response = await axios.get(LIVESCORES_LIVE_URL, {
+        timeout: 15000,
+        headers: {
+            "User-Agent": getRandomUA(),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9"
+        }
+    });
+    const parsed = parseLiveScoresHtml(response.data);
+    if (!parsed.events.length) {
+        throw new Error("LiveScores scrape returned no events");
+    }
+    console.log(`[LIVESCORES SCRAPE] Parsed ${parsed.events.length} live events.`);
+    return parsed;
 }
 
 async function legacyFetchFromSofa(path, params = {}) {
@@ -632,8 +752,14 @@ async function getLiveEventsData(forceFresh = false, preferImmediateCache = fals
     if (!liveFetchPromise) {
         lastLiveFetchAttemptTime = now;
         liveFetchPromise = (async () => {
-            const result = await fetchFromSofa("/sport/football/events/live");
-            const data = result.data;
+            let data = null;
+            try {
+                const result = await fetchFromSofa("/sport/football/events/live");
+                data = result.data;
+            } catch (primaryError) {
+                console.warn(`[LIVE FALLBACK] Sofa live fetch failed, trying LiveScores scrape: ${primaryError.message}`);
+                data = await fetchLiveFromLiveScoresScrape();
+            }
             if (!data || !Array.isArray(data.events)) {
                 throw new Error("Live response missing events array");
             }
