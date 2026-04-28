@@ -7,17 +7,39 @@ if (!targetUrl) {
   process.exit(1);
 }
 
-const pingUrl = `${targetUrl.replace(/\/$/, "")}/api/ping?t=${Date.now()}`;
-
-https.get(pingUrl, (res) => {
-  let body = "";
-  res.on("data", chunk => { body += chunk; });
-  res.on("end", () => {
-    console.log(`[KeepAlive Cron] ${res.statusCode} ${pingUrl}`);
-    console.log(body);
-    process.exit(res.statusCode >= 200 && res.statusCode < 300 ? 0 : 1);
+function requestUrl(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      let body = "";
+      res.on("data", chunk => { body += chunk; });
+      res.on("end", () => {
+        console.log(`[KeepAlive Cron] ${res.statusCode} ${url}`);
+        console.log(body);
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve();
+        } else {
+          reject(new Error(`Unexpected status ${res.statusCode}`));
+        }
+      });
+    }).on("error", reject);
   });
-}).on("error", (err) => {
-  console.error("[KeepAlive Cron] Request failed:", err.message);
-  process.exit(1);
-});
+}
+
+async function main() {
+  const baseUrl = targetUrl.replace(/\/$/, "");
+  const endpoints = [
+    `${baseUrl}/api/ping?t=${Date.now()}`,
+    `${baseUrl}/api/matches/live?t=${Date.now()}`
+  ];
+
+  for (const url of endpoints) {
+    await requestUrl(url);
+  }
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch((err) => {
+    console.error("[KeepAlive Cron] Request failed:", err.message);
+    process.exit(1);
+  });

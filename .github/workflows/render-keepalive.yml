@@ -10,9 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Ping Render health endpoint
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Warm up Render health and live endpoints
         env:
-          KEEPALIVE_URL: https://sofascore-xoyr.onrender.com/api/ping
-        run: |
-          echo "Pinging ${KEEPALIVE_URL}"
-          curl --fail --silent --show-error --max-time 30 "${KEEPALIVE_URL}?t=$(date +%s)"
+          KEEPALIVE_URL: https://sofascore-xoyr.onrender.com
+        run: node scripts/render-keepalive.js
