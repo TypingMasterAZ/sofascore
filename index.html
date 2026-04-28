@@ -4601,6 +4601,22 @@
                 if (document.getElementById('leaguesView').classList.contains('active')) renderLeaguesView();
             }
 
+            function restoreEventsFromCache(cacheKey, maxAgeMs = 2 * 60 * 1000) {
+                try {
+                    const cachedRaw = localStorage.getItem(cacheKey);
+                    const cachedData = cachedRaw ? JSON.parse(cachedRaw) : null;
+                    const cacheAge = cachedData?.timestamp ? (Date.now() - cachedData.timestamp) : Infinity;
+                    if (cachedData && Array.isArray(cachedData.events) && cachedData.events.length > 0 && cacheAge <= maxAgeMs) {
+                        allEvents = cachedData.events;
+                        applyFilters();
+                        return true;
+                    }
+                } catch (cacheErr) {
+                    console.warn("Events cache read failed:", cacheErr.message);
+                }
+                return false;
+            }
+
             async function fetchData(param = null, isForced = false) {
                 let url = '';
                 let dataCacheKey = 'live';
@@ -4627,6 +4643,10 @@
                 console.log("Fetching data directly from:", url);
                 
                 const syncOverlay = document.getElementById('syncStatusOverlay');
+                if (!isForced && (!allEvents || allEvents.length === 0)) {
+                    const isLiveCache = dataCacheKey === 'live';
+                    restoreEventsFromCache(eventsCacheKey, isLiveCache ? 2 * 60 * 1000 : 10 * 60 * 1000);
+                }
                 
                 // --- HYBRID DATA POLICY REMOVED FOR FRESHNESS ---
 
@@ -4719,17 +4739,7 @@
                 } catch (e) {
                     console.error("Matches fetch error:", e);
                     window._lastFetchError = true;
-                    let restoredFromCache = false;
-                    try {
-                        const cachedRaw = localStorage.getItem(eventsCacheKey);
-                        const cachedData = cachedRaw ? JSON.parse(cachedRaw) : null;
-                        if (cachedData && Array.isArray(cachedData.events)) {
-                            allEvents = cachedData.events;
-                            restoredFromCache = true;
-                        }
-                    } catch (cacheErr) {
-                        console.warn("Events cache read failed:", cacheErr.message);
-                    }
+                    const restoredFromCache = restoreEventsFromCache(eventsCacheKey, dataCacheKey === 'live' ? 2 * 60 * 1000 : 10 * 60 * 1000);
 
                     if (restoredFromCache || (allEvents && allEvents.length > 0)) {
                         applyFilters();
@@ -6594,6 +6604,11 @@
 
             startAzerbaijaniTextRepair();
             fetchData();
+            const todayBootKey = new Date().toISOString().split('T')[0];
+            restoreEventsFromCache('cached_events_live', 2 * 60 * 1000);
+            if (selectedDate === todayBootKey && !isLiveFiltered) {
+                restoreEventsFromCache(`cached_events_${todayBootKey}`, 10 * 60 * 1000);
+            }
             syncFavoritesLive();
             function syncFavoritesLive() {
                 if (typeof favMatches !== 'undefined' && favMatches.length > 0) {

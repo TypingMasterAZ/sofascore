@@ -482,6 +482,36 @@ let globalLiveEvents = null;
 let lastLiveFetchTime = 0;
 let lastLiveFetchAttemptTime = 0;
 let liveFetchPromise = null;
+const LIVE_SNAPSHOT_FILE = "./live_snapshot.json";
+const LIVE_SNAPSHOT_MAX_AGE = 2 * 60 * 1000;
+
+function loadLiveSnapshot() {
+    try {
+        if (!fs.existsSync(LIVE_SNAPSHOT_FILE)) return;
+        const snapshot = JSON.parse(fs.readFileSync(LIVE_SNAPSHOT_FILE, "utf-8"));
+        if (snapshot?.data?.events && Array.isArray(snapshot.data.events)) {
+            globalLiveEvents = snapshot.data;
+            lastLiveFetchTime = snapshot.timestamp || 0;
+            console.log(`[LIVE SNAPSHOT] Loaded ${snapshot.data.events.length} events from disk cache.`);
+        }
+    } catch (e) {
+        console.warn("[LIVE SNAPSHOT] Load failed:", e.message);
+    }
+}
+
+function saveLiveSnapshot() {
+    try {
+        if (!globalLiveEvents?.events) return;
+        fs.writeFileSync(LIVE_SNAPSHOT_FILE, JSON.stringify({
+            data: globalLiveEvents,
+            timestamp: lastLiveFetchTime
+        }));
+    } catch (e) {
+        console.warn("[LIVE SNAPSHOT] Save failed:", e.message);
+    }
+}
+
+loadLiveSnapshot();
 
 const FALLBACK_TOP_LEAGUES = [
     { id: 7, name: "UEFA Champions League", category: { id: 1465, name: "Europe" } },
@@ -530,9 +560,20 @@ async function getCachedData(key, fetchFn, ttl) {
     }
 }
 
-async function getLiveEventsData(forceFresh = false) {
+async function getLiveEventsData(forceFresh = false, preferImmediateCache = false) {
     const now = Date.now();
     const hasUsableCache = globalLiveEvents && Array.isArray(globalLiveEvents.events);
+    if (preferImmediateCache && hasUsableCache && (now - lastLiveFetchTime <= LIVE_SNAPSHOT_MAX_AGE)) {
+        if (!liveFetchPromise) {
+            getLiveEventsData(true).catch(() => {});
+        }
+        return {
+            ...globalLiveEvents,
+            stale: true,
+            staleSince: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null
+        };
+    }
+
     if (!forceFresh && hasUsableCache && (now - lastLiveFetchTime < CACHE_TIMES.LIVE)) {
         return globalLiveEvents;
     }
@@ -555,6 +596,7 @@ async function getLiveEventsData(forceFresh = false) {
             }
             globalLiveEvents = data;
             lastLiveFetchTime = Date.now();
+            saveLiveSnapshot();
             return globalLiveEvents;
         })().finally(() => {
             liveFetchPromise = null;
@@ -598,7 +640,7 @@ app.get("/api/matches/live", async (req, res) => {
     res.set('Expires', '0');
 
     try {
-        const data = await getLiveEventsData();
+        const data = await getLiveEventsData(false, true);
         res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Live matches: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
