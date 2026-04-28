@@ -5087,6 +5087,7 @@
             const modalDetailsLastFetch = {};
             const modalDetailsMemoryCache = {};
             const MATCH_DETAILS_CACHE_KEY = 'match_details_cache_v1';
+            const WEB_PUSH_SUBSCRIPTION_CACHE_KEY = 'webpush_subscription_payload_v1';
 
             try {
                 const persistedMatchDetails = JSON.parse(localStorage.getItem(MATCH_DETAILS_CACHE_KEY) || '{}');
@@ -5423,6 +5424,7 @@
                     showToast('Oyun favoritlərdən çıxarıldı');
                 }
                 localStorage.setItem('favMatches', JSON.stringify(favMatches));
+                syncRegisteredPushState();
                 registerFCMToken();
             }
 
@@ -5443,6 +5445,20 @@
 
             function getFavoriteLeagueIds() {
                 return (typeof favLeagues !== 'undefined' ? favLeagues : []).map(l => l.id ? l.id.toString() : null).filter(Boolean);
+            }
+
+            function saveCachedWebPushPayload(payload) {
+                try {
+                    localStorage.setItem(WEB_PUSH_SUBSCRIPTION_CACHE_KEY, JSON.stringify(payload));
+                } catch (e) {}
+            }
+
+            function loadCachedWebPushPayload() {
+                try {
+                    return JSON.parse(localStorage.getItem(WEB_PUSH_SUBSCRIPTION_CACHE_KEY) || 'null');
+                } catch (e) {
+                    return null;
+                }
             }
 
             function isIosStandalonePwa() {
@@ -5467,6 +5483,40 @@
                 const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
                 const rawData = window.atob(base64);
                 return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+            }
+
+            function syncRegisteredPushState() {
+                const favorites = getFavoriteIds();
+                const leagues = getFavoriteLeagueIds();
+                const requests = [];
+
+                const cachedWebPushPayload = loadCachedWebPushPayload();
+                if (cachedWebPushPayload?.subscription?.endpoint) {
+                    requests.push(fetch(API_BASE_URL + '/api/push/subscribe', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ...cachedWebPushPayload,
+                            favorites,
+                            leagues
+                        }),
+                        keepalive: true,
+                        cache: 'no-store'
+                    }).catch(() => null));
+                }
+
+                const token = localStorage.getItem('fcmToken');
+                if (token) {
+                    requests.push(fetch(API_BASE_URL + '/api/fcm/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token, favorites, leagues }),
+                        keepalive: true,
+                        cache: 'no-store'
+                    }).catch(() => null));
+                }
+
+                return Promise.allSettled(requests);
             }
 
             function bindFirebaseForegroundMessages(messaging) {
@@ -5536,6 +5586,7 @@
                     platform: isIosStandalonePwa() ? 'ios-pwa' : 'webpush',
                     userAgent: navigator.userAgent
                 };
+                saveCachedWebPushPayload(payload);
 
                 const res = await fetch(API_BASE_URL + '/api/push/subscribe', {
                     method: 'POST',
@@ -5569,6 +5620,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ deviceId: getPushDeviceId() })
                     }).catch(() => {});
+                    localStorage.removeItem(WEB_PUSH_SUBSCRIPTION_CACHE_KEY);
                 } catch (e) {
                     console.warn('[WebPush] Unsubscribe failed:', e);
                 }
@@ -5721,6 +5773,7 @@
                     showToast('Liqa favoritlərdən çıxarıldı');
                 }
                 localStorage.setItem('favLeagues', JSON.stringify(favLeagues));
+                syncRegisteredPushState();
                 registerFCMToken();
             }
 
@@ -6671,7 +6724,13 @@
                     pingServer();
                     fetchData(null, true);
                     syncFavoritesLive();
+                } else {
+                    syncRegisteredPushState();
                 }
+            });
+
+            window.addEventListener('pagehide', () => {
+                syncRegisteredPushState();
             });
 
             notificationMgr.init();
@@ -6700,6 +6759,7 @@
                 if ("Notification" in window && Notification.permission === "granted") {
                     setTimeout(() => { registerFCMToken(); }, 1000);
                     setTimeout(() => { registerFCMToken(); }, 8000);
+                    setTimeout(() => { syncRegisteredPushState(); }, 12000);
                 }
             } catch(e) {
                 console.warn("Notification permission check failed", e);
