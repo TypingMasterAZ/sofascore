@@ -5158,25 +5158,21 @@
             }
 
             async function fetchMatchDetailsData(id) {
-                let data = null;
-                try {
-                    data = await fetchServerJson(`/api/match/${id}/details`);
-                } catch (serverErr) {
+                const serverPromise = fetchServerJson(`/api/match/${id}/details`).catch((serverErr) => {
                     console.warn("Match details API failed, trying browser SofaScore fallback:", serverErr.message);
-                }
+                    return null;
+                });
 
-                const hasIncidents = data && data.incidents && Array.isArray(data.incidents.incidents) && data.incidents.incidents.length > 0;
-                if (hasIncidents) return data;
-
-                const [incidentsResult, statsResult] = await Promise.allSettled([
-                    fetchDirectSofaJson(`/event/${id}/incidents`),
-                    fetchDirectSofaJson(`/event/${id}/statistics`)
+                const [serverData, incidentsResult, statsResult] = await Promise.all([
+                    serverPromise,
+                    fetchDirectSofaJson(`/event/${id}/incidents`).catch(() => null),
+                    fetchDirectSofaJson(`/event/${id}/statistics`).catch(() => null)
                 ]);
 
-                return {
-                    incidents: incidentsResult.status === 'fulfilled' ? incidentsResult.value : (data?.incidents || { incidents: [] }),
-                    stats: statsResult.status === 'fulfilled' ? statsResult.value : (data?.stats || null)
-                };
+                const incidents = incidentsResult || serverData?.incidents || { incidents: [] };
+                const stats = statsResult || serverData?.stats || { statistics: [] };
+
+                return { incidents, stats };
             }
 
             async function updateModalStatsAndIncidents(id, options = {}) {
@@ -6606,7 +6602,7 @@
             // Sync FCM on boot if already granted
             try {
                 if ("Notification" in window && Notification.permission === "granted") {
-                    setTimeout(() => { registerFCMToken(); }, 3000);
+                    setTimeout(() => { registerFCMToken(); }, 1000);
                 }
             } catch(e) {
                 console.warn("Notification permission check failed", e);

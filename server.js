@@ -472,7 +472,7 @@ app.get("/api/debug/proxy", async (req, res) => {
 // Caching System
 const cache = {};
 const CACHE_TIMES = {
-    LIVE: 30 * 1000,       // 30 saniyÉ™
+    LIVE: 10 * 1000,       // 10 saniyə
     SCHEDULED: 5 * 60 * 1000, // 5 dÉ™qiqÉ™
     STATIC: 60 * 60 * 1000    // 1 saat
 };
@@ -530,14 +530,14 @@ async function getCachedData(key, fetchFn, ttl) {
     }
 }
 
-async function getLiveEventsData() {
+async function getLiveEventsData(forceFresh = false) {
     const now = Date.now();
     const hasUsableCache = globalLiveEvents && Array.isArray(globalLiveEvents.events);
-    if (hasUsableCache && (now - lastLiveFetchTime < CACHE_TIMES.LIVE)) {
+    if (!forceFresh && hasUsableCache && (now - lastLiveFetchTime < CACHE_TIMES.LIVE)) {
         return globalLiveEvents;
     }
 
-    if (hasUsableCache && (now - lastLiveFetchAttemptTime < CACHE_TIMES.LIVE)) {
+    if (!forceFresh && hasUsableCache && (now - lastLiveFetchAttemptTime < CACHE_TIMES.LIVE)) {
         return {
             ...globalLiveEvents,
             stale: true,
@@ -697,15 +697,12 @@ app.get("/api/match/:id/details", async (req, res) => {
             }
         }, ttl).catch(() => null);
 
-        // Goal scorers live in incidents. Fetch them first and keep statistics optional
-        // so one blocked stats request does not hide goals from the match modal.
-        const incidents = await optionalCachedFetch(`incidents_${id}`, `/event/${id}/incidents`, 20000);
+        const incidentsPromise = optionalCachedFetch(`incidents_${id}`, `/event/${id}/incidents`, 12000);
+        const statsPromise = req.query.stats === "0"
+            ? Promise.resolve(null)
+            : optionalCachedFetch(`stats_${id}`, `/event/${id}/statistics`, 30000);
 
-        let stats = null;
-        if (req.query.stats !== "0") {
-            await new Promise(resolve => setTimeout(resolve, 900));
-            stats = await optionalCachedFetch(`stats_${id}`, `/event/${id}/statistics`, 60000);
-        }
+        const [incidents, stats] = await Promise.all([incidentsPromise, statsPromise]);
 
         res.json({
             incidents,
@@ -1363,7 +1360,7 @@ app.get("/api/fcm/broadcast-test", async (req, res) => {
 // Background Worker for Live Matches Push Notifications
 setInterval(async () => {
     try {
-        const liveData = await getLiveEventsData();
+        const liveData = await getLiveEventsData(true);
         if (!liveData || !Array.isArray(liveData.events)) return;
 
         if (Object.keys(fcmRegistrations).length === 0 && Object.keys(webPushRegistrations).length === 0) return;
@@ -1380,7 +1377,7 @@ setInterval(async () => {
             if (prev) {
                 if (hs > prev.homeScore || as > prev.awayScore) {
                     const title = `Rabona Media`;
-                    const body = `${ev.homeTeam.name} ${hs} - ${as} ${ev.awayTeam.name}\nQol vuruldu! âš½`;
+                    const body = `${ev.homeTeam.name} ${hs} - ${as} ${ev.awayTeam.name}. Qol vuruldu.`;
                     
                     console.log(`[GOAL] ${ev.homeTeam.name} - ${ev.awayTeam.name} GOOOL!`);
 
@@ -1451,7 +1448,7 @@ setInterval(async () => {
     } catch (e) {
         console.error("[Background Tracker] Error:", e.message);
     }
-}, 20000);
+}, 8000);
 
 async function sendReminderToRecipient(recipient, payload) {
     if (recipient.channel === "fcm") {
@@ -1581,11 +1578,11 @@ setInterval(async () => {
     } catch (e) {
         console.error("[Reminder Worker] Error:", e.name, e.message);
     }
-}, 5 * 60 * 1000);
+}, 60 * 1000);
 
 async function warmRuntimeCaches() {
     try {
-        await getLiveEventsData();
+        await getLiveEventsData(true);
         const todayStr = new Date().toISOString().split('T')[0];
         await getCachedData(`matches_${todayStr}`, async () => {
             const result = await fetchFromSofa(`/sport/football/scheduled-events/${todayStr}`);
@@ -1608,7 +1605,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server ${PORT} portunda aktivdir.`);
     warmRuntimeCaches();
-    setInterval(warmRuntimeCaches, 20 * 1000);
+    setInterval(warmRuntimeCaches, 15 * 1000);
 
     // â”€â”€â”€ RENDER KEEP-ALIVE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Render free plan serveri 15 dÉ™qiqÉ™lik hÉ™rÉ™kÉ™tsizlikdÉ™n sonra yuxuya gÃ¶ndÉ™rir.
