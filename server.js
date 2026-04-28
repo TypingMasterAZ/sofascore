@@ -484,6 +484,7 @@ let globalLiveEvents = null;
 let lastLiveFetchTime = 0;
 let lastLiveFetchAttemptTime = 0;
 let liveFetchPromise = null;
+let liveSnapshotLoadPromise = null;
 const LIVE_SNAPSHOT_FILE = "./live_snapshot.json";
 const LIVE_SNAPSHOT_MAX_AGE = 2 * 60 * 1000;
 
@@ -501,6 +502,37 @@ function loadLiveSnapshot() {
     }
 }
 
+async function loadLiveSnapshotFromFirestore() {
+    if (!db) return false;
+    try {
+        const snap = await db.collection('app_state').doc('live_snapshot').get();
+        const data = snap.data();
+        if (data?.payload?.events && Array.isArray(data.payload.events)) {
+            globalLiveEvents = data.payload;
+            lastLiveFetchTime = data.timestamp || 0;
+            console.log(`[LIVE SNAPSHOT] Loaded ${data.payload.events.length} events from Firestore cache.`);
+            return true;
+        }
+    } catch (e) {
+        console.warn("[LIVE SNAPSHOT] Firestore load failed:", e.message);
+    }
+    return false;
+}
+
+async function ensureLiveSnapshotLoaded() {
+    if (globalLiveEvents?.events?.length) return true;
+    if (!liveSnapshotLoadPromise) {
+        liveSnapshotLoadPromise = (async () => {
+            loadLiveSnapshot();
+            if (globalLiveEvents?.events?.length) return true;
+            return loadLiveSnapshotFromFirestore();
+        })().finally(() => {
+            liveSnapshotLoadPromise = null;
+        });
+    }
+    return liveSnapshotLoadPromise;
+}
+
 function saveLiveSnapshot() {
     try {
         if (!globalLiveEvents?.events) return;
@@ -510,6 +542,15 @@ function saveLiveSnapshot() {
         }));
     } catch (e) {
         console.warn("[LIVE SNAPSHOT] Save failed:", e.message);
+    }
+    if (db && globalLiveEvents?.events) {
+        db.collection('app_state').doc('live_snapshot').set({
+            payload: globalLiveEvents,
+            timestamp: lastLiveFetchTime,
+            updatedAt: Date.now()
+        }).catch(e => {
+            console.warn("[LIVE SNAPSHOT] Firestore save failed:", e.message);
+        });
     }
 }
 
@@ -706,7 +747,8 @@ app.get("/api/matches/live", async (req, res) => {
     res.set('Expires', '0');
 
     try {
-        const allowImmediateCache = req.query.fast === "1";
+        await ensureLiveSnapshotLoaded();
+        const allowImmediateCache = req.query.fast === "1" || !!globalLiveEvents?.events?.length;
         const data = await getLiveEventsData(false, allowImmediateCache);
         res.json(data);
     } catch (error) {

@@ -4632,16 +4632,20 @@
                 return data;
             }
 
-            async function fetchEventsFromBestSource(localUrl, sofaPath, options = {}) {
-                const directUrl = `https://api.sofascore.com/api/v1${sofaPath}`;
+            async function fetchEventsFromBestSource(localUrl, sofaPath, options = {}, allowDirectBrowserFallback = true) {
                 try {
-                    return await Promise.any([
-                        fetchJsonOrThrow(directUrl, options, 'SofaScore direct xətası'),
-                        fetchJsonOrThrow(localUrl, options, 'Server xətası')
-                    ]);
-                } catch (aggregateError) {
-                    const firstReason = Array.isArray(aggregateError?.errors) ? aggregateError.errors[0] : aggregateError;
-                    throw firstReason || new Error('Heç bir mənbədən məlumat alınmadı');
+                    return await fetchJsonOrThrow(localUrl, options, 'Server xətası');
+                } catch (serverError) {
+                    if (!allowDirectBrowserFallback) {
+                        throw serverError;
+                    }
+
+                    const directUrl = `https://api.sofascore.com/api/v1${sofaPath}`;
+                    try {
+                        return await fetchJsonOrThrow(directUrl, options, 'SofaScore direct xətası');
+                    } catch (directError) {
+                        throw directError || serverError;
+                    }
                 }
             }
 
@@ -4651,7 +4655,7 @@
                 let sofaFallbackPath = '/sport/football/events/live';
                 
                 if (param === 'live' || isLiveFiltered) {
-                    url = API_BASE_URL + '/api/matches/live';
+                    url = API_BASE_URL + '/api/matches/live?fast=1';
                     dataCacheKey = 'live';
                 } else {
                     const dateToFetch = param || selectedDate || new Date().toISOString().split('T')[0];
@@ -4694,7 +4698,8 @@
                 }
                 
                 try {
-                    let dataEvents = await fetchEventsFromBestSource(url, sofaFallbackPath, fetchOptions);
+                    const allowDirectBrowserFallback = dataCacheKey !== 'live';
+                    let dataEvents = await fetchEventsFromBestSource(url, sofaFallbackPath, fetchOptions, allowDirectBrowserFallback);
                     
                     if (typeof dataEvents === 'string') {
                         try {
@@ -4756,7 +4761,10 @@
                 } catch (e) {
                     console.error("Matches fetch error:", e);
                     window._lastFetchError = true;
-                    const restoredFromCache = restoreEventsFromCache(eventsCacheKey, dataCacheKey === 'live' ? LIVE_BOOT_CACHE_MAX_AGE : SCHEDULED_BOOT_CACHE_MAX_AGE);
+                    const restoredFromCache = restoreEventsFromCache(
+                        eventsCacheKey,
+                        dataCacheKey === 'live' ? (30 * 60 * 1000) : SCHEDULED_BOOT_CACHE_MAX_AGE
+                    );
 
                     if (restoredFromCache || (allEvents && allEvents.length > 0)) {
                         applyFilters();
@@ -6684,7 +6692,7 @@
                 if (typeof favMatches !== 'undefined' && favMatches.length > 0) {
                     const liveSource = Array.isArray(allEvents) && allEvents.length > 0
                         ? Promise.resolve({ events: allEvents })
-                        : fetchEventsFromBestSource(API_BASE_URL + '/api/matches/live', '/sport/football/events/live', { cache: 'no-store' });
+                        : fetchEventsFromBestSource(API_BASE_URL + '/api/matches/live', '/sport/football/events/live', { cache: 'no-store' }, false);
 
                     liveSource.then(data => {
                         if (data && data.events) {
