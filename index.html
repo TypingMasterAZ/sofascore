@@ -4602,6 +4602,7 @@
             }
 
             const LIVE_BOOT_CACHE_MAX_AGE = 45 * 1000;
+            const LIVE_ERROR_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
             const SCHEDULED_BOOT_CACHE_MAX_AGE = 5 * 60 * 1000;
 
             function restoreEventsFromCache(cacheKey, maxAgeMs = LIVE_BOOT_CACHE_MAX_AGE) {
@@ -4763,7 +4764,7 @@
                     window._lastFetchError = true;
                     const restoredFromCache = restoreEventsFromCache(
                         eventsCacheKey,
-                        dataCacheKey === 'live' ? (30 * 60 * 1000) : SCHEDULED_BOOT_CACHE_MAX_AGE
+                        dataCacheKey === 'live' ? LIVE_ERROR_CACHE_MAX_AGE : SCHEDULED_BOOT_CACHE_MAX_AGE
                     );
 
                     if (restoredFromCache || (allEvents && allEvents.length > 0)) {
@@ -4875,7 +4876,7 @@
 
                 if (keys.length === 0) {
                     if (window._lastFetchError) {
-                        list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600; color:var(--live);'>SofaScore serveri müvəqqəti məhdudiyyət qoyub (çox sayda sorğu). Bir neçə dəqiqə sonra yenidən cəhd edin.</div>";
+                        list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600; color:var(--live);'>Canlı oyun məlumatı hazırda yenilənə bilmir. Əgər son canlı məlumat varsa, növbəti yeniləmədə görünəcək. Bir az sonra yenidən cəhd edin.</div>";
                     } else {
                         list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600;'>Heç bir oyun tapılmadı.</div>";
                     }
@@ -6683,7 +6684,7 @@
             startAzerbaijaniTextRepair();
             fetchData();
             const todayBootKey = new Date().toISOString().split('T')[0];
-            restoreEventsFromCache('cached_events_live', LIVE_BOOT_CACHE_MAX_AGE);
+            restoreEventsFromCache('cached_events_live', LIVE_ERROR_CACHE_MAX_AGE);
             if (selectedDate === todayBootKey && !isLiveFiltered) {
                 restoreEventsFromCache(`cached_events_${todayBootKey}`, SCHEDULED_BOOT_CACHE_MAX_AGE);
             }
