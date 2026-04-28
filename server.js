@@ -368,6 +368,116 @@ function mapLiveScoreApiStatus(event = {}) {
     return { type: event.Esid === 2 ? "inprogress" : "notstarted", description: raw || "LIVE" };
 }
 
+function normalizeEventKeyPart(value = "") {
+    return decodeHtmlEntities(String(value || ""))
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "");
+}
+
+function buildMergedEventKey(event = {}) {
+    const tournamentName =
+        event?.tournament?.name ||
+        event?.tournament?.uniqueTournament?.name ||
+        event?.tournament?.category?.name ||
+        "";
+    return [
+        normalizeEventKeyPart(event?.homeTeam?.name),
+        normalizeEventKeyPart(event?.awayTeam?.name),
+        normalizeEventKeyPart(tournamentName)
+    ].join("|");
+}
+
+function mergeEventEntries(primary = {}, secondary = {}) {
+    const merged = {
+        ...secondary,
+        ...primary
+    };
+
+    merged.status = primary.status?.description ? primary.status : (secondary.status || primary.status);
+    merged.homeScore = primary.homeScore?.current !== undefined ? primary.homeScore : (secondary.homeScore || primary.homeScore);
+    merged.awayScore = primary.awayScore?.current !== undefined ? primary.awayScore : (secondary.awayScore || primary.awayScore);
+    merged.homeTeam = {
+        ...(secondary.homeTeam || {}),
+        ...(primary.homeTeam || {})
+    };
+    merged.awayTeam = {
+        ...(secondary.awayTeam || {}),
+        ...(primary.awayTeam || {})
+    };
+    merged.tournament = {
+        ...(secondary.tournament || {}),
+        ...(primary.tournament || {})
+    };
+    merged.tournament.category = {
+        ...(secondary.tournament?.category || {}),
+        ...(primary.tournament?.category || {})
+    };
+    merged.tournament.uniqueTournament = {
+        ...(secondary.tournament?.uniqueTournament || {}),
+        ...(primary.tournament?.uniqueTournament || {})
+    };
+
+    merged.homeTeam.logoUrl = primary.homeTeam?.logoUrl || secondary.homeTeam?.logoUrl || "";
+    merged.awayTeam.logoUrl = primary.awayTeam?.logoUrl || secondary.awayTeam?.logoUrl || "";
+    merged.tournament.logoUrl = primary.tournament?.logoUrl || secondary.tournament?.logoUrl || "";
+    merged.tournament.category.logoUrl =
+        primary.tournament?.category?.logoUrl ||
+        secondary.tournament?.category?.logoUrl ||
+        merged.tournament.logoUrl ||
+        "";
+    merged.tournament.uniqueTournament.logoUrl =
+        primary.tournament?.uniqueTournament?.logoUrl ||
+        secondary.tournament?.uniqueTournament?.logoUrl ||
+        merged.tournament.logoUrl ||
+        "";
+    merged.tournament.uniqueTournament.category = {
+        ...(secondary.tournament?.uniqueTournament?.category || {}),
+        ...(primary.tournament?.uniqueTournament?.category || {})
+    };
+    merged.tournament.uniqueTournament.category.logoUrl =
+        primary.tournament?.uniqueTournament?.category?.logoUrl ||
+        secondary.tournament?.uniqueTournament?.category?.logoUrl ||
+        merged.tournament.category.logoUrl ||
+        "";
+
+    if (!merged.source) {
+        merged.source = primary.source || secondary.source || "merged-live";
+    } else if (primary.source && secondary.source && primary.source !== secondary.source) {
+        merged.source = `${primary.source}+${secondary.source}`;
+    }
+
+    return merged;
+}
+
+function mergeLivePayloads(...payloads) {
+    const mergedMap = new Map();
+
+    for (const payload of payloads) {
+        const events = Array.isArray(payload?.events) ? payload.events : [];
+        for (const event of events) {
+            const key = buildMergedEventKey(event) || `${event?.source || "src"}:${event?.id || Math.random()}`;
+            if (!mergedMap.has(key)) {
+                mergedMap.set(key, event);
+            } else {
+                mergedMap.set(key, mergeEventEntries(mergedMap.get(key), event));
+            }
+        }
+    }
+
+    const mergedEvents = Array.from(mergedMap.values()).sort((a, b) => {
+        const aTs = Number(a?.startTimestamp || 0);
+        const bTs = Number(b?.startTimestamp || 0);
+        if (aTs !== bTs) return aTs - bTs;
+        return String(a?.tournament?.name || "").localeCompare(String(b?.tournament?.name || ""));
+    });
+
+    return {
+        events: mergedEvents,
+        source: payloads.map(p => p?.source).filter(Boolean).join("+") || "merged-live",
+        fetchedAt: Date.now()
+    };
+}
+
 function mapLiveScoreApiToEvents(payload) {
     const stages = Array.isArray(payload?.Stages) ? payload.Stages : [];
     const events = [];
@@ -910,13 +1020,25 @@ async function getLiveEventsData(forceFresh = false, preferImmediateCache = fals
                 const result = await fetchFromSofa("/sport/football/events/live");
                 data = result.data;
             } catch (primaryError) {
-                console.warn(`[LIVE FALLBACK] Sofa live fetch failed, trying LiveScore API: ${primaryError.message}`);
-                try {
-                    data = await fetchLiveFromLiveScoreApi();
-                } catch (liveScoreApiError) {
-                    console.warn(`[LIVE FALLBACK] LiveScore API failed, trying LiveScores scrape: ${liveScoreApiError.message}`);
-                    data = await fetchLiveFromLiveScoresScrape();
+                console.warn(`[LIVE FALLBACK] Sofa live fetch failed, trying merged fallback sources: ${primaryError.message}`);
+                const fallbackResults = await Promise.allSettled([
+                    fetchLiveFromLiveScoreApi(),
+                    fetchLiveFromLiveScoresScrape()
+                ]);
+                const successfulFallbacks = fallbackResults
+                    .filter(result => result.status === "fulfilled")
+                    .map(result => result.value)
+                    .filter(result => Array.isArray(result?.events) && result.events.length);
+
+                if (!successfulFallbacks.length) {
+                    const errors = fallbackResults
+                        .filter(result => result.status === "rejected")
+                        .map(result => result.reason?.message || "unknown error")
+                        .join(" | ");
+                    throw new Error(`All live fallback sources failed: ${errors}`);
                 }
+
+                data = mergeLivePayloads(...successfulFallbacks);
             }
             if (!data || !Array.isArray(data.events)) {
                 throw new Error("Live response missing events array");
