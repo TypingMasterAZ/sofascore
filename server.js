@@ -184,6 +184,7 @@ const USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
 ];
 const LIVESCORES_LIVE_URL = "https://www.livescores.com/football/live/";
+const LIVESCORE_API_URL = "https://prod-cdn-mev-api.livescore.com/v1/api/app/live/soccer/4?locale=en";
 
 function getRandomUA() {
     return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
@@ -344,6 +345,120 @@ async function fetchLiveFromLiveScoresScrape() {
     }
     console.log(`[LIVESCORES SCRAPE] Parsed ${parsed.events.length} live events.`);
     return parsed;
+}
+
+function getLiveScoreTeamLogo(path = "") {
+    return path ? `https://storage.livescore.com/images/team/medium/${path}` : "";
+}
+
+function getLiveScoreCompetitionLogo(path = "") {
+    return path ? `https://storage.livescore.com/images/competition/high/${path}` : "";
+}
+
+function getLiveScoreFlagLogo(countrySlug = "") {
+    return countrySlug ? `https://storage.livescore.com/images/flag/${countrySlug}.jpg` : "";
+}
+
+function mapLiveScoreApiStatus(event = {}) {
+    const raw = decodeHtmlEntities(event.Eps || "").trim();
+    if (raw.includes("'")) return { type: "inprogress", description: raw };
+    if (/^HT$/i.test(raw)) return { type: "inprogress", description: "HT" };
+    if (/^FT$/i.test(raw)) return { type: "finished", description: "FT" };
+    if (/^ET$/i.test(raw)) return { type: "inprogress", description: "ET" };
+    return { type: event.Esid === 2 ? "inprogress" : "notstarted", description: raw || "LIVE" };
+}
+
+function mapLiveScoreApiToEvents(payload) {
+    const stages = Array.isArray(payload?.Stages) ? payload.Stages : [];
+    const events = [];
+
+    for (const stage of stages) {
+        const tournamentId = createPseudoIdFromText(`livescore-stage:${stage.CompId || stage.Sid}:${stage.Cnm || ''}:${stage.Snm || ''}`);
+        const categoryId = createPseudoIdFromText(`livescore-category:${stage.Ccd || stage.Cnm || ''}`);
+        const tournamentLogo = getLiveScoreCompetitionLogo(stage.badgeUrl);
+        const categoryLogo = getLiveScoreFlagLogo(stage.Ccd);
+
+        for (const event of (stage.Events || [])) {
+            const homeTeam = event.T1?.[0] || {};
+            const awayTeam = event.T2?.[0] || {};
+            let startTimestamp = null;
+            if (event.Esd) {
+                const match = String(event.Esd).match(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/);
+                if (match) {
+                    const [, y, mo, d, h, mi, s] = match;
+                    startTimestamp = Math.floor(Date.parse(`${y}-${mo}-${d}T${h}:${mi}:${s}Z`) / 1000);
+                }
+            }
+
+            events.push({
+                id: Number(event.Eid),
+                slug: String(event.Eid),
+                startTimestamp: Number.isFinite(startTimestamp) ? startTimestamp : null,
+                status: mapLiveScoreApiStatus(event),
+                homeTeam: {
+                    id: Number(homeTeam.ID) || createPseudoIdFromText(`home:${homeTeam.Nm || event.Eid}`),
+                    name: decodeHtmlEntities(homeTeam.Nm || "Home"),
+                    shortName: decodeHtmlEntities(homeTeam.Abr || ""),
+                    logoUrl: getLiveScoreTeamLogo(homeTeam.Img)
+                },
+                awayTeam: {
+                    id: Number(awayTeam.ID) || createPseudoIdFromText(`away:${awayTeam.Nm || event.Eid}`),
+                    name: decodeHtmlEntities(awayTeam.Nm || "Away"),
+                    shortName: decodeHtmlEntities(awayTeam.Abr || ""),
+                    logoUrl: getLiveScoreTeamLogo(awayTeam.Img)
+                },
+                homeScore: { current: Number.parseInt(event.Tr1 || "0", 10) || 0 },
+                awayScore: { current: Number.parseInt(event.Tr2 || "0", 10) || 0 },
+                tournament: {
+                    id: tournamentId,
+                    name: stage.Snm ? `${decodeHtmlEntities(stage.Cnm || "")}, ${decodeHtmlEntities(stage.Snm)}` : decodeHtmlEntities(stage.Cnm || "LiveScore"),
+                    logoUrl: tournamentLogo || categoryLogo,
+                    category: {
+                        id: categoryId,
+                        name: decodeHtmlEntities(stage.Cnm || "LiveScore"),
+                        logoUrl: categoryLogo || tournamentLogo
+                    },
+                    uniqueTournament: {
+                        id: tournamentId,
+                        name: stage.Snm ? `${decodeHtmlEntities(stage.Cnm || "")}, ${decodeHtmlEntities(stage.Snm)}` : decodeHtmlEntities(stage.Cnm || "LiveScore"),
+                        logoUrl: tournamentLogo || categoryLogo,
+                        category: {
+                            id: categoryId,
+                            name: decodeHtmlEntities(stage.Cnm || "LiveScore"),
+                            logoUrl: categoryLogo || tournamentLogo
+                        }
+                    }
+                },
+                season: { id: createPseudoIdFromText(`livescore-season:${stage.CompId || stage.Sid || event.Eid}`) },
+                source: "livescore-api",
+                livescoreMeta: {
+                    stageId: stage.Sid,
+                    competitionId: stage.CompId,
+                    competitionName: stage.CompN,
+                    stageName: stage.Snm
+                }
+            });
+        }
+    }
+
+    return { events, source: "livescore-api", fetchedAt: Date.now() };
+}
+
+async function fetchLiveFromLiveScoreApi() {
+    const response = await axios.get(LIVESCORE_API_URL, {
+        timeout: 20000,
+        headers: {
+            "User-Agent": getRandomUA(),
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "en-US,en;q=0.9"
+        }
+    });
+    const mapped = mapLiveScoreApiToEvents(response.data);
+    if (!mapped.events.length) {
+        throw new Error("LiveScore API returned no live events");
+    }
+    console.log(`[LIVESCORE API] Parsed ${mapped.events.length} live events across ${response.data?.Stages?.length || 0} stages.`);
+    return mapped;
 }
 
 async function legacyFetchFromSofa(path, params = {}) {
@@ -795,8 +910,13 @@ async function getLiveEventsData(forceFresh = false, preferImmediateCache = fals
                 const result = await fetchFromSofa("/sport/football/events/live");
                 data = result.data;
             } catch (primaryError) {
-                console.warn(`[LIVE FALLBACK] Sofa live fetch failed, trying LiveScores scrape: ${primaryError.message}`);
-                data = await fetchLiveFromLiveScoresScrape();
+                console.warn(`[LIVE FALLBACK] Sofa live fetch failed, trying LiveScore API: ${primaryError.message}`);
+                try {
+                    data = await fetchLiveFromLiveScoreApi();
+                } catch (liveScoreApiError) {
+                    console.warn(`[LIVE FALLBACK] LiveScore API failed, trying LiveScores scrape: ${liveScoreApiError.message}`);
+                    data = await fetchLiveFromLiveScoresScrape();
+                }
             }
             if (!data || !Array.isArray(data.events)) {
                 throw new Error("Live response missing events array");
