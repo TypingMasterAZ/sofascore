@@ -1636,6 +1636,26 @@ async function warmRuntimeCaches() {
     }
 }
 
+app.get("/api/keepalive", async (req, res) => {
+    try {
+        await warmRuntimeCaches();
+        res.json({
+            status: "alive",
+            warmed: true,
+            liveEvents: globalLiveEvents?.events?.length || 0,
+            liveTimestamp: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null,
+            timestamp: new Date().toISOString()
+        });
+    } catch (e) {
+        res.status(500).json({
+            status: "error",
+            warmed: false,
+            message: e.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
 app.get("/api/ping", (req, res) => {
     res.json({ status: "alive", version: "v7", timestamp: new Date().toISOString() });
 });

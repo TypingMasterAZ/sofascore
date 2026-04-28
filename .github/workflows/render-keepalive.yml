@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Warm up Render health and live endpoints
+      - name: Warm up Render keepalive endpoint
         env:
           KEEPALIVE_URL: https://sofascore-xoyr.onrender.com
         run: node scripts/render-keepalive.js

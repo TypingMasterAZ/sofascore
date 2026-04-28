@@ -28,8 +28,7 @@ function requestUrl(url) {
 async function main() {
   const baseUrl = targetUrl.replace(/\/$/, "");
   const endpoints = [
-    `${baseUrl}/api/ping?t=${Date.now()}`,
-    `${baseUrl}/api/matches/live?t=${Date.now()}`
+    `${baseUrl}/api/keepalive?t=${Date.now()}`
   ];
 
   for (const url of endpoints) {
