@@ -4832,17 +4832,19 @@
                 // Handle undefined scores for future matches
                 const homeScore = (m.homeScore && m.homeScore.current !== undefined) ? m.homeScore.current : '';
                 const awayScore = (m.awayScore && m.awayScore.current !== undefined) ? m.awayScore.current : '';
+                const homeLogo = m.homeTeam.logoUrl || `https://www.sofascore.com/api/v1/team/${m.homeTeam.id}/image`;
+                const awayLogo = m.awayTeam.logoUrl || `https://www.sofascore.com/api/v1/team/${m.awayTeam.id}/image`;
 
                 return `
         <div class="match-row" onclick="openMatch('${m.id}', '${m.homeTeam.id}', '${m.awayTeam.id}', '${safeHomeName}', '${safeAwayName}', '${homeScore}', '${awayScore}', '${safeTimeRaw}', '${safeGroupName}')">
             <div class="${timeClass}">${formattedMinute}</div>
             <div class="match-teams">
                 <div class="team-line">
-                    <img class="team-logo club-logo" src="https://www.sofascore.com/api/v1/team/${m.homeTeam.id}/image" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
+                    <img class="team-logo club-logo" src="${homeLogo}" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
                     <span class="team-name">${m.homeTeam.name}</span>
                 </div>
                 <div class="team-line">
-                    <img class="team-logo club-logo" src="https://www.sofascore.com/api/v1/team/${m.awayTeam.id}/image" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
+                    <img class="team-logo club-logo" src="${awayLogo}" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
                     <span class="team-name">${m.awayTeam.name}</span>
                 </div>
             </div>
@@ -4855,6 +4857,9 @@
             }
 
             function getLeagueLogoData(group) {
+                if (group.logoUrl) {
+                    return { logoUrl: group.logoUrl, fallBack: group.logoUrl };
+                }
                 const type = group.isUnique ? 'unique-tournament' : 'tournament';
                 const logoUrl = `https://www.sofascore.com/api/v1/${type}/${group.id}/image`;
                 const fallBack = `https://www.sofascore.com/api/v1/category/${group.catId}/image`;

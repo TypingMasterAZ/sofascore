@@ -210,6 +210,31 @@ function slugToTitle(slug = "") {
         .join(' ');
 }
 
+function pickInitials(name = "", maxLetters = 2) {
+    const words = decodeHtmlEntities(name).split(/\s+/).filter(Boolean);
+    if (words.length === 0) return "?";
+    if (words.length === 1) return words[0].slice(0, maxLetters).toUpperCase();
+    return words.slice(0, maxLetters).map(word => word.charAt(0)).join('').toUpperCase();
+}
+
+function colorFromString(input = "") {
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) {
+        hash = input.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = Math.abs(hash) % 360;
+    return `hsl(${hue} 62% 42%)`;
+}
+
+function createSvgBadgeDataUri(label, shape = "circle") {
+    const safeLabel = pickInitials(label);
+    const bg = colorFromString(label);
+    const svg = shape === "rect"
+        ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="18" fill="${bg}"/><text x="40" y="49" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#ffffff">${safeLabel}</text></svg>`
+        : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="40" cy="40" r="38" fill="${bg}"/><text x="40" y="49" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#ffffff">${safeLabel}</text></svg>`;
+    return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+}
+
 function createPseudoIdFromText(text = "") {
     let hash = 0;
     for (let i = 0; i < text.length; i++) {
@@ -257,29 +282,42 @@ function parseLiveScoresHtml(html) {
         const tournamentId = createPseudoIdFromText(`${tournamentSlugMatch?.[1] || tournamentTitle}:${stageSlugMatch?.[1] || stageTitle}`);
         const startTsRaw = html.slice(Math.max(0, match.index), Math.min(html.length, match.index + 1200)).match(/data-favouritesDetails="football-\d+-(\d+)"/i)?.[1];
         const startTimestamp = startTsRaw ? Math.floor(Number(startTsRaw) / 1000) : null;
+        const categoryId = createPseudoIdFromText(`category:${tournamentTitle}`);
 
         events.push({
             id: Number(eventId),
             slug: eventId,
             startTimestamp,
             status: mapLiveScoreStatus(rawStatus),
-            homeTeam: { id: createPseudoIdFromText(`home:${homeName}`), name: homeName },
-            awayTeam: { id: createPseudoIdFromText(`away:${awayName}`), name: awayName },
+            homeTeam: {
+                id: createPseudoIdFromText(`home:${homeName}`),
+                name: homeName,
+                logoUrl: createSvgBadgeDataUri(homeName, "circle")
+            },
+            awayTeam: {
+                id: createPseudoIdFromText(`away:${awayName}`),
+                name: awayName,
+                logoUrl: createSvgBadgeDataUri(awayName, "circle")
+            },
             homeScore: { current: homeScore },
             awayScore: { current: awayScore },
             tournament: {
                 id: tournamentId,
                 name: tournamentName,
+                logoUrl: createSvgBadgeDataUri(tournamentTitle, "rect"),
                 category: {
-                    id: createPseudoIdFromText(`category:${tournamentTitle}`),
-                    name: tournamentTitle
+                    id: categoryId,
+                    name: tournamentTitle,
+                    logoUrl: createSvgBadgeDataUri(tournamentTitle, "rect")
                 },
                 uniqueTournament: {
                     id: tournamentId,
                     name: tournamentName,
+                    logoUrl: createSvgBadgeDataUri(tournamentTitle, "rect"),
                     category: {
-                        id: createPseudoIdFromText(`category:${tournamentTitle}`),
-                        name: tournamentTitle
+                        id: categoryId,
+                        name: tournamentTitle,
+                        logoUrl: createSvgBadgeDataUri(tournamentTitle, "rect")
                     }
                 }
             },
