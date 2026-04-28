@@ -348,11 +348,15 @@ async function fetchLiveFromLiveScoresScrape() {
 }
 
 function getLiveScoreTeamLogo(path = "") {
-    return path ? `https://storage.livescore.com/images/team/medium/${path}` : "";
+    if (!path) return "";
+    if (/^https?:\/\//i.test(path)) return path;
+    return `https://storage.livescore.com/images/team/medium/${path}`;
 }
 
 function getLiveScoreCompetitionLogo(path = "") {
-    return path ? `https://storage.livescore.com/images/competition/high/${path}` : "";
+    if (!path) return "";
+    if (/^https?:\/\//i.test(path)) return path;
+    return `https://storage.livescore.com/images/competition/high/${path}`;
 }
 
 function getLiveScoreFlagLogo(countrySlug = "") {
@@ -509,33 +513,33 @@ function mapLiveScoreApiToEvents(payload) {
                     id: Number(homeTeam.ID) || createPseudoIdFromText(`home:${homeTeam.Nm || event.Eid}`),
                     name: decodeHtmlEntities(homeTeam.Nm || "Home"),
                     shortName: decodeHtmlEntities(homeTeam.Abr || ""),
-                    logoUrl: getLiveScoreTeamLogo(homeTeam.Img)
+                    logoUrl: getLiveScoreTeamLogo(homeTeam.Img) || createSvgBadgeDataUri(homeTeam.Nm || "Home", "circle")
                 },
                 awayTeam: {
                     id: Number(awayTeam.ID) || createPseudoIdFromText(`away:${awayTeam.Nm || event.Eid}`),
                     name: decodeHtmlEntities(awayTeam.Nm || "Away"),
                     shortName: decodeHtmlEntities(awayTeam.Abr || ""),
-                    logoUrl: getLiveScoreTeamLogo(awayTeam.Img)
+                    logoUrl: getLiveScoreTeamLogo(awayTeam.Img) || createSvgBadgeDataUri(awayTeam.Nm || "Away", "circle")
                 },
                 homeScore: { current: Number.parseInt(event.Tr1 || "0", 10) || 0 },
                 awayScore: { current: Number.parseInt(event.Tr2 || "0", 10) || 0 },
                 tournament: {
                     id: tournamentId,
                     name: stage.Snm ? `${decodeHtmlEntities(stage.Cnm || "")}, ${decodeHtmlEntities(stage.Snm)}` : decodeHtmlEntities(stage.Cnm || "LiveScore"),
-                    logoUrl: tournamentLogo || categoryLogo,
+                    logoUrl: tournamentLogo || categoryLogo || createSvgBadgeDataUri(stage.Snm || stage.Cnm || "Live", "rect"),
                     category: {
                         id: categoryId,
                         name: decodeHtmlEntities(stage.Cnm || "LiveScore"),
-                        logoUrl: categoryLogo || tournamentLogo
+                        logoUrl: categoryLogo || tournamentLogo || createSvgBadgeDataUri(stage.Cnm || "Live", "rect")
                     },
                     uniqueTournament: {
                         id: tournamentId,
                         name: stage.Snm ? `${decodeHtmlEntities(stage.Cnm || "")}, ${decodeHtmlEntities(stage.Snm)}` : decodeHtmlEntities(stage.Cnm || "LiveScore"),
-                        logoUrl: tournamentLogo || categoryLogo,
+                        logoUrl: tournamentLogo || categoryLogo || createSvgBadgeDataUri(stage.Snm || stage.Cnm || "Live", "rect"),
                         category: {
                             id: categoryId,
                             name: decodeHtmlEntities(stage.Cnm || "LiveScore"),
-                            logoUrl: categoryLogo || tournamentLogo
+                            logoUrl: categoryLogo || tournamentLogo || createSvgBadgeDataUri(stage.Cnm || "Live", "rect")
                         }
                     }
                 },
@@ -569,6 +573,55 @@ async function fetchLiveFromLiveScoreApi() {
     }
     console.log(`[LIVESCORE API] Parsed ${mapped.events.length} live events across ${response.data?.Stages?.length || 0} stages.`);
     return mapped;
+}
+
+function mapLiveScoreIncidentsData(data) {
+    const incidents = [];
+    const bySide = data?.Incs || {};
+
+    for (const [sideKey, sideIncidents] of Object.entries(bySide)) {
+        const isHome = sideKey === "1";
+        for (const incident of (Array.isArray(sideIncidents) ? sideIncidents : [])) {
+            const looksLikeGoal = incident?.IT === 36 || Array.isArray(incident?.Sc);
+            if (!looksLikeGoal) continue;
+            incidents.push({
+                incidentType: "goal",
+                incidentClass: "goal",
+                isHome,
+                time: incident.Min || 0,
+                addedTime: incident.MinAdd || 0,
+                playerName: decodeHtmlEntities(incident.Pn || "Oyunçu"),
+                player: {
+                    id: incident.ID ? Number(incident.ID) : undefined,
+                    name: decodeHtmlEntities(incident.Pn || "Oyunçu")
+                },
+                homeScore: Array.isArray(incident.Sc) ? Number(incident.Sc[0] || 0) : undefined,
+                awayScore: Array.isArray(incident.Sc) ? Number(incident.Sc[1] || 0) : undefined,
+                order: Number(incident.Sor || 0)
+            });
+        }
+    }
+
+    incidents.sort((a, b) => {
+        const timeDiff = Number(a.time || 0) - Number(b.time || 0);
+        if (timeDiff !== 0) return timeDiff;
+        return Number(a.order || 0) - Number(b.order || 0);
+    });
+
+    return { incidents };
+}
+
+async function fetchLiveScoreIncidents(matchId) {
+    const response = await axios.get(`https://prod-cdn-public-api.livescore.com/v1/api/app/incidents/soccer/${matchId}`, {
+        timeout: 15000,
+        headers: {
+            "User-Agent": getRandomUA(),
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "en-US,en;q=0.9"
+        },
+        params: { locale: "en" }
+    });
+    return mapLiveScoreIncidentsData(response.data);
 }
 
 async function legacyFetchFromSofa(path, params = {}) {
