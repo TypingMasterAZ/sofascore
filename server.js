@@ -1129,7 +1129,7 @@ async function sendWebPushMessage(deviceId, payload) {
 
     try {
         await webpush.sendNotification(reg.subscription, JSON.stringify(payload), {
-            TTL: 60,
+            TTL: payload.ttl || 4 * 60 * 60,
             urgency: payload.urgency || "high"
         });
         return true;

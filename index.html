@@ -4711,6 +4711,7 @@
                     }
 
                     if (window.notificationMgr) notificationMgr.checkUpdates(allEvents);
+                    allEvents.slice(0, 8).forEach(match => prefetchMatchDetails(match.id));
                     window._lastFetchError = false;
                     applyFilters();
                     if (syncOverlay) syncOverlay.style.display = 'none';
@@ -5074,6 +5075,38 @@
             let currentOpenMatchId = null;
             let modalDetailsInFlight = null;
             const modalDetailsLastFetch = {};
+            const modalDetailsMemoryCache = {};
+            const MATCH_DETAILS_CACHE_KEY = 'match_details_cache_v1';
+
+            try {
+                const persistedMatchDetails = JSON.parse(localStorage.getItem(MATCH_DETAILS_CACHE_KEY) || '{}');
+                Object.assign(modalDetailsMemoryCache, persistedMatchDetails);
+            } catch (e) {}
+
+            function persistMatchDetailsCache() {
+                try {
+                    const entries = Object.entries(modalDetailsMemoryCache)
+                        .sort((a, b) => (b[1]?.savedAt || 0) - (a[1]?.savedAt || 0))
+                        .slice(0, 25);
+                    localStorage.setItem(MATCH_DETAILS_CACHE_KEY, JSON.stringify(Object.fromEntries(entries)));
+                } catch (e) {}
+            }
+
+            function saveMatchDetailsToCache(id, incidents, stats) {
+                modalDetailsMemoryCache[id] = {
+                    incidents: incidents || { incidents: [] },
+                    stats: stats || { statistics: [] },
+                    savedAt: Date.now()
+                };
+                persistMatchDetailsCache();
+            }
+
+            function getCachedMatchDetails(id, maxAge = 3 * 60 * 1000) {
+                const cached = modalDetailsMemoryCache[id];
+                if (!cached || !cached.savedAt) return null;
+                if (Date.now() - cached.savedAt > maxAge) return null;
+                return cached;
+            }
 
             function getIncidentPlayerName(incident) {
                 return incident.playerName || incident.player?.name || incident.player?.shortName || incident.playerIn?.name || "Oyunçu";
@@ -5245,6 +5278,22 @@
                 }
             }
 
+            function prefetchMatchDetails(id) {
+                const matchId = id?.toString();
+                if (!matchId || getCachedMatchDetails(matchId, 60 * 1000) || modalDetailsInFlight === matchId) {
+                    return;
+                }
+
+                Promise.allSettled([
+                    fetchMatchIncidentsFast(matchId),
+                    fetchMatchStatsLazy(matchId)
+                ]).then(([incidentsResult, statsResult]) => {
+                    const incidents = incidentsResult.status === 'fulfilled' ? incidentsResult.value : { incidents: [] };
+                    const stats = statsResult.status === 'fulfilled' ? statsResult.value : { statistics: [] };
+                    saveMatchDetailsToCache(matchId, incidents, stats);
+                }).catch(() => {});
+            }
+
             async function updateModalStatsAndIncidents(id, options = {}) {
                 const now = Date.now();
                 if (!options.force && modalDetailsLastFetch[id] && (now - modalDetailsLastFetch[id] < 45000)) {
@@ -5264,6 +5313,7 @@
                     modalDetailsLastFetch[id] = Date.now();
                     if (currentOpenMatchId && currentOpenMatchId.toString() !== id.toString()) return;
                     renderMatchStats(statsData || { statistics: [] });
+                    saveMatchDetailsToCache(id, incidentsData, statsData);
                 } catch (e) {
                     console.error("Modal sync error", e);
                 } finally {
@@ -5295,7 +5345,13 @@
                 document.getElementById("goalsBox").innerHTML = skelHtml;
                 document.getElementById("statsBox").innerHTML = `<div class="loader-wrapper"><div class="skel-header skeleton" style="height:20px;width:30%;margin:auto;"></div><div class="skel-header skeleton" style="height:8px;margin-top:20px;"></div><div class="skel-header skeleton" style="height:8px;margin-top:20px;"></div></div>`;
 
-                await updateModalStatsAndIncidents(id, { force: true });
+                const cachedDetails = getCachedMatchDetails(id);
+                if (cachedDetails) {
+                    renderMatchIncidents(cachedDetails.incidents || { incidents: [] });
+                    renderMatchStats(cachedDetails.stats || { statistics: [] });
+                }
+
+                updateModalStatsAndIncidents(id, { force: true });
             }
 
             function openMatchById(id) {
@@ -5389,13 +5445,11 @@
                 return 'serviceWorker' in navigator && 'PushManager' in window;
             }
 
-            function shouldUseWebPushChannel() {
-                const messagingSupported = typeof firebase !== 'undefined' &&
+            function supportsFirebaseMessaging() {
+                return typeof firebase !== 'undefined' &&
                     firebase.messaging &&
                     typeof firebase.messaging.isSupported === 'function' &&
                     firebase.messaging.isSupported();
-
-                return supportsWebPush() && (isIosStandalonePwa() || !messagingSupported);
             }
 
             function urlBase64ToUint8Array(base64String) {
@@ -5483,7 +5537,7 @@
                     throw new Error('Web Push qeydiyyatı alınmadı');
                 }
 
-                localStorage.setItem('pushMode', 'webpush');
+                localStorage.setItem('webPushReady', '1');
                 if (document.getElementById('debugTokenBox')) {
                     document.getElementById('debugTokenBox').innerText = 'Web Push hazırdır';
                 }
@@ -5553,29 +5607,44 @@
                 if (!res.ok) {
                     throw new Error('FCM token serverə yazılmadı');
                 }
+
+                localStorage.setItem('fcmReady', '1');
             }
 
             async function syncPushRegistration() {
-                try {
-                    const status = Notification.permission;
-                    if (document.getElementById('debugPermBox')) {
-                        document.getElementById('debugPermBox').innerText = 'İcazə: ' + status;
-                    }
-
-                    if (status !== 'granted') {
-                        console.log('[Push] Permission not granted yet.');
-                        return;
-                    }
-
-                    if (shouldUseWebPushChannel()) {
-                        await registerWebPushSubscription();
-                    } else {
-                        await registerFirebaseToken();
-                    }
-                } catch (e) {
-                    console.error('[Push] Registration error:', e);
-                    showToast('Bildiriş qeydiyyatı alınmadı', 'error');
+                const status = Notification.permission;
+                if (document.getElementById('debugPermBox')) {
+                    document.getElementById('debugPermBox').innerText = 'İcazə: ' + status;
                 }
+
+                if (status !== 'granted') {
+                    console.log('[Push] Permission not granted yet.');
+                    return false;
+                }
+
+                const tasks = [];
+                if (supportsWebPush()) {
+                    tasks.push(registerWebPushSubscription().then(() => 'webpush').catch((e) => {
+                        console.warn('[Push] Web Push registration failed:', e.message);
+                        return null;
+                    }));
+                }
+                if (supportsFirebaseMessaging()) {
+                    tasks.push(registerFirebaseToken().then(() => 'fcm').catch((e) => {
+                        console.warn('[Push] FCM registration failed:', e.message);
+                        return null;
+                    }));
+                }
+
+                const results = await Promise.all(tasks);
+                const successful = results.filter(Boolean);
+                if (successful.length === 0) {
+                    showToast('Bildiriş qeydiyyatı alınmadı', 'error');
+                    return false;
+                }
+
+                localStorage.setItem('pushMode', successful.includes('webpush') ? 'webpush' : successful[0]);
+                return true;
             }
 
             async function registerFCMToken() {
@@ -5586,9 +5655,10 @@
             window.registerFCMToken = syncPushRegistration;
 
             window.sendTestPush = async function() {
-                const pushMode = localStorage.getItem('pushMode');
                 const token = localStorage.getItem('fcmToken');
                 const deviceId = localStorage.getItem('pushDeviceId');
+                const webPushReady = localStorage.getItem('webPushReady') === '1';
+                const fcmReady = localStorage.getItem('fcmReady') === '1';
 
                 if (!token && !deviceId) {
                     showToast('Bildiriş qeydiyyatı tapılmadı. Bildirişləri yenidən aktiv edin.', 'error');
@@ -5597,18 +5667,28 @@
 
                 try {
                     showToast('Test bildirişi göndərilir...');
-                    const endpoint = pushMode === 'webpush' ? '/api/push/test' : '/api/fcm/test-push';
-                    const body = pushMode === 'webpush' ? { deviceId } : { token };
-                    const res = await fetch(API_BASE_URL + endpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(body)
-                    });
-                    const data = await res.json();
-                    if (data.success) {
+                    const calls = [];
+                    if (webPushReady && deviceId) {
+                        calls.push(fetch(API_BASE_URL + '/api/push/test', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ deviceId })
+                        }).then(r => r.json().catch(() => ({ success: false }))));
+                    }
+                    if (fcmReady && token) {
+                        calls.push(fetch(API_BASE_URL + '/api/fcm/test-push', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ token })
+                        }).then(r => r.json().catch(() => ({ success: false }))));
+                    }
+
+                    const responses = await Promise.all(calls);
+                    if (responses.some(r => r.success)) {
                         showToast('Test bildirişi göndərildi!', 'success');
                     } else {
-                        showToast('Xəta: ' + data.message, 'error');
+                        const firstError = responses.find(r => !r.success);
+                        showToast('Xəta: ' + (firstError?.message || 'bildiriş göndərilmədi'), 'error');
                     }
                 } catch (e) {
                     showToast('Serverlə əlaqə xətası', 'error');
@@ -5901,6 +5981,8 @@
                     updateSetting('browserNotifEnabled', false);
                     localStorage.removeItem('fcmToken'); // Clear token locally if disabled
                     localStorage.removeItem('pushMode');
+                    localStorage.removeItem('fcmReady');
+                    localStorage.removeItem('webPushReady');
                     unregisterWebPushSubscription();
                 }
             }
@@ -6602,6 +6684,7 @@
             try {
                 if ("Notification" in window && Notification.permission === "granted") {
                     setTimeout(() => { registerFCMToken(); }, 1000);
+                    setTimeout(() => { registerFCMToken(); }, 8000);
                 }
             } catch(e) {
                 console.warn("Notification permission check failed", e);
