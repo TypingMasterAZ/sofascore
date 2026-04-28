@@ -680,6 +680,7 @@ app.get("/api/match/:id/h2h", async (req, res) => {
 app.get("/api/match/:id/details", async (req, res) => {
     const id = req.params.id;
     try {
+        const statsDisabled = req.query.stats === "0";
         const optionalCachedFetch = (key, path, ttl) => getCachedData(key, async () => {
             try {
                 const result = await fetchFromSofa(path);
@@ -698,7 +699,7 @@ app.get("/api/match/:id/details", async (req, res) => {
         }, ttl).catch(() => null);
 
         const incidentsPromise = optionalCachedFetch(`incidents_${id}`, `/event/${id}/incidents`, 12000);
-        const statsPromise = req.query.stats === "0"
+        const statsPromise = statsDisabled
             ? Promise.resolve(null)
             : optionalCachedFetch(`stats_${id}`, `/event/${id}/statistics`, 30000);
 

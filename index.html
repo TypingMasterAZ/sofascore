@@ -5157,22 +5157,92 @@
                 return fetchDirectSofaJson(`/unique-tournament/${tourId}/season/${seasonId}/top-players/overall`);
             }
 
-            async function fetchMatchDetailsData(id) {
-                const serverPromise = fetchServerJson(`/api/match/${id}/details`).catch((serverErr) => {
-                    console.warn("Match details API failed, trying browser SofaScore fallback:", serverErr.message);
-                    return null;
-                });
+            async function fetchMatchIncidentsFast(id) {
+                const serverPromise = fetchServerJson(`/api/match/${id}/details?stats=0`).catch(() => null);
+                const directPromise = fetchDirectSofaJson(`/event/${id}/incidents`).catch(() => null);
+                const [serverData, directData] = await Promise.all([serverPromise, directPromise]);
+                return directData || serverData?.incidents || { incidents: [] };
+            }
 
-                const [serverData, incidentsResult, statsResult] = await Promise.all([
-                    serverPromise,
-                    fetchDirectSofaJson(`/event/${id}/incidents`).catch(() => null),
-                    fetchDirectSofaJson(`/event/${id}/statistics`).catch(() => null)
-                ]);
+            async function fetchMatchStatsLazy(id) {
+                const serverPromise = fetchServerJson(`/api/match/${id}/details`).catch(() => null);
+                const directPromise = fetchDirectSofaJson(`/event/${id}/statistics`).catch(() => null);
+                const [serverData, directData] = await Promise.all([serverPromise, directPromise]);
+                return directData || serverData?.stats || { statistics: [] };
+            }
 
-                const incidents = incidentsResult || serverData?.incidents || { incidents: [] };
-                const stats = statsResult || serverData?.stats || { statistics: [] };
+            function renderMatchIncidents(dataI) {
+                const incidents = (dataI.incidents || []).filter(i => ["goal", "card", "substitution"].includes(i.incidentType));
+                if (incidents.length) {
+                    let tHtml = '<div class="timeline-container">';
+                    tHtml += incidents.map(g => {
+                        const isHome = g.isHome;
+                        let icon = g.incidentType === "goal" ? "&#9917;" : (g.incidentType === "card" ? (g.incidentClass === "yellow" ? "&#128993;" : "&#128308;") : "&#128260;");
+                        let player = getIncidentPlayerName(g);
+                        let subText = "";
+                        let detail = "";
 
-                return { incidents, stats };
+                        if (g.incidentType === "substitution") {
+                            player = g.playerIn ? g.playerIn.name : "Oyunçu";
+                            subText = `<div class="timeline-sub-player">&#128317; ${g.playerOut ? g.playerOut.name : ''}</div>`;
+                            detail = "Əvəzetmə";
+                        } else if (g.incidentType === "goal") {
+                            detail = g.incidentClass === "ownGoal" ? "Avtoqol" : (g.incidentClass === "penalty" ? "Penalti" : "Qol");
+                            subText = getAssistText(g);
+                        } else if (g.incidentType === "card") {
+                            detail = g.incidentClass === "yellow" ? "Sarı Kart" : "Qırmızı Kart";
+                        }
+
+                        return `
+                            <div class="timeline-item">
+                                <div class="timeline-dot">${g.time}'</div>
+                                <div class="timeline-content ${isHome ? 'home' : 'away'}">
+                                    <span class="timeline-icon">${icon}</span>
+                                    <span class="timeline-player">${player}</span>
+                                    ${subText}
+                                    <span class="timeline-detail">${detail}</span>
+                                </div>
+                            </div>`;
+                    }).join("");
+                    tHtml += '</div>';
+                    document.getElementById("goalsBox").innerHTML = tHtml;
+                } else {
+                    document.getElementById("goalsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Hadisə tapılmadı</div>";
+                }
+            }
+
+            function renderMatchStats(dataS) {
+                const stats = dataS.statistics ? (dataS.statistics.find(s => s.period === "ALL") || dataS.statistics[0]) : null;
+                if (stats) {
+                    let sHtml = "";
+                    stats.groups.forEach(group => {
+                        sHtml += `<div class="stat-group-title">${group.groupName}</div>`;
+                        group.statisticsItems.forEach(st => {
+                            const hV = parseFloat(st.homeValue) || 0;
+                            const aV = parseFloat(st.awayValue) || 0;
+                            const total = hV + aV;
+                            const hP = total > 0 ? (hV / total) * 100 : 50;
+                            const isHomeDominant = hV > aV;
+                            const isAwayDominant = aV > hV;
+
+                            sHtml += `
+                                <div class="premium-stat-row">
+                                    <div class="stat-info-top">
+                                        <span class="stat-val-text ${isHomeDominant ? 'dominant' : ''}">${st.homeValue}</span>
+                                        <span class="stat-label-text">${st.name}</span>
+                                        <span class="stat-val-text ${isAwayDominant ? 'dominant' : ''}">${st.awayValue}</span>
+                                    </div>
+                                    <div class="stat-progress-container">
+                                        <div class="stat-progress-bar bar-h" style="width:${hP}%"></div>
+                                        <div class="stat-progress-bar bar-a" style="width:${100 - hP}%"></div>
+                                    </div>
+                                </div>`;
+                        });
+                    });
+                    document.getElementById("statsBox").innerHTML = sHtml;
+                } else {
+                    document.getElementById("statsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Statistika tapılmadı</div>";
+                }
             }
 
             async function updateModalStatsAndIncidents(id, options = {}) {
@@ -5186,85 +5256,14 @@
                 modalDetailsInFlight = id;
 
                 try {
-                    // İndi iki ayrı sorğu yerinə, bir dəfəyə hər ikisini çəkirik
-                    const data = await fetchMatchDetailsData(id);
+                    const incidentsData = await fetchMatchIncidentsFast(id);
+                    if (currentOpenMatchId && currentOpenMatchId.toString() !== id.toString()) return;
+                    renderMatchIncidents(incidentsData || { incidents: [] });
+
+                    const statsData = await fetchMatchStatsLazy(id);
                     modalDetailsLastFetch[id] = Date.now();
                     if (currentOpenMatchId && currentOpenMatchId.toString() !== id.toString()) return;
-                    
-                    const dataI = data.incidents || { incidents: [] };
-                    const dataS = data.stats || { statistics: [] };
-
-                    // Render Incidents (Timeline)
-                    const incidents = (dataI.incidents || []).filter(i => ["goal", "card", "substitution"].includes(i.incidentType));
-                    if (incidents.length) {
-                        let tHtml = '<div class="timeline-container">';
-                        tHtml += incidents.map(g => {
-                            const isHome = g.isHome;
-                            let icon = g.incidentType === "goal" ? "&#9917;" : (g.incidentType === "card" ? (g.incidentClass === "yellow" ? "&#128993;" : "&#128308;") : "&#128260;");
-                            let player = getIncidentPlayerName(g);
-                            let subText = "";
-                            let detail = "";
-
-                            if (g.incidentType === "substitution") {
-                                player = g.playerIn ? g.playerIn.name : "Oyunçu";
-                                subText = `<div class="timeline-sub-player">&#128317; ${g.playerOut ? g.playerOut.name : ''}</div>`;
-                                detail = "Əvəzetmə";
-                            } else if (g.incidentType === "goal") {
-                                detail = g.incidentClass === "ownGoal" ? "Avtoqol" : (g.incidentClass === "penalty" ? "Penalti" : "Qol");
-                                subText = getAssistText(g);
-                            } else if (g.incidentType === "card") {
-                                detail = g.incidentClass === "yellow" ? "Sarı Kart" : "Qırmızı Kart";
-                            }
-
-                            return `
-                            <div class="timeline-item">
-                                <div class="timeline-dot">${g.time}'</div>
-                                <div class="timeline-content ${isHome ? 'home' : 'away'}">
-                                    <span class="timeline-icon">${icon}</span>
-                                    <span class="timeline-player">${player}</span>
-                                    ${subText}
-                                    <span class="timeline-detail">${detail}</span>
-                                </div>
-                            </div>`;
-                        }).join("");
-                        tHtml += '</div>';
-                        document.getElementById("goalsBox").innerHTML = tHtml;
-                    } else {
-                        document.getElementById("goalsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Hadisə tapılmadı</div>";
-                    }
-
-                    // Render Stats (Premium)
-                    const stats = dataS.statistics ? (dataS.statistics.find(s => s.period === "ALL") || dataS.statistics[0]) : null;
-                    if (stats) {
-                        let sHtml = "";
-                        stats.groups.forEach(group => {
-                            sHtml += `<div class="stat-group-title">${group.groupName}</div>`;
-                            group.statisticsItems.forEach(st => {
-                                const hV = parseFloat(st.homeValue) || 0;
-                                const aV = parseFloat(st.awayValue) || 0;
-                                const total = hV + aV;
-                                const hP = total > 0 ? (hV / total) * 100 : 50;
-                                const isHomeDominant = hV > aV;
-                                const isAwayDominant = aV > hV;
-
-                                sHtml += `
-                                <div class="premium-stat-row">
-                                    <div class="stat-info-top">
-                                        <span class="stat-val-text ${isHomeDominant ? 'dominant' : ''}">${st.homeValue}</span>
-                                        <span class="stat-label-text">${st.name}</span>
-                                        <span class="stat-val-text ${isAwayDominant ? 'dominant' : ''}">${st.awayValue}</span>
-                                    </div>
-                                    <div class="stat-progress-container">
-                                        <div class="stat-progress-bar bar-h" style="width:${hP}%"></div>
-                                        <div class="stat-progress-bar bar-a" style="width:${100 - hP}%"></div>
-                                    </div>
-                                </div>`;
-                            });
-                        });
-                        document.getElementById("statsBox").innerHTML = sHtml;
-                    } else {
-                        document.getElementById("statsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Statistika tapılmadı</div>";
-                    }
+                    renderMatchStats(statsData || { statistics: [] });
                 } catch (e) {
                     console.error("Modal sync error", e);
                 } finally {
