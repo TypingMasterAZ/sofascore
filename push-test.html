@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Push Test</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: #020617;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .panel {
+      width: min(560px, 100%);
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 28px;
+    }
+    p {
+      margin: 0 0 16px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 18px 0;
+    }
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      color: white;
+      background: #2563eb;
+    }
+    button.secondary {
+      background: #334155;
+    }
+    pre {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 14px;
+      overflow: auto;
+      color: #cbd5e1;
+      min-height: 120px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>Push Test</h1>
+    <p>Bu səhifədən test bildirişi göndərib yoxlaya bilərsən. Telefonda sayt açıq olmasa belə push gəlməlidir.</p>
+    <div class="row">
+      <button id="sendBtn">Test Bildirişi Göndər</button>
+      <button id="statusBtn" class="secondary">Statusu Yoxla</button>
+    </div>
+    <pre id="output">Hazırdır.</pre>
+  </div>
+
+  <script>
+    const output = document.getElementById('output');
+
+    async function callApi(path, options = {}) {
+      const res = await fetch(path, {
+        method: options.method || 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        body: options.body ? JSON.stringify(options.body) : undefined
+      });
+      const text = await res.text();
+      let data = text;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        // Keep raw text if response is not JSON.
+      }
+      output.textContent = JSON.stringify(data, null, 2);
+    }
+
+    document.getElementById('sendBtn').addEventListener('click', () => {
+      output.textContent = 'Göndərilir...';
+      callApi('/api/push/broadcast-test', { method: 'POST' });
+    });
+
+    document.getElementById('statusBtn').addEventListener('click', () => {
+      output.textContent = 'Yoxlanılır...';
+      callApi('/api/push/status');
+    });
+  </script>
+</body>
+</html>

@@ -1354,6 +1354,82 @@ app.post("/api/push/test", async (req, res) => {
     }
 });
 
+app.get("/api/push/status", (req, res) => {
+    res.json({
+        success: true,
+        firebaseInitialized,
+        fcmRegistrations: Object.keys(fcmRegistrations).length,
+        webPushRegistrations: Object.keys(webPushRegistrations).length,
+        lastLiveFetchTime: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null
+    });
+});
+
+app.post("/api/push/broadcast-test", async (req, res) => {
+    const title = "Rabona Media Test";
+    const body = "Bu test bildirişidir. Sayt açıq olmasa da telefona çatmalıdır.";
+
+    const fcmTokens = Object.keys(fcmRegistrations);
+    const webPushDevices = Object.keys(webPushRegistrations);
+
+    let sentFcm = 0;
+    let sentWebPush = 0;
+
+    if (firebaseInitialized) {
+        for (const token of fcmTokens) {
+            try {
+                await admin.messaging().send({
+                    notification: { title, body },
+                    data: { type: "test_broadcast" },
+                    token,
+                    android: {
+                        priority: "high",
+                        notification: {
+                            sound: "default",
+                            channelId: "goal_notifications",
+                            notificationPriority: "PRIORITY_MAX"
+                        }
+                    },
+                    apns: { payload: { aps: { sound: "default", badge: 1, contentAvailable: true } } },
+                    webpush: {
+                        headers: { Urgency: "high" },
+                        notification: {
+                            icon: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
+                            badge: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
+                            requireInteraction: true,
+                            tag: "broadcast-test"
+                        },
+                        fcm_options: { link: "/" }
+                    }
+                });
+                sentFcm++;
+            } catch (err) {
+                if (err.code === "messaging/registration-token-not-registered") {
+                    delete fcmRegistrations[token];
+                }
+            }
+        }
+        saveRegistrations();
+    }
+
+    for (const deviceId of webPushDevices) {
+        const ok = await sendWebPushMessage(deviceId, createPushPayload({
+            title,
+            body,
+            type: "test_broadcast",
+            tag: `broadcast-${deviceId}`,
+            requireInteraction: true
+        }));
+        if (ok) sentWebPush++;
+    }
+
+    res.json({
+        success: true,
+        sentFcm,
+        sentWebPush,
+        totalTargets: fcmTokens.length + webPushDevices.length
+    });
+});
+
 // YENI YOXLANIS UCUN (KÆNAR VASÄ°TÆ)
 // Bu linkÉ™ kompÃ¼terdÉ™n girdiyinizdÉ™ BÃœTÃœN qeydiyyatdan keÃ§miÅŸ cihazlara (o cÃ¼mlÉ™dÉ™n baÄŸlÄ± olan iPhone-a) bildiriÅŸ gÃ¶ndÉ™rÉ™cÉ™k
 app.get("/api/fcm/broadcast-test", async (req, res) => {
