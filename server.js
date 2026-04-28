@@ -1583,8 +1583,21 @@ setInterval(async () => {
     }
 }, 5 * 60 * 1000);
 
+async function warmRuntimeCaches() {
+    try {
+        await getLiveEventsData();
+        const todayStr = new Date().toISOString().split('T')[0];
+        await getCachedData(`matches_${todayStr}`, async () => {
+            const result = await fetchFromSofa(`/sport/football/scheduled-events/${todayStr}`);
+            return result.data;
+        }, 30 * 1000);
+    } catch (e) {
+        console.warn("[Warmup] Cache prefetch failed:", e.message);
+    }
+}
+
 app.get("/api/ping", (req, res) => {
-    res.json({ status: "alive", version: "v6", timestamp: new Date().toISOString() });
+    res.json({ status: "alive", version: "v7", timestamp: new Date().toISOString() });
 });
 
 app.get("/", (req, res) => {
@@ -1594,6 +1607,8 @@ app.get("/", (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server ${PORT} portunda aktivdir.`);
+    warmRuntimeCaches();
+    setInterval(warmRuntimeCaches, 20 * 1000);
 
     // â”€â”€â”€ RENDER KEEP-ALIVE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Render free plan serveri 15 dÉ™qiqÉ™lik hÉ™rÉ™kÉ™tsizlikdÉ™n sonra yuxuya gÃ¶ndÉ™rir.

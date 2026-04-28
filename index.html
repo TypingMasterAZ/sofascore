@@ -5675,8 +5675,9 @@
                     html += "<div style='padding: 24px 24px 10px; font-weight:700; color:var(--text-muted); font-size:13px; text-transform:uppercase;'>Favorit Oyunlar</div>";
                     html += `<div class="league-group" style="margin-top:0;">`;
                     favMatches.forEach(m => {
-                        const group = { name: m.tournament.name }; // dummy group for createMatchRow
-                        html += createMatchRow(m, group);
+                        const liveMatch = allEvents.find(ev => ev.id.toString() === m.id.toString()) || m;
+                        const group = { name: liveMatch.tournament.name };
+                        html += createMatchRow(liveMatch, group);
                     });
                     html += `</div>`;
                 }
@@ -6519,52 +6520,42 @@
             syncFavoritesLive();
             function syncFavoritesLive() {
                 if (typeof favMatches !== 'undefined' && favMatches.length > 0) {
-                    fetch(API_BASE_URL + '/api/matches/live', { cache: 'no-store' })
-                        .then(r => r.json())
-                        .then(data => {
-                            if (data && data.events) {
-                                let updatedFavs = [];
-                                let hasChanges = false;
-                                favMatches.forEach(fm => {
-                                    const liveMatch = data.events.find(m => m.id.toString() === fm.id.toString());
-                                    if (liveMatch) {
-                                        updatedFavs.push(liveMatch);
-                                        // D?qiq?, qol v? ya status d?yi?ibs? yenilə
-                                        if (JSON.stringify(fm.homeScore) !== JSON.stringify(liveMatch.homeScore) || 
-                                            JSON.stringify(fm.awayScore) !== JSON.stringify(liveMatch.awayScore) ||
-                                            JSON.stringify(fm.time) !== JSON.stringify(liveMatch.time) ||
-                                            fm.status.description !== liveMatch.status.description) {
-                                            hasChanges = true;
-                                        }
-                                    } else {
-                                        updatedFavs.push(fm);
-                                    }
-                                });
-                                
-                                // Hər 10 saniy?d?n bir Date.now() d?yi?diyi üçün getMatchTime vaxtı d?yi?ir.
-                                // Ona görə d? UI həmişə yenilənməlidir.
-                                favMatches = updatedFavs;
-                                localStorage.setItem('favMatches', JSON.stringify(favMatches));
-                                
-                                if (document.getElementById('favoritesView') && document.getElementById('favoritesView').classList.contains('active')) {
-                                    renderFavoritesView();
-                                }
+                    const liveSource = Array.isArray(allEvents) && allEvents.length > 0
+                        ? Promise.resolve({ events: allEvents })
+                        : fetch(API_BASE_URL + '/api/matches/live', { cache: 'no-store' }).then(r => r.json());
+
+                    liveSource.then(data => {
+                        if (data && data.events) {
+                            const updatedFavs = favMatches.map(fm => {
+                                const liveMatch = data.events.find(m => m.id.toString() === fm.id.toString());
+                                return liveMatch || fm;
+                            });
+
+                            favMatches = updatedFavs;
+                            localStorage.setItem('favMatches', JSON.stringify(favMatches));
+
+                            if (document.getElementById('favoritesView') && document.getElementById('favoritesView').classList.contains('active')) {
+                                renderFavoritesView();
                             }
-                        }).catch(err => console.log("Fav live sync err:", err));
+                        }
+                    }).catch(err => console.log("Fav live sync err:", err));
                 }
             }
 
             setInterval(() => {
-                if (document.visibilityState === 'visible') {
-                    const todayStr = new Date().toISOString().split('T')[0];
-                    const isToday = selectedDate === todayStr;
-                    
-                    if (isLiveFiltered || isToday) {
-                        fetchData();
-                    }
-                    generateDateTabs();
-                    syncFavoritesLive();
+                const todayStr = new Date().toISOString().split('T')[0];
+                const isToday = selectedDate === todayStr;
+                const shouldRefresh = isLiveFiltered || isToday;
+
+                if (shouldRefresh) {
+                    fetchData();
                 }
+
+                if (document.visibilityState === 'visible') {
+                    generateDateTabs();
+                }
+
+                syncFavoritesLive();
             }, 30000);
 
             // Enhanced Keep-Alive Ping
