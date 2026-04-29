@@ -1069,30 +1069,8 @@ async function getLiveEventsData(forceFresh = false, preferImmediateCache = fals
         lastLiveFetchAttemptTime = now;
         liveFetchPromise = (async () => {
             let data = null;
-            try {
-                const result = await fetchFromSofa("/sport/football/events/live");
-                data = result.data;
-            } catch (primaryError) {
-                console.warn(`[LIVE FALLBACK] Sofa live fetch failed, trying merged fallback sources: ${primaryError.message}`);
-                const fallbackResults = await Promise.allSettled([
-                    fetchLiveFromLiveScoreApi(),
-                    fetchLiveFromLiveScoresScrape()
-                ]);
-                const successfulFallbacks = fallbackResults
-                    .filter(result => result.status === "fulfilled")
-                    .map(result => result.value)
-                    .filter(result => Array.isArray(result?.events) && result.events.length);
-
-                if (!successfulFallbacks.length) {
-                    const errors = fallbackResults
-                        .filter(result => result.status === "rejected")
-                        .map(result => result.reason?.message || "unknown error")
-                        .join(" | ");
-                    throw new Error(`All live fallback sources failed: ${errors}`);
-                }
-
-                data = mergeLivePayloads(...successfulFallbacks);
-            }
+            const result = await fetchFromSofa("/sport/football/events/live");
+            data = result.data;
             if (!data || !Array.isArray(data.events)) {
                 throw new Error("Live response missing events array");
             }
