@@ -389,9 +389,6 @@ async function fetchFromSofaUncached(path, params = {}) {
     }
 
     for (let i = 0; i < GAS_PROXIES.length; i++) {
-        if ([403, 404].includes(lastError?.response?.status)) {
-            break;
-        }
         const proxyUrl = getNextProxy();
         try {
             console.log(`[PROXY TRY] ${proxyUrl.substring(0, 50)}... for ${path}`);
