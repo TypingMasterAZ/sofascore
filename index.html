@@ -4540,7 +4540,11 @@
                 console.log("Applying filters... allEvents count:", allEvents.length);
                 let listRaw = allEvents;
                 if (isLiveFiltered) {
+                    listRaw = listRaw.filter(m => m && m.source === 'mackolik');
+                }
+                if (isLiveFiltered) {
                     listRaw = allEvents.filter(m => {
+                        if (!m || m.source !== 'mackolik') return false;
                         if (!m.status) return false;
                         if (m.status.type === 'inprogress') return true;
                         const desc = (m.status.description || "").toUpperCase();
@@ -4723,6 +4727,10 @@
                         allEvents = dataEvents;
                     } else {
                         allEvents = [];
+                    }
+
+                    if (dataCacheKey === 'live') {
+                        allEvents = allEvents.filter(ev => ev && ev.source === 'mackolik');
                     }
 
                     try {

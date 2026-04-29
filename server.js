@@ -495,6 +495,7 @@ let liveSnapshotLoadPromise = null;
 const LIVE_SNAPSHOT_FILE = "./live_snapshot.json";
 const LIVE_SNAPSHOT_MAX_AGE = 2 * 60 * 1000;
 const MACKOLIK_LIVE_URL = "https://www.mackolik.com/perform/p0/ajax/components/competition/livescores/json";
+const MACKOLIK_LIVE_PAGE_URL = "https://www.mackolik.com/canli-sonuclar";
 const MACKOLIK_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
     "Accept": "application/json, text/plain, */*",
@@ -510,17 +511,42 @@ function getMackolikCountryLogo(countryId) {
     return countryId ? `https://file.mackolikfeeds.com/areas/${countryId}` : null;
 }
 
-function getDateStringInBaku(date = new Date()) {
-    const parts = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Baku",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit"
-    }).formatToParts(date).reduce((acc, part) => {
-        acc[part.type] = part.value;
-        return acc;
-    }, {});
-    return `${parts.year}-${parts.month}-${parts.day}`;
+async function fetchMackolikLiveConfig() {
+    try {
+        const response = await axios.get(MACKOLIK_LIVE_PAGE_URL, {
+            headers: {
+                "User-Agent": MACKOLIK_HEADERS["User-Agent"],
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+            },
+            timeout: 15000
+        });
+
+        const html = String(response.data || "");
+        const settingsMatch = html.match(/data-module="livescore"[\s\S]*?data-settings="([\s\S]*?)"/i);
+        if (!settingsMatch) {
+            throw new Error("Mackolik live config not found");
+        }
+
+        const decoded = settingsMatch[1]
+            .replace(/&quot;/g, '"')
+            .replace(/&#039;/g, "'")
+            .replace(/&amp;/g, '&');
+        const settings = JSON.parse(decoded);
+        const params = settings?.asyncRequestParams || {};
+
+        return {
+            matchDate: params.matchDate,
+            sports: Array.isArray(params.sports) && params.sports.length ? params.sports : ["Soccer"],
+            urlJson: settings?.urlJson || MACKOLIK_LIVE_URL
+        };
+    } catch (error) {
+        console.warn("[MACKOLIK CONFIG] Falling back to default live config:", error.message);
+        return {
+            matchDate: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10),
+            sports: ["Soccer"],
+            urlJson: MACKOLIK_LIVE_URL
+        };
+    }
 }
 
 function getMackolikInitialSeconds(periodId) {
@@ -644,41 +670,23 @@ function normalizeMackolikLiveData(payload) {
 }
 
 async function fetchLiveFromMackolik() {
-    const dateCandidates = [
-        getDateStringInBaku(new Date()),
-        getDateStringInBaku(new Date(Date.now() - 24 * 60 * 60 * 1000))
-    ];
+    const config = await fetchMackolikLiveConfig();
+    const response = await axios.get(config.urlJson, {
+        params: {
+            sports: config.sports,
+            matchDate: config.matchDate
+        },
+        headers: MACKOLIK_HEADERS,
+        timeout: 20000
+    });
 
-    let lastError = null;
-    const merged = { competitions: {}, matches: {} };
-
-    for (const matchDate of [...new Set(dateCandidates)]) {
-        try {
-            const response = await axios.get(MACKOLIK_LIVE_URL, {
-                params: {
-                    sports: ["Soccer"],
-                    matchDate
-                },
-                headers: MACKOLIK_HEADERS,
-                timeout: 20000
-            });
-
-            if (response.data?.status !== "success") {
-                throw new Error(`Mackolik live request failed: ${response.data?.status || "unknown"}`);
-            }
-
-            Object.assign(merged.competitions, response.data?.data?.competitions || {});
-            Object.assign(merged.matches, response.data?.data?.matches || {});
-        } catch (error) {
-            lastError = error;
-        }
+    if (response.data?.status !== "success") {
+        throw new Error(`Mackolik live request failed: ${response.data?.status || "unknown"}`);
     }
 
-    if (Object.keys(merged.matches).length === 0) {
-        throw lastError || new Error("Mackolik live request failed");
-    }
-
-    return normalizeMackolikLiveData({ data: merged });
+    const normalized = normalizeMackolikLiveData(response.data);
+    normalized.matchDate = config.matchDate;
+    return normalized;
 }
 
 function loadLiveSnapshot() {
