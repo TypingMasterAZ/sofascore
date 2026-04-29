@@ -4604,6 +4604,7 @@
             const LIVE_BOOT_CACHE_MAX_AGE = 45 * 1000;
             const LIVE_ERROR_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
             const SCHEDULED_BOOT_CACHE_MAX_AGE = 5 * 60 * 1000;
+            const LIVE_CACHE_KEY = 'cached_events_live_sofascore_v2';
 
             function restoreEventsFromCache(cacheKey, maxAgeMs = LIVE_BOOT_CACHE_MAX_AGE) {
                 try {
@@ -4666,7 +4667,9 @@
                 }
 
                 let fetchOptions = { cache: 'no-store' };
-                const eventsCacheKey = `cached_events_${dataCacheKey}`;
+                const eventsCacheKey = dataCacheKey === 'live'
+                    ? LIVE_CACHE_KEY
+                    : `cached_events_${dataCacheKey}`;
                 
                 if (isForced) {
                     const syncIcon = document.getElementById('syncIcon');
@@ -6671,7 +6674,7 @@
                 if (liveBtn) liveBtn.scrollIntoView({ behavior: 'auto', inline: 'center' });
             }, 300);
             // Show loading on boot only if no cache exists
-            if (document.getElementById('matchList') && !localStorage.getItem('cached_events_live')) {
+            if (document.getElementById('matchList') && !localStorage.getItem(LIVE_CACHE_KEY)) {
                 document.getElementById('matchList').innerHTML = `
                     <div class="loader-wrapper">
                         <div style="text-align:center; padding:50px;">
@@ -6684,7 +6687,7 @@
             startAzerbaijaniTextRepair();
             fetchData();
             const todayBootKey = new Date().toISOString().split('T')[0];
-            restoreEventsFromCache('cached_events_live', LIVE_ERROR_CACHE_MAX_AGE);
+            restoreEventsFromCache(LIVE_CACHE_KEY, LIVE_ERROR_CACHE_MAX_AGE);
             if (selectedDate === todayBootKey && !isLiveFiltered) {
                 restoreEventsFromCache(`cached_events_${todayBootKey}`, SCHEDULED_BOOT_CACHE_MAX_AGE);
             }
