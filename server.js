@@ -435,12 +435,19 @@ app.get("/api/debug/proxy", async (req, res) => {
                 timeout: 5000
             });
             const duration = Date.now() - start;
+
+            const normalized = normalizeSofaData(test.data);
+            const hasEvents = Array.isArray(normalized?.events);
             
             diagnostic.test_fetch = {
-                status: "SUCCESS",
+                status: hasEvents ? "SUCCESS" : "FAILED",
                 duration_ms: duration,
                 data_type: typeof test.data,
-                data_preview: typeof test.data === 'object' ? "Valid JSON Object" : (typeof test.data === 'string' ? test.data.substring(0, 50) : "Unknown")
+                data_preview: hasEvents
+                    ? `events=${normalized.events.length}`
+                    : (typeof test.data === 'object'
+                        ? JSON.stringify(test.data).substring(0, 120)
+                        : (typeof test.data === 'string' ? test.data.substring(0, 120) : "Unknown"))
             };
         } catch (err) {
             diagnostic.test_fetch = {
