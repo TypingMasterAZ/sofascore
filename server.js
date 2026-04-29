@@ -504,7 +504,9 @@ const MACKOLIK_HEADERS = {
 };
 
 function getMackolikTeamLogo(teamId) {
-    return teamId ? `https://file.mackolikfeeds.com/teams/${teamId}` : null;
+    const id = teamId ? String(teamId) : "";
+    if (!id || id.length < 5 || id === "1" || id === "2") return null;
+    return `https://file.mackolikfeeds.com/teams/${id}`;
 }
 
 function getMackolikCountryLogo(countryId) {
@@ -536,7 +538,7 @@ async function fetchMackolikLiveConfig() {
 
         return {
             matchDate: params.matchDate,
-            sports: Array.isArray(params.sports) && params.sports.length ? params.sports : ["Soccer"],
+            sports: ["Soccer"],
             urlJson: settings?.urlJson || MACKOLIK_LIVE_URL
         };
     } catch (error) {
@@ -597,7 +599,10 @@ function mapMackolikStatus(match) {
 function normalizeMackolikLiveData(payload) {
     const data = payload?.data || {};
     const competitions = data.competitions || {};
-    const matches = Object.values(data.matches || {}).filter(match => match?.state === "live");
+    const matches = Object.values(data.matches || {}).filter(match => {
+        const competition = competitions[match?.competitionId] || {};
+        return match?.state === "live" && competition?.sport === "S";
+    });
 
     const events = matches.map(match => {
         const competition = competitions[match.competitionId] || {};
