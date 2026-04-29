@@ -4832,19 +4832,17 @@
                 // Handle undefined scores for future matches
                 const homeScore = (m.homeScore && m.homeScore.current !== undefined) ? m.homeScore.current : '';
                 const awayScore = (m.awayScore && m.awayScore.current !== undefined) ? m.awayScore.current : '';
-                const homeLogo = m.homeTeam.logoUrl || `https://www.sofascore.com/api/v1/team/${m.homeTeam.id}/image`;
-                const awayLogo = m.awayTeam.logoUrl || `https://www.sofascore.com/api/v1/team/${m.awayTeam.id}/image`;
 
                 return `
         <div class="match-row" onclick="openMatch('${m.id}', '${m.homeTeam.id}', '${m.awayTeam.id}', '${safeHomeName}', '${safeAwayName}', '${homeScore}', '${awayScore}', '${safeTimeRaw}', '${safeGroupName}')">
             <div class="${timeClass}">${formattedMinute}</div>
             <div class="match-teams">
                 <div class="team-line">
-                    <img class="team-logo club-logo" src="${homeLogo}" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
+                    <img class="team-logo club-logo" src="https://www.sofascore.com/api/v1/team/${m.homeTeam.id}/image" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
                     <span class="team-name">${m.homeTeam.name}</span>
                 </div>
                 <div class="team-line">
-                    <img class="team-logo club-logo" src="${awayLogo}" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
+                    <img class="team-logo club-logo" src="https://www.sofascore.com/api/v1/team/${m.awayTeam.id}/image" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
                     <span class="team-name">${m.awayTeam.name}</span>
                 </div>
             </div>
@@ -4857,9 +4855,6 @@
             }
 
             function getLeagueLogoData(group) {
-                if (group.logoUrl) {
-                    return { logoUrl: group.logoUrl, fallBack: group.logoUrl };
-                }
                 const type = group.isUnique ? 'unique-tournament' : 'tournament';
                 const logoUrl = `https://www.sofascore.com/api/v1/${type}/${group.id}/image`;
                 const fallBack = `https://www.sofascore.com/api/v1/category/${group.catId}/image`;
@@ -5370,23 +5365,17 @@
                 modal.style.display = "flex";
                 setTimeout(() => modal.classList.add("show"), 10);
 
-                const currentMatch = allEvents.find(m => m.id.toString() === id.toString()) || null;
-                const homeLogo = currentMatch?.homeTeam?.logoUrl || `https://www.sofascore.com/api/v1/team/${idH}/image`;
-                const awayLogo = currentMatch?.awayTeam?.logoUrl || `https://www.sofascore.com/api/v1/team/${idA}/image`;
-
-                document.getElementById("logoH").src = homeLogo;
-                document.getElementById("logoA").src = awayLogo;
-                document.getElementById("logoH").onerror = function() { this.onerror = null; this.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='; };
-                document.getElementById("logoA").onerror = function() { this.onerror = null; this.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='; };
-                document.getElementById("nameH").innerText = currentMatch?.homeTeam?.name || nameH;
-                document.getElementById("nameA").innerText = currentMatch?.awayTeam?.name || nameA;
-                document.getElementById("scoreM").innerText = `${currentMatch?.homeScore?.current ?? sH} - ${currentMatch?.awayScore?.current ?? sA}`;
+                document.getElementById("logoH").src = `https://www.sofascore.com/api/v1/team/${idH}/image`;
+                document.getElementById("logoA").src = `https://www.sofascore.com/api/v1/team/${idA}/image`;
+                document.getElementById("nameH").innerText = nameH;
+                document.getElementById("nameA").innerText = nameA;
+                document.getElementById("scoreM").innerText = `${sH} - ${sA}`;
 
                 const isLive = timeRaw.includes("'") || timeRaw === 'HT' || timeRaw === 'LIVE' || timeRaw === 'ET';
                 const tb = document.getElementById("timeM");
                 tb.innerHTML = timeRaw;
                 if (isLive) tb.classList.add("is-live"); else tb.classList.remove("is-live");
-                document.getElementById("leagueM").innerText = currentMatch?.tournament?.name || league;
+                document.getElementById("leagueM").innerText = league;
 
                 // Skeleton loaders inside modal
                 const skelHtml = `<div class="loader-wrapper"><div class="skel-row"><div class="skel-time skeleton"></div><div class="skel-teams"><div class="skel-team skeleton"></div></div></div><div class="skel-row"><div class="skel-time skeleton"></div><div class="skel-teams"><div class="skel-team skeleton" style="width:60%"></div></div></div></div>`;
