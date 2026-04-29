@@ -417,6 +417,60 @@ async function fetchFromSofaUncached(path, params = {}) {
     throw new Error(`Butun baglanti cehdleri ugursuz oldu: ${lastError ? lastError.message : 'Unknown'}`);
 }
 
+function normalizeTextKey(value) {
+    return String(value || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "");
+}
+
+function toSofaLivePayload(data) {
+    const events = Array.isArray(data?.events) ? data.events : [];
+    return {
+        ...data,
+        events: events.map(event => ({
+            ...event,
+            source: "sofascore"
+        })),
+        source: "sofascore",
+        generatedAt: new Date().toISOString()
+    };
+}
+
+function buildHybridMatchKey(event) {
+    const home = normalizeTextKey(event?.homeTeam?.name);
+    const away = normalizeTextKey(event?.awayTeam?.name);
+    const tournament = normalizeTextKey(event?.tournament?.name);
+    if (!home || !away) return null;
+    return `${home}__${away}__${tournament}`;
+}
+
+function mergeLiveProviders(sofaData, mackolikData) {
+    const merged = [];
+    const seen = new Set();
+
+    const add = (event) => {
+        const key = buildHybridMatchKey(event) || `${event?.source || "src"}__${event?.id}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        merged.push(event);
+    };
+
+    (sofaData?.events || []).forEach(add);
+    (mackolikData?.events || []).forEach(add);
+
+    return {
+        events: merged,
+        source: "hybrid",
+        generatedAt: new Date().toISOString(),
+        providerMeta: {
+            sofascore: Array.isArray(sofaData?.events) ? sofaData.events.length : 0,
+            mackolik: Array.isArray(mackolikData?.events) ? mackolikData.events.length : 0
+        }
+    };
+}
+
 // Diagnostic Endpoint Enhanced
 app.get("/api/debug/proxy", async (req, res) => {
     const diagnostic = {
@@ -694,13 +748,32 @@ async function fetchLiveFromMackolik() {
     return normalized;
 }
 
+async function fetchHybridLiveData() {
+    const [sofaResult, mackolikResult] = await Promise.allSettled([
+        fetchFromSofa("/sport/football/events/live").then(result => toSofaLivePayload(result.data)),
+        fetchLiveFromMackolik()
+    ]);
+
+    const sofaData = sofaResult.status === "fulfilled" ? sofaResult.value : null;
+    const mackolikData = mackolikResult.status === "fulfilled" ? mackolikResult.value : null;
+
+    if (!sofaData && !mackolikData) {
+        const sofaErr = sofaResult.status === "rejected" ? sofaResult.reason?.message : null;
+        const mkErr = mackolikResult.status === "rejected" ? mackolikResult.reason?.message : null;
+        throw new Error(`Live providers failed | SofaScore: ${sofaErr || "n/a"} | Mackolik: ${mkErr || "n/a"}`);
+    }
+
+    if (sofaData && mackolikData) return mergeLiveProviders(sofaData, mackolikData);
+    return sofaData || mackolikData;
+}
+
 function loadLiveSnapshot() {
     try {
         if (!fs.existsSync(LIVE_SNAPSHOT_FILE)) return;
         const snapshot = JSON.parse(fs.readFileSync(LIVE_SNAPSHOT_FILE, "utf-8"));
         if (snapshot?.data?.events && Array.isArray(snapshot.data.events)) {
-            if (snapshot.data.source && snapshot.data.source !== "mackolik") {
-                console.log(`[LIVE SNAPSHOT] Ignoring non-Mackolik snapshot source: ${snapshot.data.source}`);
+            if (snapshot.data.source && !["mackolik", "sofascore", "hybrid"].includes(snapshot.data.source)) {
+                console.log(`[LIVE SNAPSHOT] Ignoring unsupported snapshot source: ${snapshot.data.source}`);
                 return;
             }
             globalLiveEvents = snapshot.data;
@@ -718,8 +791,8 @@ async function loadLiveSnapshotFromFirestore() {
         const snap = await db.collection('app_state').doc('live_snapshot').get();
         const data = snap.data();
         if (data?.payload?.events && Array.isArray(data.payload.events)) {
-            if (data.payload.source && data.payload.source !== "mackolik") {
-                console.log(`[LIVE SNAPSHOT] Ignoring non-Mackolik Firestore snapshot source: ${data.payload.source}`);
+            if (data.payload.source && !["mackolik", "sofascore", "hybrid"].includes(data.payload.source)) {
+                console.log(`[LIVE SNAPSHOT] Ignoring unsupported Firestore snapshot source: ${data.payload.source}`);
                 return false;
             }
             globalLiveEvents = data.payload;
@@ -846,7 +919,7 @@ async function getLiveEventsData(forceFresh = false, preferImmediateCache = fals
     if (!liveFetchPromise) {
         lastLiveFetchAttemptTime = now;
         liveFetchPromise = (async () => {
-            const data = await fetchLiveFromMackolik();
+            const data = await fetchHybridLiveData();
             if (!data || !Array.isArray(data.events)) {
                 throw new Error("Live response missing events array");
             }

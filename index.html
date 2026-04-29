@@ -4540,12 +4540,8 @@
                 console.log("Applying filters... allEvents count:", allEvents.length);
                 let listRaw = allEvents;
                 if (isLiveFiltered) {
-                    listRaw = listRaw.filter(m => m && m.source === 'mackolik');
-                }
-                if (isLiveFiltered) {
                     listRaw = allEvents.filter(m => {
-                        if (!m || m.source !== 'mackolik') return false;
-                        if (!m.status) return false;
+                        if (!m || !m.status) return false;
                         if (m.status.type === 'inprogress') return true;
                         const desc = (m.status.description || "").toUpperCase();
                         return desc === 'HT' || desc === 'HALFTIME' || desc === 'HALF TIME' || desc === 'ET' || desc === 'EXTRA TIME' || desc === 'LIVE' || desc.includes("'");
@@ -4609,7 +4605,7 @@
             const LIVE_BOOT_CACHE_MAX_AGE = 45 * 1000;
             const LIVE_ERROR_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
             const SCHEDULED_BOOT_CACHE_MAX_AGE = 5 * 60 * 1000;
-            const LIVE_CACHE_KEY = 'cached_events_live_mackolik_v1';
+            const LIVE_CACHE_KEY = 'cached_events_live_hybrid_v1';
 
             function restoreEventsFromCache(cacheKey, maxAgeMs = LIVE_BOOT_CACHE_MAX_AGE) {
                 try {
@@ -4727,10 +4723,6 @@
                         allEvents = dataEvents;
                     } else {
                         allEvents = [];
-                    }
-
-                    if (dataCacheKey === 'live') {
-                        allEvents = allEvents.filter(ev => ev && ev.source === 'mackolik');
                     }
 
                     try {
