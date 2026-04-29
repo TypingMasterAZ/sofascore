@@ -159,7 +159,10 @@ const SOFA_WEB_API = "https://www.sofascore.com/api/v1";
 const SOFA_APIS = [...new Set([SOFA_API, SOFA_WEB_API])];
 const RAPIDAPI_HOST = "sofascore.p.rapidapi.com";
 const GAS_PROXIES = [
+    process.env.SOFA_PROXY_URL,
     process.env.GAS_PROXY_URL,
+    process.env.SOFA_PROXY_URL_2,
+    process.env.GAS_PROXY_URL_2,
     "https://script.google.com/macros/s/AKfycbwFuXK4oHJIAjMoCxPEMeh5hH5jn10PGYEEo048pnmQLFNQoI-M0Fqr5-NZ1wyITYJQrQ/exec",
     "https://script.google.com/macros/s/AKfycbxsHV0KhThLoQkzK5anpcQzb6-MdDed2bSIRWltFl46eHWVFQ-BJ4hNJgonVlgcX42_Ig/exec"
 ].filter(Boolean);
@@ -358,6 +361,29 @@ async function fetchFromSofa(path, params = {}) {
 async function fetchFromSofaUncached(path, params = {}) {
     let lastError = null;
 
+    for (let i = 0; i < GAS_PROXIES.length; i++) {
+        const proxyUrl = getNextProxy();
+        try {
+            console.log(`[PROXY TRY] ${proxyUrl.substring(0, 50)}... for ${path}`);
+            const queryParams = new URLSearchParams(params);
+            queryParams.set('path', path);
+
+            const res = await runSofaRequest(() => axios.get(proxyUrl, {
+                params: queryParams,
+                timeout: SOFA_PROXY_TIMEOUT
+            }));
+
+            const data = normalizeSofaData(res.data);
+            if (data) {
+                console.log(`[PROXY SUCCESS] ${path}`);
+                return { data };
+            }
+        } catch (e) {
+            lastError = e;
+            console.error(`[PROXY FAILED] ${path}: ${e.message}`);
+        }
+    }
+
     for (const baseUrl of SOFA_APIS) {
         for (let attempt = 0; attempt < 2; attempt++) {
             try {
@@ -385,29 +411,6 @@ async function fetchFromSofaUncached(path, params = {}) {
                 }
                 break;
             }
-        }
-    }
-
-    for (let i = 0; i < GAS_PROXIES.length; i++) {
-        const proxyUrl = getNextProxy();
-        try {
-            console.log(`[PROXY TRY] ${proxyUrl.substring(0, 50)}... for ${path}`);
-            const queryParams = new URLSearchParams(params);
-            queryParams.set('path', path);
-
-            const res = await runSofaRequest(() => axios.get(proxyUrl, {
-                params: queryParams,
-                timeout: SOFA_PROXY_TIMEOUT
-            }));
-
-            const data = normalizeSofaData(res.data);
-            if (data) {
-                console.log(`[PROXY SUCCESS] ${path}`);
-                return { data };
-            }
-        } catch (e) {
-            lastError = e;
-            console.error(`[PROXY FAILED] ${path}: ${e.message}`);
         }
     }
 
