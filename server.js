@@ -686,6 +686,10 @@ function loadLiveSnapshot() {
         if (!fs.existsSync(LIVE_SNAPSHOT_FILE)) return;
         const snapshot = JSON.parse(fs.readFileSync(LIVE_SNAPSHOT_FILE, "utf-8"));
         if (snapshot?.data?.events && Array.isArray(snapshot.data.events)) {
+            if (snapshot.data.source && snapshot.data.source !== "mackolik") {
+                console.log(`[LIVE SNAPSHOT] Ignoring non-Mackolik snapshot source: ${snapshot.data.source}`);
+                return;
+            }
             globalLiveEvents = snapshot.data;
             lastLiveFetchTime = snapshot.timestamp || 0;
             console.log(`[LIVE SNAPSHOT] Loaded ${snapshot.data.events.length} events from disk cache.`);
@@ -701,6 +705,10 @@ async function loadLiveSnapshotFromFirestore() {
         const snap = await db.collection('app_state').doc('live_snapshot').get();
         const data = snap.data();
         if (data?.payload?.events && Array.isArray(data.payload.events)) {
+            if (data.payload.source && data.payload.source !== "mackolik") {
+                console.log(`[LIVE SNAPSHOT] Ignoring non-Mackolik Firestore snapshot source: ${data.payload.source}`);
+                return false;
+            }
             globalLiveEvents = data.payload;
             lastLiveFetchTime = data.timestamp || 0;
             console.log(`[LIVE SNAPSHOT] Loaded ${data.payload.events.length} events from Firestore cache.`);
