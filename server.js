@@ -494,16 +494,198 @@ let liveFetchPromise = null;
 let liveSnapshotLoadPromise = null;
 const LIVE_SNAPSHOT_FILE = "./live_snapshot.json";
 const LIVE_SNAPSHOT_MAX_AGE = 2 * 60 * 1000;
+const MACKOLIK_LIVE_URL = "https://www.mackolik.com/perform/p0/ajax/components/competition/livescores/json";
+const MACKOLIK_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "Referer": "https://www.mackolik.com/canli-sonuclar",
+    "X-Requested-With": "XMLHttpRequest"
+};
+
+function getMackolikTeamLogo(teamId) {
+    return teamId ? `https://file.mackolikfeeds.com/teams/${teamId}` : null;
+}
+
+function getMackolikCountryLogo(countryId) {
+    return countryId ? `https://file.mackolikfeeds.com/areas/${countryId}` : null;
+}
+
+function getDateStringInBaku(date = new Date()) {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Baku",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+    }).formatToParts(date).reduce((acc, part) => {
+        acc[part.type] = part.value;
+        return acc;
+    }, {});
+    return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function getMackolikInitialSeconds(periodId) {
+    switch (Number(periodId)) {
+        case 2: return 45 * 60;
+        case 3: return 90 * 60;
+        case 4: return 105 * 60;
+        default: return 0;
+    }
+}
+
+function getMackolikMinuteText(match) {
+    if (!match?.periodStart) return null;
+    const elapsedSeconds = Math.max(0, Math.floor((Date.now() - Number(match.periodStart)) / 1000));
+    const minute = Math.floor((elapsedSeconds + getMackolikInitialSeconds(match.periodId)) / 60) + 1;
+    if (!Number.isFinite(minute) || minute <= 0) return null;
+    return `${minute}'`;
+}
+
+function mapMackolikStatus(match) {
+    const state = match?.state;
+    const substate = (match?.substate || "").toLowerCase();
+    const box = (match?.statusBoxContent || "").toUpperCase();
+
+    if (state === "live") {
+        if (substate === "halftime" || box === "İY" || box === "IY") {
+            return { type: "inprogress", description: "HT" };
+        }
+        return {
+            type: "inprogress",
+            description: getMackolikMinuteText(match) || (box || "LIVE")
+        };
+    }
+
+    if (state === "post") {
+        if (substate === "penalties") return { type: "finished", description: "PEN" };
+        if (substate === "afterextratime") return { type: "finished", description: "AET" };
+        return { type: "finished", description: "FT" };
+    }
+
+    if (substate === "postponed") {
+        return { type: "notstarted", description: "POSTPONED" };
+    }
+
+    return { type: "notstarted", description: box || "" };
+}
+
+function normalizeMackolikLiveData(payload) {
+    const data = payload?.data || {};
+    const competitions = data.competitions || {};
+    const matches = Object.values(data.matches || {}).filter(match => match?.state === "live");
+
+    const events = matches.map(match => {
+        const competition = competitions[match.competitionId] || {};
+        const category = competition.country || {};
+        const status = mapMackolikStatus(match);
+        const homeScore = Number(match?.score?.home ?? 0);
+        const awayScore = Number(match?.score?.away ?? 0);
+        const homeTeamId = match?.homeTeam?.id || `mk_home_${match.id}`;
+        const awayTeamId = match?.awayTeam?.id || `mk_away_${match.id}`;
+        const tournamentLogoUrl = getMackolikCountryLogo(category.id);
+
+        return {
+            id: match.id,
+            slug: match.matchSlug || `${match.homeTeam?.slug || "home"}-vs-${match.awayTeam?.slug || "away"}`,
+            customId: match.iddaaCode ? String(match.iddaaCode) : match.id,
+            startTimestamp: match.mstUtc ? Math.floor(Number(match.mstUtc) / 1000) : undefined,
+            status,
+            time: match.periodStart ? {
+                currentPeriodStartTimestamp: Math.floor(Number(match.periodStart) / 1000),
+                initial: getMackolikInitialSeconds(match.periodId)
+            } : undefined,
+            homeTeam: {
+                id: homeTeamId,
+                name: match?.homeTeam?.name || "Home",
+                shortName: match?.homeTeam?.name || "Home",
+                slug: match?.homeTeam?.slug || "",
+                logoUrl: getMackolikTeamLogo(homeTeamId)
+            },
+            awayTeam: {
+                id: awayTeamId,
+                name: match?.awayTeam?.name || "Away",
+                shortName: match?.awayTeam?.name || "Away",
+                slug: match?.awayTeam?.slug || "",
+                logoUrl: getMackolikTeamLogo(awayTeamId)
+            },
+            homeScore: {
+                current: Number.isFinite(homeScore) ? homeScore : 0
+            },
+            awayScore: {
+                current: Number.isFinite(awayScore) ? awayScore : 0
+            },
+            tournament: {
+                id: competition.id || match.competitionId,
+                name: competition.name || "Liqa",
+                slug: competition.competitionSlug || "",
+                logoUrl: tournamentLogoUrl,
+                category: {
+                    id: category.id || `mk_cat_${competition.id || match.competitionId}`,
+                    name: category.name || "Diger",
+                    slug: competition.countrySlug || "",
+                    logoUrl: tournamentLogoUrl
+                },
+                uniqueTournament: {
+                    id: competition.id || match.competitionId,
+                    name: competition.name || "Liqa",
+                    slug: competition.competitionSlug || "",
+                    logoUrl: tournamentLogoUrl
+                }
+            },
+            season: competition.seasonId ? { id: competition.seasonId } : null,
+            source: "mackolik"
+        };
+    });
+
+    return {
+        events,
+        source: "mackolik",
+        generatedAt: new Date().toISOString()
+    };
+}
+
+async function fetchLiveFromMackolik() {
+    const dateCandidates = [
+        getDateStringInBaku(new Date()),
+        getDateStringInBaku(new Date(Date.now() - 24 * 60 * 60 * 1000))
+    ];
+
+    let lastError = null;
+    const merged = { competitions: {}, matches: {} };
+
+    for (const matchDate of [...new Set(dateCandidates)]) {
+        try {
+            const response = await axios.get(MACKOLIK_LIVE_URL, {
+                params: {
+                    sports: ["Soccer"],
+                    matchDate
+                },
+                headers: MACKOLIK_HEADERS,
+                timeout: 20000
+            });
+
+            if (response.data?.status !== "success") {
+                throw new Error(`Mackolik live request failed: ${response.data?.status || "unknown"}`);
+            }
+
+            Object.assign(merged.competitions, response.data?.data?.competitions || {});
+            Object.assign(merged.matches, response.data?.data?.matches || {});
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    if (Object.keys(merged.matches).length === 0) {
+        throw lastError || new Error("Mackolik live request failed");
+    }
+
+    return normalizeMackolikLiveData({ data: merged });
+}
 
 function loadLiveSnapshot() {
     try {
         if (!fs.existsSync(LIVE_SNAPSHOT_FILE)) return;
         const snapshot = JSON.parse(fs.readFileSync(LIVE_SNAPSHOT_FILE, "utf-8"));
         if (snapshot?.data?.events && Array.isArray(snapshot.data.events)) {
-            if (snapshot.data.source && snapshot.data.source !== "sofascore") {
-                console.log(`[LIVE SNAPSHOT] Ignoring non-SofaScore snapshot source: ${snapshot.data.source}`);
-                return;
-            }
             globalLiveEvents = snapshot.data;
             lastLiveFetchTime = snapshot.timestamp || 0;
             console.log(`[LIVE SNAPSHOT] Loaded ${snapshot.data.events.length} events from disk cache.`);
@@ -519,10 +701,6 @@ async function loadLiveSnapshotFromFirestore() {
         const snap = await db.collection('app_state').doc('live_snapshot').get();
         const data = snap.data();
         if (data?.payload?.events && Array.isArray(data.payload.events)) {
-            if (data.payload.source && data.payload.source !== "sofascore") {
-                console.log(`[LIVE SNAPSHOT] Ignoring non-SofaScore Firestore snapshot source: ${data.payload.source}`);
-                return false;
-            }
             globalLiveEvents = data.payload;
             lastLiveFetchTime = data.timestamp || 0;
             console.log(`[LIVE SNAPSHOT] Loaded ${data.payload.events.length} events from Firestore cache.`);
@@ -647,8 +825,7 @@ async function getLiveEventsData(forceFresh = false, preferImmediateCache = fals
     if (!liveFetchPromise) {
         lastLiveFetchAttemptTime = now;
         liveFetchPromise = (async () => {
-            const result = await fetchFromSofa("/sport/football/events/live");
-            const data = result.data;
+            const data = await fetchLiveFromMackolik();
             if (!data || !Array.isArray(data.events)) {
                 throw new Error("Live response missing events array");
             }

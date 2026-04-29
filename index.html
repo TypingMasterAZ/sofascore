@@ -4577,6 +4577,7 @@
                         acc[groupKey] = {
                             key: groupKey, id: tourId, isUnique, catId,
                             name: ev.tournament.name, country: catName,
+                            logoUrl: ev.tournament.logoUrl || ev.tournament.category?.logoUrl || null,
                             seasonId, matches: [], hasLive: false
                         };
                     }
@@ -4820,6 +4821,8 @@
             function createMatchRow(m, group) {
                 const timeRaw = getMatchTime(m);
                 const isLive = m.status.type === 'inprogress' || timeRaw === 'HT' || timeRaw === 'ET' || timeRaw === 'LIVE';
+                const homeLogo = m.homeTeam?.logoUrl || `https://www.sofascore.com/api/v1/team/${m.homeTeam.id}/image`;
+                const awayLogo = m.awayTeam?.logoUrl || `https://www.sofascore.com/api/v1/team/${m.awayTeam.id}/image`;
 
                 let displayTime = timeRaw;
                 const timeClass = isLive ? 'match-time is-live' : 'match-time';
@@ -4841,11 +4844,11 @@
             <div class="${timeClass}">${formattedMinute}</div>
             <div class="match-teams">
                 <div class="team-line">
-                    <img class="team-logo club-logo" src="https://www.sofascore.com/api/v1/team/${m.homeTeam.id}/image" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
+                    <img class="team-logo club-logo" src="${homeLogo}" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
                     <span class="team-name">${m.homeTeam.name}</span>
                 </div>
                 <div class="team-line">
-                    <img class="team-logo club-logo" src="https://www.sofascore.com/api/v1/team/${m.awayTeam.id}/image" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
+                    <img class="team-logo club-logo" src="${awayLogo}" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='"> 
                     <span class="team-name">${m.awayTeam.name}</span>
                 </div>
             </div>
@@ -4858,6 +4861,9 @@
             }
 
             function getLeagueLogoData(group) {
+                if (group.logoUrl) {
+                    return { logoUrl: group.logoUrl, fallBack: group.logoUrl };
+                }
                 const type = group.isUnique ? 'unique-tournament' : 'tournament';
                 const logoUrl = `https://www.sofascore.com/api/v1/${type}/${group.id}/image`;
                 const fallBack = `https://www.sofascore.com/api/v1/category/${group.catId}/image`;
@@ -5320,6 +5326,8 @@
 
             function prefetchMatchDetails(id) {
                 const matchId = id?.toString();
+                const match = allEvents.find(m => m.id?.toString() === matchId);
+                if (match?.source === 'mackolik') return;
                 if (!matchId || getCachedMatchDetails(matchId, 60 * 1000) || modalDetailsInFlight === matchId) {
                     return;
                 }
@@ -5368,8 +5376,9 @@
                 modal.style.display = "flex";
                 setTimeout(() => modal.classList.add("show"), 10);
 
-                document.getElementById("logoH").src = `https://www.sofascore.com/api/v1/team/${idH}/image`;
-                document.getElementById("logoA").src = `https://www.sofascore.com/api/v1/team/${idA}/image`;
+                const currentMatch = allEvents.find(m => m.id.toString() === id.toString());
+                document.getElementById("logoH").src = currentMatch?.homeTeam?.logoUrl || `https://www.sofascore.com/api/v1/team/${idH}/image`;
+                document.getElementById("logoA").src = currentMatch?.awayTeam?.logoUrl || `https://www.sofascore.com/api/v1/team/${idA}/image`;
                 document.getElementById("nameH").innerText = nameH;
                 document.getElementById("nameA").innerText = nameA;
                 document.getElementById("scoreM").innerText = `${sH} - ${sA}`;
@@ -5389,6 +5398,12 @@
                 if (cachedDetails) {
                     renderMatchIncidents(cachedDetails.incidents || { incidents: [] });
                     renderMatchStats(cachedDetails.stats || { statistics: [] });
+                }
+
+                if (currentMatch?.source === 'mackolik') {
+                    document.getElementById("goalsBox").innerHTML = `<div style="text-align:center; padding:28px; color:var(--text-muted); font-weight:600;">Bu oyun Maçkolik canlı axınından gəlir. Hazırda bu mənbə üçün hadisə siyahısı göstərilmir.</div>`;
+                    document.getElementById("statsBox").innerHTML = `<div style="text-align:center; padding:28px; color:var(--text-muted); font-weight:600;">Ətraflı statistika hazır deyil.</div>`;
+                    return;
                 }
 
                 updateModalStatsAndIncidents(id, { force: true });
