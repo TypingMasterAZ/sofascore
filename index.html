@@ -265,7 +265,14 @@
             display: flex;
             gap: 6px;
             overflow-x: auto;
-            padding: 8px 16px;
+            padding: 10px 12px;
+            margin: 0 10px 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
             scrollbar-width: none;
         }
 
@@ -279,15 +286,15 @@
             align-items: center;
             justify-content: center;
             min-width: 60px;
-            padding: 6px 10px;
-            border-radius: 10px;
+            padding: 8px 10px;
+            border-radius: 14px;
             font-size: 10px;
             font-weight: 500;
             color: var(--text-muted);
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid transparent;
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255,255,255,0.035);
         }
 
         .date-tab:active {
@@ -297,8 +304,8 @@
         .date-tab.active {
             color: #fff;
             background: linear-gradient(135deg, var(--primary), #2563eb);
-            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
-            transform: translateY(-2px);
+            box-shadow: 0 8px 18px rgba(59, 130, 246, 0.28);
+            transform: translateY(-1px);
         }
 
         .date-tab .day-name {
@@ -664,55 +671,44 @@
         }
 
         .match-time {
-            width: 64px;
-            min-height: 56px;
+            width: 56px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             font-size: 12px;
-            font-weight: 800;
-            color: #dbe4f3;
-            background: linear-gradient(180deg, rgba(148, 163, 184, 0.14), rgba(148, 163, 184, 0.08));
-            border: 1px solid rgba(148, 163, 184, 0.12);
-            border-radius: 16px;
-            padding: 8px 6px;
-            margin-right: 6px;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
-            text-align: center;
-            line-height: 1;
-            font-variant-numeric: tabular-nums;
+            font-weight: 700;
+            color: var(--text-main);
+            background: rgba(150, 150, 150, 0.15);
+            border-radius: 8px;
+            padding: 6px 0;
+            margin-right: 4px;
         }
 
         .match-time.is-live {
-            color: #fecaca;
-            background: linear-gradient(180deg, rgba(239, 68, 68, 0.18), rgba(127, 29, 29, 0.18));
-            border: 1px solid rgba(239, 68, 68, 0.24);
-            text-shadow: 0 0 10px rgba(239, 68, 68, 0.18);
+            color: var(--live);
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            text-shadow: 0 0 5px rgba(239, 68, 68, 0.3);
         }
 
         .match-time.is-live .live-min {
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 4px;
-            font-size: 16px;
-            font-weight: 900;
-            letter-spacing: 0.2px;
         }
 
         .match-time .time-label {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            font-weight: 800;
-            letter-spacing: 0.2px;
+            display: inline;
+            font-size: inherit;
+            font-weight: inherit;
+            letter-spacing: 0;
         }
 
         .match-time .time-label.is-state {
-            font-size: 13px;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
+            font-size: inherit;
+            letter-spacing: 0;
+            text-transform: none;
         }
 
         .match-time.is-live .live-min::before {
@@ -1634,9 +1630,9 @@
             }
 
             .match-time {
-                width: 54px;
+                width: 42px;
                 font-size: 12px;
-                padding: 7px 4px;
+                padding-right: 10px;
             }
 
             .match-teams {
