@@ -3548,26 +3548,8 @@
             </div>
         </div>
         <div class="sidebar-nav">
-            <div class="side-item active" onclick="switchMainView('matches'); toggleSidebar()"><i>&#9917;</i> Günün Oyunları</div>
-            <div class="side-item" onclick="toggleLiveFilter(null); switchMainView('matches'); toggleSidebar()"><i>&#128308;</i> Canlı Hesablar</div>
-            <div class="side-item" onclick="switchMainView('leagues'); toggleSidebar()"><i>&#127942;</i> Bütün Liqalar</div>
-            <div class="side-item" onclick="switchMainView('favorites'); toggleSidebar()"><i>&#11088;</i> Favoritlərim</div>
-            <hr style="border:none; border-top:1px solid var(--border); margin:10px 0;">
-            <div class="side-item" onclick="switchMainView('notifications'); toggleSidebar()"><i>&#128276;</i> Bildirişlər</div>
             <div class="side-item" onclick="switchMainView('profile'); toggleSidebar()"><i>&#9881;</i> Tənzimləmələr</div>
-            <div class="side-item" id="sidebarAuthLink" onclick="switchMainView('auth'); toggleSidebar()"><i>&#128273;</i> Giriş / Qeydiyyat</div>
-            <hr style="border:none; border-top:1px solid var(--border); margin:10px 0;">
-            <div class="social-section">
-                <span class="social-title">Bizi Izleyin</span>
-                <div class="social-buttons">
-                    <a href="https://www.instagram.com/rabonamedia/" target="_blank" class="social-btn instagram" title="Instagram">
-                        <i class="fab fa-instagram"></i>
-                    </a>
-                    <a href="https://www.tiktok.com/@rabona_media" target="_blank" class="social-btn tiktok" title="TikTok">
-                        <i class="fab fa-tiktok"></i>
-                    </a>
-                </div>
-            </div>
+            <div class="side-item" onclick="showAboutApp(); toggleSidebar()"><i>&#8505;</i> Haqqımızda</div>
         </div>
     </div>
 
@@ -7409,6 +7391,39 @@
                     if (onCancel) onCancel();
                 };
             }
+
+            window.showAboutApp = function() {
+                showDialog({
+                    title: 'Haqqımızda',
+                    message: 'Rabona Media canlı oyunlar, liqalar, favoritlər və əsas futbol məlumatlarını bir yerdə təqdim edən müasir idman tətbiqidir. Məqsədimiz nəticələri və vacib hadisələri sizə rahat, sürətli və səliqəli şəkildə çatdırmaqdır.',
+                    icon: 'ℹ️',
+                    type: 'alert'
+                });
+                const iconEl = document.getElementById('dialogIcon');
+                const msgEl = document.getElementById('dialogMessage');
+                if (iconEl) {
+                    iconEl.innerHTML = '<img src="ayble.png" alt="Rabona Media loqosu" style="width:88px; height:88px; object-fit:cover; border-radius:24px; box-shadow:0 14px 28px rgba(0,0,0,0.22); display:block; margin:0 auto;">';
+                }
+                if (msgEl) {
+                    msgEl.innerHTML = `
+                        <div style="text-align:center;">
+                            <div style="line-height:1.7; color:var(--text-muted); margin-bottom:18px;">
+                                Rabona Media canlı oyunlar, liqalar, favoritlər və əsas futbol məlumatlarını bir yerdə təqdim edən müasir idman tətbiqidir. Məqsədimiz nəticələri və vacib hadisələri sizə rahat, sürətli və səliqəli şəkildə çatdırmaqdır.
+                            </div>
+                            <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+                                <a href="https://www.instagram.com/rabonamedia/" target="_blank" style="display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:14px; background:rgba(255,255,255,0.06); color:#fff; text-decoration:none; font-weight:700;">
+                                    <i class="fab fa-instagram"></i>
+                                    <span>Instagram</span>
+                                </a>
+                                <a href="https://www.tiktok.com/@rabona_media" target="_blank" style="display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:14px; background:rgba(255,255,255,0.06); color:#fff; text-decoration:none; font-weight:700;">
+                                    <i class="fab fa-tiktok"></i>
+                                    <span>TikTok</span>
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                }
+            };
 
             generateDateTabs();
             setTimeout(() => {
