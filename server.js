@@ -659,18 +659,18 @@ function normalizeMackolikMatch(match, competitions, options = {}) {
         },
         tournament: {
             id: competition.id || match.competitionId,
-            name: competition.name || "Liqa",
+        name: competition.name || "Liqa",
             slug: competition.competitionSlug || "",
             logoUrl: tournamentLogoUrl,
             category: {
                 id: category.id || `mk_cat_${competition.id || match.competitionId}`,
-                name: category.name || "Diger",
+                name: category.name || "Digər",
                 slug: competition.countrySlug || "",
                 logoUrl: tournamentLogoUrl
             },
             uniqueTournament: {
                 id: competition.id || match.competitionId,
-                name: competition.name || "Liqa",
+                    name: competition.name || "Liqa",
                 slug: competition.competitionSlug || "",
                 logoUrl: tournamentLogoUrl
             }

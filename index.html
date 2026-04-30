@@ -57,7 +57,7 @@
                 })
             }).then(res => res.json())
               .then(data => console.log('[FCM] Token servere qeyd olundu:', data))
-              .catch(err => console.error('[FCM] Servere qeydiyyat xetasi:', err));
+            .catch(err => console.error('[FCM] Serverə qeydiyyat xətası:', err));
         }
 
         // Set Firebase language to Azerbaijani
@@ -2823,7 +2823,7 @@
     <div class="auth-overlay" id="authOverlay">
         <div class="auth-overlay-icon">&#127942;</div>
         <div class="auth-overlay-title">Xos Gelmisiniz!</div>
-        <div class="auth-overlay-text">ProScore ailesine qosulun ve butun imkanlardan yararlanin.</div>
+        <div class="auth-overlay-text">ProScore ailəsinə qoşulun və bütün imkanlardan yararlanın.</div>
     </div>
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
     <div class="sidebar" id="sidebar">
@@ -2833,18 +2833,18 @@
                 R</div>
             <div>
                 <div style="font-weight:900; font-size:18px;">Rabona Media</div>
-                <div style="font-size:12px; color:var(--text-muted);">Canli Neticeler</div>
+                <div style="font-size:12px; color:var(--text-muted);">Canlı Nəticələr</div>
             </div>
         </div>
         <div class="sidebar-nav">
-            <div class="side-item active" onclick="switchMainView('matches'); toggleSidebar()"><i>&#9917;</i> Gunun Oyunlari</div>
-            <div class="side-item" onclick="toggleLiveFilter(null); switchMainView('matches'); toggleSidebar()"><i>&#128308;</i> Canli Hesablar</div>
-            <div class="side-item" onclick="switchMainView('leagues'); toggleSidebar()"><i>&#127942;</i> Butun Liqalar</div>
-            <div class="side-item" onclick="switchMainView('favorites'); toggleSidebar()"><i>&#11088;</i> Favoritlerim</div>
+            <div class="side-item active" onclick="switchMainView('matches'); toggleSidebar()"><i>&#9917;</i> Günün Oyunları</div>
+            <div class="side-item" onclick="toggleLiveFilter(null); switchMainView('matches'); toggleSidebar()"><i>&#128308;</i> Canlı Hesablar</div>
+            <div class="side-item" onclick="switchMainView('leagues'); toggleSidebar()"><i>&#127942;</i> Bütün Liqalar</div>
+            <div class="side-item" onclick="switchMainView('favorites'); toggleSidebar()"><i>&#11088;</i> Favoritlərim</div>
             <hr style="border:none; border-top:1px solid var(--border); margin:10px 0;">
-            <div class="side-item" onclick="switchMainView('notifications'); toggleSidebar()"><i>&#128276;</i> Bildirisler</div>
-            <div class="side-item" onclick="switchMainView('profile'); toggleSidebar()"><i>&#9881;</i> Tenzimlemeler</div>
-            <div class="side-item" id="sidebarAuthLink" onclick="switchMainView('auth'); toggleSidebar()"><i>&#128273;</i> Giris / Qeydiyyat</div>
+            <div class="side-item" onclick="switchMainView('notifications'); toggleSidebar()"><i>&#128276;</i> Bildirişlər</div>
+            <div class="side-item" onclick="switchMainView('profile'); toggleSidebar()"><i>&#9881;</i> Tənzimləmələr</div>
+            <div class="side-item" id="sidebarAuthLink" onclick="switchMainView('auth'); toggleSidebar()"><i>&#128273;</i> Giriş / Qeydiyyat</div>
             <hr style="border:none; border-top:1px solid var(--border); margin:10px 0;">
             <div class="social-section">
                 <span class="social-title">Bizi Izleyin</span>
@@ -3128,7 +3128,7 @@
                 </div>
 
 
-                <span class="profile-section-title">Hesab Məlumatlar</span>
+                <span class="profile-section-title">Hesab Məlumatları</span>
                 <div style="margin-bottom: 20px;">
                     <div class="profile-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
                         <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">İstifadəçi Adı</label>
@@ -3285,7 +3285,7 @@
             </div>
             <div class="nav-item" id="navFavorites" onclick="switchMainView('favorites')">
                 <div class="nav-icon">&#11088;</div>
-                <span>Favoritler</span>
+                <span>Favoritlər</span>
             </div>
             <div class="nav-item" id="navProfile" onclick="switchMainView('profile')">
                 <div class="nav-icon">&#128100;</div>
@@ -4021,8 +4021,8 @@
                         container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">&#128276;</div>
-                        <div class="empty-state-title">Bildiris yoxdur</div>
-                        <div class="empty-state-text">Qollar ve diger onemli hadiseler burada gorunecek.</div>
+                        <div class="empty-state-title">Bildiriş yoxdur</div>
+                        <div class="empty-state-text">Qollar və digər önəmli hadisələr burada görünəcək.</div>
                     </div>`;
                         return;
                     }
@@ -6176,7 +6176,7 @@
                     tabR.classList.add('active');
                     document.getElementById('authTitle').innerText = 'Yeni Hesab';
                     document.getElementById('authSubtitle').innerText = 'ProScore ailəsin? qoşulun';
-                    if (btn) btn.innerText = 'Qeydiyyatdan Ke?';
+                    if (btn) btn.innerText = 'Qeydiyyatdan Keç';
                     if (emailField) emailField.style.display = 'block';
                     if (forgotLink) forgotLink.style.display = 'none';
                     // Show username field for registration to use as displayName
@@ -6296,7 +6296,7 @@
                     showToast(errMsg, 'error');
                 } finally {
                     if (btn) {
-                        btn.innerText = isLogin ? 'Daxil Ol' : 'Qeydiyyatdan Ke?';
+                        btn.innerText = isLogin ? 'Daxil Ol' : 'Qeydiyyatdan Keç';
                         btn.disabled = false;
                         btn.style.opacity = '1';
                     }
@@ -6472,7 +6472,7 @@
                     }
                 } catch (e) {
                     console.error("[AUTH] Check OTP Exception:", e);
-                    showToast('Bağlantı xətası. İnternet ba?lant?n?z? yoxlayın.');
+                    showToast('Bağlantı xətası. İnternet bağlantınızı yoxlayın.');
                 }
             }
 
