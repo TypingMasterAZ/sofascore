@@ -5244,16 +5244,28 @@
                 return fetchDirectSofaJson(`/unique-tournament/${tourId}/season/${seasonId}/top-players/overall`);
             }
 
-            async function fetchMatchIncidentsFast(id) {
-                const serverPromise = fetchServerJson(`/api/match/${id}/details?stats=0`).catch(() => null);
-                const directPromise = fetchDirectSofaJson(`/event/${id}/incidents`).catch(() => null);
+            async function fetchMatchIncidentsFast(id, match = null) {
+                const isMackolik = match?.source === 'mackolik';
+                const serverUrl = isMackolik
+                    ? `/api/match/${id}/details?stats=0&source=mackolik&slug=${encodeURIComponent(match?.slug || '')}`
+                    : `/api/match/${id}/details?stats=0`;
+                const serverPromise = fetchServerJson(serverUrl).catch(() => null);
+                const directPromise = isMackolik
+                    ? Promise.resolve(null)
+                    : fetchDirectSofaJson(`/event/${id}/incidents`).catch(() => null);
                 const [serverData, directData] = await Promise.all([serverPromise, directPromise]);
                 return directData || serverData?.incidents || { incidents: [] };
             }
 
-            async function fetchMatchStatsLazy(id) {
-                const serverPromise = fetchServerJson(`/api/match/${id}/details`).catch(() => null);
-                const directPromise = fetchDirectSofaJson(`/event/${id}/statistics`).catch(() => null);
+            async function fetchMatchStatsLazy(id, match = null) {
+                const isMackolik = match?.source === 'mackolik';
+                const serverUrl = isMackolik
+                    ? `/api/match/${id}/details?source=mackolik&slug=${encodeURIComponent(match?.slug || '')}`
+                    : `/api/match/${id}/details`;
+                const serverPromise = fetchServerJson(serverUrl).catch(() => null);
+                const directPromise = isMackolik
+                    ? Promise.resolve(null)
+                    : fetchDirectSofaJson(`/event/${id}/statistics`).catch(() => null);
                 const [serverData, directData] = await Promise.all([serverPromise, directPromise]);
                 return directData || serverData?.stats || { statistics: [] };
             }
@@ -5335,14 +5347,13 @@
             function prefetchMatchDetails(id) {
                 const matchId = id?.toString();
                 const match = allEvents.find(m => m.id?.toString() === matchId);
-                if (match?.source === 'mackolik') return;
                 if (!matchId || getCachedMatchDetails(matchId, 60 * 1000) || modalDetailsInFlight === matchId) {
                     return;
                 }
 
                 Promise.allSettled([
-                    fetchMatchIncidentsFast(matchId),
-                    fetchMatchStatsLazy(matchId)
+                    fetchMatchIncidentsFast(matchId, match),
+                    fetchMatchStatsLazy(matchId, match)
                 ]).then(([incidentsResult, statsResult]) => {
                     const incidents = incidentsResult.status === 'fulfilled' ? incidentsResult.value : { incidents: [] };
                     const stats = statsResult.status === 'fulfilled' ? statsResult.value : { statistics: [] };
@@ -5351,6 +5362,7 @@
             }
 
             async function updateModalStatsAndIncidents(id, options = {}) {
+                const match = options.match || allEvents.find(m => m.id?.toString() === id?.toString()) || null;
                 const now = Date.now();
                 if (!options.force && modalDetailsLastFetch[id] && (now - modalDetailsLastFetch[id] < 45000)) {
                     return;
@@ -5361,11 +5373,11 @@
                 modalDetailsInFlight = id;
 
                 try {
-                    const incidentsData = await fetchMatchIncidentsFast(id);
+                    const incidentsData = await fetchMatchIncidentsFast(id, match);
                     if (currentOpenMatchId && currentOpenMatchId.toString() !== id.toString()) return;
                     renderMatchIncidents(incidentsData || { incidents: [] });
 
-                    const statsData = await fetchMatchStatsLazy(id);
+                    const statsData = await fetchMatchStatsLazy(id, match);
                     modalDetailsLastFetch[id] = Date.now();
                     if (currentOpenMatchId && currentOpenMatchId.toString() !== id.toString()) return;
                     renderMatchStats(statsData || { statistics: [] });
@@ -5408,13 +5420,7 @@
                     renderMatchStats(cachedDetails.stats || { statistics: [] });
                 }
 
-                if (currentMatch?.source === 'mackolik') {
-                    document.getElementById("goalsBox").innerHTML = `<div style="text-align:center; padding:28px; color:var(--text-muted); font-weight:600;">Bu oyun Maçkolik canlı axınından gəlir. Hazırda bu mənbə üçün hadisə siyahısı göstərilmir.</div>`;
-                    document.getElementById("statsBox").innerHTML = `<div style="text-align:center; padding:28px; color:var(--text-muted); font-weight:600;">Ətraflı statistika hazır deyil.</div>`;
-                    return;
-                }
-
-                updateModalStatsAndIncidents(id, { force: true });
+                updateModalStatsAndIncidents(id, { force: true, match: currentMatch });
             }
 
             function openMatchById(id) {

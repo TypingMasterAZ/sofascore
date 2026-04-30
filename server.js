@@ -513,6 +513,26 @@ function getMackolikCountryLogo(countryId) {
     return countryId ? `https://file.mackolikfeeds.com/areas/${countryId}` : null;
 }
 
+function decodeMackolikSettings(raw) {
+    return String(raw || "")
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;/g, "'")
+        .replace(/&amp;/g, '&');
+}
+
+function extractMackolikSettingsObjects(html) {
+    const results = [];
+    const regex = /data-settings="([\s\S]*?)"/gi;
+    let match;
+    while ((match = regex.exec(String(html || ""))) !== null) {
+        try {
+            const decoded = decodeMackolikSettings(match[1]);
+            results.push(JSON.parse(decoded));
+        } catch (_) {}
+    }
+    return results;
+}
+
 async function fetchMackolikLiveConfig() {
     try {
         const response = await axios.get(MACKOLIK_LIVE_PAGE_URL, {
@@ -529,10 +549,7 @@ async function fetchMackolikLiveConfig() {
             throw new Error("Mackolik live config not found");
         }
 
-        const decoded = settingsMatch[1]
-            .replace(/&quot;/g, '"')
-            .replace(/&#039;/g, "'")
-            .replace(/&amp;/g, '&');
+        const decoded = decodeMackolikSettings(settingsMatch[1]);
         const settings = JSON.parse(decoded);
         const params = settings?.asyncRequestParams || {};
 
@@ -596,76 +613,80 @@ function mapMackolikStatus(match) {
     return { type: "notstarted", description: box || "" };
 }
 
-function normalizeMackolikLiveData(payload) {
-    const data = payload?.data || {};
-    const competitions = data.competitions || {};
-    const matches = Object.values(data.matches || {}).filter(match => {
-        const competition = competitions[match?.competitionId] || {};
-        return match?.state === "live" && competition?.sport === "S";
-    });
+function normalizeMackolikMatch(match, competitions, options = {}) {
+    const { liveOnly = false } = options;
+    const competition = competitions[match?.competitionId] || {};
+    if (competition?.sport !== "S") return null;
+    if (liveOnly && match?.state !== "live") return null;
 
-    const events = matches.map(match => {
-        const competition = competitions[match.competitionId] || {};
-        const category = competition.country || {};
-        const status = mapMackolikStatus(match);
-        const homeScore = Number(match?.score?.home ?? 0);
-        const awayScore = Number(match?.score?.away ?? 0);
-        const homeTeamId = match?.homeTeam?.id || `mk_home_${match.id}`;
-        const awayTeamId = match?.awayTeam?.id || `mk_away_${match.id}`;
-        const tournamentLogoUrl = getMackolikCountryLogo(category.id);
+    const category = competition.country || {};
+    const status = mapMackolikStatus(match);
+    const homeScore = Number(match?.score?.home ?? 0);
+    const awayScore = Number(match?.score?.away ?? 0);
+    const homeTeamId = match?.homeTeam?.id || `mk_home_${match.id}`;
+    const awayTeamId = match?.awayTeam?.id || `mk_away_${match.id}`;
+    const tournamentLogoUrl = getMackolikCountryLogo(category.id);
 
-        return {
-            id: match.id,
-            slug: match.matchSlug || `${match.homeTeam?.slug || "home"}-vs-${match.awayTeam?.slug || "away"}`,
-            customId: match.iddaaCode ? String(match.iddaaCode) : match.id,
-            startTimestamp: match.mstUtc ? Math.floor(Number(match.mstUtc) / 1000) : undefined,
-            status,
-            time: match.periodStart ? {
-                currentPeriodStartTimestamp: Math.floor(Number(match.periodStart) / 1000),
-                initial: getMackolikInitialSeconds(match.periodId)
-            } : undefined,
-            homeTeam: {
-                id: homeTeamId,
-                name: match?.homeTeam?.name || "Home",
-                shortName: match?.homeTeam?.name || "Home",
-                slug: match?.homeTeam?.slug || "",
-                logoUrl: getMackolikTeamLogo(homeTeamId)
+    return {
+        id: match.id,
+        slug: match.matchSlug || `${match.homeTeam?.slug || "home"}-vs-${match.awayTeam?.slug || "away"}`,
+        customId: match.iddaaCode ? String(match.iddaaCode) : match.id,
+        startTimestamp: match.mstUtc ? Math.floor(Number(match.mstUtc) / 1000) : undefined,
+        status,
+        time: match.periodStart ? {
+            currentPeriodStartTimestamp: Math.floor(Number(match.periodStart) / 1000),
+            initial: getMackolikInitialSeconds(match.periodId)
+        } : undefined,
+        homeTeam: {
+            id: homeTeamId,
+            name: match?.homeTeam?.name || "Home",
+            shortName: match?.homeTeam?.name || "Home",
+            slug: match?.homeTeam?.slug || "",
+            logoUrl: getMackolikTeamLogo(homeTeamId)
+        },
+        awayTeam: {
+            id: awayTeamId,
+            name: match?.awayTeam?.name || "Away",
+            shortName: match?.awayTeam?.name || "Away",
+            slug: match?.awayTeam?.slug || "",
+            logoUrl: getMackolikTeamLogo(awayTeamId)
+        },
+        homeScore: {
+            current: Number.isFinite(homeScore) ? homeScore : 0
+        },
+        awayScore: {
+            current: Number.isFinite(awayScore) ? awayScore : 0
+        },
+        tournament: {
+            id: competition.id || match.competitionId,
+            name: competition.name || "Liqa",
+            slug: competition.competitionSlug || "",
+            logoUrl: tournamentLogoUrl,
+            category: {
+                id: category.id || `mk_cat_${competition.id || match.competitionId}`,
+                name: category.name || "Diger",
+                slug: competition.countrySlug || "",
+                logoUrl: tournamentLogoUrl
             },
-            awayTeam: {
-                id: awayTeamId,
-                name: match?.awayTeam?.name || "Away",
-                shortName: match?.awayTeam?.name || "Away",
-                slug: match?.awayTeam?.slug || "",
-                logoUrl: getMackolikTeamLogo(awayTeamId)
-            },
-            homeScore: {
-                current: Number.isFinite(homeScore) ? homeScore : 0
-            },
-            awayScore: {
-                current: Number.isFinite(awayScore) ? awayScore : 0
-            },
-            tournament: {
+            uniqueTournament: {
                 id: competition.id || match.competitionId,
                 name: competition.name || "Liqa",
                 slug: competition.competitionSlug || "",
-                logoUrl: tournamentLogoUrl,
-                category: {
-                    id: category.id || `mk_cat_${competition.id || match.competitionId}`,
-                    name: category.name || "Diger",
-                    slug: competition.countrySlug || "",
-                    logoUrl: tournamentLogoUrl
-                },
-                uniqueTournament: {
-                    id: competition.id || match.competitionId,
-                    name: competition.name || "Liqa",
-                    slug: competition.competitionSlug || "",
-                    logoUrl: tournamentLogoUrl
-                }
-            },
-            season: competition.seasonId ? { id: competition.seasonId } : null,
-            source: "mackolik"
-        };
-    });
+                logoUrl: tournamentLogoUrl
+            }
+        },
+        season: competition.seasonId ? { id: competition.seasonId } : null,
+        source: "mackolik"
+    };
+}
+
+function normalizeMackolikMatchesData(payload, options = {}) {
+    const { liveOnly = false } = options;
+    const data = payload?.data || {};
+    const competitions = data.competitions || {};
+    const events = Object.values(data.matches || {})
+        .map(match => normalizeMackolikMatch(match, competitions, { liveOnly }))
+        .filter(Boolean);
 
     return {
         events,
@@ -689,9 +710,139 @@ async function fetchLiveFromMackolik() {
         throw new Error(`Mackolik live request failed: ${response.data?.status || "unknown"}`);
     }
 
-    const normalized = normalizeMackolikLiveData(response.data);
+    const normalized = normalizeMackolikMatchesData(response.data, { liveOnly: true });
     normalized.matchDate = config.matchDate;
     return normalized;
+}
+
+async function fetchMackolikMatchesByDate(matchDate) {
+    const response = await axios.get(MACKOLIK_LIVE_URL, {
+        params: {
+            sports: ["Soccer"],
+            matchDate
+        },
+        headers: MACKOLIK_HEADERS,
+        timeout: 20000
+    });
+
+    if (response.data?.status !== "success") {
+        throw new Error(`Mackolik date request failed: ${response.data?.status || "unknown"}`);
+    }
+
+    const normalized = normalizeMackolikMatchesData(response.data, { liveOnly: false });
+    normalized.matchDate = matchDate;
+    return normalized;
+}
+
+function mapMackolikIncident(item) {
+    if (!item?.type) return null;
+    const rawTime = String(item.timeMin || "");
+    const timeMatch = rawTime.match(/(\d+)/);
+    const addedMatch = rawTime.match(/\+\s*(\d+)/);
+    const base = {
+        time: timeMatch ? Number(timeMatch[1]) : 0,
+        addedTime: addedMatch ? Number(addedMatch[1]) : undefined,
+        isHome: item.position === "home"
+    };
+
+    if (item.type === "goal") {
+        return {
+            ...base,
+            incidentType: "goal",
+            incidentClass: item.subType === "penalty" ? "penalty" : (item.subType === "owngoal" ? "ownGoal" : "regular"),
+            playerName: item.playerName || "",
+            player: item.playerName ? { name: item.playerName } : undefined,
+            assist1: item.assistPlayerName ? { name: item.assistPlayerName } : undefined,
+            homeScore: item.score?.split("-")?.[0],
+            awayScore: item.score?.split("-")?.[1]
+        };
+    }
+
+    if (item.type === "card") {
+        return {
+            ...base,
+            incidentType: "card",
+            incidentClass: item.subType === "yc" ? "yellow" : "red",
+            playerName: item.playerName || "",
+            player: item.playerName ? { name: item.playerName } : undefined
+        };
+    }
+
+    if (item.type === "substitute") {
+        return {
+            ...base,
+            incidentType: "substitution",
+            playerIn: item.playerName ? { name: item.playerName } : undefined,
+            playerOut: item.playerOutName ? { name: item.playerOutName } : undefined
+        };
+    }
+
+    return null;
+}
+
+function formatMackolikStatName(key) {
+    const map = {
+        possesionPercentage: "Topa sahibolma %",
+        possessionPercentage: "Topa sahibolma %",
+        shotsOnTarget: "Qapıya zərbə",
+        shotsOffTarget: "Çərçivədən kənar",
+        totalPasses: "Ötürmə",
+        corners: "Künc zərbələri",
+        fouls: "Qayda pozuntuları",
+        yellowCards: "Sarı kart",
+        redCards: "Qırmızı kart"
+    };
+    return map[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase()).trim();
+}
+
+async function fetchMackolikMatchDetails(matchId, slug = "") {
+    const safeSlug = slug || "mac";
+    const url = `https://www.mackolik.com/mac/${safeSlug}/${matchId}`;
+    const response = await axios.get(url, {
+        headers: {
+            "User-Agent": MACKOLIK_HEADERS["User-Agent"],
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        },
+        timeout: 20000
+    });
+
+    const settingsObjects = extractMackolikSettingsObjects(response.data);
+    const keyEventsSettings = settingsObjects.find(obj => obj?.url?.includes("/ajax/football/key-events"));
+    const gameStatsSettings = settingsObjects.find(obj => obj?.url?.includes("/ajax/soccer/match/gameStats"));
+
+    let keyEvents = Array.isArray(keyEventsSettings?.keyEvents) ? keyEventsSettings.keyEvents : [];
+    if (!keyEvents.length && keyEventsSettings?.url && keyEventsSettings?.asyncRequestParams) {
+        const keyEventsResponse = await axios.get(keyEventsSettings.url, {
+            params: keyEventsSettings.asyncRequestParams,
+            headers: MACKOLIK_HEADERS,
+            timeout: 15000
+        }).catch(() => null);
+        keyEvents = Array.isArray(keyEventsResponse?.data?.keyEvents) ? keyEventsResponse.data.keyEvents : [];
+    }
+
+    const incidents = keyEvents.map(mapMackolikIncident).filter(Boolean);
+
+    const homeStats = gameStatsSettings?.home || {};
+    const awayStats = gameStatsSettings?.away || {};
+    const statKeys = [...new Set([...Object.keys(homeStats), ...Object.keys(awayStats)])];
+    const statisticsItems = statKeys.map(key => ({
+        name: formatMackolikStatName(key),
+        homeValue: String(homeStats[key] ?? 0),
+        awayValue: String(awayStats[key] ?? 0)
+    }));
+
+    return {
+        incidents: { incidents },
+        stats: statisticsItems.length ? {
+            statistics: [{
+                period: "ALL",
+                groups: [{
+                    groupName: "Ümumi",
+                    statisticsItems
+                }]
+            }]
+        } : { statistics: [] }
+    };
 }
 
 function loadLiveSnapshot() {
@@ -977,8 +1128,7 @@ app.get("/api/matches/:date", async (req, res) => {
         const today = new Date().toISOString().split('T')[0];
         const ttl = (date === today) ? 30 * 1000 : CACHE_TIMES.SCHEDULED; // 30s cache for today
         const data = await getCachedData(`matches_${date}`, async () => {
-            const result = await fetchFromSofa(`/sport/football/scheduled-events/${date}`);
-            return result.data;
+            return await fetchMackolikMatchesByDate(date);
         }, ttl);
         res.json(data);
     } catch (error) {
@@ -991,6 +1141,13 @@ app.get("/api/matches/:date", async (req, res) => {
 app.get("/api/match/:id/incidents", async (req, res) => {
     const id = req.params.id;
     try {
+        if (req.query.source === "mackolik") {
+            const data = await getCachedData(`mackolik_incidents_${id}_${req.query.slug || ""}`, async () => {
+                const details = await fetchMackolikMatchDetails(id, req.query.slug || "");
+                return details.incidents;
+            }, 12000);
+            return res.json(data);
+        }
         const data = await getMatchIncidentsData(id);
         res.json(data);
     } catch (error) {
@@ -1034,6 +1191,13 @@ app.get("/api/match/:id/h2h", async (req, res) => {
 app.get("/api/match/:id/details", async (req, res) => {
     const id = req.params.id;
     try {
+        if (req.query.source === "mackolik") {
+            const data = await getCachedData(`mackolik_details_${id}_${req.query.slug || ""}_${req.query.stats === "0" ? "nostats" : "all"}`, async () => {
+                return await fetchMackolikMatchDetails(id, req.query.slug || "");
+            }, 12000);
+            return res.json(req.query.stats === "0" ? { incidents: data.incidents, stats: null } : data);
+        }
+
         const statsDisabled = req.query.stats === "0";
         const optionalCachedFetch = (key, path, ttl) => getCachedData(key, async () => {
             try {
