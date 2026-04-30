@@ -3158,6 +3158,363 @@
                 max-width: 920px;
             }
         }
+
+        /* Unified Modern App Refresh */
+        body {
+            background:
+                radial-gradient(circle at top, rgba(59, 130, 246, 0.08), transparent 36%),
+                radial-gradient(circle at bottom, rgba(14, 165, 233, 0.05), transparent 28%),
+                #020817;
+        }
+
+        .top-navbar {
+            background: linear-gradient(180deg, rgba(7, 13, 27, 0.92), rgba(9, 15, 28, 0.78));
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+        }
+
+        header {
+            min-height: 60px;
+            padding: 0 18px;
+        }
+
+        .logo {
+            font-size: 21px;
+            letter-spacing: 0.8px;
+            text-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+        }
+
+        .main-content {
+            padding-top: 126px;
+            padding-bottom: 96px;
+        }
+
+        #matchesView.active,
+        #leaguesView.active,
+        #favoritesView.active,
+        #notificationsView.active {
+            width: 100%;
+            max-width: 1020px;
+            margin: 0 auto;
+        }
+
+        #authView.active > div,
+        #profileView.active > div {
+            width: 100%;
+            max-width: 760px;
+            margin: 0 auto;
+        }
+
+        .menu-icon,
+        .search-icon,
+        .notification-bell {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.04);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+
+        .date-tabs {
+            gap: 8px;
+            margin: 0 12px 12px;
+            border-radius: 22px;
+        }
+
+        .date-tab {
+            min-width: 66px;
+            padding: 9px 10px;
+            border-radius: 16px;
+        }
+
+        .date-tab .day-name {
+            font-size: 8.5px;
+            letter-spacing: 0.7px;
+        }
+
+        .date-tab .date-num {
+            font-size: 14px;
+        }
+
+        .search-input-box {
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.045);
+            border-color: rgba(255, 255, 255, 0.06);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.10), inset 0 1px 0 rgba(255,255,255,0.03);
+        }
+
+        .search-input-box input {
+            font-size: 15px;
+        }
+
+        .league-group {
+            margin: 0 12px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 22px;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(9, 14, 27, 0.96));
+            box-shadow: 0 18px 36px rgba(0, 0, 0, 0.18);
+        }
+
+        .league-header {
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .league-header img {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+        }
+
+        .league-country {
+            font-size: 10px;
+            letter-spacing: 1px;
+        }
+
+        .league-title {
+            font-size: 17px;
+            letter-spacing: -0.2px;
+        }
+
+        .league-card {
+            border-radius: 20px;
+            margin: 0 12px 14px;
+            border: 1px solid rgba(255,255,255,0.05);
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(9, 14, 27, 0.96));
+            box-shadow: 0 18px 36px rgba(0,0,0,0.18);
+        }
+
+        .league-card-logo {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+        }
+
+        .league-card-name {
+            font-size: 17px;
+        }
+
+        .match-row {
+            padding: 16px 18px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0));
+        }
+
+        .match-teams {
+            gap: 12px;
+        }
+
+        .team-line {
+            gap: 12px;
+        }
+
+        .team-logo {
+            width: 24px;
+            height: 24px;
+        }
+
+        .team-name {
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .match-scores {
+            width: 42px;
+            gap: 12px;
+        }
+
+        .score-val {
+            font-size: 18px;
+            font-weight: 900;
+        }
+
+        .fav-star {
+            font-size: 19px;
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.03);
+            margin: 0;
+            padding: 0;
+        }
+
+        .standings-table,
+        .top-players-list {
+            margin: 0 12px 18px;
+        }
+
+        .player-row {
+            border-radius: 16px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015));
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 14px 30px rgba(0,0,0,0.12);
+        }
+
+        .empty-state {
+            min-height: 280px;
+            margin: 0 12px 14px;
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .empty-state-title {
+            font-size: 20px;
+            letter-spacing: -0.3px;
+        }
+
+        .auth-container {
+            max-width: 520px;
+            margin: 0 auto;
+            padding: 28px 22px 44px;
+        }
+
+        .auth-tabs {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 5px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+        }
+
+        .auth-tab {
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .auth-tab.active {
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.24);
+        }
+
+        .profile-input {
+            border-radius: 14px;
+            background: rgba(255,255,255,0.045);
+            border-color: rgba(255,255,255,0.06);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+        }
+
+        .save-btn {
+            height: 52px;
+            border-radius: 16px;
+            font-size: 15px;
+            font-weight: 800;
+            box-shadow: 0 14px 28px rgba(59,130,246,0.24);
+        }
+
+        .forgot-card {
+            border-radius: 28px;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(9, 14, 28, 0.98));
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .otp-input {
+            border-radius: 16px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+        }
+
+        .profile-header-new {
+            margin: 12px 12px 14px;
+            border-radius: 28px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background:
+                radial-gradient(circle at top, rgba(59,130,246,0.16), transparent 58%),
+                linear-gradient(180deg, rgba(15,23,42,0.96), rgba(9,14,27,0.96));
+            box-shadow: 0 20px 42px rgba(0,0,0,0.18);
+        }
+
+        #profileAvatar {
+            box-shadow: 0 20px 40px rgba(59,130,246,0.24);
+        }
+
+        .profile-section-title {
+            padding: 16px 20px 10px;
+            letter-spacing: 1.4px;
+        }
+
+        .profile-row {
+            margin: 0 12px 10px;
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.05);
+            background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+            box-shadow: 0 14px 28px rgba(0,0,0,0.10);
+        }
+
+        .sound-grid {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .sound-card {
+            border-radius: 16px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+            border: 1px solid rgba(255,255,255,0.06);
+            min-height: 92px;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+        }
+
+        .notification-item {
+            margin: 0 0 12px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015));
+            box-shadow: 0 14px 28px rgba(0,0,0,0.12);
+        }
+
+        .notification-icon-box {
+            border-radius: 14px;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .toast {
+            top: 22px;
+            border-radius: 18px;
+            box-shadow: 0 18px 40px rgba(0,0,0,0.36);
+        }
+
+        .dialog-box {
+            border-radius: 30px;
+            background: linear-gradient(180deg, rgba(15,23,42,0.98), rgba(9,14,28,0.98));
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .dialog-btn {
+            border-radius: 16px;
+            font-weight: 800;
+        }
+
+        .modal-content {
+            border-radius: 28px 28px 0 0;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+
+        @media (min-width: 900px) {
+            .top-navbar {
+                width: calc(100% - 24px);
+                max-width: 1180px;
+                left: 50%;
+                transform: translateX(-50%);
+                top: 12px;
+                border-radius: 24px;
+                border: 1px solid rgba(255,255,255,0.06);
+            }
+
+            .main-content {
+                padding-top: 140px;
+            }
+
+            .date-tabs {
+                max-width: 1140px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+        }
     </style>
 </head>
 

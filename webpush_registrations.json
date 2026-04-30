@@ -1,0 +1,19 @@
+{
+  "107ef623-ed91-41fb-bbb5-2c37e2f28d02": {
+    "subscription": {
+      "endpoint": "https://fcm.googleapis.com/fcm/send/eE1AjuHRtEU:APA91bHt5p7WukCoTKXAcYZs0lwJlpV-QI3IWq0yW3oLhywxxzFNx4MCl8N8tHQcQdcFtmFRFftm5bzuadji9IO9zlJkz1X4KreZqrhs7_C-J59N1nfvgIrCsB-863kaw2NFyI4cxuD0",
+      "expirationTime": null,
+      "keys": {
+        "p256dh": "BLaCLnSIpumb2d-T0iyzfoXOqCS10mJ7DYauCl5mbXX4kiW-HMw4lP2ckW1_Bn68pf6_GajAPAuNUsMn-40awPU",
+        "auth": "L9TgTGqIMSxHY7PqwB0Paw"
+      }
+    },
+    "favorites": [
+      "15986050"
+    ],
+    "leagues": [],
+    "platform": "webpush",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "lastUpdated": 1777581817165
+  }
+}
