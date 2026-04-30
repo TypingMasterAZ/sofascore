@@ -3228,7 +3228,7 @@
                             style="margin-top:20px; border-top:1px solid rgba(255,255,255,0.05); cursor:pointer;"
                             onclick="logoutUser()">
                             <span style="font-size:15px; font-weight:700; color:#ef4444;">Hesabdan Çıx</span>
-                            <span style="font-size:18px;">&#128682;</span>
+                            <span style="font-size:18px;">🚪</span>
                         </div>
 
                     </div>
@@ -3766,8 +3766,8 @@
                 const container = document.getElementById('dateTabsContainer');
                 if (!container) return;
                 const today = new Date();
-                const days = ['Bazar', 'B.Ertesi', 'C.Axsam', 'Cersenbe', 'C.Axsam', 'Cume', 'Senbe'];
-                const months = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyun', 'Iyul', 'Avq', 'Sent', 'Okt', 'Noy', 'Dek'];
+                const days = ['Bazar', 'B.Ertəsi', 'Ç.Axşam', 'Çərşənbə', 'C.Axşam', 'Cümə', 'Şənbə'];
+                const months = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'İyun', 'İyul', 'Avq', 'Sen', 'Okt', 'Noy', 'Dek'];
                 
                 let html = '';
                 for (let i = -7; i <= 30; i++) {
@@ -3779,7 +3779,7 @@
                     
                     html += `
                         <div class="date-tab ${activeClass}" onclick="selectDate('${dateStr}', this)">
-                            <span class="day-name">${isToday ? 'BU GUN' : days[d.getDay()].toUpperCase()}</span>
+                            <span class="day-name">${isToday ? 'BU GÜN' : days[d.getDay()].toUpperCase()}</span>
                             <span class="date-num">${d.getDate()} ${months[d.getMonth()]}</span>
                         </div>
                     `;
@@ -5891,7 +5891,7 @@
                 let newStatus = sInput ? sInput.value.trim() : 'ProScore istifadəçisi';
 
                 if (!newName) {
-                    showToast('Ad bo? ola bilm?z!');
+                    showToast('Ad boş ola bilməz!');
                     return;
                 }
 
@@ -5951,7 +5951,7 @@
                 if (!file) return;
 
                 if (file.size > 2 * 1024 * 1024) { // Limit 2MB
-                    showToast('??kil 2MB-dan kiçik olmal?d?r!', 'error');
+                    showToast('Şəkil 2MB-dan kiçik olmalıdır!', 'error');
                     return;
                 }
 
@@ -6175,7 +6175,7 @@
                 } else {
                     tabR.classList.add('active');
                     document.getElementById('authTitle').innerText = 'Yeni Hesab';
-                    document.getElementById('authSubtitle').innerText = 'ProScore ailəsin? qoşulun';
+                    document.getElementById('authSubtitle').innerText = 'ProScore ailəsinə qoşulun';
                     if (btn) btn.innerText = 'Qeydiyyatdan Keç';
                     if (emailField) emailField.style.display = 'block';
                     if (forgotLink) forgotLink.style.display = 'none';
@@ -6457,7 +6457,7 @@
                             const errorData = JSON.parse(errorText);
                             showToast(errorData.message || 'Server xətası baş verdi.');
                         } catch(e) {
-                            showToast('Server cavab ver? bilm?di (Xəta: ' + res.status + ')');
+                            showToast('Server cavab verə bilmədi (Xəta: ' + res.status + ')');
                         }
                         return;
                     }
@@ -6529,7 +6529,7 @@
                 showDialog({
                     title: 'Çıxış Et?',
                     message: 'Hesabınızdan çıxmaq istədiyinizə əminsiniz?',
-                    icon: '&#128682;',
+                    icon: '🚪',
                     type: 'confirm',
                     onConfirm: () => {
                         auth.signOut().then(() => {
@@ -6603,7 +6603,7 @@
                     const avatarEl = document.getElementById('profileAvatar');
                     
                     if (nameEl) nameEl.innerText = "İstifadəçi";
-                    if (statusEl) statusEl.innerText = "Daxil olunmayib";
+                    if (statusEl) statusEl.innerText = "Daxil olunmayıb";
                     
                     if (avatarEl) {
                         avatarEl.style.backgroundImage = "none";
