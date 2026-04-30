@@ -2843,7 +2843,7 @@
         }
 
         html.is-ios .main-content {
-            padding-bottom: 118px;
+            padding-bottom: 104px;
         }
 
         html.is-ios .date-tabs {
@@ -2906,45 +2906,48 @@
 
         html.is-ios .bottom-nav {
             left: 50%;
-            bottom: calc(12px + env(safe-area-inset-bottom));
-            width: calc(100% - 26px);
-            max-width: 430px;
-            height: 74px;
+            bottom: calc(10px + env(safe-area-inset-bottom));
+            width: calc(100% - 32px);
+            max-width: 410px;
+            height: 66px;
             transform: translateX(-50%);
-            border: 1px solid rgba(255, 255, 255, 0.10);
-            border-radius: 28px;
-            background: rgba(15, 23, 42, 0.50);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            background: rgba(15, 23, 42, 0.34);
             box-shadow:
-                0 18px 50px rgba(0, 0, 0, 0.32),
-                inset 0 1px 0 rgba(255, 255, 255, 0.10);
-            backdrop-filter: blur(36px) saturate(150%);
-            -webkit-backdrop-filter: blur(36px) saturate(150%);
-            padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+                0 16px 36px rgba(0, 0, 0, 0.28),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(34px) saturate(155%);
+            -webkit-backdrop-filter: blur(34px) saturate(155%);
+            padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
         }
 
         html.is-ios .nav-item {
             width: auto;
             flex: 1;
-            height: 54px;
-            gap: 4px;
-            border-radius: 20px;
+            height: 48px;
+            gap: 3px;
+            border-radius: 16px;
             position: relative;
         }
 
         html.is-ios .nav-item.active {
-            color: #dbeafe;
-            background: rgba(255, 255, 255, 0.09);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+            color: #eaf2ff;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.05));
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.11),
+                0 6px 18px rgba(0, 0, 0, 0.12);
         }
 
         html.is-ios .nav-icon {
-            font-size: 21px;
+            font-size: 18px;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.22));
         }
 
         html.is-ios .nav-item span {
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 700;
-            letter-spacing: 0;
+            letter-spacing: 0.1px;
         }
 
         html.is-android body {
