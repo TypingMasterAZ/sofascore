@@ -479,7 +479,7 @@ app.get("/api/debug/proxy", async (req, res) => {
 // Caching System
 const cache = {};
 const CACHE_TIMES = {
-    LIVE: 10 * 1000,       // 10 saniyə
+    LIVE: 3 * 1000,        // 3 saniyə
     SCHEDULED: 5 * 60 * 1000, // 5 dÉ™qiqÉ™
     STATIC: 60 * 60 * 1000    // 1 saat
 };
@@ -493,7 +493,7 @@ let lastLiveFetchAttemptTime = 0;
 let liveFetchPromise = null;
 let liveSnapshotLoadPromise = null;
 const LIVE_SNAPSHOT_FILE = "./live_snapshot.json";
-const LIVE_SNAPSHOT_MAX_AGE = 2 * 60 * 1000;
+const LIVE_SNAPSHOT_MAX_AGE = 12 * 1000;
 const MACKOLIK_LIVE_URL = "https://www.mackolik.com/perform/p0/ajax/components/competition/livescores/json";
 const MACKOLIK_LIVE_PAGE_URL = "https://www.mackolik.com/canli-sonuclar";
 const MACKOLIK_HEADERS = {
@@ -1126,7 +1126,7 @@ app.get("/api/matches/:date", async (req, res) => {
     const { date } = req.params;
     try {
         const today = new Date().toISOString().split('T')[0];
-        const ttl = (date === today) ? 30 * 1000 : CACHE_TIMES.SCHEDULED; // 30s cache for today
+        const ttl = (date === today) ? 10 * 1000 : CACHE_TIMES.SCHEDULED; // 10s cache for today
         const data = await getCachedData(`matches_${date}`, async () => {
             return await fetchMackolikMatchesByDate(date);
         }, ttl);
@@ -2050,7 +2050,7 @@ setInterval(async () => {
     } catch (e) {
         console.error("[Background Tracker] Error:", e.message);
     }
-}, 8000);
+}, 5000);
 
 setInterval(async () => {
     try {
@@ -2315,7 +2315,7 @@ async function warmRuntimeCaches() {
         await getCachedData(`matches_${todayStr}`, async () => {
             const result = await fetchFromSofa(`/sport/football/scheduled-events/${todayStr}`);
             return result.data;
-        }, 30 * 1000);
+        }, 10 * 1000);
     } catch (e) {
         console.warn("[Warmup] Cache prefetch failed:", e.message);
     }
@@ -2353,7 +2353,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server ${PORT} portunda aktivdir.`);
     warmRuntimeCaches();
-    setInterval(warmRuntimeCaches, 15 * 1000);
+    setInterval(warmRuntimeCaches, 8 * 1000);
 
     // â”€â”€â”€ RENDER KEEP-ALIVE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Render free plan serveri 15 dÉ™qiqÉ™lik hÉ™rÉ™kÉ™tsizlikdÉ™n sonra yuxuya gÃ¶ndÉ™rir.

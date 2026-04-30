@@ -5364,7 +5364,7 @@
             async function updateModalStatsAndIncidents(id, options = {}) {
                 const match = options.match || allEvents.find(m => m.id?.toString() === id?.toString()) || null;
                 const now = Date.now();
-                if (!options.force && modalDetailsLastFetch[id] && (now - modalDetailsLastFetch[id] < 45000)) {
+                if (!options.force && modalDetailsLastFetch[id] && (now - modalDetailsLastFetch[id] < 12000)) {
                     return;
                 }
                 if (modalDetailsInFlight === id) {
@@ -6759,7 +6759,7 @@
                 }
 
                 syncFavoritesLive();
-            }, 30000);
+            }, 8000);
 
             // Enhanced Keep-Alive Ping
             function pingServer() {
