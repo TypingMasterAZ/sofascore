@@ -1744,21 +1744,24 @@
 
         .profile-input {
             width: 100%;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px 16px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.03));
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            padding: 13px 16px;
             color: #fff;
             font-family: inherit;
             font-size: 15px;
             margin-top: 8px;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
         }
 
         .profile-input:focus {
             outline: none;
             border-color: var(--primary);
             background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 4px rgba(59,130,246,0.10);
+            transform: translateY(-1px);
         }
 
         /* 4-Digit OTP Inputs */
@@ -1938,16 +1941,18 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 16px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            background: rgba(255, 255, 255, 0.02);
-            margin: 0 16px 2px;
-            border-radius: 12px;
-            transition: background 0.2s;
+            padding: 16px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.02));
+            margin: 0 16px 10px;
+            border-radius: 18px;
+            transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 14px 28px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.03);
         }
 
         .profile-row:active {
             background: rgba(255, 255, 255, 0.05);
+            transform: translateY(1px);
         }
 
         .profile-row:last-child {
@@ -1955,14 +1960,14 @@
         }
 
         .profile-section-title {
-            padding: 24px 24px 12px;
+            padding: 20px 20px 10px;
             font-size: 11px;
             font-weight: 800;
             color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 1.6px;
             display: block;
-            opacity: 0.7;
+            opacity: 0.82;
         }
 
         .profile-header-new {
@@ -1971,9 +1976,12 @@
             align-items: center;
             text-align: center;
             gap: 16px;
-            padding: 40px 20px;
-            background: radial-gradient(circle at center, rgba(59, 130, 246, 0.12), transparent 70%);
-            border-bottom: 1px solid var(--glass-border);
+            padding: 34px 22px 28px;
+            background:
+                radial-gradient(circle at top, rgba(59, 130, 246, 0.22), transparent 54%),
+                radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.10), transparent 32%),
+                linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(9, 14, 27, 0.98));
+            border-bottom: 1px solid rgba(255,255,255,0.05);
             position: relative;
             margin-bottom: 10px;
         }
@@ -2073,14 +2081,17 @@
         .profile-info-box {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
             align-items: center;
+            width: 100%;
         }
 
         .profile-actions-row {
             display: flex;
             gap: 12px;
-            margin-top: 12px;
+            margin-top: 6px;
+            width: 100%;
+            justify-content: center;
         }
 
         .profile-action-btn {
@@ -2114,16 +2125,17 @@
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            padding: 4px 12px;
-            background: rgba(59, 130, 246, 0.15);
-            color: var(--primary);
+            padding: 6px 14px;
+            background: rgba(59, 130, 246, 0.12);
+            color: #bfdbfe;
             font-size: 11px;
             font-weight: 800;
-            border-radius: 20px;
+            border-radius: 999px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.7px;
             margin: 8px auto 0;
-            border: 1px solid rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.18);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
         }
 
         .logout-pill {
@@ -3894,15 +3906,6 @@
                             <input type="checkbox" id="soundNotifToggle" onchange="updateSetting('soundEnabled', this.checked)">
                             <span class="slider"></span>
                         </label>
-                    </div>
-
-                    <!-- TEST PUSH SECTION -->
-                    <div id="testPushRow" class="profile-row" style="display:none; padding:12px 16px; background:rgba(59, 130, 246, 0.05); border-radius:12px; margin: 10px 16px; border: 1px dashed rgba(59, 130, 246, 0.3);">
-                        <div style="flex:1;">
-                            <div style="font-size:14px; font-weight:700; color:var(--primary);">Bildirişləri Yoxla</div>
-                        <div style="font-size:11px; color:var(--text-muted);">Cihazın bildiriş qəbul etdiyini yoxlayın.</div>
-                        </div>
-                        <button onclick="sendTestPush()" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">YOXLA</button>
                     </div>
 
                     <!-- DEBUG INFO SECTION -->
