@@ -65,6 +65,15 @@
             firebase.auth().languageCode = 'az';
         }
     </script>
+    <script>
+        (() => {
+            const ua = navigator.userAgent || '';
+            const isiOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isAndroid = /Android/i.test(ua);
+            document.documentElement.classList.toggle('is-ios', isiOS);
+            document.documentElement.classList.toggle('is-android', isAndroid);
+        })();
+    </script>
     <style>
         :root {
             --bg: #020617;
@@ -2816,6 +2825,223 @@
             }
             @keyframes slideUp { from {transform: translateY(100%);} to {transform: translateY(0);} }
             @keyframes bounce { 0%, 100% {transform: translateY(0);} 50% {transform: translateY(10px);} }
+
+        /* Platform-specific shell overrides */
+        html.is-ios body {
+            background:
+                radial-gradient(circle at top, rgba(96, 165, 250, 0.10), transparent 42%),
+                radial-gradient(circle at bottom, rgba(244, 114, 182, 0.08), transparent 38%),
+                #030712;
+        }
+
+        html.is-ios .top-navbar {
+            background: rgba(10, 16, 31, 0.58);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(32px) saturate(140%);
+            -webkit-backdrop-filter: blur(32px) saturate(140%);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.22);
+        }
+
+        html.is-ios .main-content {
+            padding-bottom: 118px;
+        }
+
+        html.is-ios .date-tabs {
+            padding: 10px 14px 12px;
+            gap: 8px;
+        }
+
+        html.is-ios .date-tab {
+            min-width: 62px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.04);
+        }
+
+        html.is-ios .date-tab.active {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px rgba(59, 130, 246, 0.28);
+        }
+
+        html.is-ios .league-group {
+            margin: 0 10px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 22px;
+            background: rgba(15, 23, 42, 0.68);
+            backdrop-filter: blur(24px) saturate(120%);
+            -webkit-backdrop-filter: blur(24px) saturate(120%);
+            overflow: hidden;
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.20);
+        }
+
+        html.is-ios .league-header {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 14px 16px;
+        }
+
+        html.is-ios .match-row {
+            padding: 15px 16px;
+        }
+
+        html.is-ios .match-time {
+            width: 60px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        html.is-ios .search-input-box {
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+
+        html.is-ios .modal-content {
+            border-radius: 28px 28px 0 0;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(2, 6, 23, 0.98));
+            backdrop-filter: blur(28px) saturate(130%);
+            -webkit-backdrop-filter: blur(28px) saturate(130%);
+        }
+
+        html.is-ios .bottom-nav {
+            left: 50%;
+            bottom: calc(12px + env(safe-area-inset-bottom));
+            width: calc(100% - 26px);
+            max-width: 430px;
+            height: 74px;
+            transform: translateX(-50%);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            border-radius: 28px;
+            background: rgba(15, 23, 42, 0.50);
+            box-shadow:
+                0 18px 50px rgba(0, 0, 0, 0.32),
+                inset 0 1px 0 rgba(255, 255, 255, 0.10);
+            backdrop-filter: blur(36px) saturate(150%);
+            -webkit-backdrop-filter: blur(36px) saturate(150%);
+            padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+        }
+
+        html.is-ios .nav-item {
+            width: auto;
+            flex: 1;
+            height: 54px;
+            gap: 4px;
+            border-radius: 20px;
+            position: relative;
+        }
+
+        html.is-ios .nav-item.active {
+            color: #dbeafe;
+            background: rgba(255, 255, 255, 0.09);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+        }
+
+        html.is-ios .nav-icon {
+            font-size: 21px;
+        }
+
+        html.is-ios .nav-item span {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0;
+        }
+
+        html.is-android body {
+            background:
+                radial-gradient(circle at top, rgba(14, 165, 233, 0.06), transparent 42%),
+                #060b16;
+        }
+
+        html.is-android .top-navbar {
+            background: rgba(9, 13, 24, 0.92);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border-bottom: 1px solid rgba(96, 165, 250, 0.08);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+        }
+
+        html.is-android .date-tabs {
+            gap: 8px;
+            padding: 10px 14px;
+        }
+
+        html.is-android .date-tab {
+            min-width: 64px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.02);
+            border-color: rgba(148, 163, 184, 0.08);
+        }
+
+        html.is-android .league-group {
+            margin: 0 8px 10px;
+            border: 1px solid rgba(59, 130, 246, 0.08);
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(10, 15, 28, 0.96));
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+            overflow: hidden;
+        }
+
+        html.is-android .league-header {
+            background: rgba(255, 255, 255, 0.025);
+            padding: 13px 15px;
+        }
+
+        html.is-android .match-time {
+            width: 58px;
+            border-radius: 12px;
+            background: rgba(148, 163, 184, 0.10);
+        }
+
+        html.is-android .search-input-box {
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(148, 163, 184, 0.08);
+        }
+
+        html.is-android .modal-content {
+            border-radius: 24px 24px 0 0;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(2, 6, 23, 1));
+        }
+
+        html.is-android .bottom-nav {
+            left: 10px;
+            bottom: calc(10px + env(safe-area-inset-bottom));
+            width: calc(100% - 20px);
+            height: 70px;
+            border-radius: 22px;
+            border: 1px solid rgba(96, 165, 250, 0.10);
+            background: rgba(8, 12, 24, 0.84);
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.30);
+            padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+        }
+
+        html.is-android .nav-item {
+            width: auto;
+            flex: 1;
+            height: 56px;
+            gap: 5px;
+            border-radius: 16px;
+        }
+
+        html.is-android .nav-item.active {
+            background: rgba(59, 130, 246, 0.14);
+            color: #bfdbfe;
+        }
+
+        @media (min-width: 768px) {
+            html.is-ios .bottom-nav,
+            html.is-android .bottom-nav {
+                max-width: 520px;
+            }
+
+            html.is-ios .league-group,
+            html.is-android .league-group {
+                margin-left: auto;
+                margin-right: auto;
+                max-width: 920px;
+            }
+        }
     </style>
 </head>
 
