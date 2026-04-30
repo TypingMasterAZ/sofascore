@@ -664,31 +664,55 @@
         }
 
         .match-time {
-            width: 56px;
+            width: 64px;
+            min-height: 56px;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             font-size: 12px;
-            font-weight: 700;
-            color: var(--text-main);
-            background: rgba(150, 150, 150, 0.15);
-            border-radius: 8px;
-            padding: 6px 0;
-            margin-right: 4px;
+            font-weight: 800;
+            color: #dbe4f3;
+            background: linear-gradient(180deg, rgba(148, 163, 184, 0.14), rgba(148, 163, 184, 0.08));
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            border-radius: 16px;
+            padding: 8px 6px;
+            margin-right: 6px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+            text-align: center;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
         }
 
         .match-time.is-live {
-            color: var(--live);
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            text-shadow: 0 0 5px rgba(239, 68, 68, 0.3);
+            color: #fecaca;
+            background: linear-gradient(180deg, rgba(239, 68, 68, 0.18), rgba(127, 29, 29, 0.18));
+            border: 1px solid rgba(239, 68, 68, 0.24);
+            text-shadow: 0 0 10px rgba(239, 68, 68, 0.18);
         }
 
         .match-time.is-live .live-min {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 4px;
+            font-size: 16px;
+            font-weight: 900;
+            letter-spacing: 0.2px;
+        }
+
+        .match-time .time-label {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 0.2px;
+        }
+
+        .match-time .time-label.is-state {
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
         }
 
         .match-time.is-live .live-min::before {
@@ -1610,9 +1634,9 @@
             }
 
             .match-time {
-                width: 42px;
+                width: 54px;
                 font-size: 12px;
-                padding-right: 10px;
+                padding: 7px 4px;
             }
 
             .match-teams {
@@ -5166,12 +5190,15 @@
             function createMatchRow(m, group) {
                 const timeRaw = getMatchTime(m);
                 const isLive = m.status.type === 'inprogress' || timeRaw === 'HT' || timeRaw === 'ET' || timeRaw === 'LIVE';
+                const isStateLabel = ['HT', 'FT', 'ET', 'AET', 'PEN', 'LIVE'].includes(timeRaw);
                 const homeLogo = m.homeTeam?.logoUrl || `https://www.sofascore.com/api/v1/team/${m.homeTeam.id}/image`;
                 const awayLogo = m.awayTeam?.logoUrl || `https://www.sofascore.com/api/v1/team/${m.awayTeam.id}/image`;
 
                 let displayTime = timeRaw;
                 const timeClass = isLive ? 'match-time is-live' : 'match-time';
-                const formattedMinute = isLive ? `<span class="live-min">${displayTime}</span>` : displayTime;
+                const formattedMinute = isLive
+                    ? `<span class="live-min">${displayTime}</span>`
+                    : `<span class="time-label${isStateLabel ? ' is-state' : ''}">${displayTime}</span>`;
 
                 const safeTimeRaw = timeRaw.replace(/'/g, "\\'");
                 const safeHomeName = m.homeTeam.name.replace(/'/g, "\\'");
