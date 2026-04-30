@@ -1054,7 +1054,7 @@
         }
 
         .modal-content {
-            background: var(--bg);
+            background: linear-gradient(180deg, #07111f 0%, #050c18 100%);
             width: 100%;
             height: 93vh;
             border-radius: 24px 24px 0 0;
@@ -1072,11 +1072,12 @@
         .modal-header {
             padding: 24px 16px 20px;
             position: relative;
-            background: var(--card);
+            background:
+                radial-gradient(circle at top, rgba(59, 130, 246, 0.16), transparent 58%),
+                linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(9, 14, 28, 0.92));
             border-radius: 24px 24px 0 0;
             text-align: center;
-            border-bottom: 1px solid var(--border);
-            background-image: radial-gradient(circle at top, rgba(59, 130, 246, 0.1), transparent 70%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         }
 
         .drag-handle {
@@ -1121,8 +1122,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 5px;
-            padding: 0 10px;
+            gap: 10px;
+            margin-top: 4px;
+            padding: 16px 14px;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
         }
 
         .team-block {
@@ -1137,10 +1143,11 @@
         .team-block img {
             width: 72px;
             height: 72px;
-            border-radius: 12px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-            background: #fff;
-            padding: 2px;
+            border-radius: 18px;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+            background: transparent;
+            padding: 0;
+            object-fit: contain;
             flex-shrink: 0;
         }
 
@@ -1167,20 +1174,21 @@
         }
 
         .score-large {
-            font-size: 48px;
+            font-size: 52px;
             font-weight: 900;
             letter-spacing: 1px;
-            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            text-shadow: 0 8px 24px rgba(0, 0, 0, 0.42);
         }
 
         .time-badge {
             font-size: 14px;
             font-weight: 800;
             color: var(--text-muted);
-            margin-top: 4px;
-            padding: 4px 12px;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.05);
+            margin-top: 6px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255,255,255,0.06);
         }
 
         .time-badge.is-live {
@@ -1191,18 +1199,18 @@
 
         .modal-tabs {
             display: flex;
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 0 16px;
+            background: rgba(8, 12, 24, 0.86);
+            backdrop-filter: blur(14px);
+            padding: 8px 16px 0;
             position: sticky;
             top: 0;
             z-index: 10;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
         }
 
         .tab-btn {
             flex: 1;
-            padding: 18px 4px;
+            padding: 14px 8px 16px;
             border: none;
             background: none;
             font-weight: 700;
@@ -1222,13 +1230,13 @@
         .tab-btn.active::after {
             content: '';
             position: absolute;
-            bottom: 0;
-            left: 15%;
-            width: 70%;
-            height: 3px;
+            bottom: 2px;
+            left: 18%;
+            width: 64%;
+            height: 4px;
             background: var(--primary);
-            border-radius: 3px 3px 0 0;
-            box-shadow: 0 -2px 8px rgba(59, 130, 246, 0.5);
+            border-radius: 999px;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.45);
         }
 
         .modal-body {
@@ -1241,7 +1249,7 @@
 
         .tab-content {
             display: none;
-            padding: 16px;
+            padding: 18px 16px 24px;
         }
 
         .tab-content.active {
@@ -1265,8 +1273,8 @@
         /* Premium Timeline for Incidents */
         .timeline-container {
             position: relative;
-            padding: 20px 0;
-            max-width: 500px;
+            padding: 8px 0 18px;
+            max-width: 720px;
             margin: 0 auto;
         }
 
@@ -1274,90 +1282,166 @@
             content: '';
             position: absolute;
             left: 50%;
-            top: 0;
+            top: 6px;
             bottom: 0;
             width: 2px;
-            background: linear-gradient(to bottom, transparent, var(--border), var(--border), transparent);
+            background: linear-gradient(to bottom, transparent, rgba(59,130,246,0.35), rgba(255,255,255,0.08), transparent);
             transform: translateX(-50%);
         }
 
         .timeline-item {
             display: flex;
-            align-items: center;
+            align-items: stretch;
             width: 100%;
-            margin-bottom: 24px;
+            margin-bottom: 18px;
             position: relative;
             animation: fadeInUp 0.5s ease backwards;
         }
 
         .timeline-content {
             width: 45%;
-            padding: 12px 16px;
-            background: var(--card);
-            border-radius: 16px;
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            padding: 14px 16px 14px;
+            background: linear-gradient(180deg, rgba(17, 24, 39, 0.95), rgba(9, 14, 28, 0.96));
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.24);
             position: relative;
+            overflow: hidden;
         }
 
         .timeline-content.home {
             margin-right: auto;
             text-align: right;
+            border-top-right-radius: 10px;
         }
 
         .timeline-content.away {
             margin-left: auto;
             text-align: left;
+            border-top-left-radius: 10px;
+        }
+
+        .timeline-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, rgba(59,130,246,0.95), rgba(37,99,235,0.35));
+        }
+
+        .timeline-content.home::before {
+            right: 0;
+        }
+
+        .timeline-content.away::before {
+            left: 0;
         }
 
         .timeline-dot {
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
-            width: 32px;
-            height: 32px;
-            background: var(--bg);
-            border: 2px solid var(--border);
-            border-radius: 50%;
+            min-width: 50px;
+            height: 30px;
+            padding: 0 10px;
+            background: linear-gradient(180deg, rgba(15,23,42,0.98), rgba(8,12,24,0.98));
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 999px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 800;
             z-index: 2;
-            color: var(--text-main);
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            color: #e2e8f0;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.30);
+            letter-spacing: 0.2px;
         }
 
         .timeline-icon {
-            font-size: 18px;
-            margin-bottom: 4px;
-            display: block;
+            width: 34px;
+            height: 34px;
+            font-size: 16px;
+            margin-bottom: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.05);
         }
 
         .timeline-player {
-            font-size: 13px;
-            font-weight: 700;
+            font-size: 14px;
+            font-weight: 800;
             display: block;
             color: #fff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            line-height: 1.35;
         }
 
         .timeline-sub-player {
-            font-size: 11px;
-            color: var(--text-muted);
-            font-weight: 500;
+            font-size: 12px;
+            color: #94a3b8;
+            font-weight: 600;
+            margin-top: 4px;
         }
 
         .timeline-detail {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
             font-size: 11px;
-            color: var(--primary);
-            font-weight: 700;
+            color: #93c5fd;
+            font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-top: 2px;
+            letter-spacing: 0.6px;
+            margin-top: 10px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.10);
+            border: 1px solid rgba(59,130,246,0.14);
+        }
+
+        .timeline-detail.goal {
+            color: #fca5a5;
+            background: rgba(239, 68, 68, 0.10);
+            border-color: rgba(239, 68, 68, 0.16);
+        }
+
+        .timeline-detail.card {
+            color: #fde68a;
+            background: rgba(245, 158, 11, 0.10);
+            border-color: rgba(245, 158, 11, 0.16);
+        }
+
+        .timeline-detail.substitution {
+            color: #86efac;
+            background: rgba(34, 197, 94, 0.10);
+            border-color: rgba(34, 197, 94, 0.16);
+        }
+
+        .details-empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-height: 240px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .details-empty-state .empty-icon {
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 18px;
+            font-size: 24px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.05);
         }
 
         /* Premium Statistics Styles */
@@ -1596,6 +1680,8 @@
             width: 72px;
             height: 72px;
             filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.4));
+            background: transparent !important;
+            padding: 0 !important;
         }
 
 
@@ -5524,6 +5610,7 @@
                         let player = getIncidentPlayerName(g);
                         let subText = "";
                         let detail = "";
+                        let detailClass = g.incidentType;
 
                         if (g.incidentType === "substitution") {
                             player = g.playerIn ? g.playerIn.name : "Oyunçu";
@@ -5543,14 +5630,19 @@
                                     <span class="timeline-icon">${icon}</span>
                                     <span class="timeline-player">${player}</span>
                                     ${subText}
-                                    <span class="timeline-detail">${detail}</span>
+                                    <span class="timeline-detail ${detailClass}">${detail}</span>
                                 </div>
                             </div>`;
                     }).join("");
                     tHtml += '</div>';
                     document.getElementById("goalsBox").innerHTML = tHtml;
                 } else {
-                    document.getElementById("goalsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Hadisə tapılmadı</div>";
+                    document.getElementById("goalsBox").innerHTML = `
+                        <div class="details-empty-state">
+                            <div class="empty-icon">&#128221;</div>
+                            <div style="font-weight:800; color:var(--text-main);">Hadisə tapılmadı</div>
+                            <div style="max-width:240px; line-height:1.5;">Bu matç üçün hazırda göstəriləcək detal hadisəsi yoxdur.</div>
+                        </div>`;
                 }
             }
 
