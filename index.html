@@ -5196,6 +5196,49 @@
                 return `${tableHtml}</tbody></table></div>`;
             }
 
+            function normalizeLeagueId(id) {
+                const value = String(id ?? '');
+                const replacements = {
+                    '37': '35',
+                    '203': '52'
+                };
+                return replacements[value] || value;
+            }
+
+            function normalizeLeagueListIds(list = []) {
+                return list.map(item => ({ ...item, id: Number(normalizeLeagueId(item.id)) || item.id }));
+            }
+
+            let popularStandingsPrefetchStarted = false;
+            function prefetchPopularStandings() {
+                if (popularStandingsPrefetchStarted) return;
+                popularStandingsPrefetchStarted = true;
+
+                const fallbackPopular = [
+                    { id: 7 }, { id: 679 }, { id: 14643 }, { id: 17 },
+                    { id: 8 }, { id: 23 }, { id: 35 }, { id: 34 }, { id: 52 }
+                ];
+                const source = (topLeaguesRaw && topLeaguesRaw.length ? topLeaguesRaw : fallbackPopular)
+                    .map(l => normalizeLeagueId(l.id))
+                    .filter(Boolean)
+                    .slice(0, 10);
+
+                source.forEach((id, index) => {
+                    setTimeout(() => {
+                        fetchServerJson(`/api/standings-fast/${id}`, "Standings prefetch xətası")
+                            .then(data => {
+                                if (!data?.standings?.length) return;
+                                const key = `standings_${id}_${data.seasonId || 'auto'}`;
+                                leagueStandingsCache[key] = data;
+                                leagueStandingsCache[`standings_${id}_auto`] = data;
+                                setPersistedLeagueData(key, data);
+                                setPersistedLeagueData(`standings_${id}_auto`, data);
+                            })
+                            .catch(() => {});
+                    }, index * 650);
+                });
+            }
+
             function switchMainView(viewType) {
                 currentStandingsTourId = null;
                 document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
@@ -5231,6 +5274,7 @@
                     hideBackBtn();
                     mc.style.paddingTop = '80px';
                     renderLeaguesView();
+                    prefetchPopularStandings();
                 }
                 else if (viewType === 'favorites') {
                     document.getElementById('favoritesView').classList.add('active');
@@ -5288,7 +5332,7 @@
                 let group = null;
 
                 if (/^\d+$/.test(keyOrId)) {
-                    tourId = keyOrId;
+                    tourId = normalizeLeagueId(keyOrId);
                 }
 
                 // If we have an ID, try to find it in current matches first
@@ -5959,7 +6003,7 @@
                     const cachedTop = localStorage.getItem('cached_top_leagues');
                     const cachedCats = localStorage.getItem('cached_categories');
                     if (cachedTop) {
-                        try { topLeaguesRaw = JSON.parse(cachedTop); } catch(e){}
+                        try { topLeaguesRaw = normalizeLeagueListIds(JSON.parse(cachedTop)); } catch(e){}
                     }
                     if (cachedCats) {
                         try { allCategoriesGlobal = JSON.parse(cachedCats); } catch(e){}
@@ -5974,8 +6018,9 @@
 
                         if (resTop && resTop.ok) {
                             const topData = await resTop.json();
-                            topLeaguesRaw = topData.uniqueTournaments || topData.data || [];
+                            topLeaguesRaw = normalizeLeagueListIds(topData.uniqueTournaments || topData.data || []);
                             localStorage.setItem('cached_top_leagues', JSON.stringify(topLeaguesRaw));
+                            prefetchPopularStandings();
                         }
                         if (resCats && resCats.ok) {
                             const catData = await resCats.json();
@@ -6182,7 +6227,7 @@
                     { id: 17, name: "Premier League", country: "England" },
                     { id: 8, name: "La Liga", country: "Spain" },
                     { id: 23, name: "Serie A", country: "Italy" },
-                    { id: 37, name: "Bundesliga", country: "Germany" },
+                    { id: 35, name: "Bundesliga", country: "Germany" },
                     { id: 34, name: "Ligue 1", country: "France" },
                     { id: 203, name: "Süper Lig", country: "Turkey" },
                     { id: 709, name: "Azərbaycan Premyer Liqası", country: "Azerbaijan" },
@@ -6200,7 +6245,7 @@
                         { id: 17, name: "Premier League", category: { name: "England", id: 1 } },
                         { id: 8, name: "La Liga", category: { name: "Spain", id: 32 } },
                         { id: 23, name: "Serie A", category: { name: "Italy", id: 31 } },
-                        { id: 37, name: "Bundesliga", category: { name: "Germany", id: 30 } },
+                        { id: 35, name: "Bundesliga", category: { name: "Germany", id: 30 } },
                         { id: 203, name: "Süper Lig", category: { name: "Turkey", id: 52 } },
                         { id: 709, name: "Premyer Liqa", category: { name: "Azerbaijan", id: 875 } }
                     ];
