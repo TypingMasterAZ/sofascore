@@ -6643,8 +6643,64 @@
                 const fallbackName = getDefaultProfileName(user);
                 return {
                     name: cleanProfileText(rawProfile.name || rawProfile.displayName, fallbackName),
-                    status: cleanProfileText(rawProfile.status, 'ProScore istifadəçisi')
+                    status: cleanProfileText(rawProfile.status, 'ProScore istifadəçisi'),
+                    profilePic: cleanProfileText(rawProfile.profilePic, '')
                 };
+            }
+
+            function applyProfileImage(imageData) {
+                if (imageData && imageData.startsWith('data:image/')) {
+                    localStorage.setItem('profileImage', imageData);
+                    return imageData;
+                }
+                return localStorage.getItem('profileImage') || '';
+            }
+
+            async function syncProfileFromServer(user = auth.currentUser) {
+                if (!user?.email) return null;
+                try {
+                    const res = await fetch(API_BASE_URL + `/api/auth/profile/${encodeURIComponent(user.email)}`, { cache: 'no-store' });
+                    if (!res.ok) return null;
+                    const data = await res.json();
+                    if (!data.success) return null;
+                    const profile = normalizeProfile({
+                        name: data.data?.displayName,
+                        status: data.data?.status,
+                        profilePic: data.data?.profilePic
+                    }, user);
+                    if (profile.profilePic) applyProfileImage(profile.profilePic);
+                    localStorage.setItem('userProfile', JSON.stringify({
+                        name: profile.name,
+                        status: profile.status
+                    }));
+                    return profile;
+                } catch (e) {
+                    console.warn("Could not sync profile from server.", e.message);
+                    return null;
+                }
+            }
+
+            function compressProfileImage(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onerror = () => reject(reader.error);
+                    reader.onload = () => {
+                        const img = new Image();
+                        img.onerror = reject;
+                        img.onload = () => {
+                            const maxSide = 360;
+                            const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+                            const canvas = document.createElement('canvas');
+                            canvas.width = Math.max(1, Math.round(img.width * scale));
+                            canvas.height = Math.max(1, Math.round(img.height * scale));
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            resolve(canvas.toDataURL('image/jpeg', 0.82));
+                        };
+                        img.src = reader.result;
+                    };
+                    reader.readAsDataURL(file);
+                });
             }
 
             async function saveProfile() {
@@ -6674,13 +6730,15 @@
                     // 2. Sync with Backend (users.json)
                     if (auth.currentUser && auth.currentUser.email) {
                         try {
+                            const savedImage = localStorage.getItem('profileImage');
                             const res = await fetch(API_BASE_URL + '/api/auth/update-profile', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
                                     email: auth.currentUser.email,
                                     displayName: newName,
-                                    status: newStatus
+                                    status: newStatus,
+                                    ...(savedImage ? { profilePic: savedImage } : {})
                                 })
                             });
                             if (!res.ok) console.warn("Server sync failed, falling back to local.");
@@ -6720,14 +6778,39 @@
                     return;
                 }
 
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const base64 = e.target.result;
+                const previousImage = localStorage.getItem('profileImage');
+                compressProfileImage(file).then(async (base64) => {
                     localStorage.setItem('profileImage', base64);
                     updateAuthUI();
+
+                    if (auth.currentUser?.email) {
+                        try {
+                            const profile = normalizeProfile(JSON.parse(localStorage.getItem('userProfile') || '{}'));
+                            const res = await fetch(API_BASE_URL + '/api/auth/update-profile', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    email: auth.currentUser.email,
+                                    displayName: profile.name,
+                                    status: profile.status,
+                                    profilePic: base64
+                                })
+                            });
+                            if (!res.ok) throw new Error('Server sync failed');
+                        } catch (e) {
+                            if (previousImage) localStorage.setItem('profileImage', previousImage);
+                            else localStorage.removeItem('profileImage');
+                            updateAuthUI();
+                            showToast('Şəkil serverə yazılmadı', 'error');
+                            return;
+                        }
+                    }
                     showToast('Profil şəkli yeniləndi', 'success');
-                }
-                reader.readAsDataURL(file);
+                }).catch(() => {
+                    showToast('Şəkil oxunmadı', 'error');
+                }).finally(() => {
+                    event.target.value = '';
+                });
             }
 
             function loadProfile() {
@@ -7036,16 +7119,7 @@
                         
                         // Fetch profile from backend
                         try {
-                            const pRes = await fetch(API_BASE_URL + `/api/auth/profile/${email}`);
-                            if (pRes.ok) {
-                                const pData = await pRes.json();
-                                if (pData.success) {
-                                    localStorage.setItem('userProfile', JSON.stringify(normalizeProfile({
-                                        name: pData.data?.displayName,
-                                        status: pData.data?.status
-                                    }, userCredential.user)));
-                                }
-                            }
+                            await syncProfileFromServer(userCredential.user);
                         } catch(e) { console.warn("Could not sync profile from server."); }
 
                         showToast(`Xoş gəldin, ${getDefaultProfileName(userCredential.user)}!`);
@@ -7431,6 +7505,10 @@
                     const overlay = document.getElementById('authOverlay');
                     if (overlay) overlay.style.display = 'none';
                     clearTimeout(authTimer);
+                    syncProfileFromServer(user).then(() => {
+                        loadProfile();
+                        updateAuthUI();
+                    });
                 }
             });
 
