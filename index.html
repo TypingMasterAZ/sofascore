@@ -6623,6 +6623,30 @@
             }
 
             /* Profile Logic */
+            function cleanProfileText(value, fallback) {
+                const text = (value ?? '').toString().trim();
+                if (!text || text.toLowerCase() === 'undefined' || text.toLowerCase() === 'null' || /[�ÃÅÄÉÆÂâ]/.test(text)) {
+                    return fallback;
+                }
+                return text;
+            }
+
+            function getDefaultProfileName(user = auth.currentUser) {
+                if (!user) return 'İstifadəçi';
+                return cleanProfileText(
+                    user.displayName || (user.email ? user.email.split('@')[0] : ''),
+                    'İstifadəçi'
+                );
+            }
+
+            function normalizeProfile(rawProfile = {}, user = auth.currentUser) {
+                const fallbackName = getDefaultProfileName(user);
+                return {
+                    name: cleanProfileText(rawProfile.name || rawProfile.displayName, fallbackName),
+                    status: cleanProfileText(rawProfile.status, 'ProScore istifadəçisi')
+                };
+            }
+
             async function saveProfile() {
                 const uInput = document.getElementById('usernameInput');
                 const sInput = document.getElementById('statusInput');
@@ -6707,11 +6731,14 @@
             }
 
             function loadProfile() {
-                let currentName = 'İstifadəçi';
-                if (auth.currentUser) {
-                    currentName = auth.currentUser.displayName || (auth.currentUser.email ? auth.currentUser.email.split('@')[0] : 'İstifadəçi');
+                let storedProfile = {};
+                try {
+                    storedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                } catch (e) {
+                    storedProfile = {};
                 }
-                const profile = JSON.parse(localStorage.getItem('userProfile') || `{"name":"${currentName}", "status":"ProScore istifadəçisi"}`);
+                const profile = normalizeProfile(storedProfile);
+                localStorage.setItem('userProfile', JSON.stringify(profile));
 
                 const uInput = document.getElementById('usernameInput');
                 const sInput = document.getElementById('statusInput');
@@ -7013,15 +7040,15 @@
                             if (pRes.ok) {
                                 const pData = await pRes.json();
                                 if (pData.success) {
-                                    localStorage.setItem('userProfile', JSON.stringify({
-                                        name: pData.data.displayName,
-                                        status: pData.data.status
-                                    }));
+                                    localStorage.setItem('userProfile', JSON.stringify(normalizeProfile({
+                                        name: pData.data?.displayName,
+                                        status: pData.data?.status
+                                    }, userCredential.user)));
                                 }
                             }
                         } catch(e) { console.warn("Could not sync profile from server."); }
 
-                        showToast(`Xoş gəldin, ${userCredential.user.displayName || userCredential.user.email}!`);
+                        showToast(`Xoş gəldin, ${getDefaultProfileName(userCredential.user)}!`);
                         switchMainView('profile');
                     } else {
                         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
@@ -7329,7 +7356,15 @@
                     if (authLink) authLink.style.display = 'none';
                     if (logoutBox) logoutBox.style.display = 'flex';
                     
-                    const username = user.displayName || user.email.split('@')[0];
+                    let savedProfile = {};
+                    try {
+                        savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                    } catch (e) {
+                        savedProfile = {};
+                    }
+                    const profile = normalizeProfile(savedProfile, user);
+                    localStorage.setItem('userProfile', JSON.stringify(profile));
+                    const username = profile.name;
 
                     const nameEl = document.getElementById('profileDisplayName');
                     const statusEl = document.getElementById('profileUserStatus');
@@ -7338,15 +7373,14 @@
                     if (nameEl) nameEl.innerText = username;
                     
                     // Sync status from local storage if available
-                    const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
                     const badge = document.querySelector('.profile-badge');
                     
-                    if (statusEl && savedProfile.status) {
-                        statusEl.innerText = savedProfile.status;
+                    if (statusEl && profile.status) {
+                        statusEl.innerText = profile.status;
                         
                         // Show premium badge only if status contains "Premium"
                         if (badge) {
-                            if (savedProfile.status.toLowerCase().includes('premium')) {
+                            if (profile.status.toLowerCase().includes('premium')) {
                                 badge.style.display = 'flex';
                             } else {
                                 badge.style.display = 'none';
