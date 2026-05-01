@@ -417,7 +417,7 @@ async function fetchFromSofaUncached(path, params = {}) {
     throw new Error(`Butun baglanti cehdleri ugursuz oldu: ${lastError ? lastError.message : 'Unknown'}`);
 }
 
-async function fetchFromSofaFastRace(path, params = {}, timeout = 3500) {
+async function fetchFromSofaFastRace(path, params = {}, timeout = 6500) {
     const attempts = [];
 
     for (const proxyUrl of GAS_PROXIES.slice(0, 4)) {
@@ -1357,7 +1357,7 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
         if (!seasonId) {
             const seasonCacheKey = `fast_seasons_${tourId}`;
             const seasonsData = await getCachedData(seasonCacheKey, async () => {
-                return await fetchFromSofaFastRace(`/unique-tournament/${tourId}/seasons`, {}, 2800);
+                return await fetchFromSofaFastRace(`/unique-tournament/${tourId}/seasons`, {}, 5000);
             }, CACHE_TIMES.STATIC);
 
             season = pickActiveSeason(seasonsData?.seasons || []);
@@ -1374,7 +1374,7 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
 
         const standingsCacheKey = `standings_${tourId}_${seasonId}`;
         const data = await getCachedData(standingsCacheKey, async () => {
-            return await fetchFromSofaFastRace(`/unique-tournament/${tourId}/season/${seasonId}/standings/total`, {}, 3200);
+            return await fetchFromSofaFastRace(`/unique-tournament/${tourId}/season/${seasonId}/standings/total`, {}, 7000);
         }, CACHE_TIMES.STATIC);
 
         if (data?.standings?.length) {
@@ -2505,7 +2505,7 @@ async function warmOneLeagueStanding() {
 
     const standingsKey = `standings_${league.id}_${seasonId}`;
     const data = await getCachedData(standingsKey, async () => {
-        return await fetchFromSofaFastRace(`/unique-tournament/${league.id}/season/${seasonId}/standings/total`, {}, 3500);
+        return await fetchFromSofaFastRace(`/unique-tournament/${league.id}/season/${seasonId}/standings/total`, {}, 7000);
     }, CACHE_TIMES.STATIC);
     if (data?.standings?.length) saveStandingSnapshot(standingsKey, data);
 }

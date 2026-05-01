@@ -5541,8 +5541,8 @@
                         (box.innerHTML.includes('skeleton') || box.innerHTML.includes('loader-wrapper'))
                     ) {
                         box.innerHTML = `<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:700;'>
-                            Cədvəl 4 saniyə içində gəlmədi.<br>
-                            <span style="display:block; font-size:12px; opacity:.75; margin-top:8px;">Server yenilənən kimi avtomatik sürətlənəcək.</span>
+                            Cədvəl hələ yüklənir...<br>
+                            <span style="display:block; font-size:12px; opacity:.75; margin-top:8px;">Bağlantı gec cavab verdi. Bir neçə saniyə sonra yenidən yoxlaya bilərsiniz.</span>
                             <button class="save-btn" style="width:auto; margin-top:16px; padding:10px 18px;" onclick="loadStandings('${tourId}', '${seasonId || ''}')">Yenidən yoxla</button>
                         </div>`;
                     }
@@ -6458,7 +6458,7 @@
                         : `/api/standings-fast/${tourId}`;
                     data = await withTimeout(
                         fetchServerJson(fastPath, "Standings fast server xətası"),
-                        4200
+                        8500
                     );
                 } catch (serverErr) {
                     console.warn("Fast standings API failed:", serverErr.message);
@@ -6483,7 +6483,7 @@
 
                 if (!seasonId) throw new Error("Season id tapılmadı");
 
-                const directData = await withTimeout(fetchServerJson(`/api/standings/${tourId}/${seasonId}`, "Standings server xətası"), 3500);
+                const directData = await withTimeout(fetchServerJson(`/api/standings/${tourId}/${seasonId}`, "Standings server xətası"), 6500);
                 if (directData?.standings?.length) {
                     leagueStandingsCache[cacheKey] = directData;
                     setPersistedLeagueData(cacheKey, directData);
