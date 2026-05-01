@@ -5467,9 +5467,45 @@
                 }
             }
 
+            async function resolveLeagueSeasonId(tourId) {
+                if (!tourId) return null;
+                const ctx = window.currentLeagueContext || {};
+                if (ctx.id?.toString() === tourId.toString() && ctx.seasonId) return ctx.seasonId;
+
+                const seasons = await fetchLeagueSeasonsData(tourId, ctx.isUnique !== false);
+                const activeSeason =
+                    seasons.find(s => s.isCurrent || s.current || s.editor || s.year === new Date().getFullYear()) ||
+                    seasons[0];
+
+                if (activeSeason) {
+                    if (ctx.id?.toString() === tourId.toString()) {
+                        ctx.seasonId = activeSeason.id;
+                        ctx.seasonName = activeSeason.name || activeSeason.year;
+                        window.currentLeagueContext = ctx;
+                    }
+                    return activeSeason.id;
+                }
+
+                return null;
+            }
+
             window.loadTopPlayers = async function(tourId, seasonId) {
-                if (!tourId || !seasonId) return;
                 const box = document.getElementById("leagueTopPlayers");
+                if (!tourId || !box) return;
+
+                if (!seasonId) {
+                    box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:700;'>Mövsüm məlumatı axtarılır...</div>";
+                    try {
+                        seasonId = await resolveLeagueSeasonId(tourId);
+                    } catch (e) {
+                        console.warn("Top players season resolve failed", e.message);
+                    }
+                    if (!seasonId) {
+                        box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:700;'>Bombardir məlumatı üçün mövsüm tapılmadı.</div>";
+                        return;
+                    }
+                }
+
                 try {
                     const data = await fetchLeagueTopPlayersData(tourId, seasonId);
                     let topPlayers = [];
@@ -5507,11 +5543,31 @@
                 }
             }
 
-            window.loadStandings = function(tourId, seasonId) {
+            window.loadStandings = async function(tourId, seasonId) {
                 currentStandingsTourId = tourId;
                 const box = document.getElementById('leagueStandings');
-                if (!seasonId || !tourId) {
-                    box.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Cədvəl sistemi mövcud deyil.</div>";
+                if (!tourId || !box) return;
+
+                if (!seasonId) {
+                    box.innerHTML = `<div class="loader-wrapper" style="text-align:center; padding:40px; color:var(--text-muted); font-weight:700;">
+                        Cədvəl üçün mövsüm məlumatı axtarılır...
+                    </div>`;
+                    try {
+                        seasonId = await resolveLeagueSeasonId(tourId);
+                    } catch (e) {
+                        console.warn("Standings season resolve failed", e.message);
+                    }
+
+                    if (!seasonId) {
+                        box.innerHTML = `<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:700;'>
+                            Cədvəl məlumatı hazırda alınmadı.<br>
+                            <button class="save-btn" style="width:auto; margin-top:16px; padding:10px 18px;" onclick="loadStandings('${tourId}', null)">Yenidən yoxla</button>
+                        </div>`;
+                        return;
+                    }
+                }
+
+                if (currentStandingsTourId !== tourId) {
                     return;
                 }
 
