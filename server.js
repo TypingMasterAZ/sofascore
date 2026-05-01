@@ -2332,23 +2332,18 @@ async function warmRuntimeCaches() {
 }
 
 app.get("/api/keepalive", async (req, res) => {
-    try {
-        await warmRuntimeCaches();
-        res.json({
-            status: "alive",
-            warmed: true,
-            liveEvents: globalLiveEvents?.events?.length || 0,
-            liveTimestamp: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null,
-            timestamp: new Date().toISOString()
-        });
-    } catch (e) {
-        res.status(500).json({
-            status: "error",
-            warmed: false,
-            message: e.message,
-            timestamp: new Date().toISOString()
-        });
-    }
+    res.json({
+        status: "alive",
+        warmed: false,
+        warmingInBackground: true,
+        liveEvents: globalLiveEvents?.events?.length || 0,
+        liveTimestamp: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null,
+        timestamp: new Date().toISOString()
+    });
+
+    warmRuntimeCaches().catch(e => {
+        console.warn("[Keep-Alive] Background warmup failed:", e.message);
+    });
 });
 
 app.get("/api/ping", (req, res) => {

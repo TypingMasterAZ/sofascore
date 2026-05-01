@@ -5126,6 +5126,13 @@
                 return group.seasonName || group.seasonYear || (group.seasonId ? 'Aktiv mövsüm' : 'Mövsüm tapılmadı');
             }
 
+            function withTimeout(promise, ms = 4500) {
+                return Promise.race([
+                    promise,
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Məlumat gecikir')), ms))
+                ]);
+            }
+
             function switchMainView(viewType) {
                 currentStandingsTourId = null;
                 document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
@@ -5236,27 +5243,16 @@
                 }
 
                 if (!group && tourId) {
-                    group = { id: tourId, name: "Liqa", country: "Yüklənir...", catId: 1, isUnique: isUnique, matches: [], seasonId: null };
-                    
-                    try {
-                        const entity = await fetchLeagueInfoData(tourId, isUnique);
-                        if (entity) {
-                            group.name = entity.name || "Liqa";
-                            group.country = entity.category ? entity.category.name : "Ölkə";
-                            group.catId = entity.category ? entity.category.id : 1;
-                            group.info = entity;
-                            group.userCount = entity.userCount || entity.followersCount || null;
-                        }
-                    } catch(e) { console.error("League info fetch error:", e); }
-
-                    try {
-                        const seasons = await fetchLeagueSeasonsData(tourId, isUnique);
-                        if (seasons && seasons[0]) {
-                            group.seasonId = seasons[0].id;
-                            group.seasonName = seasons[0].name || seasons[0].year;
-                            group.seasonYear = seasons[0].year;
-                        }
-                    } catch(e) { console.error("Seasons info error:", e); }
+                    const knownLeague = (topLeaguesRaw || []).find(l => l.id?.toString() === tourId.toString());
+                    group = {
+                        id: tourId,
+                        name: knownLeague?.name || "Liqa",
+                        country: knownLeague?.category?.name || knownLeague?.country || "Yüklənir...",
+                        catId: knownLeague?.category?.id || knownLeague?.catId || 1,
+                        isUnique: isUnique,
+                        matches: [],
+                        seasonId: knownLeague?.season?.id || knownLeague?.seasonId || null
+                    };
                 }
 
                 if (!group) return;
@@ -5270,10 +5266,17 @@
 
                 document.getElementById('logoTitle').innerText = group.name.toUpperCase();
                 showBackBtn();
+                document.getElementById('singleLeagueContent').innerHTML = `
+                    <div class="league-group" style="margin-top:20px; border-radius:18px; padding:24px; text-align:center;">
+                        <div class="skeleton" style="width:70px; height:70px; border-radius:18px; margin:0 auto 16px;"></div>
+                        <div class="skeleton" style="width:210px; height:24px; border-radius:10px; margin:0 auto 10px;"></div>
+                        <div class="skeleton" style="width:140px; height:16px; border-radius:8px; margin:0 auto 24px;"></div>
+                        <div style="color:var(--text-muted); font-weight:700;">Liqa məlumatları yüklənir...</div>
+                    </div>`;
 
                 if (!group.seasonId) {
                     try {
-                        const seasons = await fetchLeagueSeasonsData(group.id, group.isUnique !== false);
+                        const seasons = await withTimeout(fetchLeagueSeasonsData(group.id, group.isUnique !== false));
                         if (seasons && seasons[0]) {
                             group.seasonId = seasons[0].id;
                             group.seasonName = seasons[0].name || seasons[0].year;
@@ -5284,7 +5287,13 @@
 
                 if (!group.info) {
                     try {
-                        group.info = await fetchLeagueInfoData(group.id, group.isUnique !== false);
+                        group.info = await withTimeout(fetchLeagueInfoData(group.id, group.isUnique !== false));
+                        if (group.info) {
+                            group.name = group.info.name || group.name;
+                            group.country = group.info.category?.name || group.country;
+                            group.catId = group.info.category?.id || group.catId;
+                            document.getElementById('logoTitle').innerText = group.name.toUpperCase();
+                        }
                     } catch(e) { console.warn("League info secondary fetch failed:", e.message); }
                 }
 
