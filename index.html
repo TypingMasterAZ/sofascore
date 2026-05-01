@@ -5103,6 +5103,8 @@
             let currentStandingsTourId = null;
             let standingsTimeout = null;
             const teamDetailsCache = {};
+            const leagueSeasonCache = {};
+            const leagueStandingsCache = {};
 
             function escapeHtml(value) {
                 return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
@@ -5131,6 +5133,67 @@
                     promise,
                     new Promise((_, reject) => setTimeout(() => reject(new Error('Məlumat gecikir')), ms))
                 ]);
+            }
+
+            function getPersistedLeagueData(key, maxAgeMs) {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key) || 'null');
+                    if (data && Date.now() - data.savedAt < maxAgeMs) return data.value;
+                } catch (e) {}
+                return null;
+            }
+
+            function setPersistedLeagueData(key, value) {
+                try {
+                    localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), value }));
+                } catch (e) {}
+            }
+
+            function buildStandingsTable(data, tourId) {
+                if (!data?.standings?.length) return "";
+                const sData = data.standings[0];
+                const rows = sData.rows || [];
+                if (!rows.length) return "";
+
+                let tableHtml = `
+                <div style="background:var(--card); border-radius:12px; margin-top:10px; padding:0; overflow-x:auto;">
+                    <table class="standings-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 30px;">#</th>
+                                <th>KOMANDA</th>
+                                <th>O</th>
+                                <th>Q</th>
+                                <th>H</th>
+                                <th>M</th>
+                                <th>QOL</th>
+                                <th>X</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+                rows.forEach(row => {
+                    const teamId = row.team?.id || '';
+                    const teamName = escapeHtml(row.team?.name || 'Komanda');
+                    const safeTeamName = escapeJsString(row.team?.name || 'Komanda');
+
+                    tableHtml += `
+                        <tr style="transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
+                            <td style="font-weight:700; color:var(--text-muted);">${row.position}</td>
+                            <td class="team-cell" onclick="openTeamDetails('${teamId}', '${safeTeamName}')">
+                                <img class="team-logo club-logo" src="${getTeamLogoUrl(teamId)}" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
+                                <span>${teamName}</span>
+                            </td>
+                            <td>${row.matches ?? '-'}</td>
+                            <td>${row.wins ?? '-'}</td>
+                            <td>${row.draws ?? '-'}</td>
+                            <td>${row.losses ?? '-'}</td>
+                            <td>${row.scoresFor ?? 0}:${row.scoresAgainst ?? 0}</td>
+                            <td class="pts">${row.points ?? '-'}</td>
+                        </tr>`;
+                });
+
+                return `${tableHtml}</tbody></table></div>`;
             }
 
             function switchMainView(viewType) {
@@ -5266,6 +5329,11 @@
 
                 document.getElementById('logoTitle').innerText = group.name.toUpperCase();
                 showBackBtn();
+                window.currentLeagueContext = {
+                    id: group.id,
+                    seasonId: group.seasonId,
+                    isUnique: group.isUnique !== false
+                };
                 document.getElementById('singleLeagueContent').innerHTML = `
                     <div class="league-group" style="margin-top:20px; border-radius:18px; padding:24px; text-align:center;">
                         <div class="skeleton" style="width:70px; height:70px; border-radius:18px; margin:0 auto 16px;"></div>
@@ -5275,26 +5343,22 @@
                     </div>`;
 
                 if (!group.seasonId) {
-                    try {
-                        const seasons = await withTimeout(fetchLeagueSeasonsData(group.id, group.isUnique !== false));
-                        if (seasons && seasons[0]) {
-                            group.seasonId = seasons[0].id;
-                            group.seasonName = seasons[0].name || seasons[0].year;
-                            group.seasonYear = seasons[0].year;
+                    resolveLeagueSeasonId(group.id).then(seasonId => {
+                        if (seasonId && window.currentLeagueContext?.id?.toString() === group.id.toString()) {
+                            window.currentLeagueContext.seasonId = seasonId;
                         }
-                    } catch(e) { console.error("Secondary seasons fetch error:", e); }
+                    }).catch(e => console.warn("Background season fetch error:", e.message));
                 }
 
                 if (!group.info) {
-                    try {
-                        group.info = await withTimeout(fetchLeagueInfoData(group.id, group.isUnique !== false));
-                        if (group.info) {
-                            group.name = group.info.name || group.name;
-                            group.country = group.info.category?.name || group.country;
-                            group.catId = group.info.category?.id || group.catId;
-                            document.getElementById('logoTitle').innerText = group.name.toUpperCase();
-                        }
-                    } catch(e) { console.warn("League info secondary fetch failed:", e.message); }
+                    withTimeout(fetchLeagueInfoData(group.id, group.isUnique !== false), 3500).then(info => {
+                        if (!info || window.currentLeagueContext?.id?.toString() !== group.id.toString()) return;
+                        group.info = info;
+                        group.name = info.name || group.name;
+                        group.country = info.category?.name || group.country;
+                        group.catId = info.category?.id || group.catId;
+                        document.getElementById('logoTitle').innerText = group.name.toUpperCase();
+                    }).catch(e => console.warn("League info background fetch failed:", e.message));
                 }
 
                 const { logoUrl, fallBack } = getLeagueLogoData(group);
@@ -5367,17 +5431,10 @@
                 </div>
             </div>
         `;
-                window.currentLeagueContext = {
-                    id: group.id,
-                    seasonId: group.seasonId,
-                    isUnique: group.isUnique !== false
-                };
-
                 document.getElementById('singleLeagueContent').innerHTML = html;
                 window.scrollTo({ top: 0 });
 
                 loadStandings(group.id, group.seasonId);
-                loadTopPlayers(group.id, group.seasonId);
             }
             window.switchLeagueTab = function (tabId, btn) {
                 document.querySelectorAll('.league-tab-content').forEach(c => c.style.display = 'none');
@@ -5399,54 +5456,19 @@
                 if (currentStandingsTourId !== tourId) return;
 
                 try {
+                    const cacheKey = `standings_${tourId}_${seasonId}`;
+                    const memoryCached = leagueStandingsCache[cacheKey];
+                    if (memoryCached && currentStandingsTourId === tourId) {
+                        const cachedHtml = buildStandingsTable(memoryCached, tourId);
+                        if (cachedHtml) document.getElementById('leagueStandings').innerHTML = cachedHtml;
+                    }
+
                     const data = await fetchLeagueStandingsData(tourId, seasonId);
 
                     if (data && data.standings && data.standings.length > 0) {
-                        const sData = data.standings[0];
-                        const rows = sData.rows || [];
-
-                        let tableHtml = `
-                <div style="background:var(--card); border-radius:12px; margin-top:10px; padding:0; overflow-x:auto;">
-                    <table class="standings-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 30px;">#</th>
-                                <th>KOMANDA</th>
-                                <th>O</th>
-                                <th>Q</th>
-                                <th>H</th>
-                                <th>M</th>
-                                <th>QOL</th>
-                                <th>X</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                `;
-
-                        rows.forEach(row => {
-                            const teamId = row.team?.id || '';
-                            const teamName = escapeHtml(row.team?.name || 'Komanda');
-                            const safeTeamName = escapeJsString(row.team?.name || 'Komanda');
-
-
-                            tableHtml += `
-                        <tr style="transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
-                            <td style="font-weight:700; color:var(--text-muted);">${row.position}</td>
-                            <td class="team-cell" onclick="openTeamDetails('${teamId}', '${safeTeamName}')">
-                                <img class="team-logo club-logo" src="${getTeamLogoUrl(teamId)}" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
-                                <span>${teamName}</span>
-                            </td>
-                            <td>${row.matches}</td>
-                            <td>${row.wins}</td>
-                            <td>${row.draws}</td>
-                            <td>${row.losses}</td>
-                            <td>${row.scoresFor}:${row.scoresAgainst}</td>
-                            <td class="pts">${row.points}</td>
-                        </tr>
-                    `;
-                        });
-
-                        tableHtml += `</tbody></table></div>`;
+                        leagueStandingsCache[cacheKey] = data;
+                        setPersistedLeagueData(cacheKey, data);
+                        const tableHtml = buildStandingsTable(data, tourId);
 
                         const box = document.getElementById('leagueStandings');
                         if (currentStandingsTourId === tourId) {
@@ -5471,6 +5493,7 @@
                 if (!tourId) return null;
                 const ctx = window.currentLeagueContext || {};
                 if (ctx.id?.toString() === tourId.toString() && ctx.seasonId) return ctx.seasonId;
+                if (leagueSeasonCache[tourId]) return leagueSeasonCache[tourId];
 
                 const seasons = await fetchLeagueSeasonsData(tourId, ctx.isUnique !== false);
                 const activeSeason =
@@ -5478,6 +5501,7 @@
                     seasons[0];
 
                 if (activeSeason) {
+                    leagueSeasonCache[tourId] = activeSeason.id;
                     if (ctx.id?.toString() === tourId.toString()) {
                         ctx.seasonId = activeSeason.id;
                         ctx.seasonName = activeSeason.name || activeSeason.year;
@@ -5571,7 +5595,15 @@
                     return;
                 }
 
-                box.innerHTML = `<div class="loader-wrapper"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:100%;"></div></div></div><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:70%;"></div></div></div><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:90%;"></div></div></div></div>`;
+                const cacheKey = `standings_${tourId}_${seasonId}`;
+                const persisted = leagueStandingsCache[cacheKey] || getPersistedLeagueData(cacheKey, 12 * 60 * 60 * 1000);
+                if (persisted) {
+                    leagueStandingsCache[cacheKey] = persisted;
+                    const cachedHtml = buildStandingsTable(persisted, tourId);
+                    if (cachedHtml) box.innerHTML = cachedHtml;
+                } else {
+                    box.innerHTML = `<div class="loader-wrapper"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:100%;"></div></div></div><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:70%;"></div></div></div><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:90%;"></div></div></div></div>`;
+                }
 
                 fetchNativeStandings(tourId, seasonId);
             }
@@ -6357,15 +6389,37 @@
             }
 
             async function fetchLeagueStandingsData(tourId, seasonId) {
+                const cacheKey = `standings_${tourId}_${seasonId}`;
+                if (leagueStandingsCache[cacheKey]) return leagueStandingsCache[cacheKey];
+
                 let data = null;
                 try {
-                    data = await fetchServerJson(`/api/standings/${tourId}/${seasonId}`, "Standings server xətası");
+                    data = await withTimeout(
+                        fetchServerJson(`/api/standings/${tourId}/${seasonId}`, "Standings server xətası"),
+                        6500
+                    );
                 } catch (serverErr) {
                     console.warn("Standings API failed, trying browser SofaScore fallback:", serverErr.message);
                 }
 
-                if (data?.standings?.length) return data;
-                return fetchDirectSofaJson(`/unique-tournament/${tourId}/season/${seasonId}/standings/total`);
+                if (data?.standings?.length) {
+                    leagueStandingsCache[cacheKey] = data;
+                    setPersistedLeagueData(cacheKey, data);
+                    return data;
+                }
+
+                const persisted = getPersistedLeagueData(cacheKey, 12 * 60 * 60 * 1000);
+                if (persisted?.standings?.length) return persisted;
+
+                const directData = await withTimeout(
+                    fetchDirectSofaJson(`/unique-tournament/${tourId}/season/${seasonId}/standings/total`),
+                    3500
+                );
+                if (directData?.standings?.length) {
+                    leagueStandingsCache[cacheKey] = directData;
+                    setPersistedLeagueData(cacheKey, directData);
+                }
+                return directData;
             }
 
             async function fetchLeagueTopPlayersData(tourId, seasonId) {
