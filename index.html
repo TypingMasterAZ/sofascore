@@ -6651,6 +6651,16 @@
             function applyProfileImage(imageData) {
                 if (imageData && imageData.startsWith('data:image/')) {
                     localStorage.setItem('profileImage', imageData);
+                    let storedProfile = {};
+                    try {
+                        storedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                    } catch (e) {
+                        storedProfile = {};
+                    }
+                    localStorage.setItem('userProfile', JSON.stringify({
+                        ...storedProfile,
+                        profilePic: imageData
+                    }));
                     return imageData;
                 }
                 return localStorage.getItem('profileImage') || '';
@@ -6671,7 +6681,8 @@
                     if (profile.profilePic) applyProfileImage(profile.profilePic);
                     localStorage.setItem('userProfile', JSON.stringify({
                         name: profile.name,
-                        status: profile.status
+                        status: profile.status,
+                        profilePic: profile.profilePic || localStorage.getItem('profileImage') || ''
                     }));
                     return profile;
                 } catch (e) {
@@ -6748,7 +6759,8 @@
                     // 3. Update Local
                     localStorage.setItem('userProfile', JSON.stringify({
                         name: newName,
-                        status: newStatus
+                        status: newStatus,
+                        profilePic: localStorage.getItem('profileImage') || ''
                     }));
                     
                     updateAuthUI();
@@ -6797,6 +6809,11 @@
                                 })
                             });
                             if (!res.ok) throw new Error('Server sync failed');
+                            localStorage.setItem('userProfile', JSON.stringify({
+                                name: profile.name,
+                                status: profile.status,
+                                profilePic: base64
+                            }));
                         } catch (e) {
                             if (previousImage) localStorage.setItem('profileImage', previousImage);
                             else localStorage.removeItem('profileImage');
@@ -6822,6 +6839,7 @@
                 }
                 const profile = normalizeProfile(storedProfile);
                 localStorage.setItem('userProfile', JSON.stringify(profile));
+                if (profile.profilePic) applyProfileImage(profile.profilePic);
 
                 const uInput = document.getElementById('usernameInput');
                 const sInput = document.getElementById('statusInput');
@@ -6836,7 +6854,7 @@
                 if (statusEl) statusEl.innerText = profile.status;
                 
                 if (avatarEl) {
-                    const savedImg = localStorage.getItem('profileImage');
+                    const savedImg = profile.profilePic || localStorage.getItem('profileImage');
                     if (savedImg) {
                         avatarEl.style.backgroundImage = `url('${savedImg}')`;
                         avatarEl.innerText = "";
@@ -7464,7 +7482,7 @@
                         badge.style.display = 'none';
                     }
 
-                    const savedImg = localStorage.getItem('profileImage');
+                    const savedImg = profile.profilePic || localStorage.getItem('profileImage');
 
                     if (avatarEl) {
                         if (savedImg) {

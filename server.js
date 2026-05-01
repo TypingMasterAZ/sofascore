@@ -142,7 +142,7 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "3mb" }));
 app.use(express.static(path.join(__dirname)));
 let detectedHostUrl = null;
 app.use((req, res, next) => {
@@ -1504,7 +1504,7 @@ app.get("/api/auth/profile/:email", async (req, res) => {
             data: {
                 displayName: user.username,
                 status: user.status || "ProScore istifadÉ™Ã§isi",
-                profilePic: user.profilePic || "U"
+                profilePic: user.profilePic || ""
             }
         });
     } catch (e) {
