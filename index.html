@@ -6648,9 +6648,28 @@
                 };
             }
 
+            function getProfileImageKey(user = auth.currentUser) {
+                const id = cleanProfileText(user?.email || user?.uid, 'guest').toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+                return `profileImage_${id}`;
+            }
+
+            function getLocalProfileImage(user = auth.currentUser) {
+                return localStorage.getItem(getProfileImageKey(user)) || '';
+            }
+
+            function setLocalProfileImage(imageData, user = auth.currentUser) {
+                if (imageData && imageData.startsWith('data:image/')) {
+                    localStorage.setItem(getProfileImageKey(user), imageData);
+                    localStorage.setItem('profileImage', imageData);
+                } else {
+                    localStorage.removeItem(getProfileImageKey(user));
+                    localStorage.removeItem('profileImage');
+                }
+            }
+
             function applyProfileImage(imageData) {
                 if (imageData && imageData.startsWith('data:image/')) {
-                    localStorage.setItem('profileImage', imageData);
+                    setLocalProfileImage(imageData);
                     let storedProfile = {};
                     try {
                         storedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
@@ -6663,7 +6682,7 @@
                     }));
                     return imageData;
                 }
-                return localStorage.getItem('profileImage') || '';
+                return getLocalProfileImage();
             }
 
             async function syncProfileFromServer(user = auth.currentUser) {
@@ -6682,7 +6701,7 @@
                     localStorage.setItem('userProfile', JSON.stringify({
                         name: profile.name,
                         status: profile.status,
-                        profilePic: profile.profilePic || localStorage.getItem('profileImage') || ''
+                        profilePic: profile.profilePic || getLocalProfileImage(user) || ''
                     }));
                     return profile;
                 } catch (e) {
@@ -6741,7 +6760,7 @@
                     // 2. Sync with Backend (users.json)
                     if (auth.currentUser && auth.currentUser.email) {
                         try {
-                            const savedImage = localStorage.getItem('profileImage');
+                            const savedImage = getLocalProfileImage();
                             const res = await fetch(API_BASE_URL + '/api/auth/update-profile', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -6760,7 +6779,7 @@
                     localStorage.setItem('userProfile', JSON.stringify({
                         name: newName,
                         status: newStatus,
-                        profilePic: localStorage.getItem('profileImage') || ''
+                        profilePic: getLocalProfileImage() || ''
                     }));
                     
                     updateAuthUI();
@@ -6790,9 +6809,9 @@
                     return;
                 }
 
-                const previousImage = localStorage.getItem('profileImage');
+                const previousImage = getLocalProfileImage();
                 compressProfileImage(file).then(async (base64) => {
-                    localStorage.setItem('profileImage', base64);
+                    setLocalProfileImage(base64);
                     updateAuthUI();
 
                     if (auth.currentUser?.email) {
@@ -6815,8 +6834,8 @@
                                 profilePic: base64
                             }));
                         } catch (e) {
-                            if (previousImage) localStorage.setItem('profileImage', previousImage);
-                            else localStorage.removeItem('profileImage');
+                            if (previousImage) setLocalProfileImage(previousImage);
+                            else setLocalProfileImage('');
                             updateAuthUI();
                             showToast('Şəkil serverə yazılmadı', 'error');
                             return;
@@ -6854,7 +6873,7 @@
                 if (statusEl) statusEl.innerText = profile.status;
                 
                 if (avatarEl) {
-                    const savedImg = profile.profilePic || localStorage.getItem('profileImage');
+                    const savedImg = profile.profilePic || getLocalProfileImage();
                     if (savedImg) {
                         avatarEl.style.backgroundImage = `url('${savedImg}')`;
                         avatarEl.innerText = "";
@@ -7427,9 +7446,11 @@
                     icon: '🚪',
                     type: 'confirm',
                     onConfirm: () => {
+                        const imageKey = getProfileImageKey();
                         auth.signOut().then(() => {
                             localStorage.removeItem('userProfile');
                             localStorage.removeItem('profileImage');
+                            localStorage.removeItem(imageKey);
                             showToast('Hesabdan çıxıldı.', 'success');
                             switchMainView('matches');
                         });
@@ -7482,7 +7503,7 @@
                         badge.style.display = 'none';
                     }
 
-                    const savedImg = profile.profilePic || localStorage.getItem('profileImage');
+                    const savedImg = profile.profilePic || getLocalProfileImage(user);
 
                     if (avatarEl) {
                         if (savedImg) {
@@ -7516,6 +7537,22 @@
             }
 
 
+            let profileSyncTimer = null;
+            function stopProfileRealtimeSync() {
+                if (profileSyncTimer) clearInterval(profileSyncTimer);
+                profileSyncTimer = null;
+            }
+
+            function startProfileRealtimeSync(user) {
+                stopProfileRealtimeSync();
+                if (!user?.email) return;
+                profileSyncTimer = setInterval(() => {
+                    syncProfileFromServer(user).then((profile) => {
+                        if (profile) updateAuthUI();
+                    });
+                }, 5000);
+            }
+
             // Sync Firebase Auth with UI
             auth.onAuthStateChanged((user) => {
                 updateAuthUI();
@@ -7527,6 +7564,9 @@
                         loadProfile();
                         updateAuthUI();
                     });
+                    startProfileRealtimeSync(user);
+                } else {
+                    stopProfileRealtimeSync();
                 }
             });
 

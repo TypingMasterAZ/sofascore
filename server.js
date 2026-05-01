@@ -1484,6 +1484,7 @@ app.post("/api/auth/update-profile", async (req, res) => {
         if (displayName) user.username = displayName;
         if (status !== undefined) user.status = status;
         if (profilePic !== undefined) user.profilePic = profilePic;
+        user.updatedAt = new Date().toISOString();
         await saveUser(user);
         res.json({ success: true, message: "Profil uÄŸurla yenilÉ™ndi." });
     } catch (e) {
@@ -1504,7 +1505,8 @@ app.get("/api/auth/profile/:email", async (req, res) => {
             data: {
                 displayName: user.username,
                 status: user.status || "ProScore istifadÉ™Ã§isi",
-                profilePic: user.profilePic || ""
+                profilePic: user.profilePic || "",
+                updatedAt: user.updatedAt || null
             }
         });
     } catch (e) {
