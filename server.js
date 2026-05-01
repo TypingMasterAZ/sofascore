@@ -974,6 +974,16 @@ const FALLBACK_TOP_LEAGUES = [
     { id: 52, name: "Super Lig", category: { id: 46, name: "Turkey" } }
 ];
 
+const KNOWN_CURRENT_SEASONS = {
+    17: 76986,  // Premier League 25/26
+    8: 77559,   // LaLiga 25/26
+    23: 76457,  // Serie A 25/26
+    35: 77333,  // Bundesliga 25/26
+    34: 77356,  // Ligue 1 25/26
+    52: 77805,  // Super Lig 25/26
+    679: 76984  // UEFA Europa League 25/26
+};
+
 const STANDINGS_SNAPSHOT_FILE = path.join(__dirname, "standings_snapshot.json");
 let standingsWarmIndex = 0;
 
@@ -1338,6 +1348,10 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
                 fast: true,
                 durationMs: Date.now() - startedAt
             });
+        }
+
+        if (!seasonId) {
+            seasonId = KNOWN_CURRENT_SEASONS[tourId];
         }
 
         if (!seasonId) {
@@ -2472,7 +2486,10 @@ async function warmRuntimeCaches() {
 
 async function warmOneLeagueStanding() {
     if (!FALLBACK_TOP_LEAGUES.length) return;
-    const league = FALLBACK_TOP_LEAGUES[standingsWarmIndex % FALLBACK_TOP_LEAGUES.length];
+    const warmableLeagues = FALLBACK_TOP_LEAGUES.filter(league => KNOWN_CURRENT_SEASONS[league.id]);
+    if (!warmableLeagues.length) return;
+
+    const league = warmableLeagues[standingsWarmIndex % warmableLeagues.length];
     standingsWarmIndex++;
 
     const existing = Object.keys(cache).some(key =>
@@ -2483,15 +2500,12 @@ async function warmOneLeagueStanding() {
     if (existing) return;
 
     console.log(`[Warmup] Prefetch standings for ${league.name} (${league.id})`);
-    const seasonsData = await getCachedData(`fast_seasons_${league.id}`, async () => {
-        return await fetchFromSofaFastRace(`/unique-tournament/${league.id}/seasons`, {}, 3500);
-    }, CACHE_TIMES.STATIC);
-    const season = pickActiveSeason(seasonsData?.seasons || []);
-    if (!season?.id) return;
+    const seasonId = KNOWN_CURRENT_SEASONS[league.id];
+    if (!seasonId) return;
 
-    const standingsKey = `standings_${league.id}_${season.id}`;
+    const standingsKey = `standings_${league.id}_${seasonId}`;
     const data = await getCachedData(standingsKey, async () => {
-        return await fetchFromSofaFastRace(`/unique-tournament/${league.id}/season/${season.id}/standings/total`, {}, 3500);
+        return await fetchFromSofaFastRace(`/unique-tournament/${league.id}/season/${seasonId}/standings/total`, {}, 3500);
     }, CACHE_TIMES.STATIC);
     if (data?.standings?.length) saveStandingSnapshot(standingsKey, data);
 }

@@ -5105,6 +5105,15 @@
             const teamDetailsCache = {};
             const leagueSeasonCache = {};
             const leagueStandingsCache = {};
+            const KNOWN_LEAGUE_SEASONS = {
+                17: 76986,
+                8: 77559,
+                23: 76457,
+                35: 77333,
+                34: 77356,
+                52: 77805,
+                679: 76984
+            };
 
             function escapeHtml(value) {
                 return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
@@ -5215,12 +5224,12 @@
                 popularStandingsPrefetchStarted = true;
 
                 const fallbackPopular = [
-                    { id: 7 }, { id: 679 }, { id: 14643 }, { id: 17 },
-                    { id: 8 }, { id: 23 }, { id: 35 }, { id: 34 }, { id: 52 }
+                    { id: 679 }, { id: 17 }, { id: 8 }, { id: 23 }, { id: 35 }, { id: 34 }, { id: 52 }
                 ];
                 const source = (topLeaguesRaw && topLeaguesRaw.length ? topLeaguesRaw : fallbackPopular)
                     .map(l => normalizeLeagueId(l.id))
                     .filter(Boolean)
+                    .filter(id => KNOWN_LEAGUE_SEASONS[id])
                     .slice(0, 10);
 
                 source.forEach((id, index) => {
@@ -5550,6 +5559,14 @@
                 const ctx = window.currentLeagueContext || {};
                 if (ctx.id?.toString() === tourId.toString() && ctx.seasonId) return ctx.seasonId;
                 if (leagueSeasonCache[tourId]) return leagueSeasonCache[tourId];
+                if (KNOWN_LEAGUE_SEASONS[tourId]) {
+                    leagueSeasonCache[tourId] = KNOWN_LEAGUE_SEASONS[tourId];
+                    if (ctx.id?.toString() === tourId.toString()) {
+                        ctx.seasonId = KNOWN_LEAGUE_SEASONS[tourId];
+                        window.currentLeagueContext = ctx;
+                    }
+                    return KNOWN_LEAGUE_SEASONS[tourId];
+                }
 
                 const seasons = await fetchLeagueSeasonsData(tourId, ctx.isUnique !== false);
                 const activeSeason =
@@ -5634,6 +5651,7 @@
 
                 const cacheKeys = [
                     `standings_${tourId}_${seasonId || 'auto'}`,
+                    `standings_${tourId}_${KNOWN_LEAGUE_SEASONS[tourId] || 'auto'}`,
                     `standings_${tourId}_auto`
                 ];
                 const persisted = cacheKeys.map(key => leagueStandingsCache[key] || getPersistedLeagueData(key, 12 * 60 * 60 * 1000)).find(Boolean);
@@ -6429,6 +6447,7 @@
             }
 
             async function fetchLeagueStandingsData(tourId, seasonId) {
+                seasonId = seasonId || KNOWN_LEAGUE_SEASONS[tourId] || null;
                 const cacheKey = `standings_${tourId}_${seasonId || 'auto'}`;
                 if (leagueStandingsCache[cacheKey]) return leagueStandingsCache[cacheKey];
 
