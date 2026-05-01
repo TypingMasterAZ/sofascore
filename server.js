@@ -417,6 +417,47 @@ async function fetchFromSofaUncached(path, params = {}) {
     throw new Error(`Butun baglanti cehdleri ugursuz oldu: ${lastError ? lastError.message : 'Unknown'}`);
 }
 
+async function fetchFromSofaFastRace(path, params = {}, timeout = 3500) {
+    const attempts = [];
+
+    for (const proxyUrl of GAS_PROXIES.slice(0, 4)) {
+        attempts.push((async () => {
+            const queryParams = new URLSearchParams(params);
+            queryParams.set("path", path);
+            const res = await axios.get(proxyUrl, { params: queryParams, timeout });
+            return normalizeSofaData(res.data);
+        })());
+    }
+
+    for (const baseUrl of SOFA_APIS) {
+        attempts.push((async () => {
+            const headers = { ...HEADERS, "User-Agent": getRandomUA() };
+            const res = await axios.get(`${baseUrl}${path}`, { headers, params, timeout });
+            return normalizeSofaData(res.data);
+        })());
+    }
+
+    if (attempts.length === 0) {
+        const result = await fetchFromSofa(path, params);
+        return result.data;
+    }
+
+    try {
+        return await Promise.any(attempts);
+    } catch (error) {
+        const reasons = error.errors?.map(e => e.message).join(" | ") || error.message;
+        throw new Error(`Fast Sofa fetch failed for ${path}: ${reasons}`);
+    }
+}
+
+function pickActiveSeason(seasons = []) {
+    if (!Array.isArray(seasons) || seasons.length === 0) return null;
+    const currentYear = new Date().getFullYear();
+    return seasons.find(s => s.isCurrent || s.current || s.year === currentYear) ||
+        seasons.find(s => String(s.year || s.name || "").includes(String(currentYear))) ||
+        seasons[0];
+}
+
 // Diagnostic Endpoint Enhanced
 app.get("/api/debug/proxy", async (req, res) => {
     const diagnostic = {
@@ -1244,6 +1285,49 @@ app.get("/api/match/:id/details", async (req, res) => {
 
 
 // Yeni API: CanlÄ± Liqa CÉ™dvÉ™li Ã¼Ã§Ã¼n Proxy
+app.get("/api/standings-fast/:tourId", async (req, res) => {
+    const startedAt = Date.now();
+    try {
+        const { tourId } = req.params;
+        let seasonId = req.query.seasonId;
+        let season = null;
+
+        if (!seasonId) {
+            const seasonCacheKey = `fast_seasons_${tourId}`;
+            const seasonsData = await getCachedData(seasonCacheKey, async () => {
+                return await fetchFromSofaFastRace(`/unique-tournament/${tourId}/seasons`, {}, 2800);
+            }, CACHE_TIMES.STATIC);
+
+            season = pickActiveSeason(seasonsData?.seasons || []);
+            seasonId = season?.id;
+        }
+
+        if (!seasonId) {
+            return res.status(404).json({
+                error: true,
+                message: "Season not found",
+                durationMs: Date.now() - startedAt
+            });
+        }
+
+        const standingsCacheKey = `standings_${tourId}_${seasonId}`;
+        const data = await getCachedData(standingsCacheKey, async () => {
+            return await fetchFromSofaFastRace(`/unique-tournament/${tourId}/season/${seasonId}/standings/total`, {}, 3200);
+        }, CACHE_TIMES.STATIC);
+
+        res.json({
+            ...data,
+            seasonId,
+            season,
+            fast: true,
+            durationMs: Date.now() - startedAt
+        });
+    } catch (error) {
+        console.error(`[API ERROR] Fast standings tour=${req.params.tourId}: ${error.message}`);
+        res.status(500).json({ error: true, message: error.message, durationMs: Date.now() - startedAt });
+    }
+});
+
 app.get("/api/standings/:tourId/:seasonId", async (req, res) => {
     try {
         const { tourId, seasonId } = req.params;
