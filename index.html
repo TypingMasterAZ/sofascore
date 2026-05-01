@@ -3527,6 +3527,22 @@
                 margin-right: auto;
             }
         }
+
+        @media (max-width: 640px) {
+            .main-content {
+                padding-top: 178px;
+            }
+
+            .date-tabs {
+                margin: 0 10px 10px;
+                padding: 8px 10px 10px;
+            }
+
+            .date-tab {
+                min-width: 60px;
+                min-height: 66px;
+            }
+        }
     </style>
 </head>
 
@@ -3888,6 +3904,36 @@
                             <input type="checkbox" id="soundNotifToggle" onchange="updateSetting('soundEnabled', this.checked)">
                             <span class="slider"></span>
                         </label>
+                    </div>
+
+                    <div class="profile-row">
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Avtomatik Yenilənmə</span>
+                        <select id="refreshIntervalSelect" class="profile-input"
+                            style="width:auto; margin-top:0; padding:8px 16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);"
+                            onchange="updateRefreshInterval(this.value)">
+                            <option value="5">5 saniyə</option>
+                            <option value="8">8 saniyə</option>
+                            <option value="15">15 saniyə</option>
+                            <option value="30">30 saniyə</option>
+                        </select>
+                    </div>
+
+                    <div class="profile-row">
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">İşıqlı Tema</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="themeToggle" onchange="toggleThemeSetting(this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="profile-row" style="cursor:pointer;" onclick="refreshNowFromSettings()">
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Məlumatları Yenilə</span>
+                        <span style="font-size:18px;">&#10227;</span>
+                    </div>
+
+                    <div class="profile-row" style="cursor:pointer;" onclick="clearAppCache()">
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Keşi Təmizlə</span>
+                        <span style="font-size:18px;">&#128260;</span>
                     </div>
 
                     <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
@@ -4804,7 +4850,7 @@
                     document.getElementById('dateTabsContainer').style.display = 'flex';
                     document.getElementById('logoTitle').innerText = 'RABONA MEDIA';
                     hideBackBtn();
-                    mc.style.paddingTop = '120px';
+                    mc.style.paddingTop = window.innerWidth <= 640 ? '178px' : '140px';
                 }
                 else if (viewType === 'leagues') {
                     document.getElementById('leaguesView').classList.add('active');
@@ -6701,6 +6747,8 @@
                 const bNotif = document.getElementById('browserNotifToggle');
                 const sNotif = document.getElementById('soundNotifToggle');
                 const fNotif = document.getElementById('onlyFavNotifToggle');
+                const refreshSelect = document.getElementById('refreshIntervalSelect');
+                const themeToggle = document.getElementById('themeToggle');
 
                 // Update sound selection UI
                 const currentSound = userSettings.notifSound || 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
@@ -6713,19 +6761,13 @@
                     if (bNotif) bNotif.checked = !!userSettings.browserNotifEnabled;
                     if (sNotif) sNotif.checked = !!userSettings.soundEnabled;
                     if (fNotif) fNotif.checked = !!userSettings.onlyFavNotif;
+                    if (refreshSelect) refreshSelect.value = String(userSettings.refreshIntervalSec || 8);
+                    if (themeToggle) themeToggle.checked = (localStorage.getItem('theme') || 'dark') === 'light';
                     
                     const dbg = document.getElementById('debugSettings');
                     if(dbg) dbg.innerText = "Yaddaşdakı vəziyyət: " + JSON.stringify(userSettings);
                 }, 100);
-                const theme = localStorage.getItem('theme') || 'dark';
-                if (theme === 'light') {
-                    document.documentElement.style.setProperty('--bg', '#f8fafc');
-                    document.documentElement.style.setProperty('--card', '#ffffff');
-                    document.documentElement.style.setProperty('--text-main', '#0f172a');
-                    document.documentElement.style.setProperty('--text-muted', '#64748b');
-                    document.documentElement.style.setProperty('--border', '#e2e8f0');
-                    document.getElementById('themeStatus').innerText = 'Deaktiv';
-                }
+                applyTheme(localStorage.getItem('theme') || 'dark', false);
             }
 
             function updateSetting(key, val) {
@@ -6819,27 +6861,66 @@
                 });
             }
 
-            function toggleTheme() {
-                const current = localStorage.getItem('theme') || 'dark';
-                const next = current === 'dark' ? 'light' : 'dark';
-                localStorage.setItem('theme', next);
-
-                if (next === 'light') {
+            function applyTheme(theme, showMessage = true) {
+                if (theme === 'light') {
                     document.documentElement.style.setProperty('--bg', '#f8fafc');
                     document.documentElement.style.setProperty('--card', '#ffffff');
                     document.documentElement.style.setProperty('--text-main', '#0f172a');
                     document.documentElement.style.setProperty('--text-muted', '#64748b');
                     document.documentElement.style.setProperty('--border', '#e2e8f0');
-                    document.getElementById('themeStatus').innerText = 'Deaktiv';
                 } else {
                     document.documentElement.style.setProperty('--bg', '#020617');
                     document.documentElement.style.setProperty('--card', '#0f172a');
                     document.documentElement.style.setProperty('--text-main', '#f8fafc');
                     document.documentElement.style.setProperty('--text-muted', '#94a3b8');
                     document.documentElement.style.setProperty('--border', '#1e293b');
-                    document.getElementById('themeStatus').innerText = 'Aktiv';
                 }
-                showToast(next === 'light' ? 'İşıqlı tema aktivdir' : 'Qaranlıq tema aktivdir');
+                const themeStatus = document.getElementById('themeStatus');
+                if (themeStatus) themeStatus.innerText = theme === 'light' ? 'Deaktiv' : 'Aktiv';
+                const themeToggle = document.getElementById('themeToggle');
+                if (themeToggle) themeToggle.checked = theme === 'light';
+                if (showMessage) showToast(theme === 'light' ? 'İşıqlı tema aktivdir' : 'Qaranlıq tema aktivdir');
+            }
+
+            function toggleTheme() {
+                const current = localStorage.getItem('theme') || 'dark';
+                const next = current === 'dark' ? 'light' : 'dark';
+                localStorage.setItem('theme', next);
+                applyTheme(next);
+            }
+
+            window.toggleThemeSetting = function(enabled) {
+                const next = enabled ? 'light' : 'dark';
+                localStorage.setItem('theme', next);
+                applyTheme(next);
+            };
+
+            window.updateRefreshInterval = function(value) {
+                const seconds = Math.max(5, Math.min(30, parseInt(value, 10) || 8));
+                updateSetting('refreshIntervalSec', seconds);
+                setupAutoRefreshLoop();
+            };
+
+            window.refreshNowFromSettings = function() {
+                pingServer();
+                fetchData(null, true);
+                syncFavoritesLive();
+                showToast('Məlumatlar yenilənir...');
+            };
+
+            window.clearAppCache = function() {
+                Object.keys(localStorage).forEach(key => {
+                    if (
+                        key.startsWith('cached_events_') ||
+                        key.startsWith('match_details_cache') ||
+                        key.startsWith('league_') ||
+                        key.includes('standings') ||
+                        key.includes('top_players')
+                    ) {
+                        localStorage.removeItem(key);
+                    }
+                });
+                showToast('Keş təmizləndi', 'success');
             }
 
             /* Auth Logic */
@@ -7473,21 +7554,27 @@
                 }
             }
 
-            setInterval(() => {
-                const todayStr = new Date().toISOString().split('T')[0];
-                const isToday = selectedDate === todayStr;
-                const shouldRefresh = isLiveFiltered || isToday;
+            let autoRefreshTimer = null;
+            function setupAutoRefreshLoop() {
+                if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+                const seconds = Math.max(5, Math.min(30, Number(userSettings.refreshIntervalSec) || 8));
+                autoRefreshTimer = setInterval(() => {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    const isToday = selectedDate === todayStr;
+                    const shouldRefresh = isLiveFiltered || isToday;
 
-                if (shouldRefresh) {
-                    fetchData();
-                }
+                    if (shouldRefresh) {
+                        fetchData();
+                    }
 
-                if (document.visibilityState === 'visible') {
-                    generateDateTabs();
-                }
+                    if (document.visibilityState === 'visible') {
+                        generateDateTabs();
+                    }
 
-                syncFavoritesLive();
-            }, 8000);
+                    syncFavoritesLive();
+                }, seconds * 1000);
+            }
+            setupAutoRefreshLoop();
 
             // Enhanced Keep-Alive Ping
             function pingServer() {
