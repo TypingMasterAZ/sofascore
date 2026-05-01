@@ -1026,6 +1026,14 @@
             font-weight: 600;
             color: var(--text-main);
             max-width: 150px;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .standings-table td.team-cell:hover {
+            background: rgba(59, 130, 246, 0.08);
+            transform: translateX(2px);
         }
 
         .standings-table td.team-cell span {
@@ -1049,6 +1057,210 @@
             font-weight: 800;
             color: var(--primary);
             font-size: 14px;
+        }
+
+        .league-info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .league-info-card {
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 16px;
+            padding: 16px;
+        }
+
+        .league-info-label {
+            display: block;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 7px;
+        }
+
+        .league-info-value {
+            display: block;
+            color: var(--text-main);
+            font-size: 15px;
+            font-weight: 800;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+
+        .team-details-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2600;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.62);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            opacity: 0;
+            transition: opacity 0.22s ease;
+        }
+
+        .team-details-overlay.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .team-details-sheet {
+            width: min(720px, 100%);
+            max-height: 88vh;
+            overflow-y: auto;
+            background: linear-gradient(180deg, rgba(17, 27, 48, 0.98), rgba(5, 11, 24, 0.98));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px 24px 0 0;
+            box-shadow: 0 -24px 70px rgba(0, 0, 0, 0.55);
+            transform: translateY(20px);
+            transition: transform 0.22s ease;
+        }
+
+        .team-details-overlay.show .team-details-sheet {
+            transform: translateY(0);
+        }
+
+        .team-details-head {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 20px;
+            background: rgba(12, 20, 36, 0.94);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .team-details-logo {
+            width: 58px;
+            height: 58px;
+            object-fit: contain;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.06);
+            padding: 7px;
+            flex-shrink: 0;
+        }
+
+        .team-details-title {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .team-details-title strong {
+            display: block;
+            color: var(--text-main);
+            font-size: 20px;
+            font-weight: 900;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .team-details-title span {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+        }
+
+        .team-details-close {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: none;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .team-info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            padding: 18px 20px 8px;
+        }
+
+        .team-info-card {
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(255, 255, 255, 0.065);
+            border-radius: 14px;
+            padding: 14px;
+        }
+
+        .team-info-card span {
+            display: block;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .team-info-card strong {
+            display: block;
+            color: var(--text-main);
+            font-size: 14px;
+            line-height: 1.35;
+        }
+
+        .squad-title {
+            padding: 18px 20px 10px;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .squad-list {
+            padding: 0 20px 22px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .squad-row {
+            display: grid;
+            grid-template-columns: 34px 1fr auto;
+            align-items: center;
+            gap: 10px;
+            min-height: 48px;
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.045);
+            border-radius: 13px;
+            padding: 8px 12px;
+        }
+
+        .squad-num {
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: 900;
+            text-align: center;
+        }
+
+        .squad-name {
+            min-width: 0;
+            color: var(--text-main);
+            font-size: 14px;
+            font-weight: 750;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .squad-pos {
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
         }
 
         /* App Modal (Native Bottom Sheet) */
@@ -3585,6 +3797,29 @@
                 min-width: 60px;
                 min-height: 66px;
             }
+
+            .league-info-grid,
+            .team-info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .team-details-sheet {
+                max-height: 90vh;
+                border-radius: 22px 22px 0 0;
+            }
+
+            .team-details-head {
+                padding: 16px;
+            }
+
+            .team-details-title strong {
+                font-size: 17px;
+            }
+
+            .squad-row {
+                grid-template-columns: 30px minmax(0, 1fr) auto;
+                padding: 8px 10px;
+            }
         }
     </style>
 </head>
@@ -4867,6 +5102,29 @@
             /* View Route Logic */
             let currentStandingsTourId = null;
             let standingsTimeout = null;
+            const teamDetailsCache = {};
+
+            function escapeHtml(value) {
+                return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                }[ch]));
+            }
+
+            function escapeJsString(value) {
+                return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, ' ');
+            }
+
+            function getTeamLogoUrl(teamId) {
+                return `https://www.sofascore.com/api/v1/team/${teamId}/image`;
+            }
+
+            function getLeagueSeasonLabel(group) {
+                return group.seasonName || group.seasonYear || (group.seasonId ? 'Aktiv mövsüm' : 'Mövsüm tapılmadı');
+            }
 
             function switchMainView(viewType) {
                 currentStandingsTourId = null;
@@ -4986,12 +5244,18 @@
                             group.name = entity.name || "Liqa";
                             group.country = entity.category ? entity.category.name : "Ölkə";
                             group.catId = entity.category ? entity.category.id : 1;
+                            group.info = entity;
+                            group.userCount = entity.userCount || entity.followersCount || null;
                         }
                     } catch(e) { console.error("League info fetch error:", e); }
 
                     try {
                         const seasons = await fetchLeagueSeasonsData(tourId, isUnique);
-                        group.seasonId = seasons && seasons[0] ? seasons[0].id : null;
+                        if (seasons && seasons[0]) {
+                            group.seasonId = seasons[0].id;
+                            group.seasonName = seasons[0].name || seasons[0].year;
+                            group.seasonYear = seasons[0].year;
+                        }
                     } catch(e) { console.error("Seasons info error:", e); }
                 }
 
@@ -5010,8 +5274,18 @@
                 if (!group.seasonId) {
                     try {
                         const seasons = await fetchLeagueSeasonsData(group.id, group.isUnique !== false);
-                        group.seasonId = seasons && seasons[0] ? seasons[0].id : null;
+                        if (seasons && seasons[0]) {
+                            group.seasonId = seasons[0].id;
+                            group.seasonName = seasons[0].name || seasons[0].year;
+                            group.seasonYear = seasons[0].year;
+                        }
                     } catch(e) { console.error("Secondary seasons fetch error:", e); }
+                }
+
+                if (!group.info) {
+                    try {
+                        group.info = await fetchLeagueInfoData(group.id, group.isUnique !== false);
+                    } catch(e) { console.warn("League info secondary fetch failed:", e.message); }
                 }
 
                 const { logoUrl, fallBack } = getLeagueLogoData(group);
@@ -5019,6 +5293,41 @@
                 const matchesHtml = hasMatches
                     ? group.matches.map(m => createMatchRow(m, group)).join("")
                     : `<div style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600;">Bu gün üçün oyun tapılmadı. <br><span style="font-size:12px; font-weight:400; opacity:0.7;">Cədvələ keçid edərək xal durumuna baxa bilərsiniz.</span></div>`;
+
+                const leagueInfo = group.info || {};
+                const leagueCategory = leagueInfo.category || {};
+                const leagueSeasonLabel = getLeagueSeasonLabel(group);
+                const leagueTypeLabel = group.isUnique === false ? 'Turnir' : 'Əsas liqa';
+                const leagueInfoHtml = `
+                    <div class="league-info-grid">
+                        <div class="league-info-card">
+                            <span class="league-info-label">Liqa adı</span>
+                            <span class="league-info-value">${escapeHtml(group.name)}</span>
+                        </div>
+                        <div class="league-info-card">
+                            <span class="league-info-label">Ölkə / Region</span>
+                            <span class="league-info-value">${escapeHtml(group.country || leagueCategory.name || 'Bilinmir')}</span>
+                        </div>
+                        <div class="league-info-card">
+                            <span class="league-info-label">Mövsüm</span>
+                            <span class="league-info-value">${escapeHtml(leagueSeasonLabel)}</span>
+                        </div>
+                        <div class="league-info-card">
+                            <span class="league-info-label">Növ</span>
+                            <span class="league-info-value">${escapeHtml(leagueTypeLabel)}</span>
+                        </div>
+                        <div class="league-info-card">
+                            <span class="league-info-label">SofaScore ID</span>
+                            <span class="league-info-value">${escapeHtml(group.id)}</span>
+                        </div>
+                        <div class="league-info-card">
+                            <span class="league-info-label">Komandalar</span>
+                            <span class="league-info-value">Cədvəldə klub adına basın</span>
+                        </div>
+                    </div>
+                    <div style="margin-top:14px; color:var(--text-muted); font-size:13px; line-height:1.6;">
+                        Bu bölmədə liqanın oyunları, puan durumu, bombardirləri və klubların heyəti bir yerdə göstərilir.
+                    </div>`;
 
                 const html = `
             <div class="league-group" style="margin-top:20px; border-radius: 12px 12px 0 0; border-bottom: none;">
@@ -5045,21 +5354,7 @@
                     <div class="loader-wrapper"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton"></div></div></div></div>
                 </div>
                 <div class="league-tab-content" id="leagueInfo" style="display:none; padding:24px; color:var(--text-main); font-size:14px; line-height:1.6;">
-                    <div style="background:rgba(255,255,255,0.03); border-radius:12px; padding:20px; border:1px solid rgba(255,255,255,0.05);">
-                        <div style="margin-bottom:15px; display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:10px;">
-                            <span style="color:var(--text-muted)">Turnir:</span>
-                            <span style="font-weight:600">${group.name}</span>
-                        </div>
-                        <div style="margin-bottom:15px; display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:10px;">
-                            <span style="color:var(--text-muted)">Ölkə:</span>
-                            <span style="font-weight:600">${group.country}</span>
-                        </div>
-                         <div style="margin-bottom:15px; display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:10px;">
-                            <span style="color:var(--text-muted)">Mövsüm:</span>
-                            <span style="font-weight:600">${group.seasonId ? '2023/2024' : 'Aktiv Mövsüm'}</span>
-                        </div>
-                        <p style="font-size:12px; color:var(--text-muted); text-align:center; margin-top:20px;">Rabona Media LIVE vasitəsilə bütün dünya liqalarını anlıq izləyə bilərsiniz.</p>
-                    </div>
+                    ${leagueInfoHtml}
                 </div>
             </div>
         `;
@@ -5120,14 +5415,17 @@
                 `;
 
                         rows.forEach(row => {
+                            const teamId = row.team?.id || '';
+                            const teamName = escapeHtml(row.team?.name || 'Komanda');
+                            const safeTeamName = escapeJsString(row.team?.name || 'Komanda');
 
 
                             tableHtml += `
                         <tr style="transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
                             <td style="font-weight:700; color:var(--text-muted);">${row.position}</td>
-                            <td class="team-cell">
-                                <img class="team-logo club-logo" src="https://www.sofascore.com/api/v1/team/${row.team.id}/image" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
-                                <span>${row.team.name}</span>
+                            <td class="team-cell" onclick="openTeamDetails('${teamId}', '${safeTeamName}')">
+                                <img class="team-logo club-logo" src="${getTeamLogoUrl(teamId)}" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
+                                <span>${teamName}</span>
                             </td>
                             <td>${row.matches}</td>
                             <td>${row.wins}</td>
@@ -6021,6 +6319,149 @@
                 if (hasPlayers) return data;
                 return fetchDirectSofaJson(`/unique-tournament/${tourId}/season/${seasonId}/top-players/overall`);
             }
+
+            async function fetchTeamInfoData(teamId) {
+                if (teamDetailsCache[teamId]) return teamDetailsCache[teamId];
+
+                let data = null;
+                try {
+                    data = await fetchServerJson(`/api/team/${teamId}`, "Klub server xətası");
+                } catch (serverErr) {
+                    console.warn("Team API failed, trying browser SofaScore fallback:", serverErr.message);
+                }
+
+                if (!data?.info?.team) {
+                    try {
+                        const [info, players] = await Promise.all([
+                            fetchDirectSofaJson(`/team/${teamId}`),
+                            fetchDirectSofaJson(`/team/${teamId}/players`)
+                        ]);
+                        data = { info, players };
+                    } catch (directErr) {
+                        if (!data) throw directErr;
+                    }
+                }
+
+                teamDetailsCache[teamId] = data;
+                return data;
+            }
+
+            function normalizeTeamPlayers(playersData) {
+                const rawPlayers = playersData?.players || playersData?.foreignPlayers || [];
+                if (!Array.isArray(rawPlayers)) return [];
+                return rawPlayers
+                    .map(item => {
+                        const player = item.player || item;
+                        return {
+                            id: player.id,
+                            name: player.name || player.shortName || "Oyunçu",
+                            position: item.position || player.position || player.proposedMarketValueRaw?.position || "Oyunçu",
+                            shirtNumber: item.jerseyNumber || item.shirtNumber || player.jerseyNumber || "",
+                            value: player.proposedMarketValue || player.proposedMarketValueRaw?.value || ""
+                        };
+                    })
+                    .filter(p => p.name)
+                    .slice(0, 80);
+            }
+
+            function translatePosition(position) {
+                const key = String(position || '').toLowerCase();
+                if (key.includes('goalkeeper') || key === 'g') return 'Qapıçı';
+                if (key.includes('defender') || key === 'd') return 'Müdafiəçi';
+                if (key.includes('midfielder') || key === 'm') return 'Yarımmüdafiəçi';
+                if (key.includes('forward') || key === 'f') return 'Hücumçu';
+                return position || 'Oyunçu';
+            }
+
+            function ensureTeamDetailsModal() {
+                let modal = document.getElementById('teamDetailsModal');
+                if (modal) return modal;
+
+                modal = document.createElement('div');
+                modal.id = 'teamDetailsModal';
+                modal.className = 'team-details-overlay';
+                modal.onclick = (event) => {
+                    if (event.target.id === 'teamDetailsModal') closeTeamDetails();
+                };
+                modal.innerHTML = `
+                    <div class="team-details-sheet">
+                        <div class="team-details-head">
+                            <img id="teamDetailsLogo" class="team-details-logo" src="" alt="">
+                            <div class="team-details-title">
+                                <strong id="teamDetailsName">Klub</strong>
+                                <span id="teamDetailsMeta">Məlumat yüklənir...</span>
+                            </div>
+                            <button class="team-details-close" onclick="closeTeamDetails()">×</button>
+                        </div>
+                        <div id="teamDetailsBody">
+                            <div class="loader-wrapper" style="padding:34px;"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:100%;"></div></div></div></div>
+                        </div>
+                    </div>`;
+                document.body.appendChild(modal);
+                return modal;
+            }
+
+            window.closeTeamDetails = function() {
+                const modal = document.getElementById('teamDetailsModal');
+                if (!modal) return;
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    if (!modal.classList.contains('show')) modal.style.display = 'none';
+                }, 230);
+            };
+
+            window.openTeamDetails = async function(teamId, fallbackName = 'Klub') {
+                if (!teamId) return;
+                const modal = ensureTeamDetailsModal();
+                modal.style.display = 'flex';
+                requestAnimationFrame(() => modal.classList.add('show'));
+
+                document.getElementById('teamDetailsLogo').src = getTeamLogoUrl(teamId);
+                document.getElementById('teamDetailsName').textContent = fallbackName || 'Klub';
+                document.getElementById('teamDetailsMeta').textContent = 'Məlumat yüklənir...';
+                document.getElementById('teamDetailsBody').innerHTML = `<div class="loader-wrapper" style="padding:34px;"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:100%;"></div></div></div><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:75%;"></div></div></div></div>`;
+
+                try {
+                    const data = await fetchTeamInfoData(teamId);
+                    const team = data?.info?.team || data?.team || {};
+                    const players = normalizeTeamPlayers(data?.players || {});
+                    const name = team.name || fallbackName || 'Klub';
+                    const country = team.country?.name || team.category?.name || 'Ölkə məlum deyil';
+                    const venue = team.venue?.stadium?.name || team.venue?.name || team.stadium?.name || 'Məlumat yoxdur';
+                    const manager = team.manager?.name || team.headCoach?.name || 'Məlumat yoxdur';
+                    const founded = team.foundationDateTimestamp
+                        ? new Date(team.foundationDateTimestamp * 1000).getFullYear()
+                        : (team.foundationDate || 'Məlumat yoxdur');
+
+                    document.getElementById('teamDetailsName').textContent = name;
+                    document.getElementById('teamDetailsMeta').textContent = country;
+
+                    const squadHtml = players.length
+                        ? players.map(player => `
+                            <div class="squad-row">
+                                <span class="squad-num">${escapeHtml(player.shirtNumber || '-')}</span>
+                                <span class="squad-name">${escapeHtml(player.name)}</span>
+                                <span class="squad-pos">${escapeHtml(player.value || translatePosition(player.position))}</span>
+                            </div>`).join('')
+                        : `<div style="padding:20px; text-align:center; color:var(--text-muted); font-weight:700;">Heyət məlumatı tapılmadı.</div>`;
+
+                    document.getElementById('teamDetailsBody').innerHTML = `
+                        <div class="team-info-grid">
+                            <div class="team-info-card"><span>Klub adı</span><strong>${escapeHtml(name)}</strong></div>
+                            <div class="team-info-card"><span>Ölkə</span><strong>${escapeHtml(country)}</strong></div>
+                            <div class="team-info-card"><span>Stadion</span><strong>${escapeHtml(venue)}</strong></div>
+                            <div class="team-info-card"><span>Baş məşqçi</span><strong>${escapeHtml(manager)}</strong></div>
+                            <div class="team-info-card"><span>Yaranma ili</span><strong>${escapeHtml(founded)}</strong></div>
+                            <div class="team-info-card"><span>Komanda ID</span><strong>${escapeHtml(teamId)}</strong></div>
+                        </div>
+                        <div class="squad-title">Heyət</div>
+                        <div class="squad-list">${squadHtml}</div>`;
+                } catch (error) {
+                    console.error("Team details load error", error);
+                    document.getElementById('teamDetailsMeta').textContent = 'Məlumat alınmadı';
+                    document.getElementById('teamDetailsBody').innerHTML = `<div style="padding:34px 20px; text-align:center; color:var(--live); font-weight:800;">Klub məlumatı yüklənmədi. Bir az sonra yenidən yoxlayın.</div>`;
+                }
+            };
 
             async function fetchMatchIncidentsFast(id, match = null) {
                 const isMackolik = match?.source === 'mackolik';

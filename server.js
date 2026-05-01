@@ -1093,11 +1093,19 @@ async function getMatchIncidentsData(matchId) {
 app.get("/api/team/:id", async (req, res) => {
     try {
         const teamId = req.params.id;
-        const [info, players] = await Promise.all([
+        const [infoResult, playersResult] = await Promise.allSettled([
             fetchFromSofa(`/team/${teamId}`),
             fetchFromSofa(`/team/${teamId}/players`)
         ]);
-        res.json({ info: info.data, players: players.data });
+
+        if (infoResult.status !== "fulfilled") {
+            throw infoResult.reason;
+        }
+
+        res.json({
+            info: infoResult.value.data,
+            players: playersResult.status === "fulfilled" ? playersResult.value.data : { players: [] }
+        });
     } catch (error) {
         console.error(`[API ERROR] Team ${req.params.id}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
         res.status(500).json({ error: true, message: error.message, details: error.response?.data?.substring?.(0, 100) });
