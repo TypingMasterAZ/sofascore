@@ -4484,7 +4484,7 @@
             const IMAGE_PLACEHOLDER = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iMTIiIGZpbGw9IiMxMTE4MjciLz48Y2lyY2xlIGN4PSIyNCIgY3k9IjI0IiByPSIxMSIgZmlsbD0iIzMzNDE1NSIvPjwvc3ZnPg==";
 
             function sofaImageUrl(path) {
-                return `${API_BASE_URL || ''}/api/sofa-image?path=${encodeURIComponent(path)}`;
+                return `${API_BASE_URL || ''}/api/sofa-image?path=${encodeURIComponent(path)}&v=2`;
             }
 
             function normalizeSofaImageUrl(url) {
@@ -8670,7 +8670,7 @@
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js?v=8').then(reg => {
+                    navigator.serviceWorker.register('/sw.js?v=9').then(reg => {
                         console.log('SW registered:', reg.scope);
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });

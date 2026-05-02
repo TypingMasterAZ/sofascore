@@ -1562,7 +1562,8 @@ app.get("/api/sofa-image", async (req, res) => {
                     headers: {
                         ...HEADERS,
                         Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-                        Referer: "https://www.sofascore.com/"
+                        Referer: "https://www.sofascore.com/",
+                        "User-Agent": getRandomUA()
                     }
                 });
                 break;
@@ -1578,7 +1579,7 @@ app.get("/api/sofa-image", async (req, res) => {
         res.send(Buffer.from(response.data));
     } catch (error) {
         console.error(`[IMAGE ERROR] ${req.query.path}: ${error.message}`);
-        res.status(404).type("image/svg+xml").send('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#111827"/><circle cx="24" cy="24" r="11" fill="#334155"/></svg>');
+        res.status(200).type("image/svg+xml").send('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#111827"/><circle cx="24" cy="24" r="11" fill="#334155"/></svg>');
     }
 });
 
