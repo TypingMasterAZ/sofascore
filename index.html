@@ -1479,6 +1479,25 @@
             box-shadow: 0 0 12px rgba(59, 130, 246, 0.45);
         }
 
+        .league-detail-tabs .tab-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+        }
+
+        .league-tab-icon,
+        .league-tab-sub {
+            display: none;
+        }
+
+        .league-tab-label {
+            display: block;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         .modal-body {
             flex: 1;
             overflow-y: auto;
@@ -3827,36 +3846,91 @@
             .league-detail-tabs {
                 display: grid !important;
                 grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 8px;
-                padding: 10px !important;
+                gap: 9px;
+                padding: 10px 12px !important;
                 position: sticky !important;
                 top: 0;
-                background: rgba(13, 22, 39, 0.96) !important;
+                background: linear-gradient(180deg, rgba(14, 23, 42, 0.98), rgba(7, 13, 28, 0.96)) !important;
                 border-radius: 0;
+                box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.05);
             }
 
             .league-detail-tabs .tab-btn {
                 min-width: 0;
-                height: 42px;
-                padding: 0 8px !important;
-                border-radius: 13px;
-                background: rgba(255,255,255,0.045);
-                border: 1px solid rgba(255,255,255,0.055);
-                font-size: 11px;
-                line-height: 1;
+                height: 56px;
+                padding: 8px 9px !important;
+                border-radius: 18px;
+                background: linear-gradient(145deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025));
+                border: 1px solid rgba(255,255,255,0.08);
+                color: rgba(226, 232, 240, 0.74);
+                justify-content: flex-start;
+                text-align: left;
+                gap: 9px;
+                line-height: 1.05;
                 white-space: nowrap;
                 overflow: hidden;
-                text-overflow: ellipsis;
-                letter-spacing: 0.4px;
+                letter-spacing: 0;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 24px rgba(0,0,0,0.18);
             }
 
             .league-detail-tabs .tab-btn.active {
-                background: rgba(59, 130, 246, 0.17);
-                border-color: rgba(59, 130, 246, 0.38);
+                color: #f8fafc;
+                background: linear-gradient(135deg, rgba(59, 130, 246, 0.32), rgba(99, 102, 241, 0.18));
+                border-color: rgba(96, 165, 250, 0.45);
+                box-shadow: 0 12px 30px rgba(37, 99, 235, 0.18), inset 0 1px 0 rgba(255,255,255,0.1);
             }
 
             .league-detail-tabs .tab-btn.active::after {
                 display: none;
+            }
+
+            .league-detail-tabs .league-tab-icon {
+                display: flex;
+                width: 32px;
+                height: 32px;
+                flex: 0 0 32px;
+                align-items: center;
+                justify-content: center;
+                border-radius: 12px;
+                background: rgba(148, 163, 184, 0.12);
+                color: #cbd5e1;
+                font-size: 12px;
+                font-weight: 900;
+                box-shadow: inset 0 0 0 1px rgba(255,255,255,0.055);
+            }
+
+            .league-detail-tabs .tab-btn.active .league-tab-icon {
+                background: linear-gradient(135deg, #3b82f6, #60a5fa);
+                color: #ffffff;
+                box-shadow: 0 8px 18px rgba(59, 130, 246, 0.32);
+            }
+
+            .league-detail-tabs .league-tab-copy {
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+                gap: 3px;
+            }
+
+            .league-detail-tabs .league-tab-label {
+                color: inherit;
+                font-size: clamp(10px, 3vw, 12px);
+                font-weight: 900;
+                text-transform: uppercase;
+                letter-spacing: 0.25px;
+            }
+
+            .league-detail-tabs .league-tab-sub {
+                display: block;
+                color: rgba(148, 163, 184, 0.84);
+                font-size: 9px;
+                font-weight: 800;
+                text-transform: none;
+                letter-spacing: 0;
+            }
+
+            .league-detail-tabs .tab-btn.active .league-tab-sub {
+                color: rgba(219, 234, 254, 0.9);
             }
 
             #leagueStandings {
@@ -5606,10 +5680,34 @@
                 </div>
                 
                 <div class="modal-tabs league-detail-tabs" style="background:var(--card); border-bottom:1px solid rgba(255,255,255,0.05); border-top:1px solid rgba(255,255,255,0.05); position:relative; z-index:1;">
-                    <button class="tab-btn ${hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueMatches', this)">OYUNLAR</button>
-                    <button class="tab-btn ${!hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueStandings', this)">CƏDVƏL</button>
-                    <button class="tab-btn" onclick="switchLeagueTab('leagueTopPlayers', this)">BOMBARDİRLƏR</button>
-                    <button class="tab-btn" onclick="switchLeagueTab('leagueInfo', this)">MƏLUMAT</button>
+                    <button class="tab-btn ${hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueMatches', this)" aria-label="Oyunlar">
+                        <span class="league-tab-icon">90</span>
+                        <span class="league-tab-copy">
+                            <span class="league-tab-label">Oyunlar</span>
+                            <span class="league-tab-sub">Matçlar</span>
+                        </span>
+                    </button>
+                    <button class="tab-btn ${!hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueStandings', this)" aria-label="Cədvəl">
+                        <span class="league-tab-icon">#</span>
+                        <span class="league-tab-copy">
+                            <span class="league-tab-label">Cədvəl</span>
+                            <span class="league-tab-sub">Puanlar</span>
+                        </span>
+                    </button>
+                    <button class="tab-btn" onclick="switchLeagueTab('leagueTopPlayers', this)" aria-label="Bombardirlər">
+                        <span class="league-tab-icon">G</span>
+                        <span class="league-tab-copy">
+                            <span class="league-tab-label">Bombardirlər</span>
+                            <span class="league-tab-sub">Qolçular</span>
+                        </span>
+                    </button>
+                    <button class="tab-btn" onclick="switchLeagueTab('leagueInfo', this)" aria-label="Məlumat">
+                        <span class="league-tab-icon">i</span>
+                        <span class="league-tab-copy">
+                            <span class="league-tab-label">Məlumat</span>
+                            <span class="league-tab-sub">Liqa</span>
+                        </span>
+                    </button>
                 </div>
                 
                 <div class="league-tab-content ${hasMatches ? 'active' : ''}" id="leagueMatches" style="${!hasMatches ? 'display:none;' : ''}">
