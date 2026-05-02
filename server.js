@@ -1544,6 +1544,44 @@ app.get("/api/categories", async (req, res) => {
     }
 });
 
+app.get("/api/sofa-image", async (req, res) => {
+    try {
+        const imagePath = String(req.query.path || "");
+        const allowedImagePath = /^\/(?:unique-tournament|tournament|category|team)\/[\w-]+\/image$/;
+        if (!allowedImagePath.test(imagePath)) {
+            return res.status(400).type("image/svg+xml").send('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#111827"/></svg>');
+        }
+
+        let response = null;
+        let lastImageError = null;
+        for (const baseUrl of SOFA_APIS) {
+            try {
+                response = await axios.get(`${baseUrl}${imagePath}`, {
+                    responseType: "arraybuffer",
+                    timeout: 5000,
+                    headers: {
+                        ...HEADERS,
+                        Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+                        Referer: "https://www.sofascore.com/"
+                    }
+                });
+                break;
+            } catch (error) {
+                lastImageError = error;
+            }
+        }
+
+        if (!response) throw lastImageError || new Error("Image fetch failed");
+
+        res.set("Content-Type", response.headers["content-type"] || "image/png");
+        res.set("Cache-Control", "public, max-age=604800, immutable");
+        res.send(Buffer.from(response.data));
+    } catch (error) {
+        console.error(`[IMAGE ERROR] ${req.query.path}: ${error.message}`);
+        res.status(404).type("image/svg+xml").send('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#111827"/><circle cx="24" cy="24" r="11" fill="#334155"/></svg>');
+    }
+});
+
 // Yeni API: Kateqoriya Ã¼zrÉ™ Liqalar
 app.get("/api/category/:id/tournaments", async (req, res) => {
     try {
