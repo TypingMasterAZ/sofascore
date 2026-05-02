@@ -458,6 +458,76 @@ function pickActiveSeason(seasons = []) {
         seasons[0];
 }
 
+function getEspnStat(entry, names, fallback = 0) {
+    const list = Array.isArray(entry?.stats) ? entry.stats : [];
+    const stat = list.find(item => names.includes(item.name) || names.includes(item.type) || names.includes(item.abbreviation));
+    if (!stat) return fallback;
+    const numeric = Number(stat.value ?? stat.displayValue);
+    return Number.isFinite(numeric) ? numeric : (stat.displayValue ?? fallback);
+}
+
+function normalizeEspnStandings(data, tourId, slug) {
+    const standings = data?.children?.[0]?.standings || data?.standings;
+    const entries = standings?.entries || [];
+    if (!entries.length) throw new Error(`ESPN standings empty for ${slug}`);
+
+    const rows = entries.map((entry, index) => {
+        const team = entry.team || {};
+        return {
+            position: Number(getEspnStat(entry, ["rank"], index + 1)) || index + 1,
+            team: {
+                id: `espn-${team.id || index}`,
+                name: team.displayName || team.name || team.shortDisplayName || "Team",
+                shortName: team.shortDisplayName || team.abbreviation || team.displayName || "Team",
+                logoUrl: team.logos?.[0]?.href || null,
+                source: "espn"
+            },
+            matches: getEspnStat(entry, ["gamesPlayed", "gamesplayed", "GP"], 0),
+            wins: getEspnStat(entry, ["wins", "W"], 0),
+            draws: getEspnStat(entry, ["ties", "draws", "T", "D"], 0),
+            losses: getEspnStat(entry, ["losses", "L"], 0),
+            scoresFor: getEspnStat(entry, ["pointsFor", "goalsFor", "F"], 0),
+            scoresAgainst: getEspnStat(entry, ["pointsAgainst", "goalsAgainst", "A"], 0),
+            points: getEspnStat(entry, ["points", "P"], 0)
+        };
+    });
+
+    return {
+        standings: [{
+            id: `espn-${slug}`,
+            name: standings?.name || "overall",
+            rows
+        }],
+        source: "espn",
+        tournamentId: tourId,
+        updatedAt: new Date().toISOString()
+    };
+}
+
+async function fetchEspnStandings(tourId) {
+    const slug = ESPN_STANDINGS_LEAGUES[tourId];
+    if (!slug) return null;
+
+    const currentSeason = new Date().getFullYear() - (new Date().getMonth() < 6 ? 1 : 0);
+    const url = `https://site.web.api.espn.com/apis/v2/sports/soccer/${slug}/standings`;
+    const response = await axios.get(url, {
+        params: {
+            region: "us",
+            lang: "en",
+            contentorigin: "espn",
+            season: currentSeason,
+            sort: "rank:asc"
+        },
+        timeout: 4500,
+        headers: {
+            "Accept": "application/json",
+            "User-Agent": getRandomUA()
+        }
+    });
+
+    return normalizeEspnStandings(response.data, tourId, slug);
+}
+
 // Diagnostic Endpoint Enhanced
 app.get("/api/debug/proxy", async (req, res) => {
     const diagnostic = {
@@ -984,6 +1054,18 @@ const KNOWN_CURRENT_SEASONS = {
     679: 76984  // UEFA Europa League 25/26
 };
 
+const ESPN_STANDINGS_LEAGUES = {
+    7: "uefa.champions",
+    679: "uefa.europa",
+    14643: "uefa.europa.conf",
+    17: "eng.1",
+    8: "esp.1",
+    23: "ita.1",
+    35: "ger.1",
+    34: "fra.1",
+    52: "tur.1"
+};
+
 const STANDINGS_SNAPSHOT_FILE = path.join(__dirname, "standings_snapshot.json");
 let standingsWarmIndex = 0;
 
@@ -1352,6 +1434,28 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
 
         if (!seasonId) {
             seasonId = KNOWN_CURRENT_SEASONS[tourId];
+        }
+
+        if (ESPN_STANDINGS_LEAGUES[tourId]) {
+            const espnCacheKey = `standings_${tourId}_espn`;
+            try {
+                const espnData = await getCachedData(espnCacheKey, async () => {
+                    return await fetchEspnStandings(tourId);
+                }, 30 * 60 * 1000);
+
+                if (espnData?.standings?.length) {
+                    saveStandingSnapshot(espnCacheKey, espnData);
+                    return res.json({
+                        ...espnData,
+                        seasonId: seasonId || "espn",
+                        fast: true,
+                        source: "espn",
+                        durationMs: Date.now() - startedAt
+                    });
+                }
+            } catch (espnError) {
+                console.warn(`[ESPN STANDINGS FALLBACK] ${tourId}: ${espnError.message}`);
+            }
         }
 
         if (!seasonId) {
@@ -2486,7 +2590,7 @@ async function warmRuntimeCaches() {
 
 async function warmOneLeagueStanding() {
     if (!FALLBACK_TOP_LEAGUES.length) return;
-    const warmableLeagues = FALLBACK_TOP_LEAGUES.filter(league => KNOWN_CURRENT_SEASONS[league.id]);
+    const warmableLeagues = FALLBACK_TOP_LEAGUES.filter(league => ESPN_STANDINGS_LEAGUES[league.id] || KNOWN_CURRENT_SEASONS[league.id]);
     if (!warmableLeagues.length) return;
 
     const league = warmableLeagues[standingsWarmIndex % warmableLeagues.length];
@@ -2501,6 +2605,15 @@ async function warmOneLeagueStanding() {
 
     console.log(`[Warmup] Prefetch standings for ${league.name} (${league.id})`);
     const seasonId = KNOWN_CURRENT_SEASONS[league.id];
+    if (ESPN_STANDINGS_LEAGUES[league.id]) {
+        const espnKey = `standings_${league.id}_espn`;
+        const data = await getCachedData(espnKey, async () => {
+            return await fetchEspnStandings(league.id);
+        }, 30 * 60 * 1000);
+        if (data?.standings?.length) saveStandingSnapshot(espnKey, data);
+        return;
+    }
+
     if (!seasonId) return;
 
     const standingsKey = `standings_${league.id}_${seasonId}`;

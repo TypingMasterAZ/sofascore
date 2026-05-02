@@ -5185,12 +5185,17 @@
                     const teamId = row.team?.id || '';
                     const teamName = escapeHtml(row.team?.name || 'Komanda');
                     const safeTeamName = escapeJsString(row.team?.name || 'Komanda');
+                    const logoUrl = row.team?.logoUrl || getTeamLogoUrl(teamId);
+                    const isSofaTeam = /^\d+$/.test(String(teamId));
+                    const clickAction = isSofaTeam
+                        ? `openTeamDetails('${teamId}', '${safeTeamName}')`
+                        : `showToast('Klub məlumatı hazırda yalnız SofaScore klubları üçün açılır')`;
 
                     tableHtml += `
                         <tr style="transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
                             <td style="font-weight:700; color:var(--text-muted);">${row.position}</td>
-                            <td class="team-cell" onclick="openTeamDetails('${teamId}', '${safeTeamName}')">
-                                <img class="team-logo club-logo" src="${getTeamLogoUrl(teamId)}" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
+                            <td class="team-cell" onclick="${clickAction}">
+                                <img class="team-logo club-logo" src="${logoUrl}" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
                                 <span>${teamName}</span>
                             </td>
                             <td>${row.matches ?? '-'}</td>
