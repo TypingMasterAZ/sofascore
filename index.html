@@ -5,7 +5,7 @@
     <meta name="google-site-verification" content="i4omR6aDhgh00ZQnB1NtNkCtWyx8JXyoO2oc2P3RX68" />
     <meta charset="UTF-8">
     <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+        content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="referrer" content="no-referrer">
     <meta name="theme-color" content="#0a101f">
     <meta name="mobile-web-app-capable" content="yes">
@@ -104,6 +104,8 @@
             padding: 0;
             overflow: hidden;
             overscroll-behavior-y: none;
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
         }
 
         body {
@@ -120,6 +122,7 @@
         input, textarea, select {
             -webkit-user-select: auto;
             user-select: auto;
+            font-size: 16px;
         }
 
         body.modal-open, body.forgot-active {
@@ -3820,6 +3823,119 @@
                 grid-template-columns: 30px minmax(0, 1fr) auto;
                 padding: 8px 10px;
             }
+
+            .league-detail-tabs {
+                display: grid !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
+                padding: 10px !important;
+                position: sticky !important;
+                top: 0;
+                background: rgba(13, 22, 39, 0.96) !important;
+                border-radius: 0;
+            }
+
+            .league-detail-tabs .tab-btn {
+                min-width: 0;
+                height: 42px;
+                padding: 0 8px !important;
+                border-radius: 13px;
+                background: rgba(255,255,255,0.045);
+                border: 1px solid rgba(255,255,255,0.055);
+                font-size: 11px;
+                line-height: 1;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                letter-spacing: 0.4px;
+            }
+
+            .league-detail-tabs .tab-btn.active {
+                background: rgba(59, 130, 246, 0.17);
+                border-color: rgba(59, 130, 246, 0.38);
+            }
+
+            .league-detail-tabs .tab-btn.active::after {
+                display: none;
+            }
+
+            #leagueStandings {
+                padding: 10px 6px 18px !important;
+            }
+
+            #leagueStandings > div {
+                overflow-x: visible !important;
+                margin-top: 4px !important;
+            }
+
+            #leagueStandings .standings-table {
+                width: 100% !important;
+                table-layout: fixed;
+                margin: 0 !important;
+                font-size: 10px;
+                border-collapse: separate;
+                border-spacing: 0;
+            }
+
+            #leagueStandings .standings-table th,
+            #leagueStandings .standings-table td {
+                padding: 9px 2px;
+                white-space: nowrap;
+            }
+
+            #leagueStandings .standings-table th:first-child,
+            #leagueStandings .standings-table td:first-child {
+                width: 22px !important;
+            }
+
+            #leagueStandings .standings-table th:nth-child(2),
+            #leagueStandings .standings-table td.team-cell {
+                width: auto;
+            }
+
+            #leagueStandings .standings-table td.team-cell {
+                max-width: none;
+                gap: 5px;
+                padding-left: 4px;
+                padding-right: 3px;
+            }
+
+            #leagueStandings .standings-table .team-logo {
+                width: 17px;
+                height: 17px;
+                border-radius: 4px;
+            }
+
+            #leagueStandings .standings-table td.team-cell span {
+                font-size: 10px;
+                max-width: 86px;
+            }
+
+            #leagueStandings .standings-table th:nth-child(3),
+            #leagueStandings .standings-table th:nth-child(4),
+            #leagueStandings .standings-table th:nth-child(5),
+            #leagueStandings .standings-table th:nth-child(6),
+            #leagueStandings .standings-table td:nth-child(3),
+            #leagueStandings .standings-table td:nth-child(4),
+            #leagueStandings .standings-table td:nth-child(5),
+            #leagueStandings .standings-table td:nth-child(6) {
+                width: 21px;
+            }
+
+            #leagueStandings .standings-table th:nth-child(7),
+            #leagueStandings .standings-table td:nth-child(7) {
+                width: 39px;
+                font-size: 9px;
+            }
+
+            #leagueStandings .standings-table th:nth-child(8),
+            #leagueStandings .standings-table td:nth-child(8) {
+                width: 28px;
+            }
+
+            #leagueStandings .standings-table td.pts {
+                font-size: 11px;
+            }
         }
     </style>
 </head>
@@ -4318,6 +4434,27 @@
             const DEPLOYED_URL = 'https://proscore-live.onrender.com';
             const API_BASE_URL = (isLocalhost || isRender || !DEPLOYED_URL) ? '' : DEPLOYED_URL;
             console.log("API Base URL:", API_BASE_URL || "Local/SameOrigin");
+
+            function disableAppZoom() {
+                document.addEventListener('gesturestart', (event) => event.preventDefault(), { passive: false });
+                document.addEventListener('gesturechange', (event) => event.preventDefault(), { passive: false });
+                document.addEventListener('gestureend', (event) => event.preventDefault(), { passive: false });
+
+                let lastTouchEnd = 0;
+                document.addEventListener('touchend', (event) => {
+                    const now = Date.now();
+                    if (now - lastTouchEnd <= 300) {
+                        event.preventDefault();
+                    }
+                    lastTouchEnd = now;
+                }, { passive: false });
+
+                document.addEventListener('wheel', (event) => {
+                    if (event.ctrlKey) event.preventDefault();
+                }, { passive: false });
+            }
+
+            disableAppZoom();
 
             const mojibakePattern = /(?:[ÃÅÄÉÆÂâ][^<\n\r\t]{0,3}|ğŸ|�)/;
 
@@ -5468,7 +5605,7 @@
                     <div style="font-size:14px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-top:4px; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${group.country}</div>
                 </div>
                 
-                <div class="modal-tabs" style="background:var(--card); border-bottom:1px solid rgba(255,255,255,0.05); border-top:1px solid rgba(255,255,255,0.05); position:relative; z-index:1;">
+                <div class="modal-tabs league-detail-tabs" style="background:var(--card); border-bottom:1px solid rgba(255,255,255,0.05); border-top:1px solid rgba(255,255,255,0.05); position:relative; z-index:1;">
                     <button class="tab-btn ${hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueMatches', this)">OYUNLAR</button>
                     <button class="tab-btn ${!hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueStandings', this)">CƏDVƏL</button>
                     <button class="tab-btn" onclick="switchLeagueTab('leagueTopPlayers', this)">BOMBARDİRLƏR</button>
