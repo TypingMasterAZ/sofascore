@@ -6527,7 +6527,7 @@
                 const key = String(catId);
                 if (categoryLeaguesCache[key]) return categoryLeaguesCache[key];
 
-                const data = await fetchServerJson(`/api/category/${key}/tournaments`, "Ölkə liqaları server xətası");
+                const data = await fetchServerJson(`/api/category/${key}/tournaments?fast=1`, "Ölkə liqaları server xətası");
                 const leagues = normalizeCategoryLeaguesPayload(data);
                 categoryLeaguesCache[key] = leagues;
                 return leagues;
@@ -6618,7 +6618,7 @@
                 }
 
                 try {
-                    const leagues = await withTimeout(fetchCategoryLeaguesData(key), 8000);
+                    const leagues = await withTimeout(fetchCategoryLeaguesData(key), 12000);
                     if (window.currentCountryContext?.id !== key) return;
                     renderCountryLeaguesPage(cat, leagues);
                 } catch (e) {

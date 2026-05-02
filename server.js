@@ -1199,6 +1199,7 @@ function saveStandingSnapshot(key, data) {
 loadStandingsSnapshot();
 
 const FOOTBALL_CATEGORIES_SNAPSHOT_FILE = path.join(__dirname, "football_categories_snapshot.json");
+const FOOTBALL_CATEGORY_TOURNAMENTS_SNAPSHOT_FILE = path.join(__dirname, "football_category_tournaments_snapshot.json");
 
 function loadFallbackCategories() {
     try {
@@ -1225,6 +1226,27 @@ function loadFallbackCategories() {
 }
 
 const FALLBACK_CATEGORIES = loadFallbackCategories();
+
+function loadFallbackCategoryTournaments() {
+    try {
+        if (fs.existsSync(FOOTBALL_CATEGORY_TOURNAMENTS_SNAPSHOT_FILE)) {
+            const parsed = JSON.parse(fs.readFileSync(FOOTBALL_CATEGORY_TOURNAMENTS_SNAPSHOT_FILE, "utf8"));
+            if (parsed.items && typeof parsed.items === "object") {
+                return parsed.items;
+            }
+        }
+    } catch (error) {
+        console.warn("[Category Tournaments Snapshot] Load failed:", error.message);
+    }
+    return {};
+}
+
+const FALLBACK_CATEGORY_TOURNAMENTS = loadFallbackCategoryTournaments();
+
+function getFallbackCategoryTournaments(categoryId) {
+    const item = FALLBACK_CATEGORY_TOURNAMENTS[String(categoryId)];
+    return item?.data || null;
+}
 
 let imageWarmIndex = 0;
 
@@ -1751,15 +1773,39 @@ app.get("/api/sofa-image", async (req, res) => {
 
 // Yeni API: Kateqoriya Ã¼zrÉ™ Liqalar
 app.get("/api/category/:id/tournaments", async (req, res) => {
+    const categoryId = String(req.params.id);
+    const fallbackData = getFallbackCategoryTournaments(categoryId);
+    const cacheKey = `category_tournaments_${categoryId}`;
+    const fetchFresh = async () => await fetchFromSofaFastRace(`/category/${categoryId}/unique-tournaments`, {}, 5500);
+
+    if (req.query.fast === "1" && fallbackData) {
+        res.json({ ...fallbackData, fallback: true, snapshot: true });
+        getCachedData(cacheKey, fetchFresh, CACHE_TIMES.STATIC, { skipJitter: true })
+            .then(data => warmImagePaths(collectTournamentImagePaths(data), 36))
+            .catch(e => console.warn(`[Category Snapshot Refresh] ${categoryId} failed:`, e.message));
+        return;
+    }
+
     try {
-        const data = await getCachedData(`category_tournaments_${req.params.id}`, async () => {
-            return await fetchFromSofaFastRace(`/category/${req.params.id}/unique-tournaments`, {}, 5500);
+        const data = await getCachedData(cacheKey, async () => {
+            try {
+                return await fetchFresh();
+            } catch (error) {
+                if (fallbackData) {
+                    console.warn(`[Category Fallback] ${categoryId}: ${error.message}`);
+                    return { ...fallbackData, fallback: true, snapshot: true };
+                }
+                throw error;
+            }
         }, CACHE_TIMES.STATIC, { skipJitter: true });
         res.json(data);
         warmImagePaths(collectTournamentImagePaths(data), 36).catch(e => {
-            console.warn(`[Image Warmup] Category ${req.params.id} leagues failed:`, e.message);
+            console.warn(`[Image Warmup] Category ${categoryId} leagues failed:`, e.message);
         });
     } catch (error) {
+        if (fallbackData) {
+            return res.json({ ...fallbackData, fallback: true, snapshot: true });
+        }
         res.status(500).json({ error: true });
     }
 });
