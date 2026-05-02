@@ -6429,7 +6429,7 @@
 
                     leagueContainer.innerHTML = leagues.map(l => `
                 <div class="league-sub-row" onclick="openSingleLeague('${l.id}')">
-                    <img class="league-sub-logo club-logo" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`)}" onerror="this.onerror=null; this.src='${IMAGE_PLACEHOLDER}'">
+                    <img class="league-sub-logo club-logo" loading="lazy" decoding="async" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`)}" onerror="this.onerror=null; this.src='${IMAGE_PLACEHOLDER}'">
                     <span class="league-sub-name">${l.name}</span>
                 </div>
             `).join("");
@@ -6489,7 +6489,7 @@
                         html += `
                         <div class="league-card" onclick="openSingleLeague('${l.id}')">
                             <div style="display:flex; align-items:center; gap:16px; flex:1; min-width:0;">
-                                <img class="league-card-logo" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`)}" onerror="this.onerror=null; this.src='${sofaImageUrl(`/category/${catId}/image`)}'">
+                                <img class="league-card-logo" loading="eager" decoding="async" fetchpriority="high" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`)}" onerror="this.onerror=null; this.src='${sofaImageUrl(`/category/${catId}/image`)}'">
                                 <div class="league-card-info">
                                     <span class="league-card-country">${countryName}</span>
                                     <span class="league-card-name">${l.name}</span>
@@ -6506,7 +6506,7 @@
                             const safeCatName = (cat.name || "Ölkə").replace(/'/g, "\\'");
                             html += `
                             <div class="category-row" onclick="toggleCategory('${cat.id}', '${safeCatName}', this)">
-                                <img class="category-flag" src="${sofaImageUrl(`/category/${cat.id}/image`)}" onerror="this.onerror=null; this.src='${IMAGE_PLACEHOLDER}'">
+                                <img class="category-flag" loading="lazy" decoding="async" src="${sofaImageUrl(`/category/${cat.id}/image`)}" onerror="this.onerror=null; this.src='${IMAGE_PLACEHOLDER}'">
                                 <span class="category-name">${cat.name || 'Ölkə'}</span>
                                 <span class="chevron" style="opacity:0.4; font-size:12px; margin-left:auto;">&#9660;</span>
                             </div>`;
@@ -6540,7 +6540,7 @@
                                 html += `
                                 <div class="league-card" onclick="openSingleLeague('${l.id}')">
                                     <div style="display:flex; align-items:center; gap:16px; flex:1; min-width:0;">
-                                        <img class="league-card-logo club-logo" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`)}" onerror="this.onerror=null; this.src='${sofaImageUrl(`/category/${catId}/image`)}'">
+                                        <img class="league-card-logo club-logo" loading="eager" decoding="async" fetchpriority="high" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`)}" onerror="this.onerror=null; this.src='${sofaImageUrl(`/category/${catId}/image`)}'">
                                         <div class="league-card-info">
                                             <span class="league-card-country">${countryName}</span>
                                             <span class="league-card-name">${l.name || 'Liqa'}</span>
@@ -7480,7 +7480,7 @@
                         html += `
                     <div class="league-card">
                         <div style="display:flex; align-items:center; gap:16px; flex:1;" onclick="${groupKey ? `openSingleLeague('${groupKey.replace(/'/g, "\\'")}')` : `showToast('Liqa məlumatı tapılmadı')`}">
-                            <img class="league-card-logo" src="${sofaImageUrl(`/tournament/${l.id}/image`)}" onerror="this.onerror=null; this.src='${IMAGE_PLACEHOLDER}'">
+                            <img class="league-card-logo" loading="eager" decoding="async" fetchpriority="high" src="${sofaImageUrl(`/tournament/${l.id}/image`)}" onerror="this.onerror=null; this.src='${IMAGE_PLACEHOLDER}'">
                             <div class="league-card-info">
                                 <span class="league-card-country">${l.country}</span>
                                 <span class="league-card-name">${l.name}</span>

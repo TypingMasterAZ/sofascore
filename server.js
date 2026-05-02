@@ -595,6 +595,105 @@ const CACHE_TIMES = {
     STATIC: 60 * 60 * 1000    // 1 saat
 };
 
+const IMAGE_CACHE_DIR = path.join(__dirname, ".image-cache");
+const imageMemoryCache = new Map();
+const imageInFlight = new Map();
+
+function getImageCacheKey(imagePath) {
+    return Buffer.from(imagePath).toString("base64").replace(/[+/=]/g, "_");
+}
+
+function getImageCachePaths(imagePath) {
+    const key = getImageCacheKey(imagePath);
+    return {
+        filePath: path.join(IMAGE_CACHE_DIR, `${key}.bin`),
+        metaPath: path.join(IMAGE_CACHE_DIR, `${key}.json`)
+    };
+}
+
+function readCachedImage(imagePath) {
+    const memoryHit = imageMemoryCache.get(imagePath);
+    if (memoryHit) return memoryHit;
+
+    try {
+        const { filePath, metaPath } = getImageCachePaths(imagePath);
+        if (!fs.existsSync(filePath)) return null;
+        const body = fs.readFileSync(filePath);
+        let contentType = "image/png";
+        if (fs.existsSync(metaPath)) {
+            const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
+            contentType = meta.contentType || contentType;
+        }
+        const cached = { body, contentType, cached: true };
+        imageMemoryCache.set(imagePath, cached);
+        return cached;
+    } catch (error) {
+        console.warn(`[IMAGE CACHE READ] ${imagePath}: ${error.message}`);
+        return null;
+    }
+}
+
+function saveCachedImage(imagePath, payload) {
+    try {
+        fs.mkdirSync(IMAGE_CACHE_DIR, { recursive: true });
+        const { filePath, metaPath } = getImageCachePaths(imagePath);
+        fs.writeFileSync(filePath, payload.body);
+        fs.writeFileSync(metaPath, JSON.stringify({
+            contentType: payload.contentType,
+            savedAt: new Date().toISOString()
+        }));
+        imageMemoryCache.set(imagePath, { ...payload, cached: true });
+    } catch (error) {
+        console.warn(`[IMAGE CACHE WRITE] ${imagePath}: ${error.message}`);
+        imageMemoryCache.set(imagePath, { ...payload, cached: true });
+    }
+}
+
+async function fetchSofaImageCached(imagePath) {
+    const cached = readCachedImage(imagePath);
+    if (cached) return cached;
+
+    if (imageInFlight.has(imagePath)) {
+        return imageInFlight.get(imagePath);
+    }
+
+    const request = (async () => {
+        let response = null;
+        let lastImageError = null;
+        for (const baseUrl of SOFA_APIS) {
+            try {
+                response = await axios.get(`${baseUrl}${imagePath}`, {
+                    responseType: "arraybuffer",
+                    timeout: 5000,
+                    headers: {
+                        ...HEADERS,
+                        Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+                        Referer: "https://www.sofascore.com/",
+                        "User-Agent": getRandomUA()
+                    }
+                });
+                break;
+            } catch (error) {
+                lastImageError = error;
+            }
+        }
+
+        if (!response) throw lastImageError || new Error("Image fetch failed");
+
+        const payload = {
+            body: Buffer.from(response.data),
+            contentType: response.headers["content-type"] || "image/png"
+        };
+        saveCachedImage(imagePath, payload);
+        return { ...payload, cached: false };
+    })().finally(() => {
+        imageInFlight.delete(imagePath);
+    });
+
+    imageInFlight.set(imagePath, request);
+    return request;
+}
+
 let lastScores = {};
 let liveGoalIncidentState = {};
 let goalNotificationState = {};
@@ -1110,6 +1209,58 @@ const FALLBACK_CATEGORIES = [
     { id: 170, name: "Azerbaijan" }
 ];
 
+let imageWarmIndex = 0;
+
+function collectStaticLeagueImagePaths() {
+    const paths = [];
+    FALLBACK_TOP_LEAGUES.forEach(league => {
+        paths.push(`/unique-tournament/${league.id}/image`);
+        if (league.category?.id) paths.push(`/category/${league.category.id}/image`);
+    });
+    FALLBACK_CATEGORIES.forEach(category => paths.push(`/category/${category.id}/image`));
+    return [...new Set(paths)];
+}
+
+function collectTopLeagueImagePaths(data) {
+    const tournaments = data?.uniqueTournaments || data?.data || [];
+    return tournaments
+        .filter(item => item?.id)
+        .flatMap(item => [
+            `/unique-tournament/${item.id}/image`,
+            item.category?.id ? `/category/${item.category.id}/image` : null
+        ])
+        .filter(Boolean);
+}
+
+function collectCategoryImagePaths(data) {
+    return (data?.categories || [])
+        .filter(item => item?.id)
+        .map(item => `/category/${item.id}/image`);
+}
+
+function collectTournamentImagePaths(data) {
+    return (data?.uniqueTournaments || [])
+        .filter(item => item?.id)
+        .map(item => `/unique-tournament/${item.id}/image`);
+}
+
+async function warmImagePaths(paths, limit = 12) {
+    const unique = [...new Set(paths)].filter(Boolean).slice(0, limit);
+    if (!unique.length) return;
+    await Promise.allSettled(unique.map(imagePath => fetchSofaImageCached(imagePath)));
+}
+
+async function warmLeagueImages(limit = 10) {
+    const paths = collectStaticLeagueImagePaths();
+    if (!paths.length) return;
+    const batch = [];
+    for (let i = 0; i < Math.min(limit, paths.length); i++) {
+        batch.push(paths[(imageWarmIndex + i) % paths.length]);
+    }
+    imageWarmIndex = (imageWarmIndex + batch.length) % paths.length;
+    await warmImagePaths(batch, batch.length);
+}
+
 async function getCachedData(key, fetchFn, ttl) {
     const now = Date.now();
     if (cache[key] && (now - cache[key].timestamp < ttl)) {
@@ -1520,11 +1671,17 @@ app.get("/api/top-leagues", async (req, res) => {
             return result.data;
         }, CACHE_TIMES.STATIC);
         res.json(data);
+        warmImagePaths(collectTopLeagueImagePaths(data), 24).catch(e => {
+            console.warn("[Image Warmup] Top leagues failed:", e.message);
+        });
     } catch (error) {
         console.error(`[API ERROR] Top Leagues: ${error.message}`);
         const fallback = { uniqueTournaments: FALLBACK_TOP_LEAGUES, fallback: true };
         cache.top_leagues = { data: fallback, timestamp: Date.now() };
         res.json(fallback);
+        warmImagePaths(collectTopLeagueImagePaths(fallback), 24).catch(e => {
+            console.warn("[Image Warmup] Fallback top leagues failed:", e.message);
+        });
     }
 });
 
@@ -1536,11 +1693,17 @@ app.get("/api/categories", async (req, res) => {
             return result.data;
         }, CACHE_TIMES.STATIC);
         res.json(data);
+        warmImagePaths(collectCategoryImagePaths(data), 30).catch(e => {
+            console.warn("[Image Warmup] Categories failed:", e.message);
+        });
     } catch (error) {
         console.error(`[API ERROR] Categories: ${error.message}`);
         const fallback = { categories: FALLBACK_CATEGORIES, fallback: true };
         cache.categories = { data: fallback, timestamp: Date.now() };
         res.json(fallback);
+        warmImagePaths(collectCategoryImagePaths(fallback), 30).catch(e => {
+            console.warn("[Image Warmup] Fallback categories failed:", e.message);
+        });
     }
 });
 
@@ -1552,31 +1715,11 @@ app.get("/api/sofa-image", async (req, res) => {
             return res.status(400).type("image/svg+xml").send('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#111827"/></svg>');
         }
 
-        let response = null;
-        let lastImageError = null;
-        for (const baseUrl of SOFA_APIS) {
-            try {
-                response = await axios.get(`${baseUrl}${imagePath}`, {
-                    responseType: "arraybuffer",
-                    timeout: 5000,
-                    headers: {
-                        ...HEADERS,
-                        Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-                        Referer: "https://www.sofascore.com/",
-                        "User-Agent": getRandomUA()
-                    }
-                });
-                break;
-            } catch (error) {
-                lastImageError = error;
-            }
-        }
-
-        if (!response) throw lastImageError || new Error("Image fetch failed");
-
-        res.set("Content-Type", response.headers["content-type"] || "image/png");
+        const image = await fetchSofaImageCached(imagePath);
+        res.set("Content-Type", image.contentType || "image/png");
         res.set("Cache-Control", "public, max-age=604800, immutable");
-        res.send(Buffer.from(response.data));
+        res.set("X-Image-Cache", image.cached ? "HIT" : "MISS");
+        res.send(image.body);
     } catch (error) {
         console.error(`[IMAGE ERROR] ${req.query.path}: ${error.message}`);
         res.status(200).type("image/svg+xml").send('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#111827"/><circle cx="24" cy="24" r="11" fill="#334155"/></svg>');
@@ -1591,6 +1734,9 @@ app.get("/api/category/:id/tournaments", async (req, res) => {
             return result.data;
         }, CACHE_TIMES.STATIC);
         res.json(data);
+        warmImagePaths(collectTournamentImagePaths(data), 36).catch(e => {
+            console.warn(`[Image Warmup] Category ${req.params.id} leagues failed:`, e.message);
+        });
     } catch (error) {
         res.status(500).json({ error: true });
     }
@@ -2613,6 +2759,9 @@ setInterval(async () => {
 
 async function warmRuntimeCaches() {
     try {
+        warmLeagueImages(14).catch(e => {
+            console.warn("[Warmup] League image prefetch failed:", e.message);
+        });
         await getLiveEventsData(true);
         const todayStr = new Date().toISOString().split('T')[0];
         await getCachedData(`matches_${todayStr}`, async () => {
@@ -2688,8 +2837,14 @@ app.get("/", (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server ${PORT} portunda aktivdir.`);
+    warmLeagueImages(30).catch(e => {
+        console.warn("[Warmup] Initial league image prefetch failed:", e.message);
+    });
     warmRuntimeCaches();
     setInterval(warmRuntimeCaches, 8 * 1000);
+    setInterval(() => warmLeagueImages(16).catch(e => {
+        console.warn("[Warmup] League image interval failed:", e.message);
+    }), 30 * 1000);
 
     // â”€â”€â”€ RENDER KEEP-ALIVE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Render free plan serveri 15 dÉ™qiqÉ™lik hÉ™rÉ™kÉ™tsizlikdÉ™n sonra yuxuya gÃ¶ndÉ™rir.
