@@ -4522,8 +4522,12 @@
 
             const IMAGE_PLACEHOLDER = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iMTIiIGZpbGw9IiMxMTE4MjciLz48Y2lyY2xlIGN4PSIyNCIgY3k9IjI0IiByPSIxMSIgZmlsbD0iIzMzNDE1NSIvPjwvc3ZnPg==";
 
-            function sofaImageUrl(path) {
-                return `${API_BASE_URL || ''}/api/sofa-image?path=${encodeURIComponent(path)}&v=2`;
+            function sofaImageUrl(path, options = {}) {
+                if (options.strict) {
+                    return `https://api.sofascore.com/api/v1${path}`;
+                }
+                const params = new URLSearchParams({ path, v: "3" });
+                return `${API_BASE_URL || ''}/api/sofa-image?${params.toString()}`;
             }
 
             function normalizeSofaImageUrl(url) {
@@ -4532,6 +4536,50 @@
                 const index = url.indexOf(marker);
                 if (index === -1) return url;
                 return sofaImageUrl(url.slice(index + marker.length));
+            }
+
+            function svgDataUrl(svg) {
+                return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+            }
+
+            function normalizeHexColor(value, fallback) {
+                const raw = String(value || '').replace('#', '').trim();
+                return /^[0-9a-fA-F]{6}$/.test(raw) ? `#${raw}` : fallback;
+            }
+
+            function getInitials(value, fallback = 'FC') {
+                const source = String(value || fallback).trim();
+                const parts = source.split(/\s+/).filter(Boolean);
+                if (!parts.length) return fallback;
+                if (parts.length === 1) return parts[0].slice(0, 3).toUpperCase();
+                return parts.slice(0, 2).map(part => part[0]).join('').toUpperCase();
+            }
+
+            function generatedBadgeLogo(label, primary = '#1d4ed8', secondary = '#0f172a') {
+                const safeLabel = escapeHtml(getInitials(label));
+                const safePrimary = normalizeHexColor(primary, '#1d4ed8');
+                const safeSecondary = normalizeHexColor(secondary, '#0f172a');
+                return svgDataUrl(`
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+                                <stop offset="0" stop-color="${safePrimary}"/>
+                                <stop offset="1" stop-color="${safeSecondary}"/>
+                            </linearGradient>
+                        </defs>
+                        <rect width="64" height="64" rx="18" fill="url(#g)"/>
+                        <circle cx="32" cy="32" r="22" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="3"/>
+                        <text x="32" y="38" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="900" fill="#fff">${safeLabel}</text>
+                    </svg>`);
+            }
+
+            function getTeamFallbackLogo(team) {
+                const colors = team?.teamColors || {};
+                return generatedBadgeLogo(
+                    team?.nameCode || team?.shortName || team?.name || 'FC',
+                    colors.primary || colors.primaryColor || colors.primaryColorHex || '#2563eb',
+                    colors.secondary || colors.secondaryColor || colors.secondaryColorHex || '#0f172a'
+                );
             }
 
             const SPECIAL_FLAG_CODES = {
@@ -5401,8 +5449,8 @@
                 return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, ' ');
             }
 
-            function getTeamLogoUrl(teamId) {
-                return sofaImageUrl(`/team/${teamId}/image`);
+            function getTeamLogoUrl(teamId, strict = false) {
+                return sofaImageUrl(`/team/${teamId}/image`, { strict });
             }
 
             function getLeagueSeasonLabel(group) {
@@ -5457,7 +5505,8 @@
                     const teamId = row.team?.id || '';
                     const teamName = escapeHtml(row.team?.name || 'Komanda');
                     const safeTeamName = escapeJsString(row.team?.name || 'Komanda');
-                    const logoUrl = row.team?.logoUrl || getTeamLogoUrl(teamId);
+                    const logoUrl = normalizeSofaImageUrl(row.team?.logoUrl) || getTeamLogoUrl(teamId, true);
+                    const fallbackLogo = getTeamFallbackLogo(row.team);
                     const isSofaTeam = /^\d+$/.test(String(teamId));
                     const clickAction = isSofaTeam
                         ? `openTeamDetails('${teamId}', '${safeTeamName}')`
@@ -5467,7 +5516,7 @@
                         <tr style="transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
                             <td style="font-weight:700; color:var(--text-muted);">${row.position}</td>
                             <td class="team-cell" onclick="${clickAction}">
-                                <img class="team-logo club-logo" src="${logoUrl}" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTEiIGZpbGw9IiMxZjI5M2QiLz48L3N2Zz4='">
+                                <img class="team-logo club-logo" loading="eager" decoding="async" fetchpriority="high" src="${logoUrl}" onerror="this.onerror=null; this.src='${fallbackLogo}'">
                                 <span>${teamName}</span>
                             </td>
                             <td>${row.matches ?? '-'}</td>
@@ -6406,7 +6455,7 @@
                     return { logoUrl, fallBack: logoUrl || IMAGE_PLACEHOLDER };
                 }
                 const type = group.isUnique ? 'unique-tournament' : 'tournament';
-                const logoUrl = sofaImageUrl(`/${type}/${group.id}/image`);
+                const logoUrl = sofaImageUrl(`/${type}/${group.id}/image`, { strict: true });
                 const fallBack = group.catId ? sofaImageUrl(`/category/${group.catId}/image`) : IMAGE_PLACEHOLDER;
                 return { logoUrl, fallBack };
             }
@@ -6517,7 +6566,7 @@
             function renderCategoryLeagueRows(leagues) {
                 return leagues.map(l => `
                     <div class="league-sub-row" onclick="openSingleLeague('${l.id}')">
-                        <img class="league-sub-logo club-logo" loading="lazy" decoding="async" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`)}" onerror="this.onerror=null; this.src='${IMAGE_PLACEHOLDER}'">
+                        <img class="league-sub-logo club-logo" loading="lazy" decoding="async" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`, { strict: true })}" onerror="this.onerror=null; this.src='${IMAGE_PLACEHOLDER}'">
                         <span class="league-sub-name">${l.name || 'Liqa'}</span>
                     </div>
                 `).join("");
@@ -6650,7 +6699,7 @@
                     return `
                         <div class="league-card" onclick="openSingleLeague('${l.id}')">
                             <div style="display:flex; align-items:center; gap:16px; flex:1; min-width:0;">
-                                <img class="league-card-logo club-logo" loading="eager" decoding="async" fetchpriority="high" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`)}" onerror="this.onerror=null; this.src='${logoFallback}'">
+                                <img class="league-card-logo club-logo" loading="eager" decoding="async" fetchpriority="high" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`, { strict: true })}" onerror="this.onerror=null; this.src='${logoFallback}'">
                                 <div class="league-card-info">
                                     <span class="league-card-country">${leagueCategory}</span>
                                     <span class="league-card-name">${leagueName}</span>
@@ -6863,7 +6912,7 @@
                         html += `
                         <div class="league-card" onclick="openSingleLeague('${l.id}')">
                             <div style="display:flex; align-items:center; gap:16px; flex:1; min-width:0;">
-                                <img class="league-card-logo" loading="eager" decoding="async" fetchpriority="high" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`)}" onerror="this.onerror=null; this.src='${sofaImageUrl(`/category/${catId}/image`)}'">
+                                <img class="league-card-logo" loading="eager" decoding="async" fetchpriority="high" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`, { strict: true })}" onerror="this.onerror=null; this.src='${sofaImageUrl(`/category/${catId}/image`)}'">
                                 <div class="league-card-info">
                                     <span class="league-card-country">${countryName}</span>
                                     <span class="league-card-name">${l.name}</span>
@@ -6929,7 +6978,7 @@
                                 html += `
                                 <div class="league-card" onclick="openSingleLeague('${l.id}')">
                                     <div style="display:flex; align-items:center; gap:16px; flex:1; min-width:0;">
-                                        <img class="league-card-logo club-logo" loading="eager" decoding="async" fetchpriority="high" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`)}" onerror="this.onerror=null; this.src='${sofaImageUrl(`/category/${catId}/image`)}'">
+                                        <img class="league-card-logo club-logo" loading="eager" decoding="async" fetchpriority="high" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`, { strict: true })}" onerror="this.onerror=null; this.src='${sofaImageUrl(`/category/${catId}/image`)}'">
                                         <div class="league-card-info">
                                             <span class="league-card-country">${countryName}</span>
                                             <span class="league-card-name">${l.name || 'Liqa'}</span>

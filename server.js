@@ -1306,9 +1306,31 @@ function collectCategoryImagePaths(data) {
 }
 
 function collectTournamentImagePaths(data) {
-    return (data?.uniqueTournaments || [])
+    const tournaments = [];
+    if (Array.isArray(data?.uniqueTournaments)) tournaments.push(...data.uniqueTournaments);
+    if (Array.isArray(data?.groups)) {
+        data.groups.forEach(group => {
+            if (Array.isArray(group.uniqueTournaments)) tournaments.push(...group.uniqueTournaments);
+        });
+    }
+    return tournaments
         .filter(item => item?.id)
-        .map(item => `/unique-tournament/${item.id}/image`);
+        .flatMap(item => [
+            `/unique-tournament/${item.id}/image`,
+            item.category?.id ? `/category/${item.category.id}/image` : null
+        ])
+        .filter(Boolean);
+}
+
+function collectStandingTeamImagePaths(data) {
+    const rows = data?.standings?.flatMap(standing => standing.rows || []) || [];
+    return rows
+        .map(row => row?.team?.id ? `/team/${row.team.id}/image` : null)
+        .filter(Boolean);
+}
+
+function warmStandingTeamImages(data, limit = 32) {
+    return warmImagePaths(collectStandingTeamImagePaths(data), limit);
 }
 
 async function warmImagePaths(paths, limit = 12) {
@@ -1644,6 +1666,9 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
         );
         if (!seasonId && cachedForTour) {
             const cachedSeasonId = cachedForTour[0].split("_").pop();
+            warmStandingTeamImages(cachedForTour[1].data, 36).catch(e => {
+                console.warn(`[Image Warmup] Cached standings teams ${tourId} failed:`, e.message);
+            });
             return res.json({
                 ...cachedForTour[1].data,
                 seasonId: cachedSeasonId,
@@ -1661,6 +1686,10 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
                 snapshot: true,
                 fast: true,
                 durationMs: Date.now() - startedAt
+            });
+
+            warmStandingTeamImages(fallbackStanding, 36).catch(e => {
+                console.warn(`[Image Warmup] Snapshot standings teams ${tourId} failed:`, e.message);
             });
 
             const refreshSeasonId = fallbackStanding.seasonId || seasonId || KNOWN_CURRENT_SEASONS[tourId];
@@ -1689,6 +1718,9 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
 
                 if (espnData?.standings?.length) {
                     saveStandingSnapshot(espnCacheKey, espnData);
+                    warmStandingTeamImages(espnData, 36).catch(e => {
+                        console.warn(`[Image Warmup] ESPN standings teams ${tourId} failed:`, e.message);
+                    });
                     return res.json({
                         ...espnData,
                         seasonId: seasonId || "espn",
@@ -1727,6 +1759,9 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
 
         if (data?.standings?.length) {
             saveStandingSnapshot(standingsCacheKey, data);
+            warmStandingTeamImages(data, 36).catch(e => {
+                console.warn(`[Image Warmup] Standings teams ${tourId} failed:`, e.message);
+            });
         }
 
         res.json({
@@ -1740,6 +1775,9 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
         console.error(`[API ERROR] Fast standings tour=${req.params.tourId}: ${error.message}`);
         const fallbackStanding = getFallbackStanding(req.params.tourId, req.query.seasonId);
         if (fallbackStanding) {
+            warmStandingTeamImages(fallbackStanding, 36).catch(e => {
+                console.warn(`[Image Warmup] Error fallback standings teams ${req.params.tourId} failed:`, e.message);
+            });
             return res.json({
                 ...fallbackStanding,
                 seasonId: fallbackStanding.seasonId || req.query.seasonId || "snapshot",
@@ -1760,11 +1798,17 @@ app.get("/api/standings/:tourId/:seasonId", async (req, res) => {
             const result = await fetchFromSofa(`/unique-tournament/${tourId}/season/${seasonId}/standings/total`);
             return result.data;
         }, CACHE_TIMES.STATIC);
+        warmStandingTeamImages(data, 36).catch(e => {
+            console.warn(`[Image Warmup] Direct standings teams ${tourId} failed:`, e.message);
+        });
         res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Standings tour=${req.params.tourId} season=${req.params.seasonId}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
         const fallbackStanding = getFallbackStanding(req.params.tourId, req.params.seasonId);
         if (fallbackStanding) {
+            warmStandingTeamImages(fallbackStanding, 36).catch(e => {
+                console.warn(`[Image Warmup] Direct fallback standings teams ${req.params.tourId} failed:`, e.message);
+            });
             return res.json({
                 ...fallbackStanding,
                 seasonId: fallbackStanding.seasonId || req.params.seasonId,
@@ -1839,6 +1883,9 @@ app.get("/api/sofa-image", async (req, res) => {
         res.send(image.body);
     } catch (error) {
         console.error(`[IMAGE ERROR] ${req.query.path}: ${error.message}`);
+        if (req.query.strict === "1") {
+            return res.status(404).type("image/svg+xml").send('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#111827"/></svg>');
+        }
         res.status(200).type("image/svg+xml").send('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#111827"/><circle cx="24" cy="24" r="11" fill="#334155"/></svg>');
     }
 });
