@@ -1170,6 +1170,7 @@ const ESPN_STANDINGS_LEAGUES = {
 const STANDINGS_SNAPSHOT_FILE = path.join(__dirname, "standings_snapshot.json");
 const FOOTBALL_STANDINGS_SNAPSHOT_FILE = path.join(__dirname, "football_standings_snapshot.json");
 let standingsWarmIndex = 0;
+let topPlayersWarmIndex = 0;
 
 function loadStandingsSnapshot() {
     try {
@@ -1331,6 +1332,19 @@ function collectStandingTeamImagePaths(data) {
 
 function warmStandingTeamImages(data, limit = 32) {
     return warmImagePaths(collectStandingTeamImagePaths(data), limit);
+}
+
+function collectTopPlayerImagePaths(data) {
+    const list = data?.topPlayers?.goals || data?.topPlayers || data || [];
+    if (!Array.isArray(list)) return [];
+    return list.flatMap(item => [
+        item?.player?.id ? `/player/${item.player.id}/image` : null,
+        item?.team?.id ? `/team/${item.team.id}/image` : null
+    ]).filter(Boolean);
+}
+
+function warmTopPlayerImages(data, limit = 28) {
+    return warmImagePaths(collectTopPlayerImagePaths(data), limit);
 }
 
 async function warmImagePaths(paths, limit = 12) {
@@ -1871,7 +1885,7 @@ app.get("/api/categories", async (req, res) => {
 app.get("/api/sofa-image", async (req, res) => {
     try {
         const imagePath = String(req.query.path || "");
-        const allowedImagePath = /^\/(?:unique-tournament|tournament|category|team)\/[\w-]+\/image$/;
+        const allowedImagePath = /^\/(?:unique-tournament|tournament|category|team|player)\/[\w-]+\/image$/;
         if (!allowedImagePath.test(imagePath)) {
             return res.status(400).type("image/svg+xml").send('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#111827"/></svg>');
         }
@@ -1974,9 +1988,11 @@ app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
     try {
         const { id, sid } = req.params;
         const data = await getCachedData(`topplayers_${id}_${sid}`, async () => {
-            const result = await fetchFromSofa(`/unique-tournament/${id}/season/${sid}/top-players/overall`);
-            return result.data;
+            return await fetchFromSofaFastRace(`/unique-tournament/${id}/season/${sid}/top-players/overall`, {}, 6500);
         }, CACHE_TIMES.STATIC);
+        warmTopPlayerImages(data, 32).catch(e => {
+            console.warn(`[Image Warmup] Top players ${id}/${sid} failed:`, e.message);
+        });
         res.json(data);
     } catch (error) {
         res.status(500).json({ error: true });
@@ -2958,6 +2974,9 @@ async function warmRuntimeCaches() {
         warmOneLeagueStanding().catch(e => {
             console.warn("[Warmup] Standing prefetch failed:", e.message);
         });
+        warmOneLeagueTopPlayers().catch(e => {
+            console.warn("[Warmup] Top players prefetch failed:", e.message);
+        });
     } catch (e) {
         console.warn("[Warmup] Cache prefetch failed:", e.message);
     }
@@ -2996,6 +3015,28 @@ async function warmOneLeagueStanding() {
         return await fetchFromSofaFastRace(`/unique-tournament/${league.id}/season/${seasonId}/standings/total`, {}, 7000);
     }, CACHE_TIMES.STATIC);
     if (data?.standings?.length) saveStandingSnapshot(standingsKey, data);
+}
+
+async function warmOneLeagueTopPlayers() {
+    if (!FALLBACK_TOP_LEAGUES.length) return;
+    const warmableLeagues = FALLBACK_TOP_LEAGUES.filter(league => KNOWN_CURRENT_SEASONS[league.id]);
+    if (!warmableLeagues.length) return;
+
+    const league = warmableLeagues[topPlayersWarmIndex % warmableLeagues.length];
+    topPlayersWarmIndex++;
+    const seasonId = KNOWN_CURRENT_SEASONS[league.id];
+    if (!seasonId) return;
+
+    const cacheKey = `topplayers_${league.id}_${seasonId}`;
+    if (cache[cacheKey] && cache[cacheKey]?.data) return;
+
+    console.log(`[Warmup] Prefetch top players for ${league.name} (${league.id})`);
+    const data = await getCachedData(cacheKey, async () => {
+        return await fetchFromSofaFastRace(`/unique-tournament/${league.id}/season/${seasonId}/top-players/overall`, {}, 6500);
+    }, CACHE_TIMES.STATIC, { skipJitter: true });
+    warmTopPlayerImages(data, 32).catch(e => {
+        console.warn(`[Image Warmup] Warm top players ${league.id}/${seasonId} failed:`, e.message);
+    });
 }
 
 app.get("/api/keepalive", async (req, res) => {
