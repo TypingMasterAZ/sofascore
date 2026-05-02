@@ -7,3 +7,4 @@ reminders_sent.json
 tmp.json
 tmp_script.js
 *.log
+.image-cache/

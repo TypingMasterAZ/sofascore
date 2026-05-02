@@ -1198,16 +1198,33 @@ function saveStandingSnapshot(key, data) {
 
 loadStandingsSnapshot();
 
-const FALLBACK_CATEGORIES = [
-    { id: 1, name: "England" },
-    { id: 32, name: "Spain" },
-    { id: 31, name: "Italy" },
-    { id: 30, name: "Germany" },
-    { id: 7, name: "France" },
-    { id: 46, name: "Turkey" },
-    { id: 1465, name: "Europe" },
-    { id: 170, name: "Azerbaijan" }
-];
+const FOOTBALL_CATEGORIES_SNAPSHOT_FILE = path.join(__dirname, "football_categories_snapshot.json");
+
+function loadFallbackCategories() {
+    try {
+        if (fs.existsSync(FOOTBALL_CATEGORIES_SNAPSHOT_FILE)) {
+            const parsed = JSON.parse(fs.readFileSync(FOOTBALL_CATEGORIES_SNAPSHOT_FILE, "utf8"));
+            if (Array.isArray(parsed.categories) && parsed.categories.length) {
+                return parsed.categories;
+            }
+        }
+    } catch (error) {
+        console.warn("[Categories Snapshot] Load failed:", error.message);
+    }
+
+    return [
+        { id: 1, name: "England", slug: "england", flag: "england", alpha2: "EN", priority: 10 },
+        { id: 32, name: "Spain", slug: "spain", flag: "spain", alpha2: "ES", priority: 10 },
+        { id: 31, name: "Italy", slug: "italy", flag: "italy", alpha2: "IT", priority: 10 },
+        { id: 30, name: "Germany", slug: "germany", flag: "germany", alpha2: "DE", priority: 10 },
+        { id: 7, name: "France", slug: "france", flag: "france", alpha2: "FR", priority: 10 },
+        { id: 46, name: "Turkey", slug: "turkey", flag: "turkey", alpha2: "TR", priority: 10 },
+        { id: 1465, name: "Europe", slug: "europe", flag: "europe", alpha2: "EU", priority: 10 },
+        { id: 297, name: "Azerbaijan", slug: "azerbaijan", flag: "azerbaijan", alpha2: "AZ", priority: 10 }
+    ];
+}
+
+const FALLBACK_CATEGORIES = loadFallbackCategories();
 
 let imageWarmIndex = 0;
 
@@ -1692,8 +1709,12 @@ app.get("/api/categories", async (req, res) => {
             const result = await fetchFromSofa("/sport/football/categories");
             return result.data;
         }, CACHE_TIMES.STATIC);
-        res.json(data);
-        warmImagePaths(collectCategoryImagePaths(data), 30).catch(e => {
+        const categories = Array.isArray(data?.categories) && data.categories.length
+            ? data.categories
+            : FALLBACK_CATEGORIES;
+        const payload = { ...data, categories };
+        res.json(payload);
+        warmImagePaths(collectCategoryImagePaths(payload), 30).catch(e => {
             console.warn("[Image Warmup] Categories failed:", e.message);
         });
     } catch (error) {

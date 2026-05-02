@@ -867,6 +867,8 @@
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.08);
+            flex: 0 0 28px;
         }
 
         .category-name {
@@ -4495,6 +4497,32 @@
                 return sofaImageUrl(url.slice(index + marker.length));
             }
 
+            const SPECIAL_FLAG_CODES = {
+                england: 'gb-eng',
+                scotland: 'gb-sct',
+                wales: 'gb-wls',
+                'northern-ireland': 'gb-nir',
+                northern_ireland: 'gb-nir',
+                kosovo: 'xk'
+            };
+
+            function getCountryFlagUrl(category = {}) {
+                const slug = String(category.slug || category.flag || category.name || '')
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-|-$/g, '');
+                const special = SPECIAL_FLAG_CODES[slug] || SPECIAL_FLAG_CODES[String(category.flag || '').toLowerCase()];
+                if (special) return `https://flagcdn.com/w80/${special}.png`;
+
+                const alpha2 = String(category.alpha2 || '').toLowerCase();
+                if (/^[a-z]{2}$/.test(alpha2) && alpha2 !== 'en' && alpha2 !== 'eu' && alpha2 !== 'xx') {
+                    return `https://flagcdn.com/w80/${alpha2}.png`;
+                }
+
+                if (category.id) return sofaImageUrl(`/category/${category.id}/image`);
+                return IMAGE_PLACEHOLDER;
+            }
+
             function disableAppZoom() {
                 document.addEventListener('gesturestart', (event) => event.preventDefault(), { passive: false });
                 document.addEventListener('gesturechange', (event) => event.preventDefault(), { passive: false });
@@ -5420,6 +5448,10 @@
                 return list.map(item => ({ ...item, id: Number(normalizeLeagueId(item.id)) || item.id }));
             }
 
+            function isCompleteCategoryList(list) {
+                return Array.isArray(list) && list.length > 50 && list.some(cat => cat?.alpha2 || cat?.slug || cat?.flag);
+            }
+
             let popularStandingsPrefetchStarted = false;
             function prefetchPopularStandings() {
                 if (popularStandingsPrefetchStarted) return;
@@ -6234,7 +6266,14 @@
                         try { topLeaguesRaw = normalizeLeagueListIds(JSON.parse(cachedTop)); } catch(e){}
                     }
                     if (cachedCats) {
-                        try { allCategoriesGlobal = JSON.parse(cachedCats); } catch(e){}
+                        try {
+                            const parsedCategories = JSON.parse(cachedCats);
+                            if (isCompleteCategoryList(parsedCategories)) {
+                                allCategoriesGlobal = parsedCategories;
+                            } else {
+                                localStorage.removeItem('cached_categories');
+                            }
+                        } catch(e){}
                     }
                 }
 
@@ -6252,8 +6291,11 @@
                         }
                         if (resCats && resCats.ok) {
                             const catData = await resCats.json();
-                            allCategoriesGlobal = catData.categories || catData.data || [];
-                            localStorage.setItem('cached_categories', JSON.stringify(allCategoriesGlobal));
+                            const fetchedCategories = catData.categories || catData.data || [];
+                            if (isCompleteCategoryList(fetchedCategories)) {
+                                allCategoriesGlobal = fetchedCategories;
+                                localStorage.setItem('cached_categories', JSON.stringify(allCategoriesGlobal));
+                            }
                         }
 
                         if (document.getElementById('leaguesView').classList.contains('active')) {
@@ -6416,11 +6458,27 @@
                     const res = await fetch(API_BASE_URL + `/api/category/${catId}/tournaments`);
                     const data = await res.json();
                     let leagues = [];
-                    if (data.groups && data.groups.length > 0) {
-                        leagues = data.groups[0].uniqueTournaments || [];
-                    } else if (data.uniqueTournaments) {
-                        leagues = data.uniqueTournament ? [data.uniqueTournament] : data.uniqueTournaments;
+                    if (Array.isArray(data.groups) && data.groups.length > 0) {
+                        leagues = data.groups.flatMap(group => group.uniqueTournaments || []);
                     }
+                    if (Array.isArray(data.uniqueTournaments)) {
+                        leagues = leagues.concat(data.uniqueTournaments);
+                    } else if (data.uniqueTournament) {
+                        leagues.push(data.uniqueTournament);
+                    }
+
+                    const seenLeagueIds = new Set();
+                    leagues = leagues
+                        .filter(league => {
+                            if (!league?.id || seenLeagueIds.has(String(league.id))) return false;
+                            seenLeagueIds.add(String(league.id));
+                            return true;
+                        })
+                        .sort((a, b) => {
+                            const priorityDiff = (b.priority || 0) - (a.priority || 0);
+                            if (priorityDiff) return priorityDiff;
+                            return String(a.name || '').localeCompare(String(b.name || ''), 'az');
+                        });
 
                     if (leagues.length === 0) {
                         leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">Bu Ölkə üçün aktiv liqa tapılmadı.</div>`;
@@ -6476,7 +6534,7 @@
                         { id: 23, name: "Serie A", category: { name: "Italy", id: 31 } },
                         { id: 35, name: "Bundesliga", category: { name: "Germany", id: 30 } },
                         { id: 203, name: "Süper Lig", category: { name: "Turkey", id: 52 } },
-                        { id: 709, name: "Premyer Liqa", category: { name: "Azerbaijan", id: 875 } }
+                        { id: 709, name: "Premyer Liqa", category: { name: "Azerbaijan", id: 297, slug: "azerbaijan", alpha2: "AZ" } }
                     ];
 
                     displayPopular.forEach(l => {
@@ -6500,13 +6558,22 @@
                     });
 
                     // 2. Discovery Section: All Countries (Categories)
-                    if (allCategoriesGlobal && allCategoriesGlobal.length > 0) {
-                        html += `<div class="category-header"><span>Bütün Ölkələr (${allCategoriesGlobal.length})</span></div>`;
-                        allCategoriesGlobal.forEach(cat => {
+                    const countryCategories = (allCategoriesGlobal || [])
+                        .filter(cat => cat && cat.id && cat.name)
+                        .sort((a, b) => {
+                            const priorityDiff = (b.priority || 0) - (a.priority || 0);
+                            if (priorityDiff) return priorityDiff;
+                            return String(a.name || '').localeCompare(String(b.name || ''), 'az');
+                        });
+
+                    if (countryCategories.length > 0) {
+                        html += `<div class="category-header"><span>Bütün Ölkələr (${countryCategories.length})</span></div>`;
+                        countryCategories.forEach(cat => {
                             const safeCatName = (cat.name || "Ölkə").replace(/'/g, "\\'");
+                            const flagUrl = getCountryFlagUrl(cat);
                             html += `
                             <div class="category-row" onclick="toggleCategory('${cat.id}', '${safeCatName}', this)">
-                                <img class="category-flag" loading="lazy" decoding="async" src="${sofaImageUrl(`/category/${cat.id}/image`)}" onerror="this.onerror=null; this.src='${IMAGE_PLACEHOLDER}'">
+                                <img class="category-flag" loading="lazy" decoding="async" src="${flagUrl}" onerror="this.onerror=null; this.src='${sofaImageUrl(`/category/${cat.id}/image`)}'">
                                 <span class="category-name">${cat.name || 'Ölkə'}</span>
                                 <span class="chevron" style="opacity:0.4; font-size:12px; margin-left:auto;">&#9660;</span>
                             </div>`;

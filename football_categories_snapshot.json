@@ -1,0 +1,2126 @@
+{
+  "generatedAt": "2026-05-02T15:10:30.468Z",
+  "categories": [
+    {
+      "id": 1,
+      "name": "England",
+      "slug": "england",
+      "flag": "england",
+      "alpha2": "EN",
+      "priority": 10
+    },
+    {
+      "id": 1084,
+      "name": "Afghanistan",
+      "slug": "afghanistan",
+      "flag": "afghanistan",
+      "alpha2": "AF",
+      "priority": 0
+    },
+    {
+      "id": 1924,
+      "name": "Central African Republic",
+      "slug": "central-african-republic",
+      "flag": "central-african-rep",
+      "alpha2": "CF",
+      "priority": 0
+    },
+    {
+      "id": 304,
+      "name": "Algeria",
+      "slug": "algeria",
+      "flag": "algeria",
+      "alpha2": "DZ",
+      "priority": 0
+    },
+    {
+      "id": 1787,
+      "name": "American Samoa",
+      "slug": "american-samoa",
+      "flag": "american-samoa",
+      "alpha2": "AS",
+      "priority": 0
+    },
+    {
+      "id": 500,
+      "name": "Angola",
+      "slug": "angola",
+      "flag": "angola",
+      "alpha2": "AO",
+      "priority": 0
+    },
+    {
+      "id": 48,
+      "name": "Argentina",
+      "slug": "argentina",
+      "flag": "argentina",
+      "alpha2": "AR",
+      "priority": 0
+    },
+    {
+      "id": 296,
+      "name": "Armenia",
+      "slug": "armenia",
+      "flag": "armenia",
+      "alpha2": "AM",
+      "priority": 0
+    },
+    {
+      "id": 34,
+      "name": "Australia",
+      "slug": "australia",
+      "flag": "australia",
+      "alpha2": "AU",
+      "priority": 0
+    },
+    {
+      "id": 297,
+      "name": "Azerbaijan",
+      "slug": "azerbaijan",
+      "flag": "azerbaijan",
+      "alpha2": "AZ",
+      "priority": 0
+    },
+    {
+      "id": 351,
+      "name": "Bahrain",
+      "slug": "bahrain",
+      "flag": "bahrain",
+      "alpha2": "BH",
+      "priority": 0
+    },
+    {
+      "id": 1088,
+      "name": "Bangladesh",
+      "slug": "bangladesh",
+      "flag": "bangladesh",
+      "alpha2": "BD",
+      "priority": 0
+    },
+    {
+      "id": 1485,
+      "name": "Benin",
+      "slug": "benin",
+      "flag": "benin",
+      "alpha2": "BJ",
+      "priority": 0
+    },
+    {
+      "id": 1556,
+      "name": "Bhutan",
+      "slug": "bhutan",
+      "flag": "bhutan",
+      "alpha2": "BT",
+      "priority": 0
+    },
+    {
+      "id": 379,
+      "name": "Bolivia",
+      "slug": "bolivia",
+      "flag": "bolivia",
+      "alpha2": "BO",
+      "priority": 0
+    },
+    {
+      "id": 1020,
+      "name": "Botswana",
+      "slug": "botswana",
+      "flag": "botswana",
+      "alpha2": "BW",
+      "priority": 0
+    },
+    {
+      "id": 13,
+      "name": "Brazil",
+      "slug": "brazil",
+      "flag": "brazil",
+      "alpha2": "BR",
+      "priority": 0
+    },
+    {
+      "id": 1711,
+      "name": "British Virgin Islands",
+      "slug": "british-virgin-islands",
+      "flag": "british-virgin-islands",
+      "alpha2": "VG",
+      "priority": 0
+    },
+    {
+      "id": 1617,
+      "name": "Brunei",
+      "slug": "brunei",
+      "flag": "brunei",
+      "alpha2": "BN",
+      "priority": 0
+    },
+    {
+      "id": 1093,
+      "name": "Burundi",
+      "slug": "burundi",
+      "flag": "burundi",
+      "alpha2": "BI",
+      "priority": 0
+    },
+    {
+      "id": 1094,
+      "name": "Cambodia",
+      "slug": "cambodia",
+      "flag": "cambodia",
+      "alpha2": "KH",
+      "priority": 0
+    },
+    {
+      "id": 391,
+      "name": "Cameroon",
+      "slug": "cameroon",
+      "flag": "cameroon",
+      "alpha2": "CM",
+      "priority": 0
+    },
+    {
+      "id": 1685,
+      "name": "Cape Verde",
+      "slug": "cape-verde",
+      "flag": "cape-verde",
+      "alpha2": "CV",
+      "priority": 0
+    },
+    {
+      "id": 1096,
+      "name": "Chad",
+      "slug": "chad",
+      "flag": "chad",
+      "alpha2": "TD",
+      "priority": 0
+    },
+    {
+      "id": 49,
+      "name": "Chile",
+      "slug": "chile",
+      "flag": "chile",
+      "alpha2": "CL",
+      "priority": 0
+    },
+    {
+      "id": 99,
+      "name": "China",
+      "slug": "china",
+      "flag": "china",
+      "alpha2": "CN",
+      "priority": 0
+    },
+    {
+      "id": 1097,
+      "name": "Chinese Taipei",
+      "slug": "chinese-taipei",
+      "flag": "taiwan",
+      "alpha2": "TW",
+      "priority": 0
+    },
+    {
+      "id": 274,
+      "name": "Colombia",
+      "slug": "colombia",
+      "flag": "colombia",
+      "alpha2": "CO",
+      "priority": 0
+    },
+    {
+      "id": 1098,
+      "name": "Comoros",
+      "slug": "comoros",
+      "flag": "comoros",
+      "alpha2": "KM",
+      "priority": 0
+    },
+    {
+      "id": 1137,
+      "name": "Congo Republic",
+      "slug": "congo-republic",
+      "flag": "congo",
+      "alpha2": "CG",
+      "priority": 0
+    },
+    {
+      "id": 1795,
+      "name": "Cook Islands",
+      "slug": "cook-islands",
+      "flag": "cook-islands",
+      "alpha2": "CK",
+      "priority": 0
+    },
+    {
+      "id": 390,
+      "name": "Côte d'Ivoire",
+      "slug": "ivory-coast",
+      "flag": "ivory-coast",
+      "alpha2": "CI",
+      "priority": 0
+    },
+    {
+      "id": 1101,
+      "name": "DR Congo",
+      "slug": "dr-congo",
+      "flag": "dr-congo",
+      "alpha2": "CD",
+      "priority": 0
+    },
+    {
+      "id": 165,
+      "name": "Ecuador",
+      "slug": "ecuador",
+      "flag": "ecuador",
+      "alpha2": "EC",
+      "priority": 0
+    },
+    {
+      "id": 305,
+      "name": "Egypt",
+      "slug": "egypt",
+      "flag": "egypt",
+      "alpha2": "EG",
+      "priority": 0
+    },
+    {
+      "id": 1148,
+      "name": "Eswatini",
+      "slug": "swaziland",
+      "flag": "swaziland",
+      "alpha2": "SZ",
+      "priority": 0
+    },
+    {
+      "id": 1102,
+      "name": "Ethiopia",
+      "slug": "ethiopia",
+      "flag": "ethiopia",
+      "alpha2": "ET",
+      "priority": 0
+    },
+    {
+      "id": 201,
+      "name": "Faroe Islands",
+      "slug": "faroe-islands",
+      "flag": "faroe-islands",
+      "alpha2": "FO",
+      "priority": 0
+    },
+    {
+      "id": 1103,
+      "name": "Fiji",
+      "slug": "fiji",
+      "flag": "fiji",
+      "alpha2": "FJ",
+      "priority": 0
+    },
+    {
+      "id": 1596,
+      "name": "French Guiana",
+      "slug": "french-guiana",
+      "flag": "french-guyana",
+      "alpha2": "GF",
+      "priority": 0
+    },
+    {
+      "id": 1471,
+      "name": "Oceania",
+      "slug": "oceania",
+      "flag": "oceania",
+      "priority": 14
+    },
+    {
+      "id": 1104,
+      "name": "Gabon",
+      "slug": "gabon",
+      "flag": "gabon",
+      "alpha2": "GA",
+      "priority": 0
+    },
+    {
+      "id": 1105,
+      "name": "Gambia",
+      "slug": "gambia",
+      "flag": "gambia",
+      "alpha2": "GM",
+      "priority": 0
+    },
+    {
+      "id": 270,
+      "name": "Georgia",
+      "slug": "georgia",
+      "flag": "georgia",
+      "alpha2": "GE",
+      "priority": 0
+    },
+    {
+      "id": 542,
+      "name": "Ghana",
+      "slug": "ghana",
+      "flag": "ghana",
+      "alpha2": "GH",
+      "priority": 0
+    },
+    {
+      "id": 938,
+      "name": "Gibraltar",
+      "slug": "gibraltar",
+      "flag": "gibraltar",
+      "alpha2": "GI",
+      "priority": 0
+    },
+    {
+      "id": 1807,
+      "name": "Greenland",
+      "slug": "greenland",
+      "flag": "greenland",
+      "alpha2": "GL",
+      "priority": 0
+    },
+    {
+      "id": 1794,
+      "name": "Guadeloupe",
+      "slug": "guadeloupe",
+      "flag": "guadeloupe",
+      "alpha2": "GP",
+      "priority": 0
+    },
+    {
+      "id": 1106,
+      "name": "Guam",
+      "slug": "guam",
+      "flag": "guam",
+      "alpha2": "GU",
+      "priority": 0
+    },
+    {
+      "id": 1107,
+      "name": "Guinea",
+      "slug": "guinea",
+      "flag": "guinea",
+      "alpha2": "GN",
+      "priority": 0
+    },
+    {
+      "id": 339,
+      "name": "Hong Kong",
+      "slug": "hong-kong",
+      "flag": "hong-kong",
+      "alpha2": "HK",
+      "priority": 0
+    },
+    {
+      "id": 1466,
+      "name": "Africa",
+      "slug": "africa",
+      "flag": "africa",
+      "priority": 16
+    },
+    {
+      "id": 1467,
+      "name": "Asia",
+      "slug": "asia",
+      "flag": "asia",
+      "priority": 17
+    },
+    {
+      "id": 1465,
+      "name": "Europe",
+      "slug": "europe",
+      "flag": "europe",
+      "priority": 19
+    },
+    {
+      "id": 1469,
+      "name": "North & Central America",
+      "slug": "north-central-america",
+      "flag": "north-and-central-america",
+      "priority": 15
+    },
+    {
+      "id": 1470,
+      "name": "South America",
+      "slug": "south-america",
+      "flag": "south-america",
+      "priority": 18
+    },
+    {
+      "id": 352,
+      "name": "India",
+      "slug": "india",
+      "flag": "india",
+      "alpha2": "IN",
+      "priority": 0
+    },
+    {
+      "id": 368,
+      "name": "Indonesia",
+      "slug": "indonesia",
+      "flag": "indonesia",
+      "alpha2": "ID",
+      "priority": 0
+    },
+    {
+      "id": 1468,
+      "name": "World",
+      "slug": "world",
+      "flag": "international",
+      "priority": 20
+    },
+    {
+      "id": 301,
+      "name": "Iran",
+      "slug": "iran",
+      "flag": "iran",
+      "alpha2": "IR",
+      "priority": 0
+    },
+    {
+      "id": 1111,
+      "name": "Iraq",
+      "slug": "iraq",
+      "flag": "iraq",
+      "alpha2": "IQ",
+      "priority": 0
+    },
+    {
+      "id": 66,
+      "name": "Israel",
+      "slug": "israel",
+      "flag": "israel",
+      "alpha2": "IL",
+      "priority": 0
+    },
+    {
+      "id": 52,
+      "name": "Japan",
+      "slug": "japan",
+      "flag": "japan",
+      "alpha2": "JP",
+      "priority": 0
+    },
+    {
+      "id": 329,
+      "name": "Jordan",
+      "slug": "jordan",
+      "flag": "jordan",
+      "alpha2": "JO",
+      "priority": 0
+    },
+    {
+      "id": 278,
+      "name": "Kazakhstan",
+      "slug": "kazakhstan",
+      "flag": "kazakhstan",
+      "alpha2": "KZ",
+      "priority": 0
+    },
+    {
+      "id": 805,
+      "name": "Kenya",
+      "slug": "kenya",
+      "flag": "kenya",
+      "alpha2": "KE",
+      "priority": 0
+    },
+    {
+      "id": 331,
+      "name": "Kuwait",
+      "slug": "kuwait",
+      "flag": "kuwait",
+      "alpha2": "KW",
+      "priority": 0
+    },
+    {
+      "id": 1113,
+      "name": "Kyrgyzstan",
+      "slug": "kyrgyzstan",
+      "flag": "kyrgyzstan",
+      "alpha2": "KG",
+      "priority": 0
+    },
+    {
+      "id": 1114,
+      "name": "Laos",
+      "slug": "laos",
+      "flag": "laos",
+      "alpha2": "LA",
+      "priority": 0
+    },
+    {
+      "id": 428,
+      "name": "Lebanon",
+      "slug": "lebanon",
+      "flag": "lebanon",
+      "alpha2": "LB",
+      "priority": 0
+    },
+    {
+      "id": 1115,
+      "name": "Lesotho",
+      "slug": "lesotho",
+      "flag": "lesotho",
+      "alpha2": "LS",
+      "priority": 0
+    },
+    {
+      "id": 1116,
+      "name": "Liberia",
+      "slug": "liberia",
+      "flag": "liberia",
+      "alpha2": "LR",
+      "priority": 0
+    },
+    {
+      "id": 1117,
+      "name": "Libya",
+      "slug": "libya",
+      "flag": "libya",
+      "alpha2": "LY",
+      "priority": 0
+    },
+    {
+      "id": 1118,
+      "name": "Macao",
+      "slug": "macao",
+      "flag": "macao",
+      "alpha2": "MO",
+      "priority": 0
+    },
+    {
+      "id": 1119,
+      "name": "Madagascar",
+      "slug": "madagascar",
+      "flag": "madagascar",
+      "alpha2": "MG",
+      "priority": 0
+    },
+    {
+      "id": 85,
+      "name": "Malaysia",
+      "slug": "malaysia",
+      "flag": "malaysia",
+      "alpha2": "MY",
+      "priority": 0
+    },
+    {
+      "id": 1635,
+      "name": "Martinique",
+      "slug": "martinique",
+      "flag": "martinique",
+      "alpha2": "MQ",
+      "priority": 0
+    },
+    {
+      "id": 1123,
+      "name": "Mauritania",
+      "slug": "mauritania",
+      "flag": "mauritania",
+      "alpha2": "MR",
+      "priority": 0
+    },
+    {
+      "id": 1124,
+      "name": "Mauritius",
+      "slug": "mauritius",
+      "flag": "mauritius",
+      "alpha2": "MU",
+      "priority": 0
+    },
+    {
+      "id": 1799,
+      "name": "Mayotte",
+      "slug": "mayotte",
+      "flag": "mayotte",
+      "alpha2": "YT",
+      "priority": 0
+    },
+    {
+      "id": 1459,
+      "name": "Mongolia",
+      "slug": "mongolia",
+      "flag": "mongolia",
+      "alpha2": "MN",
+      "priority": 0
+    },
+    {
+      "id": 303,
+      "name": "Morocco",
+      "slug": "morocco",
+      "flag": "morocco",
+      "alpha2": "MA",
+      "priority": 0
+    },
+    {
+      "id": 1125,
+      "name": "Mozambique",
+      "slug": "mozambique",
+      "flag": "mozambique",
+      "alpha2": "MZ",
+      "priority": 0
+    },
+    {
+      "id": 1126,
+      "name": "Myanmar",
+      "slug": "myanmar",
+      "flag": "burma",
+      "alpha2": "MM",
+      "priority": 0
+    },
+    {
+      "id": 1127,
+      "name": "Namibia",
+      "slug": "namibia",
+      "flag": "namibia",
+      "alpha2": "NA",
+      "priority": 0
+    },
+    {
+      "id": 1128,
+      "name": "Nepal",
+      "slug": "nepal",
+      "flag": "nepal",
+      "alpha2": "NP",
+      "priority": 0
+    },
+    {
+      "id": 1129,
+      "name": "New Caledonia",
+      "slug": "new-caledonia",
+      "flag": "new-caledonia",
+      "alpha2": "NC",
+      "priority": 0
+    },
+    {
+      "id": 148,
+      "name": "New Zealand",
+      "slug": "new-zealand",
+      "flag": "new-zealand",
+      "alpha2": "NZ",
+      "priority": 0
+    },
+    {
+      "id": 1132,
+      "name": "Nigeria",
+      "slug": "nigeria",
+      "flag": "nigeria",
+      "alpha2": "NG",
+      "priority": 0
+    },
+    {
+      "id": 130,
+      "name": "Northern Ireland",
+      "slug": "northern-ireland",
+      "flag": "northern-ireland",
+      "alpha2": "NX",
+      "priority": 0
+    },
+    {
+      "id": 1819,
+      "name": "Northern Mariana Islands",
+      "slug": "northern-mariana-islands",
+      "flag": "northern-mariana-islands",
+      "alpha2": "MP",
+      "priority": 0
+    },
+    {
+      "id": 415,
+      "name": "Oman",
+      "slug": "oman",
+      "flag": "oman",
+      "alpha2": "OM",
+      "priority": 0
+    },
+    {
+      "id": 755,
+      "name": "Pakistan",
+      "slug": "pakistan",
+      "flag": "pakistan",
+      "alpha2": "PK",
+      "priority": 0
+    },
+    {
+      "id": 1134,
+      "name": "Palestine",
+      "slug": "palestine",
+      "flag": "palestine",
+      "alpha2": "PS",
+      "priority": 0
+    },
+    {
+      "id": 1135,
+      "name": "Papua New Guinea",
+      "slug": "papua-new-guinea",
+      "flag": "papua-new-guinea",
+      "alpha2": "PG",
+      "priority": 0
+    },
+    {
+      "id": 280,
+      "name": "Paraguay",
+      "slug": "paraguay",
+      "flag": "paraguay",
+      "alpha2": "PY",
+      "priority": 0
+    },
+    {
+      "id": 20,
+      "name": "Peru",
+      "slug": "peru",
+      "flag": "peru",
+      "alpha2": "PE",
+      "priority": 0
+    },
+    {
+      "id": 847,
+      "name": "Philippines",
+      "slug": "philippines",
+      "flag": "philippines",
+      "alpha2": "PH",
+      "priority": 0
+    },
+    {
+      "id": 353,
+      "name": "Qatar",
+      "slug": "qatar",
+      "flag": "qatar",
+      "alpha2": "QA",
+      "priority": 0
+    },
+    {
+      "id": 1021,
+      "name": "Rwanda",
+      "slug": "rwanda",
+      "flag": "rwanda",
+      "alpha2": "RW",
+      "priority": 0
+    },
+    {
+      "id": 1493,
+      "name": "Saint Kitts and Nevis",
+      "slug": "saint-kitts-and-nevis",
+      "flag": "st-kitts-and-nevis",
+      "alpha2": "KN",
+      "priority": 0
+    },
+    {
+      "id": 1865,
+      "name": "Saint Martin",
+      "slug": "saint-martin",
+      "flag": "saint-martin-french-part",
+      "alpha2": "MF",
+      "priority": 0
+    },
+    {
+      "id": 1709,
+      "name": "Saint Vincent and the Grenadines",
+      "slug": "saint-vincent-and-the-grenadines",
+      "flag": "saint-vincent-and-the-grenadines",
+      "alpha2": "VC",
+      "priority": 0
+    },
+    {
+      "id": 1138,
+      "name": "Samoa",
+      "slug": "samoa",
+      "flag": "samoa",
+      "alpha2": "WS",
+      "priority": 0
+    },
+    {
+      "id": 1139,
+      "name": "Sao Tome and Principe",
+      "slug": "sao-tome-and-principe",
+      "flag": "sao-tome-and-principe",
+      "alpha2": "ST",
+      "priority": 0
+    },
+    {
+      "id": 310,
+      "name": "Saudi Arabia",
+      "slug": "saudi-arabia",
+      "flag": "saudi-arabia",
+      "alpha2": "SA",
+      "priority": 0
+    },
+    {
+      "id": 22,
+      "name": "Scotland",
+      "slug": "scotland",
+      "flag": "scotland",
+      "alpha2": "SX",
+      "priority": 0
+    },
+    {
+      "id": 886,
+      "name": "Senegal",
+      "slug": "senegal",
+      "flag": "senegal",
+      "alpha2": "SN",
+      "priority": 0
+    },
+    {
+      "id": 1140,
+      "name": "Seychelles",
+      "slug": "seychelles",
+      "flag": "seychelles",
+      "alpha2": "SC",
+      "priority": 0
+    },
+    {
+      "id": 1141,
+      "name": "Sierra Leone",
+      "slug": "sierra-leone",
+      "flag": "sierra-leone",
+      "alpha2": "SL",
+      "priority": 0
+    },
+    {
+      "id": 45,
+      "name": "Singapore",
+      "slug": "singapore",
+      "flag": "singapore",
+      "alpha2": "SG",
+      "priority": 0
+    },
+    {
+      "id": 1797,
+      "name": "Sint Maarten",
+      "slug": "sint-maarten",
+      "flag": "sint-maarten-dutch-part",
+      "alpha2": "SW",
+      "priority": 0
+    },
+    {
+      "id": 1142,
+      "name": "Solomon Islands",
+      "slug": "solomon-islands",
+      "flag": "solomon-islands",
+      "alpha2": "SB",
+      "priority": 0
+    },
+    {
+      "id": 1143,
+      "name": "Somalia",
+      "slug": "somalia",
+      "flag": "somalia",
+      "alpha2": "SO",
+      "priority": 0
+    },
+    {
+      "id": 322,
+      "name": "South Africa",
+      "slug": "south-africa",
+      "flag": "south-africa",
+      "alpha2": "ZA",
+      "priority": 0
+    },
+    {
+      "id": 291,
+      "name": "South Korea",
+      "slug": "south-korea",
+      "flag": "south-korea",
+      "alpha2": "KR",
+      "priority": 0
+    },
+    {
+      "id": 1144,
+      "name": "South Sudan",
+      "slug": "south-sudan",
+      "flag": "south-sudan",
+      "alpha2": "SS",
+      "priority": 0
+    },
+    {
+      "id": 1147,
+      "name": "Suriname",
+      "slug": "suriname",
+      "flag": "surinam",
+      "alpha2": "SR",
+      "priority": 0
+    },
+    {
+      "id": 380,
+      "name": "Syria",
+      "slug": "syria",
+      "flag": "syria",
+      "alpha2": "SY",
+      "priority": 0
+    },
+    {
+      "id": 1149,
+      "name": "Tahiti",
+      "slug": "tahiti",
+      "flag": "tahiti",
+      "alpha2": "PF",
+      "priority": 0
+    },
+    {
+      "id": 1150,
+      "name": "Tajikistan",
+      "slug": "tajikistan",
+      "flag": "tajikistan",
+      "alpha2": "TJ",
+      "priority": 0
+    },
+    {
+      "id": 1151,
+      "name": "Tanzania",
+      "slug": "tanzania",
+      "flag": "tanzania",
+      "alpha2": "TZ",
+      "priority": 0
+    },
+    {
+      "id": 485,
+      "name": "Thailand",
+      "slug": "thailand",
+      "flag": "thailand",
+      "alpha2": "TH",
+      "priority": 0
+    },
+    {
+      "id": 1628,
+      "name": "Timor Leste",
+      "slug": "timor-leste",
+      "flag": "timor-leste",
+      "alpha2": "TL",
+      "priority": 0
+    },
+    {
+      "id": 1815,
+      "name": "Tonga",
+      "slug": "tonga",
+      "flag": "tonga",
+      "alpha2": "TO",
+      "priority": 0
+    },
+    {
+      "id": 378,
+      "name": "Tunisia",
+      "slug": "tunisia",
+      "flag": "tunisia",
+      "alpha2": "TN",
+      "priority": 0
+    },
+    {
+      "id": 46,
+      "name": "Turkey",
+      "slug": "turkey",
+      "flag": "turkey",
+      "alpha2": "TR",
+      "priority": 0
+    },
+    {
+      "id": 1154,
+      "name": "Turkmenistan",
+      "slug": "turkmenistan",
+      "flag": "turkmenistan",
+      "alpha2": "TM",
+      "priority": 0
+    },
+    {
+      "id": 1793,
+      "name": "Turks and Caicos Islands",
+      "slug": "turks-and-caicos-islands",
+      "flag": "turks-and-caicos-islands",
+      "alpha2": "TC",
+      "priority": 0
+    },
+    {
+      "id": 1804,
+      "name": "US Virgin Islands",
+      "slug": "us-virgin-islands",
+      "flag": "virgin-islands-us",
+      "alpha2": "VI",
+      "priority": 0
+    },
+    {
+      "id": 1022,
+      "name": "Uganda",
+      "slug": "uganda",
+      "flag": "uganda",
+      "alpha2": "UG",
+      "priority": 0
+    },
+    {
+      "id": 299,
+      "name": "United Arab Emirates",
+      "slug": "united-arab-emirates",
+      "flag": "united-arab-emirates",
+      "alpha2": "AE",
+      "priority": 0
+    },
+    {
+      "id": 57,
+      "name": "Uruguay",
+      "slug": "uruguay",
+      "flag": "uruguay",
+      "alpha2": "UY",
+      "priority": 0
+    },
+    {
+      "id": 385,
+      "name": "Uzbekistan",
+      "slug": "uzbekistan",
+      "flag": "uzbekistan",
+      "alpha2": "UZ",
+      "priority": 0
+    },
+    {
+      "id": 1155,
+      "name": "Vanuatu",
+      "slug": "vanuatu",
+      "flag": "vanuatu",
+      "alpha2": "VU",
+      "priority": 0
+    },
+    {
+      "id": 281,
+      "name": "Venezuela",
+      "slug": "venezuela",
+      "flag": "venezuela",
+      "alpha2": "VE",
+      "priority": 0
+    },
+    {
+      "id": 366,
+      "name": "Vietnam",
+      "slug": "vietnam",
+      "flag": "vietnam",
+      "alpha2": "VN",
+      "priority": 0
+    },
+    {
+      "id": 131,
+      "name": "Wales",
+      "slug": "wales",
+      "flag": "wales",
+      "alpha2": "WA",
+      "priority": 0
+    },
+    {
+      "id": 1158,
+      "name": "Zambia",
+      "slug": "zambia",
+      "flag": "zambia",
+      "alpha2": "ZM",
+      "priority": 0
+    },
+    {
+      "id": 1160,
+      "name": "Zimbabwe",
+      "slug": "zimbabwe",
+      "flag": "zimbabwe",
+      "alpha2": "ZW",
+      "priority": 0
+    },
+    {
+      "id": 1092,
+      "name": "Burkina Faso",
+      "slug": "burkina-faso",
+      "flag": "burkina-faso",
+      "alpha2": "BF",
+      "priority": 0
+    },
+    {
+      "id": 1121,
+      "name": "Maldives",
+      "slug": "maldives",
+      "flag": "maldives",
+      "alpha2": "MV",
+      "priority": 0
+    },
+    {
+      "id": 1131,
+      "name": "Niger",
+      "slug": "niger",
+      "flag": "niger",
+      "alpha2": "NE",
+      "priority": 0
+    },
+    {
+      "id": 1145,
+      "name": "Sri Lanka",
+      "slug": "sri-lanka",
+      "flag": "sri-lanka",
+      "alpha2": "LK",
+      "priority": 0
+    },
+    {
+      "id": 440,
+      "name": "Yemen",
+      "slug": "yemen",
+      "flag": "yemen",
+      "alpha2": "YE",
+      "priority": 0
+    },
+    {
+      "id": 1100,
+      "name": "Djibouti",
+      "slug": "djibouti",
+      "flag": "djibouti",
+      "alpha2": "DJ",
+      "priority": 0
+    },
+    {
+      "id": 1146,
+      "name": "Sudan",
+      "slug": "sudan",
+      "flag": "sudan",
+      "alpha2": "SD",
+      "priority": 0
+    },
+    {
+      "id": 960,
+      "name": "Equatorial Guinea",
+      "slug": "equatorial-guinea",
+      "flag": "equatorial-guinea",
+      "alpha2": "GQ",
+      "priority": 0
+    },
+    {
+      "id": 1108,
+      "name": "Guinea-Bissau",
+      "slug": "guinea-bissau",
+      "flag": "guinea-bissau",
+      "alpha2": "GW",
+      "priority": 0
+    },
+    {
+      "id": 1152,
+      "name": "Togo",
+      "slug": "togo",
+      "flag": "togo",
+      "alpha2": "TG",
+      "priority": 0
+    },
+    {
+      "id": 2345,
+      "name": "Saint Lucia",
+      "slug": "saint-lucia",
+      "flag": "saint-lucia",
+      "alpha2": "LC",
+      "priority": 0
+    },
+    {
+      "id": 1109,
+      "name": "Guyana",
+      "slug": "guyana",
+      "flag": "guyana",
+      "alpha2": "GY",
+      "priority": 0
+    },
+    {
+      "id": 1697,
+      "name": "Scotland Amateur",
+      "slug": "scotland-amateur",
+      "flag": "scotland",
+      "alpha2": "SX",
+      "priority": 0
+    },
+    {
+      "id": 254,
+      "name": "Turkey Amateur",
+      "slug": "turkey-amateur",
+      "flag": "turkey",
+      "alpha2": "TR",
+      "priority": 0
+    },
+    {
+      "id": 1632,
+      "name": "Japan Amateur",
+      "slug": "japan-amateur",
+      "flag": "japan",
+      "alpha2": "JP",
+      "priority": 0
+    },
+    {
+      "id": 1811,
+      "name": "Ecuador Amateur",
+      "slug": "ecuador-amateur",
+      "flag": "ecuador",
+      "alpha2": "EC",
+      "priority": 0
+    },
+    {
+      "id": 2328,
+      "name": "Kenya Amateur",
+      "slug": "kenya-amateur",
+      "flag": "kenya",
+      "alpha2": "KE",
+      "priority": 0
+    },
+    {
+      "id": 1919,
+      "name": "Colombia Amateur",
+      "slug": "colombia-amateur",
+      "flag": "colombia",
+      "alpha2": "CO",
+      "priority": 0
+    },
+    {
+      "id": 1783,
+      "name": "Argentina Amateur",
+      "slug": "argentina-amateur",
+      "flag": "argentina",
+      "alpha2": "AR",
+      "priority": 0
+    },
+    {
+      "id": 1883,
+      "name": "Kuwait Amateur",
+      "slug": "kuwait-amateur",
+      "flag": "kuwait",
+      "alpha2": "KW",
+      "priority": 0
+    },
+    {
+      "id": 1598,
+      "name": "India Amateur",
+      "slug": "india-amateur",
+      "flag": "india",
+      "alpha2": "IN",
+      "priority": 0
+    },
+    {
+      "id": 1786,
+      "name": "Uruguay Amateur",
+      "slug": "uruguay-amateur",
+      "flag": "uruguay",
+      "alpha2": "UY",
+      "priority": 0
+    },
+    {
+      "id": 1828,
+      "name": "Armenia Amateur",
+      "slug": "armenia-amateur",
+      "flag": "armenia",
+      "alpha2": "AM",
+      "priority": 0
+    },
+    {
+      "id": 1694,
+      "name": "Brazil Amateur",
+      "slug": "brazil-amateur",
+      "flag": "brazil",
+      "alpha2": "BR",
+      "priority": 0
+    },
+    {
+      "id": 1867,
+      "name": "Venezuela Amateur",
+      "slug": "venezuela-amateur",
+      "flag": "venezuela",
+      "alpha2": "VE",
+      "priority": 0
+    },
+    {
+      "id": 252,
+      "name": "England Amateur",
+      "slug": "england-amateur",
+      "flag": "england",
+      "alpha2": "EN",
+      "priority": 0
+    },
+    {
+      "id": 1876,
+      "name": "Australia Amateur",
+      "slug": "australia-amateur",
+      "flag": "australia",
+      "alpha2": "AU",
+      "priority": 0
+    },
+    {
+      "id": 1687,
+      "name": "Chile Amateur",
+      "slug": "chile-amateur",
+      "flag": "chile",
+      "alpha2": "CL",
+      "priority": 0
+    },
+    {
+      "id": 1641,
+      "name": "Morocco Amateur",
+      "slug": "morocco-amateur",
+      "flag": "morocco",
+      "alpha2": "MA",
+      "priority": 0
+    },
+    {
+      "id": 1597,
+      "name": "USA Amateur",
+      "slug": "usa-amateur",
+      "flag": "usa",
+      "alpha2": "US",
+      "priority": 0
+    },
+    {
+      "id": 1704,
+      "name": "Mexico Amateur",
+      "slug": "mexico-amateur",
+      "flag": "mexico",
+      "alpha2": "MX",
+      "priority": 0
+    },
+    {
+      "id": 26,
+      "name": "USA",
+      "slug": "usa",
+      "flag": "usa",
+      "alpha2": "US",
+      "priority": 0
+    },
+    {
+      "id": 1110,
+      "name": "Haiti",
+      "slug": "haiti",
+      "flag": "haiti",
+      "alpha2": "HT",
+      "priority": 0
+    },
+    {
+      "id": 1085,
+      "name": "Antigua and Barbuda",
+      "slug": "antigua-and-barbuda",
+      "flag": "antigua-and-barbuda",
+      "alpha2": "AG",
+      "priority": 0
+    },
+    {
+      "id": 1153,
+      "name": "Trinidad and Tobago",
+      "slug": "trinidad-and-tobago",
+      "flag": "trinidad-and-tobago",
+      "alpha2": "TT",
+      "priority": 0
+    },
+    {
+      "id": 1086,
+      "name": "Aruba",
+      "slug": "aruba",
+      "flag": "aruba",
+      "alpha2": "AW",
+      "priority": 0
+    },
+    {
+      "id": 1087,
+      "name": "Bahamas",
+      "slug": "bahamas",
+      "flag": "bahamas",
+      "alpha2": "BS",
+      "priority": 0
+    },
+    {
+      "id": 2347,
+      "name": "Bonaire",
+      "slug": "bonaire",
+      "flag": "bonaire-sint-eustatius-and-saba",
+      "alpha2": "BQ",
+      "priority": 0
+    },
+    {
+      "id": 1091,
+      "name": "Bermuda",
+      "slug": "bermuda",
+      "flag": "bermuda",
+      "alpha2": "BM",
+      "priority": 0
+    },
+    {
+      "id": 1457,
+      "name": "Dominican Republic",
+      "slug": "dominican-republic",
+      "flag": "dominican-rep",
+      "alpha2": "DO",
+      "priority": 0
+    },
+    {
+      "id": 367,
+      "name": "El Salvador",
+      "slug": "el-salvador",
+      "flag": "el-salvador",
+      "alpha2": "SV",
+      "priority": 0
+    },
+    {
+      "id": 1612,
+      "name": "Grenada",
+      "slug": "grenada",
+      "flag": "grenada",
+      "alpha2": "GD",
+      "priority": 0
+    },
+    {
+      "id": 1595,
+      "name": "Anguilla",
+      "slug": "anguilla",
+      "flag": "anguilla",
+      "alpha2": "AI",
+      "priority": 0
+    },
+    {
+      "id": 388,
+      "name": "Canada",
+      "slug": "canada",
+      "flag": "canada",
+      "alpha2": "CA",
+      "priority": 0
+    },
+    {
+      "id": 1095,
+      "name": "Cayman Islands",
+      "slug": "cayman-islands",
+      "flag": "cayman-islands",
+      "alpha2": "KY",
+      "priority": 0
+    },
+    {
+      "id": 1099,
+      "name": "Curacao",
+      "slug": "curacao",
+      "flag": "curacao",
+      "alpha2": "CW",
+      "priority": 0
+    },
+    {
+      "id": 526,
+      "name": "Panama",
+      "slug": "panama",
+      "flag": "panama",
+      "alpha2": "PA",
+      "priority": 0
+    },
+    {
+      "id": 12,
+      "name": "Mexico",
+      "slug": "mexico",
+      "flag": "mexico",
+      "alpha2": "MX",
+      "priority": 0
+    },
+    {
+      "id": 1130,
+      "name": "Nicaragua",
+      "slug": "nicaragua",
+      "flag": "nicaragua",
+      "alpha2": "NI",
+      "priority": 0
+    },
+    {
+      "id": 437,
+      "name": "Honduras",
+      "slug": "honduras",
+      "flag": "honduras",
+      "alpha2": "HN",
+      "priority": 0
+    },
+    {
+      "id": 1136,
+      "name": "Puerto Rico",
+      "slug": "puerto-rico",
+      "flag": "puerto-rico",
+      "alpha2": "PR",
+      "priority": 0
+    },
+    {
+      "id": 365,
+      "name": "Guatemala",
+      "slug": "guatemala",
+      "flag": "guatemala",
+      "alpha2": "GT",
+      "priority": 0
+    },
+    {
+      "id": 502,
+      "name": "Jamaica",
+      "slug": "jamaica",
+      "flag": "jamaica",
+      "alpha2": "JM",
+      "priority": 0
+    },
+    {
+      "id": 1089,
+      "name": "Barbados",
+      "slug": "barbados",
+      "flag": "barbados",
+      "alpha2": "BB",
+      "priority": 0
+    },
+    {
+      "id": 289,
+      "name": "Costa Rica",
+      "slug": "costa-rica",
+      "flag": "costa-rica",
+      "alpha2": "CR",
+      "priority": 0
+    },
+    {
+      "id": 1090,
+      "name": "Belize",
+      "slug": "belize",
+      "flag": "belize",
+      "alpha2": "BZ",
+      "priority": 0
+    },
+    {
+      "id": 1522,
+      "name": "Dominica",
+      "slug": "dominica",
+      "flag": "dominica",
+      "alpha2": "DM",
+      "priority": 0
+    },
+    {
+      "id": 1481,
+      "name": "Cuba",
+      "slug": "cuba",
+      "flag": "cuba",
+      "alpha2": "CU",
+      "priority": 0
+    },
+    {
+      "id": 1625,
+      "name": "Greece Amateur",
+      "slug": "greece-amateur",
+      "flag": "greece",
+      "alpha2": "GR",
+      "priority": 0
+    },
+    {
+      "id": 1621,
+      "name": "Poland Amateur",
+      "slug": "poland-amateur",
+      "flag": "poland",
+      "alpha2": "PL",
+      "priority": 0
+    },
+    {
+      "id": 1872,
+      "name": "Lithuania Amateur",
+      "slug": "lithuania-amateur",
+      "flag": "lithuania",
+      "alpha2": "LT",
+      "priority": 0
+    },
+    {
+      "id": 1631,
+      "name": "Montenegro Amateur",
+      "slug": "montenegro-amateur",
+      "flag": "montenegro",
+      "alpha2": "ME",
+      "priority": 0
+    },
+    {
+      "id": 1578,
+      "name": "Croatia Amateur",
+      "slug": "croatia-amateur",
+      "flag": "croatia",
+      "alpha2": "HR",
+      "priority": 0
+    },
+    {
+      "id": 1816,
+      "name": "Czechia Amateur",
+      "slug": "czechia-amateur",
+      "flag": "czech-republic",
+      "alpha2": "CZ",
+      "priority": 0
+    },
+    {
+      "id": 1623,
+      "name": "Slovenia Amateur",
+      "slug": "slovenia-amateur",
+      "flag": "slovenia",
+      "alpha2": "SI",
+      "priority": 0
+    },
+    {
+      "id": 421,
+      "name": "Spain Amateur",
+      "slug": "spain-amateur",
+      "flag": "spain",
+      "alpha2": "ES",
+      "priority": 0
+    },
+    {
+      "id": 155,
+      "name": "Sweden Amateur",
+      "slug": "sweden-amateur",
+      "flag": "sweden",
+      "alpha2": "SE",
+      "priority": 0
+    },
+    {
+      "id": 97,
+      "name": "Austria Amateur",
+      "slug": "austria-amateur",
+      "flag": "austria",
+      "alpha2": "AT",
+      "priority": 0
+    },
+    {
+      "id": 94,
+      "name": "Norway Amateur",
+      "slug": "norway-amateur",
+      "flag": "norway",
+      "alpha2": "NO",
+      "priority": 0
+    },
+    {
+      "id": 1587,
+      "name": "Netherlands Amateur",
+      "slug": "netherlands-amateur",
+      "flag": "netherlands",
+      "alpha2": "NL",
+      "priority": 0
+    },
+    {
+      "id": 1626,
+      "name": "France Amateur",
+      "slug": "france-amateur",
+      "flag": "france",
+      "alpha2": "FR",
+      "priority": 0
+    },
+    {
+      "id": 1615,
+      "name": "Russia Amateur",
+      "slug": "russia-amateur",
+      "flag": "russia",
+      "alpha2": "RU",
+      "priority": 0
+    },
+    {
+      "id": 1620,
+      "name": "Belgium Amateur",
+      "slug": "belgium-amateur",
+      "flag": "belgium",
+      "alpha2": "BE",
+      "priority": 0
+    },
+    {
+      "id": 1583,
+      "name": "Portugal Amateur",
+      "slug": "portugal-amateur",
+      "flag": "portugal",
+      "alpha2": "PT",
+      "priority": 0
+    },
+    {
+      "id": 122,
+      "name": "Germany Amateur",
+      "slug": "germany-amateur",
+      "flag": "germany",
+      "alpha2": "DE",
+      "priority": 0
+    },
+    {
+      "id": 95,
+      "name": "Denmark Amateur",
+      "slug": "denmark-amateur",
+      "flag": "denmark",
+      "alpha2": "DK",
+      "priority": 0
+    },
+    {
+      "id": 1579,
+      "name": "Serbia Amateur",
+      "slug": "serbia-amateur",
+      "flag": "serbia",
+      "alpha2": "RS",
+      "priority": 0
+    },
+    {
+      "id": 1582,
+      "name": "Bosnia & Herzegovina Amateur",
+      "slug": "bosnia-and-herzegovina-amateur",
+      "flag": "bosnia-herzegovina",
+      "alpha2": "BA",
+      "priority": 0
+    },
+    {
+      "id": 1693,
+      "name": "Switzerland Amateur",
+      "slug": "switzerland-amateur",
+      "flag": "switzerland",
+      "alpha2": "CH",
+      "priority": 0
+    },
+    {
+      "id": 1599,
+      "name": "Romania Amateur",
+      "slug": "romania-amateur",
+      "flag": "romania",
+      "alpha2": "RO",
+      "priority": 0
+    },
+    {
+      "id": 152,
+      "name": "Serbia",
+      "slug": "serbia",
+      "flag": "serbia",
+      "alpha2": "RS",
+      "priority": 0
+    },
+    {
+      "id": 163,
+      "name": "Latvia",
+      "slug": "latvia",
+      "flag": "latvia",
+      "alpha2": "LV",
+      "priority": 0
+    },
+    {
+      "id": 512,
+      "name": "Liechtenstein",
+      "slug": "liechtenstein",
+      "flag": "liechtenstein",
+      "alpha2": "LI",
+      "priority": 0
+    },
+    {
+      "id": 160,
+      "name": "Lithuania",
+      "slug": "lithuania",
+      "flag": "lithuania",
+      "alpha2": "LT",
+      "priority": 0
+    },
+    {
+      "id": 197,
+      "name": "Luxembourg",
+      "slug": "luxembourg",
+      "flag": "luxembourg",
+      "alpha2": "LU",
+      "priority": 0
+    },
+    {
+      "id": 134,
+      "name": "Malta",
+      "slug": "malta",
+      "flag": "malta",
+      "alpha2": "MT",
+      "priority": 0
+    },
+    {
+      "id": 279,
+      "name": "Moldova",
+      "slug": "moldova",
+      "flag": "moldova",
+      "alpha2": "MD",
+      "priority": 0
+    },
+    {
+      "id": 386,
+      "name": "Montenegro",
+      "slug": "montenegro",
+      "flag": "montenegro",
+      "alpha2": "ME",
+      "priority": 0
+    },
+    {
+      "id": 23,
+      "name": "Slovakia",
+      "slug": "slovakia",
+      "flag": "slovakia",
+      "alpha2": "SK",
+      "priority": 0
+    },
+    {
+      "id": 24,
+      "name": "Slovenia",
+      "slug": "slovenia",
+      "flag": "slovenia",
+      "alpha2": "SI",
+      "priority": 0
+    },
+    {
+      "id": 32,
+      "name": "Spain",
+      "slug": "spain",
+      "flag": "spain",
+      "alpha2": "ES",
+      "priority": 9
+    },
+    {
+      "id": 159,
+      "name": "North Macedonia",
+      "slug": "north-macedonia",
+      "flag": "macedonia",
+      "alpha2": "MK",
+      "priority": 0
+    },
+    {
+      "id": 5,
+      "name": "Norway",
+      "slug": "norway",
+      "flag": "norway",
+      "alpha2": "NO",
+      "priority": 0
+    },
+    {
+      "id": 47,
+      "name": "Poland",
+      "slug": "poland",
+      "flag": "poland",
+      "alpha2": "PL",
+      "priority": 0
+    },
+    {
+      "id": 44,
+      "name": "Portugal",
+      "slug": "portugal",
+      "flag": "portugal",
+      "alpha2": "PT",
+      "priority": 0
+    },
+    {
+      "id": 77,
+      "name": "Romania",
+      "slug": "romania",
+      "flag": "romania",
+      "alpha2": "RO",
+      "priority": 0
+    },
+    {
+      "id": 21,
+      "name": "Russia",
+      "slug": "russia",
+      "flag": "russia",
+      "alpha2": "RU",
+      "priority": 0
+    },
+    {
+      "id": 387,
+      "name": "San Marino",
+      "slug": "san-marino",
+      "flag": "san-marino",
+      "alpha2": "SM",
+      "priority": 0
+    },
+    {
+      "id": 9,
+      "name": "Sweden",
+      "slug": "sweden",
+      "flag": "sweden",
+      "alpha2": "SE",
+      "priority": 0
+    },
+    {
+      "id": 86,
+      "name": "Ukraine",
+      "slug": "ukraine",
+      "flag": "ukraine",
+      "alpha2": "UA",
+      "priority": 0
+    },
+    {
+      "id": 35,
+      "name": "Netherlands",
+      "slug": "netherlands",
+      "flag": "netherlands",
+      "alpha2": "NL",
+      "priority": 0
+    },
+    {
+      "id": 25,
+      "name": "Switzerland",
+      "slug": "switzerland",
+      "flag": "switzerland",
+      "alpha2": "CH",
+      "priority": 0
+    },
+    {
+      "id": 257,
+      "name": "Albania",
+      "slug": "albania",
+      "flag": "albania",
+      "alpha2": "AL",
+      "priority": 0
+    },
+    {
+      "id": 376,
+      "name": "Andorra",
+      "slug": "andorra",
+      "flag": "andorra",
+      "alpha2": "AD",
+      "priority": 0
+    },
+    {
+      "id": 67,
+      "name": "Greece",
+      "slug": "greece",
+      "flag": "greece",
+      "alpha2": "GR",
+      "priority": 0
+    },
+    {
+      "id": 91,
+      "name": "Belarus",
+      "slug": "belarus",
+      "flag": "belarus",
+      "alpha2": "BY",
+      "priority": 0
+    },
+    {
+      "id": 33,
+      "name": "Belgium",
+      "slug": "belgium",
+      "flag": "belgium",
+      "alpha2": "BE",
+      "priority": 0
+    },
+    {
+      "id": 10,
+      "name": "Iceland",
+      "slug": "iceland",
+      "flag": "iceland",
+      "alpha2": "IS",
+      "priority": 0
+    },
+    {
+      "id": 92,
+      "name": "Estonia",
+      "slug": "estonia",
+      "flag": "estonia",
+      "alpha2": "EE",
+      "priority": 0
+    },
+    {
+      "id": 19,
+      "name": "Finland",
+      "slug": "finland",
+      "flag": "finland",
+      "alpha2": "FI",
+      "priority": 0
+    },
+    {
+      "id": 7,
+      "name": "France",
+      "slug": "france",
+      "flag": "france",
+      "alpha2": "FR",
+      "priority": 6
+    },
+    {
+      "id": 30,
+      "name": "Germany",
+      "slug": "germany",
+      "flag": "germany",
+      "alpha2": "DE",
+      "priority": 8
+    },
+    {
+      "id": 11,
+      "name": "Hungary",
+      "slug": "hungary",
+      "flag": "hungary",
+      "alpha2": "HU",
+      "priority": 0
+    },
+    {
+      "id": 51,
+      "name": "Ireland",
+      "slug": "ireland",
+      "flag": "ireland",
+      "alpha2": "IE",
+      "priority": 0
+    },
+    {
+      "id": 31,
+      "name": "Italy",
+      "slug": "italy",
+      "flag": "italy",
+      "alpha2": "IT",
+      "priority": 7
+    },
+    {
+      "id": 1112,
+      "name": "Kosovo",
+      "slug": "kosovo",
+      "flag": "kosovo",
+      "alpha2": "XK",
+      "priority": 0
+    },
+    {
+      "id": 17,
+      "name": "Austria",
+      "slug": "austria",
+      "flag": "austria",
+      "alpha2": "AT",
+      "priority": 0
+    },
+    {
+      "id": 158,
+      "name": "Bosnia & Herzegovina",
+      "slug": "bosnia-herzegovina",
+      "flag": "bosnia-herzegovina",
+      "alpha2": "BA",
+      "priority": 0
+    },
+    {
+      "id": 78,
+      "name": "Bulgaria",
+      "slug": "bulgaria",
+      "flag": "bulgaria",
+      "alpha2": "BG",
+      "priority": 0
+    },
+    {
+      "id": 18,
+      "name": "Czech Republic",
+      "slug": "czech-republic",
+      "flag": "czech-republic",
+      "alpha2": "CZ",
+      "priority": 0
+    },
+    {
+      "id": 8,
+      "name": "Denmark",
+      "slug": "denmark",
+      "flag": "denmark",
+      "alpha2": "DK",
+      "priority": 0
+    },
+    {
+      "id": 102,
+      "name": "Cyprus",
+      "slug": "cyprus",
+      "flag": "cyprus",
+      "alpha2": "CY",
+      "priority": 0
+    },
+    {
+      "id": 14,
+      "name": "Croatia",
+      "slug": "croatia",
+      "flag": "croatia",
+      "alpha2": "HR",
+      "priority": 0
+    },
+    {
+      "id": 1594,
+      "name": "Hungary Amateur",
+      "slug": "hungary-amateur",
+      "flag": "hungary",
+      "alpha2": "HU",
+      "priority": 0
+    },
+    {
+      "id": 1590,
+      "name": "Bulgaria Amateur",
+      "slug": "bulgaria-amateur",
+      "flag": "bulgaria",
+      "alpha2": "BG",
+      "priority": 0
+    },
+    {
+      "id": 1600,
+      "name": "Italy Amateur",
+      "slug": "italy-amateur",
+      "flag": "italy",
+      "alpha2": "IT",
+      "priority": 0
+    }
+  ]
+}
