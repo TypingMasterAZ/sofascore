@@ -861,6 +861,18 @@
             background: rgba(255, 255, 255, 0.03);
         }
 
+        .category-row.open {
+            background: rgba(59, 130, 246, 0.08);
+            border-left: 2px solid rgba(59, 130, 246, 0.65);
+        }
+
+        .category-leagues-container {
+            margin: 0 0 10px;
+            background: rgba(2, 6, 23, 0.28);
+            border-left: 2px solid rgba(59, 130, 246, 0.28);
+            overflow: hidden;
+        }
+
         .category-flag {
             width: 28px;
             height: 28px;
@@ -4916,6 +4928,7 @@
             let topLeaguesRaw = [];
             let allCategoriesGlobal = [];
             let expandedCategories = new Set();
+            const categoryLeaguesCache = {};
 
             let authTimer = null;
             let userHasNavigated = false;
@@ -6440,60 +6453,96 @@
                 renderAnimationFrameId = requestAnimationFrame(renderChunk);
             }
 
-            window.toggleCategory = async function(catId, catName, element) {
-                if (expandedCategories.has(catId)) {
-                    expandedCategories.delete(catId);
-                    const container = document.getElementById(`cat-leagues-${catId}`);
-                    if (container) container.remove();
+            function normalizeCategoryLeaguesPayload(data) {
+                let leagues = [];
+                if (Array.isArray(data?.groups) && data.groups.length > 0) {
+                    leagues = data.groups.flatMap(group => group.uniqueTournaments || []);
+                }
+                if (Array.isArray(data?.uniqueTournaments)) {
+                    leagues = leagues.concat(data.uniqueTournaments);
+                } else if (data?.uniqueTournament) {
+                    leagues.push(data.uniqueTournament);
+                }
+
+                const seenLeagueIds = new Set();
+                return leagues
+                    .filter(league => {
+                        if (!league?.id || seenLeagueIds.has(String(league.id))) return false;
+                        seenLeagueIds.add(String(league.id));
+                        return true;
+                    })
+                    .sort((a, b) => {
+                        const priorityDiff = (b.priority || 0) - (a.priority || 0);
+                        if (priorityDiff) return priorityDiff;
+                        return String(a.name || '').localeCompare(String(b.name || ''), 'az');
+                    });
+            }
+
+            function renderCategoryLeagueRows(leagues) {
+                return leagues.map(l => `
+                    <div class="league-sub-row" onclick="openSingleLeague('${l.id}')">
+                        <img class="league-sub-logo club-logo" loading="lazy" decoding="async" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`)}" onerror="this.onerror=null; this.src='${IMAGE_PLACEHOLDER}'">
+                        <span class="league-sub-name">${l.name || 'Liqa'}</span>
+                    </div>
+                `).join("");
+            }
+
+            async function loadCategoryLeagues(catId, leagueContainer) {
+                const key = String(catId);
+                if (categoryLeaguesCache[key]) {
+                    leagueContainer.innerHTML = renderCategoryLeagueRows(categoryLeaguesCache[key]);
+                    leagueContainer.dataset.loaded = "1";
                     return;
                 }
 
-                expandedCategories.add(catId);
-                const leagueContainer = document.createElement('div');
-                leagueContainer.id = `cat-leagues-${catId}`;
                 leagueContainer.innerHTML = `<div style="padding:15px; text-align:center;"><div class="skeleton" style="height:20px; width:40%; margin:auto;"></div></div>`;
-                element.after(leagueContainer);
 
                 try {
-                    const res = await fetch(API_BASE_URL + `/api/category/${catId}/tournaments`);
+                    const res = await fetch(API_BASE_URL + `/api/category/${key}/tournaments`, { cache: 'no-store' });
+                    if (!res.ok) throw new Error(`Server xətası: ${res.status}`);
                     const data = await res.json();
-                    let leagues = [];
-                    if (Array.isArray(data.groups) && data.groups.length > 0) {
-                        leagues = data.groups.flatMap(group => group.uniqueTournaments || []);
-                    }
-                    if (Array.isArray(data.uniqueTournaments)) {
-                        leagues = leagues.concat(data.uniqueTournaments);
-                    } else if (data.uniqueTournament) {
-                        leagues.push(data.uniqueTournament);
-                    }
-
-                    const seenLeagueIds = new Set();
-                    leagues = leagues
-                        .filter(league => {
-                            if (!league?.id || seenLeagueIds.has(String(league.id))) return false;
-                            seenLeagueIds.add(String(league.id));
-                            return true;
-                        })
-                        .sort((a, b) => {
-                            const priorityDiff = (b.priority || 0) - (a.priority || 0);
-                            if (priorityDiff) return priorityDiff;
-                            return String(a.name || '').localeCompare(String(b.name || ''), 'az');
-                        });
+                    const leagues = normalizeCategoryLeaguesPayload(data);
+                    categoryLeaguesCache[key] = leagues;
 
                     if (leagues.length === 0) {
-                        leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">Bu Ölkə üçün aktiv liqa tapılmadı.</div>`;
+                        leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">Bu ölkə üçün aktiv liqa tapılmadı.</div>`;
                         return;
                     }
 
-                    leagueContainer.innerHTML = leagues.map(l => `
-                <div class="league-sub-row" onclick="openSingleLeague('${l.id}')">
-                    <img class="league-sub-logo club-logo" loading="lazy" decoding="async" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`)}" onerror="this.onerror=null; this.src='${IMAGE_PLACEHOLDER}'">
-                    <span class="league-sub-name">${l.name}</span>
-                </div>
-            `).join("");
+                    leagueContainer.innerHTML = renderCategoryLeagueRows(leagues);
+                    leagueContainer.dataset.loaded = "1";
                 } catch (e) {
-                    leagueContainer.innerHTML = `<div style="padding:15px; color:var(--live); text-align:center; font-size:12px;">Xəta baş verdi.</div>`;
+                    console.warn("Category leagues load failed:", key, e.message);
+                    leagueContainer.innerHTML = `<div style="padding:15px; color:var(--live); text-align:center; font-size:12px;">Liqalar yüklənmədi. Yenidən basıb yoxlayın.</div>`;
                 }
+            }
+
+            window.toggleCategory = async function(catId, catName, element) {
+                const key = String(catId);
+                let leagueContainer = document.getElementById(`cat-leagues-${key}`);
+
+                if (expandedCategories.has(key) && leagueContainer) {
+                    expandedCategories.delete(key);
+                    leagueContainer.remove();
+                    element?.classList.remove('open');
+                    const chevron = element?.querySelector('.chevron');
+                    if (chevron) chevron.innerHTML = '&#9660;';
+                    return;
+                }
+
+                expandedCategories.add(key);
+                element?.classList.add('open');
+                const chevron = element?.querySelector('.chevron');
+                if (chevron) chevron.innerHTML = '&#9650;';
+
+                if (!leagueContainer) {
+                    leagueContainer = document.createElement('div');
+                    leagueContainer.id = `cat-leagues-${key}`;
+                    leagueContainer.className = 'category-leagues-container';
+                    element.after(leagueContainer);
+                }
+
+                await loadCategoryLeagues(key, leagueContainer);
             }
 
             let searchTimeout = null;
@@ -6571,15 +6620,22 @@
                         countryCategories.forEach(cat => {
                             const safeCatName = (cat.name || "Ölkə").replace(/'/g, "\\'");
                             const flagUrl = getCountryFlagUrl(cat);
+                            const catKey = String(cat.id);
+                            const isExpanded = expandedCategories.has(catKey);
                             html += `
-                            <div class="category-row" onclick="toggleCategory('${cat.id}', '${safeCatName}', this)">
+                            <div class="category-row ${isExpanded ? 'open' : ''}" onclick="toggleCategory('${catKey}', '${safeCatName}', this)">
                                 <img class="category-flag" loading="lazy" decoding="async" src="${flagUrl}" onerror="this.onerror=null; this.src='${sofaImageUrl(`/category/${cat.id}/image`)}'">
                                 <span class="category-name">${cat.name || 'Ölkə'}</span>
-                                <span class="chevron" style="opacity:0.4; font-size:12px; margin-left:auto;">&#9660;</span>
-                            </div>`;
+                                <span class="chevron" style="opacity:0.4; font-size:12px; margin-left:auto;">${isExpanded ? '&#9650;' : '&#9660;'}</span>
+                            </div>
+                            ${isExpanded ? `<div class="category-leagues-container" id="cat-leagues-${catKey}"></div>` : ''}`;
                         });
                     }
                     list.innerHTML = html;
+                    expandedCategories.forEach(catId => {
+                        const container = document.getElementById(`cat-leagues-${catId}`);
+                        if (container) loadCategoryLeagues(catId, container);
+                    });
                     return;
                 }
 
