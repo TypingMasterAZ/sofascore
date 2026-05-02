@@ -890,6 +890,31 @@
             flex: 1;
         }
 
+        .country-star {
+            width: 38px;
+            height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-muted);
+            font-size: 20px;
+            cursor: pointer;
+            transition: transform 0.18s, background 0.18s, color 0.18s;
+        }
+
+        .country-star:active {
+            transform: scale(0.92);
+        }
+
+        .country-star.active {
+            color: #fbbf24;
+            background: rgba(251, 191, 36, 0.12);
+            text-shadow: 0 0 14px rgba(251, 191, 36, 0.45);
+        }
+
         .category-count {
             font-size: 12px;
             color: var(--text-muted);
@@ -4924,12 +4949,14 @@
             /* Storage & Settings */
             let favMatches = JSON.parse(localStorage.getItem('favMatches') || '[]');
             let favLeagues = JSON.parse(localStorage.getItem('favLeagues') || '[]');
+            let favCountries = JSON.parse(localStorage.getItem('favCountries') || '[]');
             let toastTimer = null;
             let topLeaguesRaw = [];
             let allCategoriesGlobal = [];
             let expandedCategories = new Set();
             const categoryLeaguesCache = {};
             const prefetchedCategoryLeagues = new Set();
+            const knownLeaguesById = {};
             const FEATURED_CATEGORY_IDS = new Set(['1', '7', '30', '31', '32', '46', '297', '1465']);
             const FEATURED_CATEGORY_NAMES = new Set([
                 'england', 'spain', 'italy', 'germany', 'france', 'turkey', 'azerbaijan',
@@ -5356,6 +5383,7 @@
                 35: 77333,
                 34: 77356,
                 52: 77805,
+                709: 78700,
                 679: 76984
             };
 
@@ -5612,7 +5640,8 @@
                 }
 
                 if (!group && tourId) {
-                    const knownLeague = (topLeaguesRaw || []).find(l => l.id?.toString() === tourId.toString());
+                    const knownLeague = (topLeaguesRaw || []).find(l => l.id?.toString() === tourId.toString()) ||
+                        knownLeaguesById[String(tourId)];
                     group = {
                         id: tourId,
                         name: knownLeague?.name || "Liqa",
@@ -6496,7 +6525,9 @@
 
             function getCategoryById(catId) {
                 const key = String(catId);
-                return (allCategoriesGlobal || []).find(cat => String(cat?.id) === key) || null;
+                return (allCategoriesGlobal || []).find(cat => String(cat?.id) === key) ||
+                    favCountries.find(cat => String(cat?.id) === key) ||
+                    null;
             }
 
             function buildFeaturedCategoryExclusion(displayPopular) {
@@ -6523,12 +6554,70 @@
                 return values.some(value => value !== undefined && value !== null && featuredKeys.has(String(value).trim().toLowerCase()));
             }
 
+            function rememberLeagueMeta(league, category) {
+                if (!league?.id) return;
+                const key = String(league.id);
+                knownLeaguesById[key] = {
+                    ...knownLeaguesById[key],
+                    ...league,
+                    category: league.category || category || knownLeaguesById[key]?.category
+                };
+            }
+
+            function isFavoriteCountry(catId) {
+                return favCountries.some(cat => String(cat.id) === String(catId));
+            }
+
+            function normalizeCountryFavorite(cat) {
+                return {
+                    id: cat.id,
+                    name: cat.name || 'Ölkə',
+                    slug: cat.slug || '',
+                    alpha2: cat.alpha2 || '',
+                    flag: cat.flag || ''
+                };
+            }
+
+            window.toggleFavoriteCountry = function(catId, btn, eventObj) {
+                if (eventObj) eventObj.stopPropagation();
+                const key = String(catId);
+                const idx = favCountries.findIndex(cat => String(cat.id) === key);
+
+                if (idx === -1) {
+                    const cat = getCategoryById(key);
+                    if (!cat) {
+                        showToast('Ölkə məlumatı tapılmadı', 'error');
+                        return;
+                    }
+                    favCountries.push(normalizeCountryFavorite(cat));
+                    if (btn) {
+                        btn.innerHTML = '&#9733;';
+                        btn.classList.add('active');
+                    }
+                    showToast(`${cat.name} yuxarı siyahıya əlavə edildi`, 'success');
+                    prefetchCategoryLeagues(key);
+                } else {
+                    const removed = favCountries[idx];
+                    favCountries.splice(idx, 1);
+                    if (btn) {
+                        btn.innerHTML = '&#9734;';
+                        btn.classList.remove('active');
+                    }
+                    showToast(`${removed.name || 'Ölkə'} yuxarı siyahıdan çıxarıldı`);
+                }
+
+                localStorage.setItem('favCountries', JSON.stringify(favCountries));
+                renderLeaguesView();
+            }
+
             async function fetchCategoryLeaguesData(catId) {
                 const key = String(catId);
                 if (categoryLeaguesCache[key]) return categoryLeaguesCache[key];
 
                 const data = await fetchServerJson(`/api/category/${key}/tournaments?fast=1`, "Ölkə liqaları server xətası");
                 const leagues = normalizeCategoryLeaguesPayload(data);
+                const category = getCategoryById(key);
+                leagues.forEach(league => rememberLeagueMeta(league, category));
                 categoryLeaguesCache[key] = leagues;
                 return leagues;
             }
@@ -6552,6 +6641,7 @@
                     : `${leagues.length} liqa tapıldı`;
 
                 const leagueRows = leagues.length ? leagues.map(l => {
+                    rememberLeagueMeta(l, cat);
                     const isFav = favLeagues.some(f => f.id.toString() === String(l.id));
                     const safeName = escapeJsString(l.name || 'Liqa');
                     const leagueName = escapeHtml(l.name || 'Liqa');
@@ -6727,10 +6817,43 @@
                         { id: 203, name: "Süper Lig", category: { name: "Turkey", id: 46, slug: "turkey", alpha2: "TR" } },
                         { id: 709, name: "Premyer Liqa", category: { name: "Azerbaijan", id: 297, slug: "azerbaijan", alpha2: "AZ" } }
                     ];
+                    const mustHavePopular = [
+                        { id: 709, name: "Azərbaycan Premyer Liqası", category: { name: "Azerbaijan", id: 297, slug: "azerbaijan", alpha2: "AZ" }, season: { id: 78700 } }
+                    ];
+                    mustHavePopular.forEach(item => {
+                        if (!displayPopular.some(l => String(l.id) === String(item.id))) {
+                            displayPopular.push(item);
+                        }
+                    });
 
-                    const featuredCategoryKeys = buildFeaturedCategoryExclusion(displayPopular);
+                    const favoriteCountryCards = favCountries
+                        .map(country => getCategoryById(country.id) || country)
+                        .filter(country => country && country.id);
+                    const featuredCategoryKeys = buildFeaturedCategoryExclusion(displayPopular.concat(favoriteCountryCards.map(country => ({
+                        category: country,
+                        country: country.name
+                    }))));
+
+                    if (favoriteCountryCards.length > 0) {
+                        favoriteCountryCards.forEach(cat => {
+                            const flagUrl = getCountryFlagUrl(cat);
+                            const safeName = escapeHtml(cat.name || 'Ölkə');
+                            html += `
+                            <div class="league-card" onclick="openCountryLeaguesPage('${cat.id}')">
+                                <div style="display:flex; align-items:center; gap:16px; flex:1; min-width:0;">
+                                    <img class="league-card-logo" loading="eager" decoding="async" fetchpriority="high" src="${flagUrl}" onerror="this.onerror=null; this.src='${sofaImageUrl(`/category/${cat.id}/image`)}'">
+                                    <div class="league-card-info">
+                                        <span class="league-card-country">Seçilmiş ölkə</span>
+                                        <span class="league-card-name">${escapeHtml(cat.name || 'Ölkə')}</span>
+                                    </div>
+                                </div>
+                                <button class="country-star active" onclick="toggleFavoriteCountry('${cat.id}', this, event)" aria-label="${safeName} yuxarı siyahıdan çıxar">&#9733;</button>
+                            </div>`;
+                        });
+                    }
 
                     displayPopular.forEach(l => {
+                        rememberLeagueMeta(l, l.category);
                         const isFav = favLeagues.some(f => f.id.toString() === l.id.toString());
                         const countryName = l.category ? l.category.name : (l.country || "Beynəlxalq");
                         const catId = l.category ? l.category.id : (l.catId || 1);
@@ -6765,11 +6888,13 @@
                         countryCategories.forEach(cat => {
                             const flagUrl = getCountryFlagUrl(cat);
                             const catKey = String(cat.id);
+                            const isCountryFav = isFavoriteCountry(catKey);
                             html += `
                             <div class="category-row" onclick="openCountryLeaguesPage('${catKey}')">
                                 <img class="category-flag" loading="lazy" decoding="async" src="${flagUrl}" onerror="this.onerror=null; this.src='${sofaImageUrl(`/category/${cat.id}/image`)}'">
                                 <span class="category-name">${cat.name || 'Ölkə'}</span>
-                                <span class="chevron" style="opacity:0.45; font-size:18px; margin-left:auto;">&#8250;</span>
+                                <button class="country-star ${isCountryFav ? 'active' : ''}" onclick="toggleFavoriteCountry('${catKey}', this, event)" aria-label="${escapeHtml(cat.name || 'Ölkə')} yuxarı siyahıya əlavə et">${isCountryFav ? '&#9733;' : '&#9734;'}</button>
+                                <span class="chevron" style="opacity:0.45; font-size:18px;">&#8250;</span>
                             </div>`;
                         });
                     }

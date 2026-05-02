@@ -1140,7 +1140,8 @@ const FALLBACK_TOP_LEAGUES = [
     { id: 23, name: "Serie A", category: { id: 31, name: "Italy" } },
     { id: 35, name: "Bundesliga", category: { id: 30, name: "Germany" } },
     { id: 34, name: "Ligue 1", category: { id: 7, name: "France" } },
-    { id: 52, name: "Super Lig", category: { id: 46, name: "Turkey" } }
+    { id: 52, name: "Super Lig", category: { id: 46, name: "Turkey" } },
+    { id: 709, name: "Azərbaycan Premyer Liqası", category: { id: 297, name: "Azerbaijan" }, season: { id: 78700 } }
 ];
 
 const KNOWN_CURRENT_SEASONS = {
@@ -1150,6 +1151,7 @@ const KNOWN_CURRENT_SEASONS = {
     35: 77333,  // Bundesliga 25/26
     34: 77356,  // Ligue 1 25/26
     52: 77805,  // Super Lig 25/26
+    709: 78700, // Azərbaycan Premyer Liqası 25/26
     679: 76984  // UEFA Europa League 25/26
 };
 
@@ -1166,6 +1168,7 @@ const ESPN_STANDINGS_LEAGUES = {
 };
 
 const STANDINGS_SNAPSHOT_FILE = path.join(__dirname, "standings_snapshot.json");
+const FOOTBALL_STANDINGS_SNAPSHOT_FILE = path.join(__dirname, "football_standings_snapshot.json");
 let standingsWarmIndex = 0;
 
 function loadStandingsSnapshot() {
@@ -1197,6 +1200,31 @@ function saveStandingSnapshot(key, data) {
 }
 
 loadStandingsSnapshot();
+
+function loadFallbackStandings() {
+    try {
+        if (fs.existsSync(FOOTBALL_STANDINGS_SNAPSHOT_FILE)) {
+            const parsed = JSON.parse(fs.readFileSync(FOOTBALL_STANDINGS_SNAPSHOT_FILE, "utf8"));
+            if (parsed.items && typeof parsed.items === "object") {
+                console.log(`[STANDINGS FALLBACK] Loaded ${Object.keys(parsed.items).length} league standings.`);
+                return parsed.items;
+            }
+        }
+    } catch (error) {
+        console.warn("[STANDINGS FALLBACK] Load failed:", error.message);
+    }
+    return {};
+}
+
+const FALLBACK_STANDINGS = loadFallbackStandings();
+
+function getFallbackStanding(tourId, seasonId) {
+    const item = FALLBACK_STANDINGS[String(tourId)];
+    const data = item?.data || null;
+    if (!data?.standings?.length) return null;
+    if (seasonId && data.seasonId && String(data.seasonId) !== String(seasonId)) return null;
+    return data;
+}
 
 const FOOTBALL_CATEGORIES_SNAPSHOT_FILE = path.join(__dirname, "football_categories_snapshot.json");
 const FOOTBALL_CATEGORY_TOURNAMENTS_SNAPSHOT_FILE = path.join(__dirname, "football_category_tournaments_snapshot.json");
@@ -1608,6 +1636,7 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
         const { tourId } = req.params;
         let seasonId = req.query.seasonId;
         let season = null;
+        const fallbackStanding = getFallbackStanding(tourId, seasonId);
 
         const cachedForTour = Object.entries(cache).find(([key, value]) =>
             key.startsWith(`standings_${tourId}_`) &&
@@ -1622,6 +1651,29 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
                 fast: true,
                 durationMs: Date.now() - startedAt
             });
+        }
+
+        if (fallbackStanding) {
+            res.json({
+                ...fallbackStanding,
+                seasonId: fallbackStanding.seasonId || seasonId || "snapshot",
+                cached: true,
+                snapshot: true,
+                fast: true,
+                durationMs: Date.now() - startedAt
+            });
+
+            const refreshSeasonId = fallbackStanding.seasonId || seasonId || KNOWN_CURRENT_SEASONS[tourId];
+            if (refreshSeasonId) {
+                getCachedData(`standings_${tourId}_${refreshSeasonId}`, async () => {
+                    return await fetchFromSofaFastRace(`/unique-tournament/${tourId}/season/${refreshSeasonId}/standings/total`, {}, 7000);
+                }, CACHE_TIMES.STATIC, { skipJitter: true })
+                    .then(data => {
+                        if (data?.standings?.length) saveStandingSnapshot(`standings_${tourId}_${refreshSeasonId}`, data);
+                    })
+                    .catch(e => console.warn(`[STANDINGS SNAPSHOT REFRESH] ${tourId}: ${e.message}`));
+            }
+            return;
         }
 
         if (!seasonId) {
@@ -1686,6 +1738,17 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
         });
     } catch (error) {
         console.error(`[API ERROR] Fast standings tour=${req.params.tourId}: ${error.message}`);
+        const fallbackStanding = getFallbackStanding(req.params.tourId, req.query.seasonId);
+        if (fallbackStanding) {
+            return res.json({
+                ...fallbackStanding,
+                seasonId: fallbackStanding.seasonId || req.query.seasonId || "snapshot",
+                cached: true,
+                snapshot: true,
+                fast: true,
+                durationMs: Date.now() - startedAt
+            });
+        }
         res.status(500).json({ error: true, message: error.message, durationMs: Date.now() - startedAt });
     }
 });
@@ -1700,6 +1763,15 @@ app.get("/api/standings/:tourId/:seasonId", async (req, res) => {
         res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Standings tour=${req.params.tourId} season=${req.params.seasonId}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
+        const fallbackStanding = getFallbackStanding(req.params.tourId, req.params.seasonId);
+        if (fallbackStanding) {
+            return res.json({
+                ...fallbackStanding,
+                seasonId: fallbackStanding.seasonId || req.params.seasonId,
+                cached: true,
+                snapshot: true
+            });
+        }
         res.status(500).json({ error: true, message: error.message });
     }
 });
