@@ -4929,6 +4929,12 @@
             let allCategoriesGlobal = [];
             let expandedCategories = new Set();
             const categoryLeaguesCache = {};
+            const prefetchedCategoryLeagues = new Set();
+            const FEATURED_CATEGORY_IDS = new Set(['1', '7', '30', '31', '32', '46', '297', '1465']);
+            const FEATURED_CATEGORY_NAMES = new Set([
+                'england', 'spain', 'italy', 'germany', 'france', 'turkey', 'azerbaijan',
+                'europe', 'eurasia', 'world', 'international'
+            ]);
 
             let authTimer = null;
             let userHasNavigated = false;
@@ -5629,6 +5635,7 @@
 
                 document.getElementById('logoTitle').innerText = group.name.toUpperCase();
                 showBackBtn();
+                window.currentCountryContext = null;
                 window.currentLeagueContext = {
                     id: group.id,
                     seasonId: group.seasonId,
@@ -6487,6 +6494,145 @@
                 `).join("");
             }
 
+            function getCategoryById(catId) {
+                const key = String(catId);
+                return (allCategoriesGlobal || []).find(cat => String(cat?.id) === key) || null;
+            }
+
+            function buildFeaturedCategoryExclusion(displayPopular) {
+                const keys = new Set([...FEATURED_CATEGORY_IDS, ...FEATURED_CATEGORY_NAMES]);
+                (displayPopular || []).forEach(league => {
+                    const category = league?.category || {};
+                    const values = [
+                        category.id,
+                        category.slug,
+                        category.name,
+                        category.alpha2,
+                        league?.catId,
+                        league?.country
+                    ];
+                    values.forEach(value => {
+                        if (value !== undefined && value !== null) keys.add(String(value).trim().toLowerCase());
+                    });
+                });
+                return keys;
+            }
+
+            function isFeaturedCategory(cat, featuredKeys) {
+                const values = [cat?.id, cat?.slug, cat?.name, cat?.alpha2];
+                return values.some(value => value !== undefined && value !== null && featuredKeys.has(String(value).trim().toLowerCase()));
+            }
+
+            async function fetchCategoryLeaguesData(catId) {
+                const key = String(catId);
+                if (categoryLeaguesCache[key]) return categoryLeaguesCache[key];
+
+                const data = await fetchServerJson(`/api/category/${key}/tournaments`, "Ölkə liqaları server xətası");
+                const leagues = normalizeCategoryLeaguesPayload(data);
+                categoryLeaguesCache[key] = leagues;
+                return leagues;
+            }
+
+            function prefetchCategoryLeagues(catId) {
+                const key = String(catId);
+                if (!key || categoryLeaguesCache[key] || prefetchedCategoryLeagues.has(key)) return;
+                prefetchedCategoryLeagues.add(key);
+                fetchCategoryLeaguesData(key).catch(() => {
+                    prefetchedCategoryLeagues.delete(key);
+                });
+            }
+
+            function renderCountryLeaguesPage(cat, leagues, options = {}) {
+                const safeCountry = escapeJsString(cat?.name || 'Ölkə');
+                const displayName = escapeHtml(cat?.name || 'Ölkə');
+                const flagUrl = getCountryFlagUrl(cat || {});
+                const fallbackFlag = sofaImageUrl(`/category/${cat?.id || 1}/image`);
+                const statusText = options.loading
+                    ? 'Liqalar yüklənir...'
+                    : `${leagues.length} liqa tapıldı`;
+
+                const leagueRows = leagues.length ? leagues.map(l => {
+                    const isFav = favLeagues.some(f => f.id.toString() === String(l.id));
+                    const safeName = escapeJsString(l.name || 'Liqa');
+                    const leagueName = escapeHtml(l.name || 'Liqa');
+                    const leagueCategory = escapeHtml(l.category?.name || cat?.name || 'Ölkə');
+                    const logoFallback = sofaImageUrl(`/category/${cat?.id || 1}/image`);
+                    return `
+                        <div class="league-card" onclick="openSingleLeague('${l.id}')">
+                            <div style="display:flex; align-items:center; gap:16px; flex:1; min-width:0;">
+                                <img class="league-card-logo club-logo" loading="eager" decoding="async" fetchpriority="high" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`)}" onerror="this.onerror=null; this.src='${logoFallback}'">
+                                <div class="league-card-info">
+                                    <span class="league-card-country">${leagueCategory}</span>
+                                    <span class="league-card-name">${leagueName}</span>
+                                </div>
+                            </div>
+                            <div class="fav-star ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavoriteLeague('${l.id}', '${safeName}', '${safeCountry}', this)">${isFav ? '&#9733;' : '&#9734;'}</div>
+                        </div>`;
+                }).join("") : `
+                    <div class="empty-state" style="padding:48px 18px;">
+                        <div style="font-size:42px; margin-bottom:14px;">&#127937;</div>
+                        <div style="font-weight:800; font-size:18px; margin-bottom:8px;">Liqa tapılmadı</div>
+                        <div style="color:var(--text-muted); font-size:14px;">Bu ölkə üçün aktiv liqa məlumatı hazırda yoxdur.</div>
+                    </div>`;
+
+                document.getElementById('singleLeagueContent').innerHTML = `
+                    <div class="league-group" style="margin-top:20px; border-radius:20px; overflow:hidden;">
+                        <div class="league-header" style="padding:24px; gap:16px; background:linear-gradient(135deg, rgba(59,130,246,0.16), rgba(255,255,255,0.03)); pointer-events:none;">
+                            <img src="${flagUrl}" style="width:58px; height:58px; border-radius:18px; object-fit:cover; background:rgba(255,255,255,0.08); box-shadow:0 10px 25px rgba(0,0,0,0.28);" onerror="this.onerror=null; this.src='${fallbackFlag}'">
+                            <div style="min-width:0;">
+                                <div style="color:var(--text-muted); font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:1.2px;">Ölkə liqaları</div>
+                                <div style="font-size:24px; font-weight:950; line-height:1.15; margin-top:4px;">${displayName}</div>
+                                <div style="color:var(--text-muted); font-size:13px; font-weight:700; margin-top:6px;">${statusText}</div>
+                            </div>
+                        </div>
+                    </div>
+                    ${options.loading ? `
+                        <div class="league-group" style="border-radius:18px; padding:18px; margin-top:14px;">
+                            <div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton"></div><div class="skel-team skeleton" style="width:55%"></div></div></div>
+                            <div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton"></div><div class="skel-team skeleton" style="width:65%"></div></div></div>
+                            <div style="color:var(--text-muted); font-weight:700; text-align:center; padding:14px;">Məlumat hazırlanır...</div>
+                        </div>` : `
+                        <div class="category-header"><span>Liqalar</span><span>${leagues.length}</span></div>
+                        <div>${leagueRows}</div>`}
+                `;
+            }
+
+            window.openCountryLeaguesPage = async function(catId) {
+                const key = String(catId);
+                const cat = getCategoryById(key) || { id: key, name: 'Ölkə' };
+
+                document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
+                document.getElementById('dateTabsContainer').style.display = 'none';
+                document.getElementById('singleLeagueView').classList.add('active');
+                document.querySelector('.main-content').style.paddingTop = '70px';
+                document.getElementById('logoTitle').innerText = (cat.name || 'ÖLKƏ').toUpperCase();
+                showBackBtn();
+                window.currentLeagueContext = null;
+                currentStandingsTourId = null;
+                window.currentCountryContext = { id: key };
+
+                if (categoryLeaguesCache[key]) {
+                    renderCountryLeaguesPage(cat, categoryLeaguesCache[key]);
+                } else {
+                    renderCountryLeaguesPage(cat, [], { loading: true });
+                }
+
+                try {
+                    const leagues = await withTimeout(fetchCategoryLeaguesData(key), 8000);
+                    if (window.currentCountryContext?.id !== key) return;
+                    renderCountryLeaguesPage(cat, leagues);
+                } catch (e) {
+                    if (window.currentCountryContext?.id !== key) return;
+                    document.getElementById('singleLeagueContent').innerHTML = `
+                        <div class="league-group" style="margin-top:20px; border-radius:18px; padding:28px; text-align:center;">
+                            <div style="font-size:42px; margin-bottom:12px;">&#9888;</div>
+                            <div style="font-size:18px; font-weight:900; margin-bottom:8px;">Liqalar gecikir</div>
+                            <div style="color:var(--text-muted); font-size:14px; line-height:1.5; margin-bottom:18px;">Bu ölkənin liqaları hazırda tez açılmadı. Yenidən yoxlayın.</div>
+                            <button class="auth-btn" style="width:auto; padding:12px 20px; margin:0 auto;" onclick="openCountryLeaguesPage('${key}')">Yenidən yüklə</button>
+                        </div>`;
+                }
+            }
+
             async function loadCategoryLeagues(catId, leagueContainer) {
                 const key = String(catId);
                 if (categoryLeaguesCache[key]) {
@@ -6498,11 +6644,7 @@
                 leagueContainer.innerHTML = `<div style="padding:15px; text-align:center;"><div class="skeleton" style="height:20px; width:40%; margin:auto;"></div></div>`;
 
                 try {
-                    const res = await fetch(API_BASE_URL + `/api/category/${key}/tournaments`, { cache: 'no-store' });
-                    if (!res.ok) throw new Error(`Server xətası: ${res.status}`);
-                    const data = await res.json();
-                    const leagues = normalizeCategoryLeaguesPayload(data);
-                    categoryLeaguesCache[key] = leagues;
+                    const leagues = await fetchCategoryLeaguesData(key);
 
                     if (leagues.length === 0) {
                         leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">Bu ölkə üçün aktiv liqa tapılmadı.</div>`;
@@ -6582,9 +6724,11 @@
                         { id: 8, name: "La Liga", category: { name: "Spain", id: 32 } },
                         { id: 23, name: "Serie A", category: { name: "Italy", id: 31 } },
                         { id: 35, name: "Bundesliga", category: { name: "Germany", id: 30 } },
-                        { id: 203, name: "Süper Lig", category: { name: "Turkey", id: 52 } },
+                        { id: 203, name: "Süper Lig", category: { name: "Turkey", id: 46, slug: "turkey", alpha2: "TR" } },
                         { id: 709, name: "Premyer Liqa", category: { name: "Azerbaijan", id: 297, slug: "azerbaijan", alpha2: "AZ" } }
                     ];
+
+                    const featuredCategoryKeys = buildFeaturedCategoryExclusion(displayPopular);
 
                     displayPopular.forEach(l => {
                         const isFav = favLeagues.some(f => f.id.toString() === l.id.toString());
@@ -6609,6 +6753,7 @@
                     // 2. Discovery Section: All Countries (Categories)
                     const countryCategories = (allCategoriesGlobal || [])
                         .filter(cat => cat && cat.id && cat.name)
+                        .filter(cat => !isFeaturedCategory(cat, featuredCategoryKeys))
                         .sort((a, b) => {
                             const priorityDiff = (b.priority || 0) - (a.priority || 0);
                             if (priorityDiff) return priorityDiff;
@@ -6618,23 +6763,19 @@
                     if (countryCategories.length > 0) {
                         html += `<div class="category-header"><span>Bütün Ölkələr (${countryCategories.length})</span></div>`;
                         countryCategories.forEach(cat => {
-                            const safeCatName = (cat.name || "Ölkə").replace(/'/g, "\\'");
                             const flagUrl = getCountryFlagUrl(cat);
                             const catKey = String(cat.id);
-                            const isExpanded = expandedCategories.has(catKey);
                             html += `
-                            <div class="category-row ${isExpanded ? 'open' : ''}" onclick="toggleCategory('${catKey}', '${safeCatName}', this)">
+                            <div class="category-row" onclick="openCountryLeaguesPage('${catKey}')">
                                 <img class="category-flag" loading="lazy" decoding="async" src="${flagUrl}" onerror="this.onerror=null; this.src='${sofaImageUrl(`/category/${cat.id}/image`)}'">
                                 <span class="category-name">${cat.name || 'Ölkə'}</span>
-                                <span class="chevron" style="opacity:0.4; font-size:12px; margin-left:auto;">${isExpanded ? '&#9650;' : '&#9660;'}</span>
-                            </div>
-                            ${isExpanded ? `<div class="category-leagues-container" id="cat-leagues-${catKey}"></div>` : ''}`;
+                                <span class="chevron" style="opacity:0.45; font-size:18px; margin-left:auto;">&#8250;</span>
+                            </div>`;
                         });
                     }
                     list.innerHTML = html;
-                    expandedCategories.forEach(catId => {
-                        const container = document.getElementById(`cat-leagues-${catId}`);
-                        if (container) loadCategoryLeagues(catId, container);
+                    countryCategories.slice(0, 12).forEach((cat, index) => {
+                        setTimeout(() => prefetchCategoryLeagues(cat.id), 250 + index * 350);
                     });
                     return;
                 }

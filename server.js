@@ -1278,7 +1278,7 @@ async function warmLeagueImages(limit = 10) {
     await warmImagePaths(batch, batch.length);
 }
 
-async function getCachedData(key, fetchFn, ttl) {
+async function getCachedData(key, fetchFn, ttl, options = {}) {
     const now = Date.now();
     if (cache[key] && (now - cache[key].timestamp < ttl)) {
         console.log(`[CACHE HIT] Key: ${key}`);
@@ -1287,7 +1287,9 @@ async function getCachedData(key, fetchFn, ttl) {
     
     console.log(`[CACHE MISS] Key: ${key}. Fetching fresh data...`);
     // Random jitter (100ms - 500ms) to avoid robotic patterns
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 400 + 100));
+    if (!options.skipJitter) {
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 400 + 100));
+    }
     
     try {
         const data = await fetchFn();
@@ -1751,9 +1753,8 @@ app.get("/api/sofa-image", async (req, res) => {
 app.get("/api/category/:id/tournaments", async (req, res) => {
     try {
         const data = await getCachedData(`category_tournaments_${req.params.id}`, async () => {
-            const result = await fetchFromSofa(`/category/${req.params.id}/unique-tournaments`);
-            return result.data;
-        }, CACHE_TIMES.STATIC);
+            return await fetchFromSofaFastRace(`/category/${req.params.id}/unique-tournaments`, {}, 5500);
+        }, CACHE_TIMES.STATIC, { skipJitter: true });
         res.json(data);
         warmImagePaths(collectTournamentImagePaths(data), 36).catch(e => {
             console.warn(`[Image Warmup] Category ${req.params.id} leagues failed:`, e.message);
