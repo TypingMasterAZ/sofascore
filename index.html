@@ -5441,6 +5441,9 @@
                 34: 77356,
                 52: 77805,
                 709: 78700,
+                736: 81188,
+                21050: 79799,
+                20077: 84274,
                 679: 76984
             };
 
@@ -5937,8 +5940,18 @@
             }
 
             function extractTopPlayersList(data) {
+                if (data?.data) {
+                    const nested = extractTopPlayersList(data.data);
+                    if (nested.length) return nested;
+                }
                 if (data?.topPlayers?.goals && Array.isArray(data.topPlayers.goals)) return data.topPlayers.goals;
                 if (Array.isArray(data?.topPlayers)) return data.topPlayers;
+                if (data?.topPlayers && typeof data.topPlayers === 'object') {
+                    const firstList = Object.values(data.topPlayers).find(Array.isArray);
+                    if (firstList) return firstList;
+                }
+                if (Array.isArray(data?.players)) return data.players;
+                if (Array.isArray(data?.results)) return data.results;
                 if (Array.isArray(data)) return data;
                 return [];
             }
@@ -5950,7 +5963,7 @@
 
                 let html = '<div class="top-players-list">';
                 topPlayers.slice(0, 20).forEach((p, index) => {
-                    const goals = (p.statistics && p.statistics.goals) ? p.statistics.goals : 0;
+                    const goals = p.statistics?.goals ?? p.goals ?? p.totalGoals ?? p.value ?? 0;
                     const playerId = p.player?.id || '';
                     const playerImg = playerId ? sofaImageUrl(`/player/${playerId}/image`, { strict: true }) : IMAGE_PLACEHOLDER;
                     html += `
@@ -6926,25 +6939,29 @@
                     const favoriteCountryCards = favCountries
                         .map(country => getCategoryById(country.id) || country)
                         .filter(country => country && country.id);
+                    const pinnedCountryCards = [
+                        getCategoryById('297') || { id: 297, name: 'Azerbaijan', slug: 'azerbaijan', alpha2: 'AZ', flag: 'azerbaijan' }
+                    ].filter(country => country && country.id && !favoriteCountryCards.some(fav => String(fav.id) === String(country.id)));
                     const featuredCategoryKeys = buildFeaturedCategoryExclusion(displayPopular.concat(favoriteCountryCards.map(country => ({
                         category: country,
                         country: country.name
                     }))));
 
-                    if (favoriteCountryCards.length > 0) {
-                        favoriteCountryCards.forEach(cat => {
+                    if (favoriteCountryCards.length > 0 || pinnedCountryCards.length > 0) {
+                        favoriteCountryCards.concat(pinnedCountryCards).forEach(cat => {
                             const flagUrl = getCountryFlagUrl(cat);
                             const safeName = escapeHtml(cat.name || 'Ölkə');
+                            const isPinned = pinnedCountryCards.some(pinned => String(pinned.id) === String(cat.id));
                             html += `
                             <div class="league-card" onclick="openCountryLeaguesPage('${cat.id}')">
                                 <div style="display:flex; align-items:center; gap:16px; flex:1; min-width:0;">
                                     <img class="league-card-logo" loading="eager" decoding="async" fetchpriority="high" src="${flagUrl}" onerror="this.onerror=null; this.src='${sofaImageUrl(`/category/${cat.id}/image`)}'">
                                     <div class="league-card-info">
-                                        <span class="league-card-country">Seçilmiş ölkə</span>
+                                        <span class="league-card-country">${isPinned ? 'Ölkə liqaları' : 'Seçilmiş ölkə'}</span>
                                         <span class="league-card-name">${escapeHtml(cat.name || 'Ölkə')}</span>
                                     </div>
                                 </div>
-                                <button class="country-star active" onclick="toggleFavoriteCountry('${cat.id}', this, event)" aria-label="${safeName} yuxarı siyahıdan çıxar">&#9733;</button>
+                                <button class="country-star ${isPinned ? '' : 'active'}" onclick="toggleFavoriteCountry('${cat.id}', this, event)" aria-label="${safeName} yuxarı siyahıya əlavə et">${isPinned ? '&#9734;' : '&#9733;'}</button>
                             </div>`;
                         });
                     }
@@ -7193,7 +7210,31 @@
                 const persisted = leagueTopPlayersCache[cacheKey] || getPersistedLeagueData(cacheKey, 12 * 60 * 60 * 1000);
                 if (persisted) return persisted;
 
-                const data = await fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players server xətası");
+                let data = null;
+                try {
+                    data = await fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players server xətası");
+                } catch (serverErr) {
+                    console.warn("Top players API failed, trying browser SofaScore fallback:", serverErr.message);
+                }
+
+                if (!extractTopPlayersList(data).length) {
+                    const paths = [
+                        `/unique-tournament/${tourId}/season/${seasonId}/top-players/overall`,
+                        `/unique-tournament/${tourId}/season/${seasonId}/top-players/goals`,
+                        `/unique-tournament/${tourId}/season/${seasonId}/top-players`
+                    ];
+                    for (const path of paths) {
+                        try {
+                            const directData = await withTimeout(fetchDirectSofaJson(path), 6500);
+                            if (extractTopPlayersList(directData).length) {
+                                data = directData;
+                                break;
+                            }
+                            data = data || directData;
+                        } catch (e) {}
+                    }
+                }
+
                 if (extractTopPlayersList(data).length) {
                     leagueTopPlayersCache[cacheKey] = data;
                     setPersistedLeagueData(cacheKey, data);

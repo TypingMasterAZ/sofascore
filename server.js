@@ -157,6 +157,12 @@ app.use((req, res, next) => {
 const SOFA_API = process.env.SOFA_API_BASE || "https://api.sofascore.com/api/v1";
 const SOFA_WEB_API = "https://www.sofascore.com/api/v1";
 const SOFA_APIS = [...new Set([SOFA_API, SOFA_WEB_API])];
+const SOFA_IMAGE_APIS = [...new Set([
+    process.env.SOFA_IMAGE_API_BASE,
+    SOFA_API,
+    SOFA_WEB_API,
+    "https://api.sofascore.app/api/v1"
+].filter(Boolean))];
 const RAPIDAPI_HOST = "sofascore.p.rapidapi.com";
 const GAS_PROXIES = [
     process.env.SOFA_PROXY_URL,
@@ -660,7 +666,7 @@ async function fetchSofaImageCached(imagePath) {
     const request = (async () => {
         let response = null;
         let lastImageError = null;
-        for (const baseUrl of SOFA_APIS) {
+        for (const baseUrl of SOFA_IMAGE_APIS) {
             try {
                 response = await axios.get(`${baseUrl}${imagePath}`, {
                     responseType: "arraybuffer",
@@ -1152,6 +1158,9 @@ const KNOWN_CURRENT_SEASONS = {
     34: 77356,  // Ligue 1 25/26
     52: 77805,  // Super Lig 25/26
     709: 78700, // Azərbaycan Premyer Liqası 25/26
+    736: 81188, // Azərbaycan Birinci Liqa 25/26
+    21050: 79799, // Azərbaycan İkinci Liqa 25/26
+    20077: 84274, // Azərbaycan Regional League 25/26
     679: 76984  // UEFA Europa League 25/26
 };
 
@@ -1335,7 +1344,7 @@ function warmStandingTeamImages(data, limit = 32) {
 }
 
 function collectTopPlayerImagePaths(data) {
-    const list = data?.topPlayers?.goals || data?.topPlayers || data || [];
+    const list = extractTopPlayersList(data);
     if (!Array.isArray(list)) return [];
     return list.flatMap(item => [
         item?.player?.id ? `/player/${item.player.id}/image` : null,
@@ -1345,6 +1354,80 @@ function collectTopPlayerImagePaths(data) {
 
 function warmTopPlayerImages(data, limit = 28) {
     return warmImagePaths(collectTopPlayerImagePaths(data), limit);
+}
+
+function extractTopPlayersList(data) {
+    if (!data) return [];
+    if (data.data) {
+        const nested = extractTopPlayersList(data.data);
+        if (nested.length) return nested;
+    }
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.topPlayers)) return data.topPlayers;
+    if (Array.isArray(data.players)) return data.players;
+    if (Array.isArray(data.results)) return data.results;
+    const topPlayers = data.topPlayers || {};
+    if (Array.isArray(topPlayers.goals)) return topPlayers.goals;
+    if (Array.isArray(topPlayers.scoring)) return topPlayers.scoring;
+    if (Array.isArray(topPlayers.rating)) return topPlayers.rating;
+    if (topPlayers && typeof topPlayers === "object") {
+        const firstList = Object.values(topPlayers).find(Array.isArray);
+        if (firstList) return firstList;
+    }
+    return [];
+}
+
+async function fetchTopPlayersData(tournamentId, seasonId) {
+    const paths = [
+        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players/overall`,
+        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players/goals`,
+        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players`
+    ];
+
+    const attempts = paths.map(apiPath =>
+        fetchFromSofaFastRace(apiPath, {}, 5500)
+            .then(data => ({ apiPath, data, count: extractTopPlayersList(data).length }))
+    );
+
+    const results = await Promise.allSettled(attempts);
+    const fulfilled = results
+        .filter(result => result.status === "fulfilled")
+        .map(result => result.value);
+    const withPlayers = fulfilled.find(result => result.count > 0);
+    if (withPlayers) return withPlayers.data;
+    if (fulfilled.length) return fulfilled[0].data;
+
+    const firstError = results.find(result => result.status === "rejected")?.reason;
+    throw firstError || new Error("Top players unavailable");
+}
+
+function withServerTimeout(promise, ms, label) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timeout`)), ms))
+    ]);
+}
+
+async function getCachedDataWithTimeout(key, fetchFn, ttl, timeoutMs, timeoutLabel, options = {}) {
+    const now = Date.now();
+    if (cache[key] && (now - cache[key].timestamp < ttl)) {
+        console.log(`[CACHE HIT] Key: ${key}`);
+        return cache[key].data;
+    }
+
+    try {
+        return await withServerTimeout(
+            getCachedData(key, fetchFn, ttl, options),
+            timeoutMs,
+            timeoutLabel
+        );
+    } catch (error) {
+        if (cache[key]) {
+            console.warn(`[CACHE STALE] Key: ${key}. Returning stale data after timeout/error: ${error.message}`);
+            return cache[key].data;
+        }
+        throw error;
+    }
 }
 
 async function warmImagePaths(paths, limit = 12) {
@@ -1987,15 +2070,15 @@ app.get("/api/search", async (req, res) => {
 app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
     try {
         const { id, sid } = req.params;
-        const data = await getCachedData(`topplayers_${id}_${sid}`, async () => {
-            return await fetchFromSofaFastRace(`/unique-tournament/${id}/season/${sid}/top-players/overall`, {}, 6500);
-        }, CACHE_TIMES.STATIC);
+        const data = await getCachedDataWithTimeout(`topplayers_${id}_${sid}`, async () => {
+            return await fetchTopPlayersData(id, sid);
+        }, CACHE_TIMES.STATIC, 7000, "Top players");
         warmTopPlayerImages(data, 32).catch(e => {
             console.warn(`[Image Warmup] Top players ${id}/${sid} failed:`, e.message);
         });
         res.json(data);
     } catch (error) {
-        res.status(500).json({ error: true });
+        res.json({ topPlayers: { goals: [] }, error: true, message: error.message });
     }
 });
 // Yeni API: ÅifrÉ™ SÄ±fÄ±rlama Kodu GÃ¶ndÉ™r (OTP)
@@ -3031,9 +3114,9 @@ async function warmOneLeagueTopPlayers() {
     if (cache[cacheKey] && cache[cacheKey]?.data) return;
 
     console.log(`[Warmup] Prefetch top players for ${league.name} (${league.id})`);
-    const data = await getCachedData(cacheKey, async () => {
-        return await fetchFromSofaFastRace(`/unique-tournament/${league.id}/season/${seasonId}/top-players/overall`, {}, 6500);
-    }, CACHE_TIMES.STATIC, { skipJitter: true });
+    const data = await getCachedDataWithTimeout(cacheKey, async () => {
+        return await fetchTopPlayersData(league.id, seasonId);
+    }, CACHE_TIMES.STATIC, 7000, "Warm top players", { skipJitter: true });
     warmTopPlayerImages(data, 32).catch(e => {
         console.warn(`[Image Warmup] Warm top players ${league.id}/${seasonId} failed:`, e.message);
     });
