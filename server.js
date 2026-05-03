@@ -142,7 +142,7 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json({ limit: "6mb" }));
+app.use(express.json({ limit: "15mb" }));
 app.use(express.static(path.join(__dirname)));
 app.get("/favicon.ico", (req, res) => {
     res.set("Cache-Control", "public, max-age=86400");

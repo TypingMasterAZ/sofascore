@@ -5706,6 +5706,7 @@
                     hideBackBtn();
                     mc.style.paddingTop = '80px';
                     loadProfile();
+                    syncCurrentProfileNow().catch(() => {});
                 }
 
                 if (viewType === 'matches') {
@@ -8284,20 +8285,26 @@
 
             function compressProfileImage(file) {
                 return new Promise((resolve, reject) => {
+                    if (!file.type || !file.type.startsWith('image/')) {
+                        reject(new Error('unsupported-image-type'));
+                        return;
+                    }
                     const reader = new FileReader();
                     reader.onerror = () => reject(reader.error);
                     reader.onload = () => {
                         const img = new Image();
-                        img.onerror = reject;
+                        img.onerror = () => reject(new Error('image-decode-failed'));
                         img.onload = () => {
-                            const maxSide = 360;
+                            const maxSide = 260;
                             const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
                             const canvas = document.createElement('canvas');
                             canvas.width = Math.max(1, Math.round(img.width * scale));
                             canvas.height = Math.max(1, Math.round(img.height * scale));
                             const ctx = canvas.getContext('2d');
+                            ctx.fillStyle = '#0f172a';
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
                             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                            resolve(canvas.toDataURL('image/jpeg', 0.82));
+                            resolve(canvas.toDataURL('image/jpeg', 0.72));
                         };
                         img.src = reader.result;
                     };
@@ -8375,8 +8382,8 @@
                 const file = event.target.files[0];
                 if (!file) return;
 
-                if (file.size > 2 * 1024 * 1024) { // Limit 2MB
-                    showToast('Şəkil 2MB-dan kiçik olmalıdır!', 'error');
+                if (file.size > 12 * 1024 * 1024) {
+                    showToast('Şəkil 12MB-dan kiçik olmalıdır!', 'error');
                     return;
                 }
 
@@ -8417,13 +8424,15 @@
                             if (previousImage) setLocalProfileImage(previousImage);
                             else setLocalProfileImage('');
                             updateAuthUI();
-                            showToast('Şəkil serverə yazılmadı', 'error');
+                            console.warn('Profile image server sync failed:', e.message);
+                            showToast('Şəkil serverə yazılmadı. Bir az sonra yenidən cəhd edin.', 'error');
                             return;
                         }
                     }
                     showToast('Profil şəkli yeniləndi', 'success');
-                }).catch(() => {
-                    showToast('Şəkil oxunmadı', 'error');
+                }).catch((e) => {
+                    console.warn('Profile image read failed:', e.message);
+                    showToast('Şəkil oxunmadı. JPG/PNG/WebP şəkil seçin.', 'error');
                 }).finally(() => {
                     event.target.value = '';
                 });
@@ -9074,12 +9083,21 @@
                 profileSyncTimer = null;
             }
 
+            function syncCurrentProfileNow() {
+                const user = auth.currentUser;
+                if (!user?.email) return Promise.resolve(null);
+                return syncProfileFromServer(user).then((profile) => {
+                    if (profile) applyProfileToUI(profile, user);
+                    return profile;
+                });
+            }
+
             function startProfileRealtimeSync(user) {
                 stopProfileRealtimeSync();
                 if (!user?.email) return;
                 profileSyncTimer = setInterval(() => {
                     syncProfileFromServer(user).then((profile) => {
-                        if (profile) updateAuthUI();
+                        if (profile) applyProfileToUI(profile, user);
                     });
                 }, 5000);
             }
@@ -9098,6 +9116,16 @@
                     startProfileRealtimeSync(user);
                 } else {
                     stopProfileRealtimeSync();
+                }
+            });
+
+            window.addEventListener('focus', () => {
+                syncCurrentProfileNow().catch(() => {});
+            });
+
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    syncCurrentProfileNow().catch(() => {});
                 }
             });
 
