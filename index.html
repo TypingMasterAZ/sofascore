@@ -4362,7 +4362,7 @@
                     
                     <div class="profile-info-box">
                         <div id="profileDisplayName" style="font-size:24px; font-weight:900; letter-spacing: -0.8px; color:#fff;">İstifadəçi</div>
-                        <div id="profileUserStatus" style="color:var(--text-muted); font-size:14px; font-weight: 600; opacity:0.8;">ProScore Premium üzvü</div>
+                        <div id="profileUserStatus" style="color:var(--text-muted); font-size:14px; font-weight: 600; opacity:0.8;">Rabona Media istifadəçisi</div>
                         
                         <div class="profile-actions-row">
                             <div class="profile-badge" style="margin: 0; display: none;">
@@ -4386,7 +4386,7 @@
                     </div>
                     <div class="profile-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
                         <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Status</label>
-                        <input type="text" id="statusInput" class="profile-input" style="margin-top:0; border:none; background:rgba(255,255,255,0.03); padding:14px;" placeholder="Statusunuz" value="ProScore istifadəçisi">
+                        <input type="text" id="statusInput" class="profile-input" style="margin-top:0; border:none; background:rgba(255,255,255,0.03); padding:14px; opacity:.75;" value="Rabona Media istifadəçisi" readonly>
                     </div>
                     <div style="padding: 15px 16px;">
                         <button class="save-btn" onclick="saveProfile()" style="margin-top:0; height:52px; border-radius: 14px; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);">Məlumatlar Saxla</button>
@@ -8142,12 +8142,37 @@
             }
 
             /* Profile Logic */
+            const DEFAULT_PROFILE_STATUS = 'Rabona Media istifadəçisi';
+
             function cleanProfileText(value, fallback) {
                 const text = (value ?? '').toString().trim();
                 if (!text || text.toLowerCase() === 'undefined' || text.toLowerCase() === 'null' || /[�ÃÅÄÉÆÂâ]/.test(text)) {
                     return fallback;
                 }
                 return text;
+            }
+
+            function getProfileStorageKey(user = auth.currentUser) {
+                const id = cleanProfileText(user?.email || user?.uid, 'guest').toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+                return `userProfile_${id}`;
+            }
+
+            function readStoredProfile(user = auth.currentUser) {
+                const keys = [getProfileStorageKey(user), 'userProfile'];
+                for (const key of keys) {
+                    try {
+                        const profile = JSON.parse(localStorage.getItem(key) || '{}');
+                        if (profile && Object.keys(profile).length) return profile;
+                    } catch (e) {}
+                }
+                return {};
+            }
+
+            function writeStoredProfile(profile, user = auth.currentUser) {
+                const normalized = normalizeProfile(profile, user);
+                localStorage.setItem(getProfileStorageKey(user), JSON.stringify(normalized));
+                localStorage.setItem('userProfile', JSON.stringify(normalized));
+                return normalized;
             }
 
             function getDefaultProfileName(user = auth.currentUser) {
@@ -8162,7 +8187,7 @@
                 const fallbackName = getDefaultProfileName(user);
                 return {
                     name: cleanProfileText(rawProfile.name || rawProfile.displayName, fallbackName),
-                    status: cleanProfileText(rawProfile.status, 'ProScore istifadəçisi'),
+                    status: DEFAULT_PROFILE_STATUS,
                     profilePic: cleanProfileText(rawProfile.profilePic, '')
                 };
             }
@@ -8190,15 +8215,11 @@
                 if (imageData && imageData.startsWith('data:image/')) {
                     setLocalProfileImage(imageData);
                     let storedProfile = {};
-                    try {
-                        storedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-                    } catch (e) {
-                        storedProfile = {};
-                    }
-                    localStorage.setItem('userProfile', JSON.stringify({
+                    try { storedProfile = readStoredProfile(); } catch (e) { storedProfile = {}; }
+                    writeStoredProfile({
                         ...storedProfile,
                         profilePic: imageData
-                    }));
+                    });
                     return imageData;
                 }
                 return getLocalProfileImage();
@@ -8217,11 +8238,11 @@
                         profilePic: data.data?.profilePic
                     }, user);
                     if (profile.profilePic) applyProfileImage(profile.profilePic);
-                    localStorage.setItem('userProfile', JSON.stringify({
+                    writeStoredProfile({
                         name: profile.name,
                         status: profile.status,
                         profilePic: profile.profilePic || getLocalProfileImage(user) || ''
-                    }));
+                    }, user);
                     return profile;
                 } catch (e) {
                     console.warn("Could not sync profile from server.", e.message);
@@ -8254,11 +8275,10 @@
 
             async function saveProfile() {
                 const uInput = document.getElementById('usernameInput');
-                const sInput = document.getElementById('statusInput');
                 const saveBtn = document.querySelector('.container#profileView .save-btn');
                 
                 let newName = uInput ? uInput.value.trim() : 'İstifadəçi';
-                let newStatus = sInput ? sInput.value.trim() : 'ProScore istifadəçisi';
+                let newStatus = DEFAULT_PROFILE_STATUS;
 
                 if (!newName) {
                     showToast('Ad boş ola bilməz!');
@@ -8295,11 +8315,11 @@
                     }
 
                     // 3. Update Local
-                    localStorage.setItem('userProfile', JSON.stringify({
+                    writeStoredProfile({
                         name: newName,
                         status: newStatus,
                         profilePic: getLocalProfileImage() || ''
-                    }));
+                    });
                     
                     updateAuthUI();
                     showToast('Profil məlumatlar yeniləndi');
@@ -8335,7 +8355,7 @@
 
                     if (auth.currentUser?.email) {
                         try {
-                            const profile = normalizeProfile(JSON.parse(localStorage.getItem('userProfile') || '{}'));
+                            const profile = normalizeProfile(readStoredProfile());
                             const res = await fetch(API_BASE_URL + '/api/auth/update-profile', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -8347,11 +8367,11 @@
                                 })
                             });
                             if (!res.ok) throw new Error('Server sync failed');
-                            localStorage.setItem('userProfile', JSON.stringify({
+                            writeStoredProfile({
                                 name: profile.name,
                                 status: profile.status,
                                 profilePic: base64
-                            }));
+                            });
                         } catch (e) {
                             if (previousImage) setLocalProfileImage(previousImage);
                             else setLocalProfileImage('');
@@ -8370,13 +8390,9 @@
 
             function loadProfile() {
                 let storedProfile = {};
-                try {
-                    storedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-                } catch (e) {
-                    storedProfile = {};
-                }
+                try { storedProfile = readStoredProfile(); } catch (e) { storedProfile = {}; }
                 const profile = normalizeProfile(storedProfile);
-                localStorage.setItem('userProfile', JSON.stringify(profile));
+                writeStoredProfile(profile);
                 if (profile.profilePic) applyProfileImage(profile.profilePic);
 
                 const uInput = document.getElementById('usernameInput');
@@ -8691,15 +8707,15 @@
                             body: JSON.stringify({
                                 email: email,
                                 displayName: username,
-                                status: "ProScore istifadəçisi"
+                                status: DEFAULT_PROFILE_STATUS
                             })
                         });
 
                         // Local sync
-                        localStorage.setItem('userProfile', JSON.stringify({
+                        writeStoredProfile({
                             name: username,
-                            status: "ProScore istifadəçisi"
-                        }));
+                            status: DEFAULT_PROFILE_STATUS
+                        }, userCredential.user);
 
                         showToast('Qeydiyyat uğurludur! Xoş gəldiniz.');
                         switchMainView('profile');
@@ -8989,13 +9005,9 @@
                     if (logoutBox) logoutBox.style.display = 'flex';
                     
                     let savedProfile = {};
-                    try {
-                        savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-                    } catch (e) {
-                        savedProfile = {};
-                    }
+                    try { savedProfile = readStoredProfile(user); } catch (e) { savedProfile = {}; }
                     const profile = normalizeProfile(savedProfile, user);
-                    localStorage.setItem('userProfile', JSON.stringify(profile));
+                    writeStoredProfile(profile, user);
                     const username = profile.name;
 
                     const nameEl = document.getElementById('profileDisplayName');

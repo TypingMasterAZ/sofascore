@@ -2288,7 +2288,7 @@ app.post("/api/auth/update-profile", async (req, res) => {
     if (!email) return res.status(400).json({ success: false, message: "Email lazÄ±mdÄ±r." });
 
     try {
-        let user = await getUserByEmail(email) || { email: email, username: displayName || email.split('@')[0], status: status || "ProScore istifadÉ™Ã§isi" };
+        let user = await getUserByEmail(email) || { email: email, username: displayName || email.split('@')[0], status: status || "Rabona Media istifadəçisi" };
         if (displayName) user.username = displayName;
         if (status !== undefined) user.status = status;
         if (profilePic !== undefined) user.profilePic = profilePic;
@@ -2312,7 +2312,7 @@ app.get("/api/auth/profile/:email", async (req, res) => {
             success: true,
             data: {
                 displayName: user.username,
-                status: user.status || "ProScore istifadÉ™Ã§isi",
+                status: user.status || "Rabona Media istifadəçisi",
                 profilePic: user.profilePic || "",
                 updatedAt: user.updatedAt || null
             }
