@@ -144,6 +144,10 @@ app.use(cors({
 }));
 app.use(express.json({ limit: "3mb" }));
 app.use(express.static(path.join(__dirname)));
+app.get("/favicon.ico", (req, res) => {
+    res.set("Cache-Control", "public, max-age=86400");
+    res.type("image/png").sendFile(path.join(__dirname, "ayble.png"));
+});
 let detectedHostUrl = null;
 app.use((req, res, next) => {
     if (!detectedHostUrl && req.headers.host) {
@@ -604,6 +608,8 @@ const CACHE_TIMES = {
 const IMAGE_CACHE_DIR = path.join(__dirname, ".image-cache");
 const imageMemoryCache = new Map();
 const imageInFlight = new Map();
+const imageFailureCache = new Map();
+const IMAGE_FAILURE_TTL = 30 * 60 * 1000;
 
 function getImageCacheKey(imagePath) {
     return Buffer.from(imagePath).toString("base64").replace(/[+/=]/g, "_");
@@ -655,9 +661,31 @@ function saveCachedImage(imagePath, payload) {
     }
 }
 
+function rememberFailedImage(imagePath, error) {
+    imageFailureCache.set(imagePath, {
+        timestamp: Date.now(),
+        message: error?.message || "Image fetch failed"
+    });
+}
+
+function getRecentImageFailure(imagePath) {
+    const cachedFailure = imageFailureCache.get(imagePath);
+    if (!cachedFailure) return null;
+    if (Date.now() - cachedFailure.timestamp > IMAGE_FAILURE_TTL) {
+        imageFailureCache.delete(imagePath);
+        return null;
+    }
+    return cachedFailure;
+}
+
 async function fetchSofaImageCached(imagePath) {
     const cached = readCachedImage(imagePath);
     if (cached) return cached;
+
+    const recentFailure = getRecentImageFailure(imagePath);
+    if (recentFailure) {
+        throw new Error(`Image unavailable: ${recentFailure.message}`);
+    }
 
     if (imageInFlight.has(imagePath)) {
         return imageInFlight.get(imagePath);
@@ -684,12 +712,16 @@ async function fetchSofaImageCached(imagePath) {
             }
         }
 
-        if (!response) throw lastImageError || new Error("Image fetch failed");
+        if (!response) {
+            rememberFailedImage(imagePath, lastImageError);
+            throw lastImageError || new Error("Image fetch failed");
+        }
 
         const payload = {
             body: Buffer.from(response.data),
             contentType: response.headers["content-type"] || "image/png"
         };
+        imageFailureCache.delete(imagePath);
         saveCachedImage(imagePath, payload);
         return { ...payload, cached: false };
     })().finally(() => {
@@ -1447,6 +1479,45 @@ async function warmLeagueImages(limit = 10) {
     await warmImagePaths(batch, batch.length);
 }
 
+function normalizeSvgColor(value, fallback) {
+    const raw = String(value || "").replace("#", "").trim();
+    return /^[0-9a-fA-F]{6}$/.test(raw) ? `#${raw}` : fallback;
+}
+
+function escapeSvgText(value) {
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function getBadgeInitials(value, fallback = "FC") {
+    const source = String(value || fallback).trim();
+    const parts = source.split(/\s+/).filter(Boolean);
+    if (!parts.length) return fallback;
+    if (parts.length === 1) return parts[0].slice(0, 3).toUpperCase();
+    return parts.slice(0, 2).map(part => part[0]).join("").toUpperCase();
+}
+
+function generatedImageFallbackSvg(query = {}) {
+    const label = escapeSvgText(getBadgeInitials(query.label, query.type === "league" ? "LG" : "FC"));
+    const primary = normalizeSvgColor(query.primary, query.type === "league" ? "#ef4444" : "#2563eb");
+    const secondary = normalizeSvgColor(query.secondary, "#0f172a");
+    return `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+            <defs>
+                <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+                    <stop offset="0" stop-color="${primary}"/>
+                    <stop offset="1" stop-color="${secondary}"/>
+                </linearGradient>
+            </defs>
+            <rect width="64" height="64" rx="18" fill="url(#g)"/>
+            <circle cx="32" cy="32" r="22" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="3"/>
+            <text x="32" y="38" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="900" fill="#fff">${label}</text>
+        </svg>`;
+}
+
 async function getCachedData(key, fetchFn, ttl, options = {}) {
     const now = Date.now();
     if (cache[key] && (now - cache[key].timestamp < ttl)) {
@@ -1966,11 +2037,17 @@ app.get("/api/categories", async (req, res) => {
 });
 
 app.get("/api/sofa-image", async (req, res) => {
+    const sendFallbackImage = (statusCode = 200) => {
+        res.status(statusCode);
+        res.set("Cache-Control", "public, max-age=300");
+        return res.type("image/svg+xml").send(generatedImageFallbackSvg(req.query));
+    };
+
     try {
         const imagePath = String(req.query.path || "");
         const allowedImagePath = /^\/(?:unique-tournament|tournament|category|team|player)\/[\w-]+\/image$/;
         if (!allowedImagePath.test(imagePath)) {
-            return res.status(400).type("image/svg+xml").send('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#111827"/></svg>');
+            return sendFallbackImage(200);
         }
 
         const image = await fetchSofaImageCached(imagePath);
@@ -1979,11 +2056,8 @@ app.get("/api/sofa-image", async (req, res) => {
         res.set("X-Image-Cache", image.cached ? "HIT" : "MISS");
         res.send(image.body);
     } catch (error) {
-        console.error(`[IMAGE ERROR] ${req.query.path}: ${error.message}`);
-        if (req.query.strict === "1") {
-            return res.status(404).type("image/svg+xml").send('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#111827"/></svg>');
-        }
-        res.status(200).type("image/svg+xml").send('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#111827"/><circle cx="24" cy="24" r="11" fill="#334155"/></svg>');
+        console.warn(`[IMAGE FALLBACK] ${req.query.path}: ${error.message}`);
+        return sendFallbackImage(200);
     }
 });
 

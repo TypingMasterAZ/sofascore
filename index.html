@@ -12,6 +12,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Rabona Media LIVE</title>
+    <link rel="icon" type="image/png" href="ayble.png">
     <link rel="manifest" href="manifest.json?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -4527,6 +4528,18 @@
                 if (options.strict) {
                     params.set('strict', '1');
                 }
+                if (options.fallbackLabel) {
+                    params.set('label', options.fallbackLabel);
+                }
+                if (options.fallbackType) {
+                    params.set('type', options.fallbackType);
+                }
+                if (options.primary) {
+                    params.set('primary', options.primary);
+                }
+                if (options.secondary) {
+                    params.set('secondary', options.secondary);
+                }
                 return `${API_BASE_URL || ''}/api/sofa-image?${params.toString()}`;
             }
 
@@ -4580,6 +4593,27 @@
                     colors.primary || colors.primaryColor || colors.primaryColorHex || '#2563eb',
                     colors.secondary || colors.secondaryColor || colors.secondaryColorHex || '#0f172a'
                 );
+            }
+
+            function getTeamImageOptions(team = {}, strict = true) {
+                const colors = team?.teamColors || {};
+                return {
+                    strict,
+                    fallbackLabel: team?.nameCode || team?.shortName || team?.name || 'FC',
+                    fallbackType: 'team',
+                    primary: colors.primary || colors.primaryColor || colors.primaryColorHex || '#2563eb',
+                    secondary: colors.secondary || colors.secondaryColor || colors.secondaryColorHex || '#0f172a'
+                };
+            }
+
+            function getLeagueImageOptions(league = {}, strict = true) {
+                return {
+                    strict,
+                    fallbackLabel: league?.name || league?.shortName || 'LG',
+                    fallbackType: 'league',
+                    primary: league?.primaryColorHex || league?.primaryColor || '#ef4444',
+                    secondary: league?.secondaryColorHex || league?.secondaryColor || '#111827'
+                };
             }
 
             function getLeagueFallbackLogo(league) {
@@ -5461,8 +5495,8 @@
                 return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, ' ');
             }
 
-            function getTeamLogoUrl(teamId, strict = false) {
-                return sofaImageUrl(`/team/${teamId}/image`, { strict });
+            function getTeamLogoUrl(teamId, strict = false, team = {}) {
+                return sofaImageUrl(`/team/${teamId}/image`, getTeamImageOptions(team, strict));
             }
 
             function getLeagueSeasonLabel(group) {
@@ -5517,7 +5551,7 @@
                     const teamId = row.team?.id || '';
                     const teamName = escapeHtml(row.team?.name || 'Komanda');
                     const safeTeamName = escapeJsString(row.team?.name || 'Komanda');
-                    const logoUrl = normalizeSofaImageUrl(row.team?.logoUrl, { strict: true }) || getTeamLogoUrl(teamId, true);
+                    const logoUrl = normalizeSofaImageUrl(row.team?.logoUrl, getTeamImageOptions(row.team, true)) || getTeamLogoUrl(teamId, true, row.team);
                     const fallbackLogo = getTeamFallbackLogo(row.team);
                     const isSofaTeam = /^\d+$/.test(String(teamId));
                     const clickAction = isSofaTeam
@@ -5965,7 +5999,13 @@
                 topPlayers.slice(0, 20).forEach((p, index) => {
                     const goals = p.statistics?.goals ?? p.goals ?? p.totalGoals ?? p.value ?? 0;
                     const playerId = p.player?.id || '';
-                    const playerImg = playerId ? sofaImageUrl(`/player/${playerId}/image`, { strict: true }) : IMAGE_PLACEHOLDER;
+                    const playerImg = playerId ? sofaImageUrl(`/player/${playerId}/image`, {
+                        strict: true,
+                        fallbackLabel: p.player?.shortName || p.player?.name || 'PL',
+                        fallbackType: 'player',
+                        primary: '#16a34a',
+                        secondary: '#0f172a'
+                    }) : IMAGE_PLACEHOLDER;
                     html += `
                             <div class="player-row">
                                 <span class="player-rank">${index + 1}</span>
@@ -6469,8 +6509,8 @@
                 const timeRaw = getMatchTime(m);
                 const isLive = m.status.type === 'inprogress' || timeRaw === 'HT' || timeRaw === 'ET' || timeRaw === 'LIVE';
                 const isStateLabel = ['HT', 'FT', 'ET', 'AET', 'PEN', 'LIVE'].includes(timeRaw);
-                const homeLogo = normalizeSofaImageUrl(m.homeTeam?.logoUrl) || getTeamLogoUrl(m.homeTeam.id);
-                const awayLogo = normalizeSofaImageUrl(m.awayTeam?.logoUrl) || getTeamLogoUrl(m.awayTeam.id);
+                const homeLogo = normalizeSofaImageUrl(m.homeTeam?.logoUrl, getTeamImageOptions(m.homeTeam, false)) || getTeamLogoUrl(m.homeTeam.id, false, m.homeTeam);
+                const awayLogo = normalizeSofaImageUrl(m.awayTeam?.logoUrl, getTeamImageOptions(m.awayTeam, false)) || getTeamLogoUrl(m.awayTeam.id, false, m.awayTeam);
 
                 let displayTime = timeRaw;
                 const timeClass = isLive ? 'match-time is-live' : 'match-time';
@@ -6512,11 +6552,11 @@
 
             function getLeagueLogoData(group) {
                 if (group.logoUrl) {
-                    const logoUrl = normalizeSofaImageUrl(group.logoUrl, { strict: true });
+                    const logoUrl = normalizeSofaImageUrl(group.logoUrl, getLeagueImageOptions(group, true));
                     return { logoUrl, fallBack: logoUrl || getLeagueFallbackLogo(group) };
                 }
                 const type = group.isUnique ? 'unique-tournament' : 'tournament';
-                const logoUrl = sofaImageUrl(`/${type}/${group.id}/image`, { strict: true });
+                const logoUrl = sofaImageUrl(`/${type}/${group.id}/image`, getLeagueImageOptions(group, true));
                 const fallBack = getLeagueFallbackLogo(group);
                 return { logoUrl, fallBack };
             }
@@ -6627,7 +6667,7 @@
             function renderCategoryLeagueRows(leagues) {
                 return leagues.map(l => `
                     <div class="league-sub-row" onclick="openSingleLeague('${l.id}')">
-                        <img class="league-sub-logo club-logo" loading="lazy" decoding="async" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`, { strict: true })}" onerror="this.onerror=null; this.src='${getLeagueFallbackLogo(l)}'">
+                        <img class="league-sub-logo club-logo" loading="lazy" decoding="async" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`, getLeagueImageOptions(l, true))}" onerror="this.onerror=null; this.src='${getLeagueFallbackLogo(l)}'">
                         <span class="league-sub-name">${l.name || 'Liqa'}</span>
                     </div>
                 `).join("");
@@ -6760,7 +6800,7 @@
                     return `
                         <div class="league-card" onclick="openSingleLeague('${l.id}')">
                             <div style="display:flex; align-items:center; gap:16px; flex:1; min-width:0;">
-                                <img class="league-card-logo club-logo" loading="eager" decoding="async" fetchpriority="high" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`, { strict: true })}" onerror="this.onerror=null; this.src='${logoFallback}'">
+                                <img class="league-card-logo club-logo" loading="eager" decoding="async" fetchpriority="high" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`, getLeagueImageOptions(l, true))}" onerror="this.onerror=null; this.src='${logoFallback}'">
                                 <div class="league-card-info">
                                     <span class="league-card-country">${leagueCategory}</span>
                                     <span class="league-card-name">${leagueName}</span>
@@ -6977,7 +7017,7 @@
                         html += `
                         <div class="league-card" onclick="openSingleLeague('${l.id}')">
                             <div style="display:flex; align-items:center; gap:16px; flex:1; min-width:0;">
-                                <img class="league-card-logo" loading="eager" decoding="async" fetchpriority="high" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`, { strict: true })}" onerror="this.onerror=null; this.src='${logoFallback}'">
+                                <img class="league-card-logo" loading="eager" decoding="async" fetchpriority="high" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`, getLeagueImageOptions(l, true))}" onerror="this.onerror=null; this.src='${logoFallback}'">
                                 <div class="league-card-info">
                                     <span class="league-card-country">${countryName}</span>
                                     <span class="league-card-name">${l.name}</span>
@@ -7043,7 +7083,7 @@
                                 html += `
                                 <div class="league-card" onclick="openSingleLeague('${l.id}')">
                                     <div style="display:flex; align-items:center; gap:16px; flex:1; min-width:0;">
-                                        <img class="league-card-logo club-logo" loading="eager" decoding="async" fetchpriority="high" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`, { strict: true })}" onerror="this.onerror=null; this.src='${logoFallback}'">
+                                        <img class="league-card-logo club-logo" loading="eager" decoding="async" fetchpriority="high" src="${sofaImageUrl(`/unique-tournament/${l.id}/image`, getLeagueImageOptions(l, true))}" onerror="this.onerror=null; this.src='${logoFallback}'">
                                         <div class="league-card-info">
                                             <span class="league-card-country">${countryName}</span>
                                             <span class="league-card-name">${l.name || 'Liqa'}</span>
@@ -7217,7 +7257,7 @@
                     console.warn("Top players API failed, trying browser SofaScore fallback:", serverErr.message);
                 }
 
-                if (!extractTopPlayersList(data).length) {
+                if (data && !data?.error && !extractTopPlayersList(data).length) {
                     const paths = [
                         `/unique-tournament/${tourId}/season/${seasonId}/top-players/overall`,
                         `/unique-tournament/${tourId}/season/${seasonId}/top-players/goals`,
@@ -7544,8 +7584,8 @@
                 setTimeout(() => modal.classList.add("show"), 10);
 
                 const currentMatch = allEvents.find(m => m.id.toString() === id.toString());
-                document.getElementById("logoH").src = normalizeSofaImageUrl(currentMatch?.homeTeam?.logoUrl) || getTeamLogoUrl(idH);
-                document.getElementById("logoA").src = normalizeSofaImageUrl(currentMatch?.awayTeam?.logoUrl) || getTeamLogoUrl(idA);
+                document.getElementById("logoH").src = normalizeSofaImageUrl(currentMatch?.homeTeam?.logoUrl, getTeamImageOptions(currentMatch?.homeTeam, false)) || getTeamLogoUrl(idH, false, currentMatch?.homeTeam);
+                document.getElementById("logoA").src = normalizeSofaImageUrl(currentMatch?.awayTeam?.logoUrl, getTeamImageOptions(currentMatch?.awayTeam, false)) || getTeamLogoUrl(idA, false, currentMatch?.awayTeam);
                 document.getElementById("nameH").innerText = nameH;
                 document.getElementById("nameA").innerText = nameA;
                 document.getElementById("scoreM").innerText = `${sH} - ${sA}`;
