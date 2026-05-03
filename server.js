@@ -2404,15 +2404,15 @@ app.post("/api/auth/update-profile", async (req, res) => {
         user.email = effectiveEmail;
         if (cleanDisplayName) user.username = cleanDisplayName;
         if (status !== undefined) user.status = status;
-        if (profilePic !== undefined) user.profilePic = profilePic;
         user.updatedAt = new Date().toISOString();
         await saveUser(user);
+        const existingProfile = await getProfileRecord({ email: effectiveEmail, uid });
         const savedProfile = await saveProfileRecord({
             uid,
             email: effectiveEmail,
             displayName: cleanDisplayName || user.username,
             status: user.status || "Rabona Media istifadəçisi",
-            profilePic: user.profilePic || "",
+            profilePic: profilePic !== undefined ? profilePic : (existingProfile?.profilePic || ""),
             updatedAt: user.updatedAt
         });
         if (firebaseInitialized && cleanDisplayName) {

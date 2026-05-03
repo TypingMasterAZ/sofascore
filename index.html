@@ -4593,7 +4593,7 @@
         <div id="toast" class="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
 
         <script>
-            console.log("SCRIPT START: index.html VERSION 1.2.3 running");
+            console.log("SCRIPT START: index.html VERSION 1.2.5 running");
 
             const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"defaultView": "matches"}');
             const auth = firebase.auth();
@@ -8229,7 +8229,7 @@
             }
 
             function readStoredProfile(user = auth.currentUser) {
-                const keys = [getProfileStorageKey(user), 'userProfile'];
+                const keys = [getProfileStorageKey(user)];
                 for (const key of keys) {
                     try {
                         const profile = JSON.parse(localStorage.getItem(key) || '{}');
@@ -8240,9 +8240,8 @@
             }
 
             function writeStoredProfile(profile, user = auth.currentUser) {
-                const normalized = normalizeProfile(protectProfileName(profile, user), user);
+                const normalized = normalizeProfile(profile, user);
                 localStorage.setItem(getProfileStorageKey(user), JSON.stringify(normalized));
-                localStorage.setItem('userProfile', JSON.stringify(normalized));
                 return normalized;
             }
 
@@ -8326,7 +8325,6 @@
             }
 
             function normalizeProfile(rawProfile = {}, user = auth.currentUser) {
-                rawProfile = protectProfileName(rawProfile, user);
                 const fallbackName = getDefaultProfileName(user);
                 const authName = getAuthProfileName(user);
                 return {
@@ -8382,13 +8380,13 @@
                     applyProfileToUI(draftProfile, user);
                     return draftProfile;
                 }
-                if (profileSaveInFlight || (Date.now() - profileLocalSavedAt < 15000)) {
+                if (profileSaveInFlight) {
                     const localProfile = normalizeProfile(readStoredProfile(user), user);
                     applyProfileToUI(localProfile, user);
                     return localProfile;
                 }
                 try {
-                    const idToken = user.getIdToken ? await user.getIdToken(true).catch(() => '') : '';
+                    const idToken = user.getIdToken ? await user.getIdToken().catch(() => '') : '';
                     const uidParam = user.uid ? `?uid=${encodeURIComponent(user.uid)}` : '';
                     const res = await fetch(API_BASE_URL + `/api/auth/profile/${encodeURIComponent(user.email)}${uidParam}`, {
                         cache: 'no-store',
@@ -8403,29 +8401,7 @@
                         profilePic: data.data?.profilePic,
                         updatedAt: data.data?.updatedAt
                     }, user);
-                    const localProfile = normalizeProfile(readStoredProfile(user), user);
-                    const serverUpdatedAt = profile.updatedAt ? Date.parse(profile.updatedAt) : 0;
-                    const localSavedAt = Number(localProfile.localSavedAt || 0);
-                    const hasPendingLocalName =
-                        profilePendingSave &&
-                        Date.now() - profilePendingSave.savedAt < 60000 &&
-                        localProfile.name === profilePendingSave.name &&
-                        profile.name !== profilePendingSave.name;
-                    const shouldKeepLocalName =
-                        !options.preferServer &&
-                        (
-                            hasPendingLocalName ||
-                            (
-                                localSavedAt &&
-                                localProfile.name &&
-                                localProfile.name !== profile.name &&
-                                (!serverUpdatedAt || serverUpdatedAt < localSavedAt)
-                            )
-                        );
-                    if (shouldKeepLocalName) {
-                        profile.name = localProfile.name;
-                        profile.localSavedAt = localSavedAt;
-                    } else if (profilePendingSave && profile.name === profilePendingSave.name) {
+                    if (profilePendingSave && profile.name === profilePendingSave.name) {
                         profilePendingSave = null;
                     }
                     if (profile.profilePic) {
@@ -8450,7 +8426,7 @@
                 if (!user?.email) throw new Error('Hesaba daxil olunmayıb');
                 const cleanName = cleanProfileText(profile.name || profile.displayName, '');
                 if (!cleanName) throw new Error('Ad boş ola bilməz');
-                const idToken = user.getIdToken ? await user.getIdToken(true).catch(() => '') : '';
+                const idToken = user.getIdToken ? await user.getIdToken().catch(() => '') : '';
 
                 const payload = {
                     email: user.email,
@@ -8508,7 +8484,7 @@
                         const img = new Image();
                         img.onerror = () => reject(new Error('image-decode-failed'));
                         img.onload = () => {
-                            const maxSide = 260;
+                            const maxSide = 160;
                             const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
                             const canvas = document.createElement('canvas');
                             canvas.width = Math.max(1, Math.round(img.width * scale));
@@ -8517,7 +8493,7 @@
                             ctx.fillStyle = '#0f172a';
                             ctx.fillRect(0, 0, canvas.width, canvas.height);
                             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                            resolve(canvas.toDataURL('image/jpeg', 0.72));
+                            resolve(canvas.toDataURL('image/jpeg', 0.68));
                         };
                         img.src = reader.result;
                     };
@@ -8559,22 +8535,16 @@
 
                 try {
                     if (!auth.currentUser) throw new Error('Hesaba daxil olunmayıb');
-                    if (newName !== auth.currentUser.displayName) {
-                        await auth.currentUser.updateProfile({ displayName: newName });
-                    }
-                    if (auth.currentUser?.reload) {
-                        await auth.currentUser.reload().catch(e => {
-                            console.warn("Firebase profile reload failed:", e.message);
-                        });
-                    }
-
-                    let serverProfile = null;
-                    serverProfile = await persistProfileToServer({
+                    const serverProfile = await persistProfileToServer({
                         name: newName,
                         status: newStatus,
                         profilePic: savedImage
                     }, auth.currentUser);
-                    await verifyProfileSavedOnServer(newName, auth.currentUser);
+                    if (newName !== auth.currentUser.displayName && auth.currentUser.updateProfile) {
+                        auth.currentUser.updateProfile({ displayName: newName }).catch(e => {
+                            console.warn("Firebase displayName sync failed:", e.message);
+                        });
+                    }
                     const savedProfile = writeStoredProfile({
                         ...(serverProfile || {}),
                         name: newName,
@@ -8657,7 +8627,6 @@
                 try { storedProfile = readStoredProfile(); } catch (e) { storedProfile = {}; }
                 const profile = normalizeProfile(storedProfile);
                 writeStoredProfile(profile);
-                if (profile.profilePic) applyProfileImage(profile.profilePic);
                 applyProfileToUI(profile, auth.currentUser, { forceInputs: true });
                 lockProfileEdit();
 
@@ -8929,14 +8898,11 @@
                 try {
                     if (isLogin) {
                         const userCredential = await auth.signInWithEmailAndPassword(email, password);
-                        if (userCredential.user?.reload) {
-                            await userCredential.user.reload().catch(() => {});
-                        }
                         
                         // Fetch profile from backend
                         let welcomeName = getDefaultProfileName(userCredential.user);
                         try {
-                            const serverProfile = await syncProfileFromServer(userCredential.user, { preferServer: false });
+                            const serverProfile = await syncProfileFromServer(userCredential.user, { preferServer: true });
                             const firebaseName = cleanProfileText(userCredential.user?.displayName, '');
                             if (serverProfile?.name) {
                                 welcomeName = serverProfile.name;
@@ -9316,7 +9282,7 @@
             function syncCurrentProfileNow() {
                 const user = auth.currentUser;
                 if (!user?.email) return Promise.resolve(null);
-                return syncProfileFromServer(user).then((profile) => {
+                return syncProfileFromServer(user, { preferServer: true }).then((profile) => {
                     if (profile) applyProfileToUI(profile, user);
                     return profile;
                 });
@@ -9326,7 +9292,7 @@
                 stopProfileRealtimeSync();
                 if (!user?.email) return;
                 profileSyncTimer = setInterval(() => {
-                    syncProfileFromServer(user).then((profile) => {
+                    syncProfileFromServer(user, { preferServer: true }).then((profile) => {
                         if (profile) applyProfileToUI(profile, user);
                     });
                 }, 5000);
@@ -9340,7 +9306,6 @@
                     if (overlay) overlay.style.display = 'none';
                     clearTimeout(authTimer);
                     syncProfileFromServer(user, { preferServer: true }).then(() => {
-                        loadProfile();
                         updateAuthUI();
                     });
                     startProfileRealtimeSync(user);
@@ -9576,7 +9541,7 @@
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js?v=19').then(reg => {
+                    navigator.serviceWorker.register('/sw.js?v=21').then(reg => {
                         console.log('SW registered:', reg.scope);
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
