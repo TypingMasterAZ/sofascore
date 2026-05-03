@@ -109,7 +109,7 @@ async function saveUser(userData) {
     if (fs.existsSync("./users.json")) {
         try { users = JSON.parse(fs.readFileSync("./users.json", "utf-8")); } catch(e) {}
     }
-    const idx = users.findIndex(u => u.email === userData.email || u.username === userData.username);
+    const idx = users.findIndex(u => userData.email ? u.email === userData.email : u.username === userData.username);
     if (idx !== -1) users[idx] = { ...users[idx], ...userData };
     else users.push(userData);
     fs.writeFileSync("./users.json", JSON.stringify(users, null, 2));

@@ -8175,6 +8175,35 @@
                 return normalized;
             }
 
+            function applyProfileToUI(profile, user = auth.currentUser) {
+                const normalized = normalizeProfile(profile, user);
+                const uInput = document.getElementById('usernameInput');
+                const sInput = document.getElementById('statusInput');
+                const nameEl = document.getElementById('profileDisplayName');
+                const statusEl = document.getElementById('profileUserStatus');
+                const avatarEl = document.getElementById('profileAvatar');
+
+                if (uInput) uInput.value = normalized.name;
+                if (sInput) sInput.value = normalized.status;
+                if (nameEl) nameEl.innerText = normalized.name;
+                if (statusEl) statusEl.innerText = normalized.status;
+
+                if (avatarEl) {
+                    const savedImg = normalized.profilePic || getLocalProfileImage(user);
+                    if (savedImg) {
+                        avatarEl.style.backgroundImage = `url('${savedImg}')`;
+                        avatarEl.innerText = "";
+                        avatarEl.style.border = "3px solid var(--primary)";
+                    } else {
+                        avatarEl.style.backgroundImage = "none";
+                        avatarEl.innerText = normalized.name.charAt(0).toUpperCase();
+                        avatarEl.style.border = "3px solid rgba(255,255,255,0.1)";
+                    }
+                }
+
+                return normalized;
+            }
+
             function getDefaultProfileName(user = auth.currentUser) {
                 if (!user) return 'İstifadəçi';
                 return cleanProfileText(
@@ -8315,13 +8344,13 @@
                     }
 
                     // 3. Update Local
-                    writeStoredProfile({
+                    const savedProfile = writeStoredProfile({
                         name: newName,
                         status: newStatus,
                         profilePic: getLocalProfileImage() || ''
                     });
                     
-                    updateAuthUI();
+                    applyProfileToUI(savedProfile);
                     showToast('Profil məlumatlar yeniləndi');
                 } catch (e) {
                     console.error("Save profile error:", e);
@@ -8394,31 +8423,7 @@
                 const profile = normalizeProfile(storedProfile);
                 writeStoredProfile(profile);
                 if (profile.profilePic) applyProfileImage(profile.profilePic);
-
-                const uInput = document.getElementById('usernameInput');
-                const sInput = document.getElementById('statusInput');
-                if (uInput) uInput.value = profile.name;
-                if (sInput) sInput.value = profile.status;
-
-                const nameEl = document.getElementById('profileDisplayName');
-                const statusEl = document.getElementById('profileUserStatus');
-                const avatarEl = document.getElementById('profileAvatar');
-                
-                if (nameEl) nameEl.innerText = profile.name;
-                if (statusEl) statusEl.innerText = profile.status;
-                
-                if (avatarEl) {
-                    const savedImg = profile.profilePic || getLocalProfileImage();
-                    if (savedImg) {
-                        avatarEl.style.backgroundImage = `url('${savedImg}')`;
-                        avatarEl.innerText = "";
-                        avatarEl.style.border = "3px solid var(--primary)";
-                    } else {
-                        avatarEl.style.backgroundImage = "none";
-                        avatarEl.innerText = profile.name.charAt(0).toUpperCase();
-                        avatarEl.style.border = "3px solid rgba(255,255,255,0.1)";
-                    }
-                }
+                applyProfileToUI(profile);
 
 
                 const defView = document.getElementById('defaultViewSelect');
@@ -9009,15 +9014,11 @@
                     const profile = normalizeProfile(savedProfile, user);
                     writeStoredProfile(profile, user);
                     const username = profile.name;
-
-                    const nameEl = document.getElementById('profileDisplayName');
-                    const statusEl = document.getElementById('profileUserStatus');
-                    const avatarEl = document.getElementById('profileAvatar');
-                    
-                    if (nameEl) nameEl.innerText = username;
+                    applyProfileToUI(profile, user);
                     
                     // Sync status from local storage if available
                     const badge = document.querySelector('.profile-badge');
+                    const statusEl = document.getElementById('profileUserStatus');
                     
                     if (statusEl && profile.status) {
                         statusEl.innerText = profile.status;
@@ -9034,19 +9035,6 @@
                         badge.style.display = 'none';
                     }
 
-                    const savedImg = profile.profilePic || getLocalProfileImage(user);
-
-                    if (avatarEl) {
-                        if (savedImg) {
-                            avatarEl.style.backgroundImage = `url('${savedImg}')`;
-                            avatarEl.innerText = "";
-                            avatarEl.style.border = "3px solid var(--primary)";
-                        } else {
-                            avatarEl.style.backgroundImage = "none";
-                            avatarEl.innerText = username.charAt(0).toUpperCase();
-                            avatarEl.style.border = "3px solid rgba(255,255,255,0.1)";
-                        }
-                    }
                 } else {
                     if (authLink) authLink.style.display = 'flex';
                     if (logoutBox) logoutBox.style.display = 'none';
