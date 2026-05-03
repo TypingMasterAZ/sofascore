@@ -142,7 +142,7 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json({ limit: "3mb" }));
+app.use(express.json({ limit: "6mb" }));
 app.use(express.static(path.join(__dirname)));
 app.get("/favicon.ico", (req, res) => {
     res.set("Cache-Control", "public, max-age=86400");
@@ -2294,7 +2294,16 @@ app.post("/api/auth/update-profile", async (req, res) => {
         if (profilePic !== undefined) user.profilePic = profilePic;
         user.updatedAt = new Date().toISOString();
         await saveUser(user);
-        res.json({ success: true, message: "Profil uÄŸurla yenilÉ™ndi." });
+        res.json({
+            success: true,
+            message: "Profil uÄŸurla yenilÉ™ndi.",
+            data: {
+                displayName: user.username,
+                status: user.status || "Rabona Media istifadəçisi",
+                profilePic: user.profilePic || "",
+                updatedAt: user.updatedAt || null
+            }
+        });
     } catch (e) {
         console.error("Update profile error:", e);
         res.status(500).json({ success: false, message: "Server xÉ™tasÄ± baÅŸ verdi." });
@@ -2308,6 +2317,7 @@ app.get("/api/auth/profile/:email", async (req, res) => {
         const user = await getUserByEmail(email);
         if (!user) return res.status(404).json({ success: false, message: "Ä°stifadÉ™Ã§i tapÄ±lmadÄ±." });
 
+        res.set("Cache-Control", "no-store");
         res.json({
             success: true,
             data: {

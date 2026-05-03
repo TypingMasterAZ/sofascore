@@ -8240,18 +8240,18 @@
                 }
             }
 
-            function applyProfileImage(imageData) {
+            function applyProfileImage(imageData, user = auth.currentUser) {
                 if (imageData && imageData.startsWith('data:image/')) {
-                    setLocalProfileImage(imageData);
+                    setLocalProfileImage(imageData, user);
                     let storedProfile = {};
-                    try { storedProfile = readStoredProfile(); } catch (e) { storedProfile = {}; }
+                    try { storedProfile = readStoredProfile(user); } catch (e) { storedProfile = {}; }
                     writeStoredProfile({
                         ...storedProfile,
                         profilePic: imageData
-                    });
+                    }, user);
                     return imageData;
                 }
-                return getLocalProfileImage();
+                return getLocalProfileImage(user);
             }
 
             async function syncProfileFromServer(user = auth.currentUser) {
@@ -8266,13 +8266,16 @@
                         status: data.data?.status,
                         profilePic: data.data?.profilePic
                     }, user);
-                    if (profile.profilePic) applyProfileImage(profile.profilePic);
-                    writeStoredProfile({
+                    if (profile.profilePic) {
+                        setLocalProfileImage(profile.profilePic, user);
+                    }
+                    const syncedProfile = writeStoredProfile({
                         name: profile.name,
                         status: profile.status,
-                        profilePic: profile.profilePic || getLocalProfileImage(user) || ''
+                        profilePic: profile.profilePic || ''
                     }, user);
-                    return profile;
+                    applyProfileToUI(syncedProfile, user);
+                    return syncedProfile;
                 } catch (e) {
                     console.warn("Could not sync profile from server.", e.message);
                     return null;
@@ -8379,28 +8382,37 @@
 
                 const previousImage = getLocalProfileImage();
                 compressProfileImage(file).then(async (base64) => {
+                    const currentProfile = normalizeProfile(readStoredProfile());
+                    const optimisticProfile = writeStoredProfile({
+                        name: currentProfile.name,
+                        status: currentProfile.status,
+                        profilePic: base64
+                    });
                     setLocalProfileImage(base64);
-                    updateAuthUI();
+                    applyProfileToUI(optimisticProfile);
 
                     if (auth.currentUser?.email) {
                         try {
-                            const profile = normalizeProfile(readStoredProfile());
                             const res = await fetch(API_BASE_URL + '/api/auth/update-profile', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
                                     email: auth.currentUser.email,
-                                    displayName: profile.name,
-                                    status: profile.status,
+                                    displayName: optimisticProfile.name,
+                                    status: optimisticProfile.status,
                                     profilePic: base64
                                 })
                             });
                             if (!res.ok) throw new Error('Server sync failed');
-                            writeStoredProfile({
-                                name: profile.name,
-                                status: profile.status,
-                                profilePic: base64
+                            const data = await res.json().catch(() => null);
+                            const serverProfile = normalizeProfile({
+                                name: data?.data?.displayName || optimisticProfile.name,
+                                status: data?.data?.status || optimisticProfile.status,
+                                profilePic: data?.data?.profilePic || base64
                             });
+                            setLocalProfileImage(serverProfile.profilePic);
+                            writeStoredProfile(serverProfile);
+                            applyProfileToUI(serverProfile);
                         } catch (e) {
                             if (previousImage) setLocalProfileImage(previousImage);
                             else setLocalProfileImage('');
