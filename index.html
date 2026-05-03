@@ -4519,11 +4519,15 @@
             // DİQQƏT: Render-d?n aldüçün?z ünvanı aşağıdakı DEPLOYED_URL hissəsin? yazın
             const DEPLOYED_URL = 'https://proscore-live.onrender.com';
             const API_BASE_URL = (isLocalhost || isRender || !DEPLOYED_URL) ? '' : DEPLOYED_URL;
+            const SOFA_IMAGE_BASE_URL = 'https://img.sofascore.com/api/v1';
             console.log("API Base URL:", API_BASE_URL || "Local/SameOrigin");
 
             const IMAGE_PLACEHOLDER = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iMTIiIGZpbGw9IiMxMTE4MjciLz48Y2lyY2xlIGN4PSIyNCIgY3k9IjI0IiByPSIxMSIgZmlsbD0iIzMzNDE1NSIvPjwvc3ZnPg==";
 
             function sofaImageUrl(path, options = {}) {
+                if (options.direct !== false) {
+                    return `${SOFA_IMAGE_BASE_URL}${path}`;
+                }
                 const params = new URLSearchParams({ path, v: "3" });
                 if (options.strict) {
                     params.set('strict', '1');

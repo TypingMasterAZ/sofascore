@@ -162,6 +162,7 @@ const SOFA_API = process.env.SOFA_API_BASE || "https://api.sofascore.com/api/v1"
 const SOFA_WEB_API = "https://www.sofascore.com/api/v1";
 const SOFA_APIS = [...new Set([SOFA_API, SOFA_WEB_API])];
 const SOFA_IMAGE_APIS = [...new Set([
+    "https://img.sofascore.com/api/v1",
     process.env.SOFA_IMAGE_API_BASE,
     SOFA_API,
     SOFA_WEB_API,
