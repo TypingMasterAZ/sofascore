@@ -4593,7 +4593,7 @@
         <div id="toast" class="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
 
         <script>
-            console.log("SCRIPT START: index.html VERSION 1.2.2 running");
+            console.log("SCRIPT START: index.html VERSION 1.2.3 running");
 
             const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"defaultView": "matches"}');
             const auth = firebase.auth();
@@ -8626,23 +8626,11 @@
 
                     if (auth.currentUser?.email) {
                         try {
-                            const res = await fetch(API_BASE_URL + '/api/auth/update-profile', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    email: auth.currentUser.email,
-                                    displayName: optimisticProfile.name,
-                                    status: optimisticProfile.status,
-                                    profilePic: base64
-                                })
-                            });
-                            if (!res.ok) throw new Error('Server sync failed');
-                            const data = await res.json().catch(() => null);
-                            const serverProfile = normalizeProfile({
-                                name: data?.data?.displayName || optimisticProfile.name,
-                                status: data?.data?.status || optimisticProfile.status,
-                                profilePic: data?.data?.profilePic || base64
-                            });
+                            const serverProfile = await persistProfileToServer({
+                                name: optimisticProfile.name,
+                                status: optimisticProfile.status,
+                                profilePic: base64
+                            }, auth.currentUser);
                             setLocalProfileImage(serverProfile.profilePic);
                             writeStoredProfile(serverProfile);
                             applyProfileToUI(serverProfile, auth.currentUser, { forceInputs: true });
@@ -9588,7 +9576,7 @@
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js?v=18').then(reg => {
+                    navigator.serviceWorker.register('/sw.js?v=19').then(reg => {
                         console.log('SW registered:', reg.scope);
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
