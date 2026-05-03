@@ -2036,6 +2036,29 @@
             transform: translateY(-1px);
         }
 
+        .profile-input[readonly] {
+            cursor: default;
+            opacity: 0.78;
+        }
+
+        .profile-section-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .profile-edit-btn {
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            background: rgba(59, 130, 246, 0.12);
+            color: #bfdbfe;
+            border-radius: 12px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
         /* 4-Digit OTP Inputs */
         .otp-input {
             width: 50px;
@@ -4377,12 +4400,14 @@
                     </div>
                 </div>
 
-
-                <span class="profile-section-title">Hesab Məlumatları</span>
+                <div class="profile-section-head">
+                    <span class="profile-section-title">Hesab Məlumatları</span>
+                    <button type="button" id="profileEditBtn" class="profile-edit-btn" onclick="enableProfileEdit()">Redaktə et</button>
+                </div>
                 <div style="margin-bottom: 20px;">
                     <div class="profile-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
                         <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">İstifadəçi Adı</label>
-                        <input type="text" id="usernameInput" class="profile-input" style="margin-top:0; border:none; background:rgba(255,255,255,0.03); padding:14px;" placeholder="Adınızı daxil edin" value="İstifadəçi">
+                        <input type="text" id="usernameInput" class="profile-input" style="margin-top:0; border:none; background:rgba(255,255,255,0.03); padding:14px;" placeholder="Adınızı daxil edin" value="İstifadəçi" readonly oninput="handleProfileNameTyping(this.value)">
                     </div>
                     <div class="profile-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
                         <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Status</label>
@@ -4568,7 +4593,7 @@
         <div id="toast" class="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
 
         <script>
-            console.log("SCRIPT START: index.html VERSION 1.1.2 running");
+            console.log("SCRIPT START: index.html VERSION 1.2.2 running");
 
             const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"defaultView": "matches"}');
             const auth = firebase.auth();
@@ -8146,6 +8171,8 @@
             const DEFAULT_PROFILE_STATUS = 'Rabona Media istifadəçisi';
             let profileSaveInFlight = false;
             let profileLocalSavedAt = 0;
+            let profileEditMode = false;
+            let profilePendingSave = null;
 
             function cleanProfileText(value, fallback) {
                 const text = (value ?? '').toString().trim();
@@ -8160,6 +8187,47 @@
                 return `userProfile_${id}`;
             }
 
+            function getProfileNameLockKey(user = auth.currentUser) {
+                const id = cleanProfileText(user?.email || user?.uid, 'guest').toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+                return `profileNameLock_${id}`;
+            }
+
+            function readProfileNameLock(user = auth.currentUser) {
+                try {
+                    const lock = JSON.parse(localStorage.getItem(getProfileNameLockKey(user)) || '{}');
+                    const savedAt = Number(lock.savedAt || 0);
+                    const name = cleanProfileText(lock.name, '');
+                    if (!name || !savedAt || Date.now() - savedAt > 7 * 24 * 60 * 60 * 1000) return null;
+                    return { name, savedAt };
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            function writeProfileNameLock(name, user = auth.currentUser, savedAt = Date.now()) {
+                const cleanName = cleanProfileText(name, '');
+                if (!cleanName) return null;
+                const lock = { name: cleanName, savedAt };
+                localStorage.setItem(getProfileNameLockKey(user), JSON.stringify(lock));
+                localStorage.setItem('profileNameLock', JSON.stringify(lock));
+                return lock;
+            }
+
+            function protectProfileName(rawProfile = {}, user = auth.currentUser) {
+                const lock = readProfileNameLock(user);
+                if (!lock) return rawProfile;
+                const incomingName = cleanProfileText(rawProfile.name || rawProfile.displayName, '');
+                if (!incomingName || incomingName !== lock.name) {
+                    return {
+                        ...rawProfile,
+                        name: lock.name,
+                        displayName: lock.name,
+                        localSavedAt: Math.max(Number(rawProfile.localSavedAt || 0), lock.savedAt)
+                    };
+                }
+                return rawProfile;
+            }
+
             function readStoredProfile(user = auth.currentUser) {
                 const keys = [getProfileStorageKey(user), 'userProfile'];
                 for (const key of keys) {
@@ -8172,23 +8240,28 @@
             }
 
             function writeStoredProfile(profile, user = auth.currentUser) {
-                const normalized = normalizeProfile(profile, user);
+                const normalized = normalizeProfile(protectProfileName(profile, user), user);
                 localStorage.setItem(getProfileStorageKey(user), JSON.stringify(normalized));
                 localStorage.setItem('userProfile', JSON.stringify(normalized));
                 return normalized;
             }
 
-            function applyProfileToUI(profile, user = auth.currentUser) {
+            function applyProfileToUI(profile, user = auth.currentUser, options = {}) {
                 const normalized = normalizeProfile(profile, user);
                 const uInput = document.getElementById('usernameInput');
                 const sInput = document.getElementById('statusInput');
                 const nameEl = document.getElementById('profileDisplayName');
                 const statusEl = document.getElementById('profileUserStatus');
                 const avatarEl = document.getElementById('profileAvatar');
+                const isEditingName = profileEditMode || (uInput && document.activeElement === uInput);
+                const draftName = cleanProfileText(uInput?.value, '');
+                const displayName = isEditingName && !options.forceInputs
+                    ? (draftName || normalized.name)
+                    : normalized.name;
 
-                if (uInput) uInput.value = normalized.name;
+                if (uInput && (options.forceInputs || !isEditingName)) uInput.value = normalized.name;
                 if (sInput) sInput.value = normalized.status;
-                if (nameEl) nameEl.innerText = normalized.name;
+                if (nameEl) nameEl.innerText = displayName;
                 if (statusEl) statusEl.innerText = normalized.status;
 
                 if (avatarEl) {
@@ -8199,12 +8272,45 @@
                         avatarEl.style.border = "3px solid var(--primary)";
                     } else {
                         avatarEl.style.backgroundImage = "none";
-                        avatarEl.innerText = normalized.name.charAt(0).toUpperCase();
+                        avatarEl.innerText = displayName.charAt(0).toUpperCase();
                         avatarEl.style.border = "3px solid rgba(255,255,255,0.1)";
                     }
                 }
 
                 return normalized;
+            }
+
+            window.enableProfileEdit = function() {
+                profileEditMode = true;
+                stopProfileRealtimeSync();
+                const input = document.getElementById('usernameInput');
+                const editBtn = document.getElementById('profileEditBtn');
+                if (input) {
+                    input.readOnly = false;
+                    input.focus();
+                    input.setSelectionRange(input.value.length, input.value.length);
+                }
+                if (editBtn) editBtn.innerText = 'Redaktə edilir';
+            }
+
+            window.handleProfileNameTyping = function(value) {
+                if (!profileEditMode) return;
+                const nextName = cleanProfileText(value, '');
+                const nameEl = document.getElementById('profileDisplayName');
+                const avatarEl = document.getElementById('profileAvatar');
+                if (nameEl) nameEl.innerText = nextName || 'İstifadəçi';
+                if (avatarEl && !getLocalProfileImage()) {
+                    avatarEl.innerText = (nextName || 'İ').charAt(0).toUpperCase();
+                }
+            }
+
+            function lockProfileEdit() {
+                profileEditMode = false;
+                const input = document.getElementById('usernameInput');
+                const editBtn = document.getElementById('profileEditBtn');
+                if (input) input.readOnly = true;
+                if (editBtn) editBtn.innerText = 'Redaktə et';
+                if (auth.currentUser) startProfileRealtimeSync(auth.currentUser);
             }
 
             function getDefaultProfileName(user = auth.currentUser) {
@@ -8215,10 +8321,16 @@
                 );
             }
 
+            function getAuthProfileName(user = auth.currentUser) {
+                return cleanProfileText(user?.displayName, '');
+            }
+
             function normalizeProfile(rawProfile = {}, user = auth.currentUser) {
+                rawProfile = protectProfileName(rawProfile, user);
                 const fallbackName = getDefaultProfileName(user);
+                const authName = getAuthProfileName(user);
                 return {
-                    name: cleanProfileText(rawProfile.name || rawProfile.displayName, fallbackName),
+                    name: cleanProfileText(rawProfile.name || rawProfile.displayName || authName, fallbackName),
                     status: DEFAULT_PROFILE_STATUS,
                     profilePic: cleanProfileText(rawProfile.profilePic, ''),
                     updatedAt: rawProfile.updatedAt || null,
@@ -8259,15 +8371,29 @@
                 return getLocalProfileImage(user);
             }
 
-            async function syncProfileFromServer(user = auth.currentUser) {
+            async function syncProfileFromServer(user = auth.currentUser, options = {}) {
                 if (!user?.email) return null;
-                if (profileSaveInFlight || (Date.now() - profileLocalSavedAt < 2500)) {
+                if (profileEditMode) {
+                    const draftName = cleanProfileText(document.getElementById('usernameInput')?.value, '');
+                    const draftProfile = normalizeProfile({
+                        ...readStoredProfile(user),
+                        ...(draftName ? { name: draftName } : {})
+                    }, user);
+                    applyProfileToUI(draftProfile, user);
+                    return draftProfile;
+                }
+                if (profileSaveInFlight || (Date.now() - profileLocalSavedAt < 15000)) {
                     const localProfile = normalizeProfile(readStoredProfile(user), user);
                     applyProfileToUI(localProfile, user);
                     return localProfile;
                 }
                 try {
-                    const res = await fetch(API_BASE_URL + `/api/auth/profile/${encodeURIComponent(user.email)}`, { cache: 'no-store' });
+                    const idToken = user.getIdToken ? await user.getIdToken(true).catch(() => '') : '';
+                    const uidParam = user.uid ? `?uid=${encodeURIComponent(user.uid)}` : '';
+                    const res = await fetch(API_BASE_URL + `/api/auth/profile/${encodeURIComponent(user.email)}${uidParam}`, {
+                        cache: 'no-store',
+                        headers: idToken ? { Authorization: `Bearer ${idToken}` } : {}
+                    });
                     if (!res.ok) return null;
                     const data = await res.json();
                     if (!data.success) return null;
@@ -8277,20 +8403,97 @@
                         profilePic: data.data?.profilePic,
                         updatedAt: data.data?.updatedAt
                     }, user);
+                    const localProfile = normalizeProfile(readStoredProfile(user), user);
+                    const serverUpdatedAt = profile.updatedAt ? Date.parse(profile.updatedAt) : 0;
+                    const localSavedAt = Number(localProfile.localSavedAt || 0);
+                    const hasPendingLocalName =
+                        profilePendingSave &&
+                        Date.now() - profilePendingSave.savedAt < 60000 &&
+                        localProfile.name === profilePendingSave.name &&
+                        profile.name !== profilePendingSave.name;
+                    const shouldKeepLocalName =
+                        !options.preferServer &&
+                        (
+                            hasPendingLocalName ||
+                            (
+                                localSavedAt &&
+                                localProfile.name &&
+                                localProfile.name !== profile.name &&
+                                (!serverUpdatedAt || serverUpdatedAt < localSavedAt)
+                            )
+                        );
+                    if (shouldKeepLocalName) {
+                        profile.name = localProfile.name;
+                        profile.localSavedAt = localSavedAt;
+                    } else if (profilePendingSave && profile.name === profilePendingSave.name) {
+                        profilePendingSave = null;
+                    }
                     if (profile.profilePic) {
                         setLocalProfileImage(profile.profilePic, user);
                     }
                     const syncedProfile = writeStoredProfile({
                         name: profile.name,
                         status: profile.status,
-                        profilePic: profile.profilePic || ''
+                        profilePic: profile.profilePic || '',
+                        updatedAt: profile.updatedAt,
+                        localSavedAt: profile.localSavedAt || 0
                     }, user);
-                    applyProfileToUI(syncedProfile, user);
+                    if (!options.skipApply) applyProfileToUI(syncedProfile, user);
                     return syncedProfile;
                 } catch (e) {
                     console.warn("Could not sync profile from server.", e.message);
                     return null;
                 }
+            }
+
+            async function persistProfileToServer(profile, user = auth.currentUser) {
+                if (!user?.email) throw new Error('Hesaba daxil olunmayıb');
+                const cleanName = cleanProfileText(profile.name || profile.displayName, '');
+                if (!cleanName) throw new Error('Ad boş ola bilməz');
+                const idToken = user.getIdToken ? await user.getIdToken(true).catch(() => '') : '';
+
+                const payload = {
+                    email: user.email,
+                    uid: user.uid || '',
+                    displayName: cleanName,
+                    status: profile.status || DEFAULT_PROFILE_STATUS
+                };
+                if (profile.profilePic) payload.profilePic = profile.profilePic;
+
+                const res = await fetch(API_BASE_URL + '/api/auth/update-profile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(idToken ? { Authorization: `Bearer ${idToken}` } : {})
+                    },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) throw new Error('Server sync failed');
+
+                const data = await res.json().catch(() => null);
+                if (!data?.success) throw new Error(data?.message || 'Server sync failed');
+
+                const returnedName = cleanProfileText(data?.data?.displayName, '');
+                if (returnedName !== cleanName) {
+                    throw new Error('Server returned old profile name');
+                }
+
+                return normalizeProfile({
+                    name: returnedName,
+                    status: data?.data?.status || payload.status,
+                    profilePic: data?.data?.profilePic || profile.profilePic || '',
+                    updatedAt: data?.data?.updatedAt || new Date().toISOString()
+                }, user);
+            }
+
+            async function verifyProfileSavedOnServer(expectedName, user = auth.currentUser) {
+                profileSaveInFlight = false;
+                const profile = await syncProfileFromServer(user, { preferServer: true, skipApply: true });
+                const savedName = cleanProfileText(profile?.name, '');
+                if (savedName !== expectedName) {
+                    throw new Error(`Profile verify failed: expected ${expectedName}, got ${savedName || 'empty'}`);
+                }
+                return profile;
             }
 
             function compressProfileImage(file) {
@@ -8322,7 +8525,7 @@
                 });
             }
 
-            async function saveProfile() {
+            window.saveProfile = async function() {
                 const uInput = document.getElementById('usernameInput');
                 const saveBtn = document.querySelector('.container#profileView .save-btn');
                 
@@ -8340,53 +8543,55 @@
                 }
 
                 const savedImage = getLocalProfileImage() || '';
+                const savedAt = Date.now();
+                profileEditMode = true;
                 const localProfile = writeStoredProfile({
                     name: newName,
                     status: newStatus,
                     profilePic: savedImage,
-                    localSavedAt: Date.now()
+                    localSavedAt: savedAt
                 });
-                profileLocalSavedAt = localProfile.localSavedAt || Date.now();
+                writeProfileNameLock(newName, auth.currentUser, savedAt);
+                profileLocalSavedAt = localProfile.localSavedAt || savedAt;
+                profilePendingSave = { name: newName, savedAt };
                 profileSaveInFlight = true;
-                applyProfileToUI(localProfile);
+                applyProfileToUI(localProfile, auth.currentUser, { forceInputs: true });
 
                 try {
-                    if (auth.currentUser && newName !== auth.currentUser.displayName) {
-                        auth.currentUser.updateProfile({ displayName: newName }).catch(e => {
-                            console.warn("Firebase displayName sync failed:", e.message);
+                    if (!auth.currentUser) throw new Error('Hesaba daxil olunmayıb');
+                    if (newName !== auth.currentUser.displayName) {
+                        await auth.currentUser.updateProfile({ displayName: newName });
+                    }
+                    if (auth.currentUser?.reload) {
+                        await auth.currentUser.reload().catch(e => {
+                            console.warn("Firebase profile reload failed:", e.message);
                         });
                     }
 
-                    if (auth.currentUser && auth.currentUser.email) {
-                        try {
-                            const res = await fetch(API_BASE_URL + '/api/auth/update-profile', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    email: auth.currentUser.email,
-                                    displayName: newName,
-                                    status: newStatus,
-                                    ...(savedImage ? { profilePic: savedImage } : {})
-                                })
-                            });
-                            if (!res.ok) throw new Error('Server sync failed');
-                            const data = await res.json().catch(() => null);
-                            const serverProfile = writeStoredProfile({
-                                name: data?.data?.displayName || newName,
-                                status: data?.data?.status || newStatus,
-                                profilePic: data?.data?.profilePic || savedImage,
-                                updatedAt: data?.data?.updatedAt || new Date().toISOString()
-                            });
-                            applyProfileToUI(serverProfile);
-                        } catch(e) { console.error("Server sync error:", e); }
-                    }
-
-                    showToast('Profil məlumatlar yeniləndi');
+                    let serverProfile = null;
+                    serverProfile = await persistProfileToServer({
+                        name: newName,
+                        status: newStatus,
+                        profilePic: savedImage
+                    }, auth.currentUser);
+                    await verifyProfileSavedOnServer(newName, auth.currentUser);
+                    const savedProfile = writeStoredProfile({
+                        ...(serverProfile || {}),
+                        name: newName,
+                        status: serverProfile?.status || newStatus,
+                        profilePic: serverProfile?.profilePic || savedImage,
+                        updatedAt: serverProfile?.updatedAt || new Date().toISOString(),
+                        localSavedAt: 0
+                    }, auth.currentUser);
+                    profilePendingSave = null;
+                    applyProfileToUI(savedProfile, auth.currentUser, { forceInputs: true });
+                    showToast('Məlumatlar yadda saxlanıldı', 'success');
                 } catch (e) {
                     console.error("Save profile error:", e);
-                    showToast('Xəta baş verdi');
+                    showToast('Ad serverə yazılmadı. Yenidən cəhd edin.', 'error');
                 } finally {
                     profileSaveInFlight = false;
+                    lockProfileEdit();
                     if (saveBtn) {
                         saveBtn.innerText = 'Məlumatlar Saxla';
                         saveBtn.disabled = false;
@@ -8417,7 +8622,7 @@
                         profilePic: base64
                     });
                     setLocalProfileImage(base64);
-                    applyProfileToUI(optimisticProfile);
+                    applyProfileToUI(optimisticProfile, auth.currentUser, { forceInputs: true });
 
                     if (auth.currentUser?.email) {
                         try {
@@ -8440,7 +8645,7 @@
                             });
                             setLocalProfileImage(serverProfile.profilePic);
                             writeStoredProfile(serverProfile);
-                            applyProfileToUI(serverProfile);
+                            applyProfileToUI(serverProfile, auth.currentUser, { forceInputs: true });
                         } catch (e) {
                             if (previousImage) setLocalProfileImage(previousImage);
                             else setLocalProfileImage('');
@@ -8465,7 +8670,8 @@
                 const profile = normalizeProfile(storedProfile);
                 writeStoredProfile(profile);
                 if (profile.profilePic) applyProfileImage(profile.profilePic);
-                applyProfileToUI(profile);
+                applyProfileToUI(profile, auth.currentUser, { forceInputs: true });
+                lockProfileEdit();
 
 
                 const defView = document.getElementById('defaultViewSelect');
@@ -8735,28 +8941,36 @@
                 try {
                     if (isLogin) {
                         const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                        if (userCredential.user?.reload) {
+                            await userCredential.user.reload().catch(() => {});
+                        }
                         
                         // Fetch profile from backend
+                        let welcomeName = getDefaultProfileName(userCredential.user);
                         try {
-                            await syncProfileFromServer(userCredential.user);
+                            const serverProfile = await syncProfileFromServer(userCredential.user, { preferServer: false });
+                            const firebaseName = cleanProfileText(userCredential.user?.displayName, '');
+                            if (serverProfile?.name) {
+                                welcomeName = serverProfile.name;
+                                if (firebaseName !== serverProfile.name && userCredential.user?.updateProfile) {
+                                    await userCredential.user.updateProfile({ displayName: serverProfile.name }).catch(e => {
+                                        console.warn("Firebase displayName repair failed:", e.message);
+                                    });
+                                }
+                            }
                         } catch(e) { console.warn("Could not sync profile from server."); }
 
-                        showToast(`Xoş gəldin, ${getDefaultProfileName(userCredential.user)}!`);
+                        showToast(`Xoş gəldin, ${welcomeName}!`);
                         switchMainView('profile');
                     } else {
                         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                         await userCredential.user.updateProfile({ displayName: username });
                         
                         // Initial profile sync
-                        await fetch(API_BASE_URL + '/api/auth/update-profile', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                email: email,
-                                displayName: username,
-                                status: DEFAULT_PROFILE_STATUS
-                            })
-                        });
+                        await persistProfileToServer({
+                            name: username,
+                            status: DEFAULT_PROFILE_STATUS
+                        }, userCredential.user);
 
                         // Local sync
                         writeStoredProfile({
@@ -9028,10 +9242,15 @@
                     icon: '🚪',
                     type: 'confirm',
                     onConfirm: () => {
+                        const profileKey = getProfileStorageKey();
+                        const nameLockKey = getProfileNameLockKey();
                         const imageKey = getProfileImageKey();
                         auth.signOut().then(() => {
                             localStorage.removeItem('userProfile');
                             localStorage.removeItem('profileImage');
+                            localStorage.removeItem('profileNameLock');
+                            localStorage.removeItem(profileKey);
+                            localStorage.removeItem(nameLockKey);
                             localStorage.removeItem(imageKey);
                             showToast('Hesabdan çıxıldı.', 'success');
                             switchMainView('matches');
@@ -9053,6 +9272,8 @@
                     
                     let savedProfile = {};
                     try { savedProfile = readStoredProfile(user); } catch (e) { savedProfile = {}; }
+                    const authName = getAuthProfileName(user);
+                    if (authName) savedProfile = { ...savedProfile, name: authName };
                     const profile = normalizeProfile(savedProfile, user);
                     writeStoredProfile(profile, user);
                     const username = profile.name;
@@ -9130,7 +9351,7 @@
                     const overlay = document.getElementById('authOverlay');
                     if (overlay) overlay.style.display = 'none';
                     clearTimeout(authTimer);
-                    syncProfileFromServer(user).then(() => {
+                    syncProfileFromServer(user, { preferServer: true }).then(() => {
                         loadProfile();
                         updateAuthUI();
                     });
@@ -9367,7 +9588,7 @@
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js?v=9').then(reg => {
+                    navigator.serviceWorker.register('/sw.js?v=18').then(reg => {
                         console.log('SW registered:', reg.scope);
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });

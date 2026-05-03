@@ -99,8 +99,73 @@ async function getUsers() {
     return [];
 }
 
+function getUserDocKey(userData) {
+    return (userData.uid || userData.email || userData.username || String(userData.id || Date.now())).replace(/[^a-zA-Z0-9_\-]/g, '_');
+}
+
+const PROFILE_FILE = "./profiles.json";
+
+function getProfileKeys({ email, uid }) {
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const keys = [];
+    if (uid) keys.push(`uid_${String(uid).replace(/[^a-zA-Z0-9_\-]/g, '_')}`);
+    if (normalizedEmail) keys.push(`email_${normalizedEmail.replace(/[^a-zA-Z0-9_\-]/g, '_')}`);
+    return keys;
+}
+
+async function saveProfileRecord(profile) {
+    const normalizedEmail = String(profile.email || "").trim().toLowerCase();
+    const cleanProfile = {
+        uid: profile.uid || "",
+        email: normalizedEmail,
+        displayName: String(profile.displayName || "").trim(),
+        status: profile.status || "Rabona Media istifadəçisi",
+        profilePic: profile.profilePic || "",
+        updatedAt: profile.updatedAt || new Date().toISOString()
+    };
+    const keys = getProfileKeys(cleanProfile);
+    if (db) {
+        try {
+            await Promise.all(keys.map(key => db.collection('profiles').doc(key).set(cleanProfile, { merge: true })));
+            return cleanProfile;
+        } catch (e) {
+            console.error("[Firestore] saveProfileRecord error:", e.message);
+        }
+    }
+    let profiles = {};
+    if (fs.existsSync(PROFILE_FILE)) {
+        try { profiles = JSON.parse(fs.readFileSync(PROFILE_FILE, "utf-8")); } catch(e) {}
+    }
+    keys.forEach(key => { profiles[key] = { ...(profiles[key] || {}), ...cleanProfile }; });
+    fs.writeFileSync(PROFILE_FILE, JSON.stringify(profiles, null, 2));
+    return cleanProfile;
+}
+
+async function getProfileRecord({ email, uid }) {
+    const keys = getProfileKeys({ email, uid });
+    if (db) {
+        try {
+            for (const key of keys) {
+                const doc = await db.collection('profiles').doc(key).get();
+                if (doc.exists) return doc.data();
+            }
+        } catch (e) {
+            console.error("[Firestore] getProfileRecord error:", e.message);
+        }
+    }
+    if (fs.existsSync(PROFILE_FILE)) {
+        try {
+            const profiles = JSON.parse(fs.readFileSync(PROFILE_FILE, "utf-8"));
+            for (const key of keys) {
+                if (profiles[key]) return profiles[key];
+            }
+        } catch(e) {}
+    }
+    return null;
+}
+
 async function saveUser(userData) {
-    const key = (userData.email || userData.username || String(userData.id || Date.now())).replace(/[^a-zA-Z0-9_\-]/g, '_');
+    const key = getUserDocKey(userData);
     if (db) {
         try { await db.collection('users').doc(key).set(userData, { merge: true }); return; }
         catch (e) { console.error("[Firestore] saveUser error:", e.message); }
@@ -109,21 +174,61 @@ async function saveUser(userData) {
     if (fs.existsSync("./users.json")) {
         try { users = JSON.parse(fs.readFileSync("./users.json", "utf-8")); } catch(e) {}
     }
-    const idx = users.findIndex(u => userData.email ? u.email === userData.email : u.username === userData.username);
+    const idx = users.findIndex(u => {
+        if (userData.uid && u.uid === userData.uid) return true;
+        if (userData.email && String(u.email || "").trim().toLowerCase() === String(userData.email).trim().toLowerCase()) return true;
+        return !userData.email && !userData.uid && u.username === userData.username;
+    });
     if (idx !== -1) users[idx] = { ...users[idx], ...userData };
     else users.push(userData);
     fs.writeFileSync("./users.json", JSON.stringify(users, null, 2));
 }
 
 async function getUserByEmail(email) {
+    return getUserByIdentity({ email });
+}
+
+async function getAuthUserFromRequest(req) {
+    const header = req.headers.authorization || "";
+    const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+    if (!token || !firebaseInitialized) return null;
+    try {
+        return await admin.auth().verifyIdToken(token);
+    } catch (e) {
+        console.warn("[AUTH] ID token verify failed:", e.message);
+        return null;
+    }
+}
+
+async function getUserByIdentity({ email, uid }) {
+    const rawEmail = String(email || "").trim();
+    const normalizedEmail = String(email || "").trim().toLowerCase();
     if (db) {
         try {
-            const snap = await db.collection('users').where('email', '==', email).limit(1).get();
-            if (!snap.empty) return snap.docs[0].data();
+            if (uid) {
+                const byUid = await db.collection('users').doc(getUserDocKey({ uid })).get();
+                if (byUid.exists) return byUid.data();
+            }
+            const direct = await db.collection('users').doc(getUserDocKey({ email: normalizedEmail })).get();
+            if (direct.exists) return direct.data();
+            const snap = await db.collection('users').where('email', '==', normalizedEmail).get();
+            if (!snap.empty) {
+                return snap.docs
+                    .map(d => d.data())
+                    .sort((a, b) => Date.parse(b.updatedAt || 0) - Date.parse(a.updatedAt || 0))[0];
+            }
+            if (rawEmail && rawEmail !== normalizedEmail) {
+                const rawSnap = await db.collection('users').where('email', '==', rawEmail).get();
+                if (!rawSnap.empty) {
+                    return rawSnap.docs
+                        .map(d => d.data())
+                        .sort((a, b) => Date.parse(b.updatedAt || 0) - Date.parse(a.updatedAt || 0))[0];
+                }
+            }
         } catch (e) { console.error("[Firestore] getUserByEmail error:", e.message); }
     }
     const users = await getUsers();
-    return users.find(u => u.email === email) || null;
+    return users.find(u => String(u.email || "").trim().toLowerCase() === normalizedEmail) || null;
 }
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -2288,20 +2393,44 @@ app.post("/api/auth/update-profile", async (req, res) => {
     if (!email) return res.status(400).json({ success: false, message: "Email lazÄ±mdÄ±r." });
 
     try {
-        let user = await getUserByEmail(email) || { email: email, username: displayName || email.split('@')[0], status: status || "Rabona Media istifadəçisi" };
-        if (displayName) user.username = displayName;
+        const authUser = await getAuthUserFromRequest(req);
+        const normalizedEmail = String(email).trim().toLowerCase();
+        const cleanDisplayName = typeof displayName === "string" ? displayName.trim() : "";
+        const uid = authUser?.uid || String(req.body.uid || "").trim();
+        const effectiveEmail = String(authUser?.email || normalizedEmail).trim().toLowerCase();
+        let user = await getUserByIdentity({ email: effectiveEmail, uid }) || { email: effectiveEmail, username: cleanDisplayName || effectiveEmail.split('@')[0], status: status || "Rabona Media istifadəçisi" };
+        if (uid) user.uid = uid;
+        user.email = normalizedEmail;
+        user.email = effectiveEmail;
+        if (cleanDisplayName) user.username = cleanDisplayName;
         if (status !== undefined) user.status = status;
         if (profilePic !== undefined) user.profilePic = profilePic;
         user.updatedAt = new Date().toISOString();
         await saveUser(user);
+        const savedProfile = await saveProfileRecord({
+            uid,
+            email: effectiveEmail,
+            displayName: cleanDisplayName || user.username,
+            status: user.status || "Rabona Media istifadəçisi",
+            profilePic: user.profilePic || "",
+            updatedAt: user.updatedAt
+        });
+        if (firebaseInitialized && cleanDisplayName) {
+            try {
+                const firebaseUid = uid || (await admin.auth().getUserByEmail(effectiveEmail)).uid;
+                await admin.auth().updateUser(firebaseUid, { displayName: cleanDisplayName });
+            } catch (fbError) {
+                console.warn("[AUTH] Firebase displayName update skipped:", fbError.message);
+            }
+        }
         res.json({
             success: true,
             message: "Profil uÄŸurla yenilÉ™ndi.",
             data: {
-                displayName: user.username,
-                status: user.status || "Rabona Media istifadəçisi",
-                profilePic: user.profilePic || "",
-                updatedAt: user.updatedAt || null
+                displayName: savedProfile.displayName,
+                status: savedProfile.status || "Rabona Media istifadəçisi",
+                profilePic: savedProfile.profilePic || "",
+                updatedAt: savedProfile.updatedAt || null
             }
         });
     } catch (e) {
@@ -2312,9 +2441,39 @@ app.post("/api/auth/update-profile", async (req, res) => {
 
 // Yeni API: Profil MÉ™lumatlarÄ±nÄ± GÉ™tir
 app.get("/api/auth/profile/:email", async (req, res) => {
-    const { email } = req.params;
+    const email = String(req.params.email || "").trim().toLowerCase();
     try {
-        const user = await getUserByEmail(email);
+        const authUser = await getAuthUserFromRequest(req);
+        const requestUid = authUser?.uid || String(req.query.uid || "").trim();
+        const profile = await getProfileRecord({ email: authUser?.email || email, uid: requestUid });
+        if (profile?.displayName) {
+            res.set("Cache-Control", "no-store");
+            return res.json({
+                success: true,
+                data: {
+                    displayName: profile.displayName,
+                    status: profile.status || "Rabona Media istifadəçisi",
+                    profilePic: profile.profilePic || "",
+                    updatedAt: profile.updatedAt || null
+                }
+            });
+        }
+        let user = await getUserByIdentity({ email: authUser?.email || email, uid: requestUid });
+        if (!user && firebaseInitialized && requestUid) {
+            try {
+                const firebaseUser = await admin.auth().getUser(requestUid);
+                user = {
+                    uid: firebaseUser.uid,
+                    email: String(firebaseUser.email || email).trim().toLowerCase(),
+                    username: firebaseUser.displayName || String(firebaseUser.email || email).split('@')[0],
+                    status: "Rabona Media istifadəçisi",
+                    updatedAt: new Date().toISOString()
+                };
+                await saveUser(user);
+            } catch (fbError) {
+                console.warn("[AUTH] Firebase profile fallback failed:", fbError.message);
+            }
+        }
         if (!user) return res.status(404).json({ success: false, message: "Ä°stifadÉ™Ã§i tapÄ±lmadÄ±." });
 
         res.set("Cache-Control", "no-store");
