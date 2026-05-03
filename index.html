@@ -8144,6 +8144,8 @@
 
             /* Profile Logic */
             const DEFAULT_PROFILE_STATUS = 'Rabona Media istifadəçisi';
+            let profileSaveInFlight = false;
+            let profileLocalSavedAt = 0;
 
             function cleanProfileText(value, fallback) {
                 const text = (value ?? '').toString().trim();
@@ -8218,7 +8220,9 @@
                 return {
                     name: cleanProfileText(rawProfile.name || rawProfile.displayName, fallbackName),
                     status: DEFAULT_PROFILE_STATUS,
-                    profilePic: cleanProfileText(rawProfile.profilePic, '')
+                    profilePic: cleanProfileText(rawProfile.profilePic, ''),
+                    updatedAt: rawProfile.updatedAt || null,
+                    localSavedAt: rawProfile.localSavedAt || 0
                 };
             }
 
@@ -8257,6 +8261,11 @@
 
             async function syncProfileFromServer(user = auth.currentUser) {
                 if (!user?.email) return null;
+                if (profileSaveInFlight || (Date.now() - profileLocalSavedAt < 2500)) {
+                    const localProfile = normalizeProfile(readStoredProfile(user), user);
+                    applyProfileToUI(localProfile, user);
+                    return localProfile;
+                }
                 try {
                     const res = await fetch(API_BASE_URL + `/api/auth/profile/${encodeURIComponent(user.email)}`, { cache: 'no-store' });
                     if (!res.ok) return null;
@@ -8265,7 +8274,8 @@
                     const profile = normalizeProfile({
                         name: data.data?.displayName,
                         status: data.data?.status,
-                        profilePic: data.data?.profilePic
+                        profilePic: data.data?.profilePic,
+                        updatedAt: data.data?.updatedAt
                     }, user);
                     if (profile.profilePic) {
                         setLocalProfileImage(profile.profilePic, user);
@@ -8329,16 +8339,26 @@
                     saveBtn.disabled = true;
                 }
 
+                const savedImage = getLocalProfileImage() || '';
+                const localProfile = writeStoredProfile({
+                    name: newName,
+                    status: newStatus,
+                    profilePic: savedImage,
+                    localSavedAt: Date.now()
+                });
+                profileLocalSavedAt = localProfile.localSavedAt || Date.now();
+                profileSaveInFlight = true;
+                applyProfileToUI(localProfile);
+
                 try {
-                    // 1. Sync with Firebase
                     if (auth.currentUser && newName !== auth.currentUser.displayName) {
-                        await auth.currentUser.updateProfile({ displayName: newName });
+                        auth.currentUser.updateProfile({ displayName: newName }).catch(e => {
+                            console.warn("Firebase displayName sync failed:", e.message);
+                        });
                     }
 
-                    // 2. Sync with Backend (users.json)
                     if (auth.currentUser && auth.currentUser.email) {
                         try {
-                            const savedImage = getLocalProfileImage();
                             const res = await fetch(API_BASE_URL + '/api/auth/update-profile', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -8349,23 +8369,24 @@
                                     ...(savedImage ? { profilePic: savedImage } : {})
                                 })
                             });
-                            if (!res.ok) console.warn("Server sync failed, falling back to local.");
+                            if (!res.ok) throw new Error('Server sync failed');
+                            const data = await res.json().catch(() => null);
+                            const serverProfile = writeStoredProfile({
+                                name: data?.data?.displayName || newName,
+                                status: data?.data?.status || newStatus,
+                                profilePic: data?.data?.profilePic || savedImage,
+                                updatedAt: data?.data?.updatedAt || new Date().toISOString()
+                            });
+                            applyProfileToUI(serverProfile);
                         } catch(e) { console.error("Server sync error:", e); }
                     }
 
-                    // 3. Update Local
-                    const savedProfile = writeStoredProfile({
-                        name: newName,
-                        status: newStatus,
-                        profilePic: getLocalProfileImage() || ''
-                    });
-                    
-                    applyProfileToUI(savedProfile);
                     showToast('Profil məlumatlar yeniləndi');
                 } catch (e) {
                     console.error("Save profile error:", e);
                     showToast('Xəta baş verdi');
                 } finally {
+                    profileSaveInFlight = false;
                     if (saveBtn) {
                         saveBtn.innerText = 'Məlumatlar Saxla';
                         saveBtn.disabled = false;
