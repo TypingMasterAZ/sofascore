@@ -6694,27 +6694,41 @@
             let renderAnimationFrameId = null;
             let pendingMatchScrollRestore = null;
 
+            function getMainScroller() {
+                return document.querySelector('.main-content') || document.scrollingElement || document.documentElement;
+            }
+
+            function getElementTopInScroller(element, scroller) {
+                const elementRect = element.getBoundingClientRect();
+                const scrollerRect = scroller === document.scrollingElement || scroller === document.documentElement
+                    ? { top: 0 }
+                    : scroller.getBoundingClientRect();
+                return elementRect.top - scrollerRect.top + scroller.scrollTop;
+            }
+
             function captureMatchScrollPosition() {
                 const list = document.getElementById("matchList");
-                const matchesView = document.getElementById("matchesView");
-                if (!list || !matchesView?.classList.contains('active')) return null;
+                const matchesView = document.getElementById("matchView");
+                const scroller = getMainScroller();
+                if (!list || !matchesView?.classList.contains('active') || !scroller) return null;
                 if (!list.children.length || list.querySelector('.loader-wrapper')) return null;
-                const scroller = document.scrollingElement || document.documentElement;
                 const scrollTop = scroller.scrollTop;
-                const listTop = list.getBoundingClientRect().top + window.scrollY;
+                const listTop = getElementTopInScroller(list, scroller);
                 return {
                     scrollTop,
-                    listOffset: Math.max(0, scrollTop - listTop)
+                    listOffset: Math.max(0, scrollTop - listTop),
+                    listHeight: Math.max(list.offsetHeight, list.scrollHeight, 0)
                 };
             }
 
             function restoreMatchScrollPosition(snapshot) {
                 if (!snapshot) return;
                 const list = document.getElementById("matchList");
-                if (!list) return;
-                const listTop = list.getBoundingClientRect().top + window.scrollY;
+                const scroller = getMainScroller();
+                if (!list || !scroller) return;
+                const listTop = getElementTopInScroller(list, scroller);
                 const target = Math.max(0, listTop + snapshot.listOffset);
-                window.scrollTo({ top: target, behavior: 'auto' });
+                scroller.scrollTop = target;
             }
 
             function renderMatchView(grouped) {
@@ -6722,6 +6736,9 @@
                 if (!list) return;
                 const scrollRestore = pendingMatchScrollRestore;
                 pendingMatchScrollRestore = null;
+                if (scrollRestore?.listHeight) {
+                    list.style.minHeight = `${scrollRestore.listHeight}px`;
+                }
 
                 if (renderAnimationFrameId) {
                     cancelAnimationFrame(renderAnimationFrameId);
@@ -6741,22 +6758,32 @@
                 
                 window._lastFetchError = false;
 
-                // --- Optimization for iOS Crash Prevention ---
-                list.innerHTML = ''; 
-                
-                // Use chunking to prevent iOS WebKit Out-Of-Memory crashes from massive synchronous DOM generation
-                // And explicitly limit maximum leagues rendered to prevent DOM bloat on very busy days
+                // Build the next list off-screen so auto refresh never visibly jumps or blanks the page.
                 const maxLeaguesToRender = 40; 
                 const renderKeys = keys.slice(0, maxLeaguesToRender);
                 
                 let i = 0;
+                const htmlParts = [];
+
+                function finishRender() {
+                    if (keys.length > maxLeaguesToRender) {
+                        htmlParts.push(`<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">Qalan ${keys.length - maxLeaguesToRender} liqa gizlədilib (performans üçün). Cədvəl səhifəsindən axtarış edə bilərsiniz.</div>`);
+                    }
+                    if (scrollRestore?.listHeight) {
+                        list.style.minHeight = `${scrollRestore.listHeight}px`;
+                    }
+                    list.innerHTML = htmlParts.join("");
+                    restoreMatchScrollPosition(scrollRestore);
+                    requestAnimationFrame(() => {
+                        restoreMatchScrollPosition(scrollRestore);
+                        list.style.minHeight = '';
+                    });
+                }
+
                 function renderChunk() {
                     const chunk = renderKeys.slice(i, i + 5);
                     if (chunk.length === 0) {
-                        if (keys.length > maxLeaguesToRender) {
-                            list.insertAdjacentHTML('beforeend', `<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">Qalan ${keys.length - maxLeaguesToRender} liqa gizlədilib (performans üçün). Cədvəl səhifəsindən axtarış edə bilərsiniz.</div>`);
-                        }
-                        restoreMatchScrollPosition(scrollRestore);
+                        finishRender();
                         return;
                     }
                     
@@ -6785,12 +6812,13 @@
                 </div>`;
                     }
                     
-                    list.insertAdjacentHTML('beforeend', html);
-                    restoreMatchScrollPosition(scrollRestore);
+                    htmlParts.push(html);
                     i += 5;
                     
                     if (i < renderKeys.length) {
                         renderAnimationFrameId = requestAnimationFrame(renderChunk);
+                    } else {
+                        finishRender();
                     }
                 }
                 
