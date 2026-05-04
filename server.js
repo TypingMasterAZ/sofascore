@@ -1540,9 +1540,9 @@ function getGoalIncidentPlayerName(incident, player) {
 }
 
 async function fetchTopPlayersFromEventsFallback(tournamentId, seasonId) {
-    const eventPaths = [0, 1, 2, 3].map(page => `/unique-tournament/${tournamentId}/season/${seasonId}/events/last/${page}`);
+    const eventPaths = [0, 1].map(page => `/unique-tournament/${tournamentId}/season/${seasonId}/events/last/${page}`);
     const eventResults = await Promise.allSettled(
-        eventPaths.map(path => fetchFromSofaFastRace(path, {}, 4500))
+        eventPaths.map(path => fetchFromSofaFastRace(path, {}, 3200))
     );
     const eventsById = new Map();
     for (const result of eventResults) {
@@ -1557,7 +1557,7 @@ async function fetchTopPlayersFromEventsFallback(tournamentId, seasonId) {
         }
     }
 
-    const events = Array.from(eventsById.values()).slice(0, 80);
+    const events = Array.from(eventsById.values()).slice(0, 36);
     if (!events.length) return null;
 
     const scorers = new Map();
@@ -1565,7 +1565,7 @@ async function fetchTopPlayersFromEventsFallback(tournamentId, seasonId) {
     for (let i = 0; i < events.length; i += batchSize) {
         const batch = events.slice(i, i + batchSize);
         const incidentResults = await Promise.allSettled(
-            batch.map(event => fetchFromSofaFastRace(`/event/${event.id}/incidents`, {}, 4500).then(data => ({ event, data })))
+            batch.map(event => fetchFromSofaFastRace(`/event/${event.id}/incidents`, {}, 3200).then(data => ({ event, data })))
         );
 
         for (const result of incidentResults) {
@@ -1612,16 +1612,33 @@ async function fetchTopPlayersFromEventsFallback(tournamentId, seasonId) {
 }
 
 async function fetchTopPlayersData(tournamentId, seasonId) {
+    try {
+        const statisticsData = await fetchFromSofaFastRace(
+            `/unique-tournament/${tournamentId}/season/${seasonId}/statistics`,
+            { limit: 50, order: "-goals", accumulation: "total", group: "summary" },
+            2800
+        );
+        const goals = Array.isArray(statisticsData?.results)
+            ? statisticsData.results.filter(item => Number(item?.goals || item?.statistics?.goals || 0) > 0)
+            : [];
+        if (goals.length) {
+            return {
+                topPlayers: { goals },
+                source: "statistics-goals"
+            };
+        }
+    } catch (error) {
+        console.warn(`[Top Players] Fast statistics goals failed for ${tournamentId}/${seasonId}: ${error.message}`);
+    }
+
     const paths = [
         `/unique-tournament/${tournamentId}/season/${seasonId}/top-players/goals`,
-        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players/overall`,
         `/unique-tournament/${tournamentId}/season/${seasonId}/top-players/scoring`,
-        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players-per-game/all/overall`,
         `/unique-tournament/${tournamentId}/season/${seasonId}/top-players`
     ];
 
     const attempts = paths.map(apiPath =>
-        fetchFromSofaFastRace(apiPath, {}, 5500)
+        fetchFromSofaFastRace(apiPath, {}, 3200)
             .then(data => ({
                 apiPath,
                 data,
@@ -2356,9 +2373,9 @@ app.get("/api/search", async (req, res) => {
 app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
     try {
         const { id, sid } = req.params;
-        const data = await getCachedDataWithTimeout(`topplayers_${id}_${sid}`, async () => {
+        const data = await getCachedDataWithTimeout(`topplayers_goals_v2_${id}_${sid}`, async () => {
             return await fetchTopPlayersData(id, sid);
-        }, CACHE_TIMES.STATIC, 16000, "Top players");
+        }, CACHE_TIMES.STATIC, 9000, "Top players");
         warmTopPlayerImages(data, 32).catch(e => {
             console.warn(`[Image Warmup] Top players ${id}/${sid} failed:`, e.message);
         });

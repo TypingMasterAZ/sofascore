@@ -7340,7 +7340,8 @@
             async function fetchLeagueTopPlayersData(tourId, seasonId) {
                 const cacheKey = `topplayers_${tourId}_${seasonId}`;
                 const persisted = leagueTopPlayersCache[cacheKey] || getPersistedLeagueData(cacheKey, 12 * 60 * 60 * 1000);
-                if (persisted) return persisted;
+                if (extractTopPlayersList(persisted).length) return persisted;
+                delete leagueTopPlayersCache[cacheKey];
 
                 let data = null;
                 try {
@@ -7351,15 +7352,11 @@
 
                 if (!extractTopPlayersList(data).length) {
                     const paths = [
-                        `/unique-tournament/${tourId}/season/${seasonId}/top-players/goals`,
-                        `/unique-tournament/${tourId}/season/${seasonId}/top-players/overall`,
-                        `/unique-tournament/${tourId}/season/${seasonId}/top-players/scoring`,
-                        `/unique-tournament/${tourId}/season/${seasonId}/top-players-per-game/all/overall`,
-                        `/unique-tournament/${tourId}/season/${seasonId}/top-players`
+                        `/unique-tournament/${tourId}/season/${seasonId}/top-players/goals`
                     ];
                     for (const path of paths) {
                         try {
-                            const directData = await withTimeout(fetchDirectSofaJson(path), 6500);
+                            const directData = await withTimeout(fetchDirectSofaJson(path), 2500);
                             if (extractTopPlayersList(directData).length) {
                                 data = directData;
                                 break;
