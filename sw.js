@@ -1,4 +1,4 @@
-const CACHE_NAME = 'proscore-shell-v22';
+const CACHE_NAME = 'proscore-shell-v23';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json?v=2',

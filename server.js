@@ -566,6 +566,44 @@ async function fetchFromSofaFastRace(path, params = {}, timeout = 6500) {
     }
 }
 
+async function fetchFromSofaNativeFast(path, params = {}, timeout = 2500) {
+    if (typeof fetch !== "function") throw new Error("Native fetch is unavailable");
+    const query = new URLSearchParams(params).toString();
+    const urls = SOFA_APIS.map(baseUrl => `${baseUrl}${path}${query ? `?${query}` : ""}`);
+
+    const attempts = urls.map(async (url) => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeout);
+        try {
+            const response = await fetch(url, {
+                signal: controller.signal,
+                headers: {
+                    "Accept": "application/json, text/plain, */*",
+                    "User-Agent": getRandomUA(),
+                    "Referer": "https://www.sofascore.com/"
+                }
+            });
+            const text = await response.text();
+            let data = text;
+            try { data = JSON.parse(text); } catch (_) {}
+            if (!response.ok) {
+                const reason = data?.error?.reason || data?.message || response.statusText;
+                throw new Error(`HTTP ${response.status}: ${reason}`);
+            }
+            return normalizeSofaData(data);
+        } finally {
+            clearTimeout(timer);
+        }
+    });
+
+    try {
+        return await Promise.any(attempts);
+    } catch (error) {
+        const reasons = error.errors?.map(e => e.message).join(" | ") || error.message;
+        throw new Error(`Native Sofa fetch failed for ${path}: ${reasons}`);
+    }
+}
+
 function pickActiveSeason(seasons = []) {
     if (!Array.isArray(seasons) || seasons.length === 0) return null;
     const currentYear = new Date().getFullYear();
@@ -1278,7 +1316,7 @@ loadLiveSnapshot();
 const FALLBACK_TOP_LEAGUES = [
     { id: 7, name: "UEFA Champions League", category: { id: 1465, name: "Europe" } },
     { id: 679, name: "UEFA Europa League", category: { id: 1465, name: "Europe" } },
-    { id: 14643, name: "UEFA Conference League", category: { id: 1465, name: "Europe" } },
+    { id: 17015, name: "UEFA Conference League", category: { id: 1465, name: "Europe" } },
     { id: 17, name: "Premier League", category: { id: 1, name: "England" } },
     { id: 8, name: "LaLiga", category: { id: 32, name: "Spain" } },
     { id: 23, name: "Serie A", category: { id: 31, name: "Italy" } },
@@ -1289,6 +1327,8 @@ const FALLBACK_TOP_LEAGUES = [
 ];
 
 const KNOWN_CURRENT_SEASONS = {
+    7: 76953,   // UEFA Champions League 25/26
+    17015: 76960, // UEFA Conference League 25/26
     17: 76986,  // Premier League 25/26
     8: 77559,   // LaLiga 25/26
     23: 76457,  // Serie A 25/26
@@ -1302,10 +1342,14 @@ const KNOWN_CURRENT_SEASONS = {
     679: 76984  // UEFA Europa League 25/26
 };
 
+const TOP_PLAYER_FALLBACK_SEASONS = {
+    7: [61644, 41897, 29267] // Champions League recent seasons; current stats can be 403-limited
+};
+
 const ESPN_STANDINGS_LEAGUES = {
     7: "uefa.champions",
     679: "uefa.europa",
-    14643: "uefa.europa.conf",
+    17015: "uefa.europa.conf",
     17: "eng.1",
     8: "esp.1",
     23: "ita.1",
@@ -1366,11 +1410,11 @@ function loadFallbackStandings() {
 
 const FALLBACK_STANDINGS = loadFallbackStandings();
 
-function getFallbackStanding(tourId, seasonId) {
+function getFallbackStanding(tourId, seasonId, options = {}) {
     const item = FALLBACK_STANDINGS[String(tourId)];
     const data = item?.data || null;
     if (!data?.standings?.length) return null;
-    if (seasonId && data.seasonId && String(data.seasonId) !== String(seasonId)) return null;
+    if (!options.allowSeasonMismatch && seasonId && data.seasonId && String(data.seasonId) !== String(seasonId)) return null;
     return data;
 }
 
@@ -1531,6 +1575,44 @@ function extractGoalTopPlayersList(data) {
     return [];
 }
 
+function hasTopPlayers(data) {
+    return extractTopPlayersList(data).length > 0 || extractGoalTopPlayersList(data).length > 0;
+}
+
+function addUniqueSeasonId(candidates, seasonId) {
+    if (!seasonId) return;
+    const normalized = String(seasonId);
+    if (!candidates.includes(normalized)) candidates.push(normalized);
+}
+
+function getPrimaryTopPlayerSeasonIds(tournamentId, requestedSeasonId) {
+    const candidates = [];
+    addUniqueSeasonId(candidates, requestedSeasonId);
+    addUniqueSeasonId(candidates, KNOWN_CURRENT_SEASONS[tournamentId]);
+    (TOP_PLAYER_FALLBACK_SEASONS[tournamentId] || []).forEach(seasonId => addUniqueSeasonId(candidates, seasonId));
+    return candidates;
+}
+
+async function getFallbackTopPlayerSeasonIds(tournamentId, existingCandidates = []) {
+    const candidates = [...existingCandidates];
+    const addCandidate = (seasonId) => {
+        addUniqueSeasonId(candidates, seasonId);
+    };
+
+    try {
+        const data = await getCachedData(`seasons_unique-tournament_${tournamentId}`, async () => {
+            const result = await fetchFromSofa(`/unique-tournament/${tournamentId}/seasons`);
+            return result.data;
+        }, CACHE_TIMES.STATIC, { skipJitter: true });
+        const seasons = Array.isArray(data?.seasons) ? data.seasons : [];
+        seasons.slice(0, 5).forEach(season => addCandidate(season.id));
+    } catch (error) {
+        console.warn(`[Top Players] Season candidates failed for ${tournamentId}: ${error.message}`);
+    }
+
+    return candidates;
+}
+
 function getGoalIncidentPlayer(incident) {
     return incident?.player || incident?.footballPlayer || incident?.scorer || incident?.playerTeam || null;
 }
@@ -1612,12 +1694,14 @@ async function fetchTopPlayersFromEventsFallback(tournamentId, seasonId) {
 }
 
 async function fetchTopPlayersData(tournamentId, seasonId) {
+    const hasKnownSeason = !!KNOWN_CURRENT_SEASONS[tournamentId];
     try {
-        const statisticsData = await fetchFromSofaFastRace(
-            `/unique-tournament/${tournamentId}/season/${seasonId}/statistics`,
-            { limit: 50, order: "-goals", accumulation: "total", group: "summary" },
-            2800
-        );
+        const statsPath = `/unique-tournament/${tournamentId}/season/${seasonId}/statistics`;
+        const statsParams = { limit: 50, order: "-goals", accumulation: "total", group: "summary" };
+        const statisticsData = await Promise.any([
+            fetchFromSofaNativeFast(statsPath, statsParams, 2500),
+            fetchFromSofaFastRace(statsPath, statsParams, 5000)
+        ]);
         const goals = Array.isArray(statisticsData?.results)
             ? statisticsData.results
                 .filter(item => Number(item?.goals || item?.statistics?.goals || 0) > 0)
@@ -1641,12 +1725,14 @@ async function fetchTopPlayersData(tournamentId, seasonId) {
 
     const paths = [
         `/unique-tournament/${tournamentId}/season/${seasonId}/top-players/goals`,
+        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players/overall`,
         `/unique-tournament/${tournamentId}/season/${seasonId}/top-players/scoring`,
+        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players-per-game/all/overall`,
         `/unique-tournament/${tournamentId}/season/${seasonId}/top-players`
     ];
 
     const attempts = paths.map(apiPath =>
-        fetchFromSofaFastRace(apiPath, {}, 3200)
+        fetchFromSofaFastRace(apiPath, {}, 4500)
             .then(data => ({
                 apiPath,
                 data,
@@ -1667,6 +1753,41 @@ async function fetchTopPlayersData(tournamentId, seasonId) {
 
     const firstError = results.find(result => result.status === "rejected")?.reason;
     if (fulfilled.length) return { topPlayers: { goals: [] }, source: "top-players-empty" };
+    throw firstError || new Error("Top players unavailable");
+}
+
+async function fetchTopPlayersDataForBestSeason(tournamentId, seasonId) {
+    let seasonIds = getPrimaryTopPlayerSeasonIds(tournamentId, seasonId);
+    if (!seasonIds.length) throw new Error("Season id tapılmadı");
+
+    let firstData = null;
+    let firstError = null;
+
+    const trySeasonIds = async (ids) => {
+        for (const sid of ids) {
+            try {
+                const data = await fetchTopPlayersData(tournamentId, sid);
+                if (!firstData) firstData = { ...data, seasonId: sid };
+                if (hasTopPlayers(data)) {
+                    return { ...data, seasonId: sid };
+                }
+            } catch (error) {
+                firstError = firstError || error;
+                console.warn(`[Top Players] Season ${tournamentId}/${sid} failed: ${error.message}`);
+            }
+        }
+        return null;
+    };
+
+    const primaryData = await trySeasonIds(seasonIds);
+    if (primaryData) return primaryData;
+
+    seasonIds = await getFallbackTopPlayerSeasonIds(tournamentId, seasonIds);
+    const remainingSeasonIds = seasonIds.filter(sid => !getPrimaryTopPlayerSeasonIds(tournamentId, seasonId).includes(sid));
+    const fallbackSeasonData = await trySeasonIds(remainingSeasonIds);
+    if (fallbackSeasonData) return fallbackSeasonData;
+
+    if (firstData) return firstData;
     throw firstError || new Error("Top players unavailable");
 }
 
@@ -2063,7 +2184,8 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
         const { tourId } = req.params;
         let seasonId = req.query.seasonId;
         let season = null;
-        const fallbackStanding = getFallbackStanding(tourId, seasonId);
+        const fallbackStanding = getFallbackStanding(tourId, seasonId) ||
+            getFallbackStanding(tourId, seasonId, { allowSeasonMismatch: true });
 
         const cachedForTour = Object.entries(cache).find(([key, value]) =>
             key.startsWith(`standings_${tourId}_`) &&
@@ -2089,6 +2211,7 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
                 seasonId: fallbackStanding.seasonId || seasonId || "snapshot",
                 cached: true,
                 snapshot: true,
+                staleSeason: !!(seasonId && fallbackStanding.seasonId && String(fallbackStanding.seasonId) !== String(seasonId)),
                 fast: true,
                 durationMs: Date.now() - startedAt
             });
@@ -2097,7 +2220,7 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
                 console.warn(`[Image Warmup] Snapshot standings teams ${tourId} failed:`, e.message);
             });
 
-            const refreshSeasonId = fallbackStanding.seasonId || seasonId || KNOWN_CURRENT_SEASONS[tourId];
+            const refreshSeasonId = seasonId || KNOWN_CURRENT_SEASONS[tourId] || fallbackStanding.seasonId;
             if (refreshSeasonId) {
                 getCachedData(`standings_${tourId}_${refreshSeasonId}`, async () => {
                     return await fetchFromSofaFastRace(`/unique-tournament/${tourId}/season/${refreshSeasonId}/standings/total`, {}, 7000);
@@ -2159,7 +2282,7 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
 
         const standingsCacheKey = `standings_${tourId}_${seasonId}`;
         const data = await getCachedData(standingsCacheKey, async () => {
-            return await fetchFromSofaFastRace(`/unique-tournament/${tourId}/season/${seasonId}/standings/total`, {}, 7000);
+            return await fetchFromSofaFastRace(`/unique-tournament/${tourId}/season/${seasonId}/standings/total`, {}, 4500);
         }, CACHE_TIMES.STATIC);
 
         if (data?.standings?.length) {
@@ -2178,7 +2301,8 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
         });
     } catch (error) {
         console.error(`[API ERROR] Fast standings tour=${req.params.tourId}: ${error.message}`);
-        const fallbackStanding = getFallbackStanding(req.params.tourId, req.query.seasonId);
+        const fallbackStanding = getFallbackStanding(req.params.tourId, req.query.seasonId) ||
+            getFallbackStanding(req.params.tourId, req.query.seasonId, { allowSeasonMismatch: true });
         if (fallbackStanding) {
             warmStandingTeamImages(fallbackStanding, 36).catch(e => {
                 console.warn(`[Image Warmup] Error fallback standings teams ${req.params.tourId} failed:`, e.message);
@@ -2188,11 +2312,19 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
                 seasonId: fallbackStanding.seasonId || req.query.seasonId || "snapshot",
                 cached: true,
                 snapshot: true,
+                staleSeason: !!(req.query.seasonId && fallbackStanding.seasonId && String(fallbackStanding.seasonId) !== String(req.query.seasonId)),
                 fast: true,
                 durationMs: Date.now() - startedAt
             });
         }
-        res.status(500).json({ error: true, message: error.message, durationMs: Date.now() - startedAt });
+        res.json({
+            standings: [],
+            seasonId: req.query.seasonId || KNOWN_CURRENT_SEASONS[req.params.tourId] || null,
+            unavailable: true,
+            fast: true,
+            durationMs: Date.now() - startedAt,
+            message: "Standings unavailable from provider"
+        });
     }
 });
 
@@ -2209,7 +2341,8 @@ app.get("/api/standings/:tourId/:seasonId", async (req, res) => {
         res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Standings tour=${req.params.tourId} season=${req.params.seasonId}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
-        const fallbackStanding = getFallbackStanding(req.params.tourId, req.params.seasonId);
+        const fallbackStanding = getFallbackStanding(req.params.tourId, req.params.seasonId) ||
+            getFallbackStanding(req.params.tourId, req.params.seasonId, { allowSeasonMismatch: true });
         if (fallbackStanding) {
             warmStandingTeamImages(fallbackStanding, 36).catch(e => {
                 console.warn(`[Image Warmup] Direct fallback standings teams ${req.params.tourId} failed:`, e.message);
@@ -2218,10 +2351,16 @@ app.get("/api/standings/:tourId/:seasonId", async (req, res) => {
                 ...fallbackStanding,
                 seasonId: fallbackStanding.seasonId || req.params.seasonId,
                 cached: true,
-                snapshot: true
+                snapshot: true,
+                staleSeason: !!(req.params.seasonId && fallbackStanding.seasonId && String(fallbackStanding.seasonId) !== String(req.params.seasonId))
             });
         }
-        res.status(500).json({ error: true, message: error.message });
+        res.json({
+            standings: [],
+            seasonId: req.params.seasonId,
+            unavailable: true,
+            message: "Standings unavailable from provider"
+        });
     }
 });
 
@@ -2381,9 +2520,26 @@ app.get("/api/search", async (req, res) => {
 app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
     try {
         const { id, sid } = req.params;
-        const data = await getCachedDataWithTimeout(`topplayers_goals_v3_${id}_${sid}`, async () => {
-            return await fetchTopPlayersData(id, sid);
-        }, CACHE_TIMES.STATIC, 9000, "Top players");
+        const cacheKey = `topplayers_goals_v5_${id}_${sid}`;
+        const now = Date.now();
+        const cached = cache[cacheKey];
+        const cachedHasPlayers = hasTopPlayers(cached?.data);
+        const ttl = !cachedHasPlayers ? 60 * 1000 : (cached?.data?.derived ? 2 * 60 * 1000 : CACHE_TIMES.STATIC);
+
+        let data;
+        if (cached && now - cached.timestamp < ttl) {
+            console.log(`[CACHE HIT] Key: ${cacheKey}`);
+            data = cached.data;
+        } else {
+            data = await withServerTimeout(fetchTopPlayersDataForBestSeason(id, sid), 9000, "Top players");
+            if (data?.derived && cached?.data && !cached.data.derived && extractTopPlayersList(cached.data).length) {
+                console.warn(`[Top Players] Keeping official cached data over derived fallback for ${id}/${sid}`);
+                data = cached.data;
+            } else {
+                cache[cacheKey] = { data, timestamp: Date.now() };
+            }
+        }
+
         warmTopPlayerImages(data, 32).catch(e => {
             console.warn(`[Image Warmup] Top players ${id}/${sid} failed:`, e.message);
         });
@@ -3490,8 +3646,8 @@ async function warmOneLeagueTopPlayers() {
 
     console.log(`[Warmup] Prefetch top players for ${league.name} (${league.id})`);
     const data = await getCachedDataWithTimeout(cacheKey, async () => {
-        return await fetchTopPlayersData(league.id, seasonId);
-    }, CACHE_TIMES.STATIC, 7000, "Warm top players", { skipJitter: true });
+        return await fetchTopPlayersDataForBestSeason(league.id, seasonId);
+    }, CACHE_TIMES.STATIC, 12000, "Warm top players", { skipJitter: true });
     warmTopPlayerImages(data, 32).catch(e => {
         console.warn(`[Image Warmup] Warm top players ${league.id}/${seasonId} failed:`, e.message);
     });
