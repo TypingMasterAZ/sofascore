@@ -5918,11 +5918,15 @@
                 }
 
                 try {
+                    const controller = new AbortController();
+                    const supportTimeout = setTimeout(() => controller.abort(), 12000);
                     const res = await fetch(API_BASE_URL + '/api/support', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify(payload),
+                        signal: controller.signal
                     });
+                    clearTimeout(supportTimeout);
                     const data = await res.json().catch(() => null);
                     if (!res.ok || !data?.success) throw new Error(data?.message || 'Göndərilmədi');
                     document.getElementById('supportTitle').value = '';
@@ -5935,7 +5939,10 @@
                         saved.unshift(payload);
                         localStorage.setItem('supportDrafts', JSON.stringify(saved.slice(0, 20)));
                     } catch (_) {}
-                    showToast('Serverə göndərilmədi, cihazda saxlandı', 'error');
+                    const msg = error?.name === 'AbortError'
+                        ? 'Server gec cavab verdi, mesaj cihazda saxlandı'
+                        : 'Serverə göndərilmədi, cihazda saxlandı';
+                    showToast(msg, 'error');
                 } finally {
                     if (btn) {
                         btn.disabled = false;

@@ -2831,6 +2831,22 @@ function buildSupportEmail(item) {
     return { text, html };
 }
 
+async function sendSupportEmail(item) {
+    const { text, html } = buildSupportEmail(item);
+    const contact = item.contact || "";
+    const replyTo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)
+        ? contact
+        : (item.user?.email || undefined);
+    await transporter.sendMail({
+        from: `"Rabona Media Dəstək" <${process.env.EMAIL_USER || 'typingmaster.az@gmail.com'}>`,
+        to: SUPPORT_NOTIFY_EMAIL,
+        replyTo,
+        subject: `Rabona Media dəstək: ${item.title}`,
+        text,
+        html
+    });
+}
+
 app.post("/api/support", async (req, res) => {
     try {
         const type = String(req.body?.type || "other").slice(0, 40);
@@ -2870,26 +2886,11 @@ app.post("/api/support", async (req, res) => {
         items.unshift(item);
         fs.writeFileSync(SUPPORT_MESSAGES_FILE, JSON.stringify(items.slice(0, 500), null, 2));
 
-        let emailSent = false;
-        try {
-            const { text, html } = buildSupportEmail(item);
-            const replyTo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)
-                ? contact
-                : (item.user?.email || undefined);
-            await transporter.sendMail({
-                from: `"Rabona Media Dəstək" <${process.env.EMAIL_USER || 'typingmaster.az@gmail.com'}>`,
-                to: SUPPORT_NOTIFY_EMAIL,
-                replyTo,
-                subject: `Rabona Media dəstək: ${title}`,
-                text,
-                html
-            });
-            emailSent = true;
-        } catch (mailError) {
+        sendSupportEmail(item).catch(mailError => {
             console.error("[Support] Email send error:", mailError.message);
-        }
+        });
 
-        res.json({ success: true, id: item.id, emailSent });
+        res.json({ success: true, id: item.id, emailQueued: true });
     } catch (error) {
         console.error("[Support] Save error:", error.message);
         res.status(500).json({ success: false, message: "Dəstək mesajı saxlanmadı" });
