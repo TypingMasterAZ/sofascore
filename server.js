@@ -744,7 +744,7 @@ app.get("/api/debug/proxy", async (req, res) => {
 // Caching System
 const cache = {};
 const CACHE_TIMES = {
-    LIVE: 3 * 1000,        // 3 saniyə
+    LIVE: 1500,        // canlı qol bildirişləri üçün qısa cache
     SCHEDULED: 5 * 60 * 1000, // 5 dÉ™qiqÉ™
     STATIC: 60 * 60 * 1000    // 1 saat
 };
@@ -885,7 +885,7 @@ let lastLiveFetchAttemptTime = 0;
 let liveFetchPromise = null;
 let liveSnapshotLoadPromise = null;
 const LIVE_SNAPSHOT_FILE = "./live_snapshot.json";
-const LIVE_SNAPSHOT_MAX_AGE = 12 * 1000;
+const LIVE_SNAPSHOT_MAX_AGE = 2500;
 const MACKOLIK_LIVE_URL = "https://www.mackolik.com/perform/p0/ajax/components/competition/livescores/json";
 const MACKOLIK_LIVE_PAGE_URL = "https://www.mackolik.com/canli-sonuclar";
 const MACKOLIK_HEADERS = {
@@ -2020,7 +2020,7 @@ async function getMatchIncidentsData(matchId) {
             if (fallback) return fallback;
             throw error;
         }
-    }, 6000);
+    }, 1500);
 }
 
 // API vasitÉ™Ã§isi (Komanda mÉ™lumatlarÄ± vÉ™ heyÉ™t Ã¼Ã§Ã¼n)
@@ -2054,7 +2054,7 @@ app.get("/api/matches/live", async (req, res) => {
 
     try {
         await ensureLiveSnapshotLoaded();
-        const allowImmediateCache = req.query.fast === "1" || !!globalLiveEvents?.events?.length;
+        const allowImmediateCache = req.query.fresh !== "1" && (req.query.fast === "1" || !!globalLiveEvents?.events?.length);
         const data = await getLiveEventsData(false, allowImmediateCache);
         res.json(data);
     } catch (error) {
@@ -3316,7 +3316,7 @@ setInterval(async () => {
     } catch (e) {
         console.error("[Background Tracker] Error:", e.message);
     }
-}, 5000);
+}, 2000);
 
 setInterval(async () => {
     try {
@@ -3442,7 +3442,7 @@ setInterval(async () => {
     } catch (e) {
         console.error("[Goal Incident Worker] Error:", e.message);
     }
-}, 12000);
+}, 4000);
 
 async function sendReminderToRecipient(recipient, payload) {
     if (recipient.channel === "fcm") {

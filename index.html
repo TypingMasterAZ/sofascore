@@ -6458,7 +6458,7 @@
                 let sofaFallbackPath = '/sport/football/events/live';
                 
                 if (param === 'live' || isLiveFiltered) {
-                    url = API_BASE_URL + '/api/matches/live?fast=1';
+                    url = API_BASE_URL + '/api/matches/live?fast=1&fresh=1';
                     dataCacheKey = 'live';
                 } else {
                     const dateToFetch = param || selectedDate || new Date().toISOString().split('T')[0];
@@ -9564,7 +9564,8 @@
             let autoRefreshTimer = null;
             function setupAutoRefreshLoop() {
                 if (autoRefreshTimer) clearInterval(autoRefreshTimer);
-                const seconds = Math.max(5, Math.min(30, Number(userSettings.refreshIntervalSec) || 8));
+                const configuredSeconds = Math.max(3, Math.min(30, Number(userSettings.refreshIntervalSec) || 4));
+                const seconds = Math.min(configuredSeconds, 3);
                 autoRefreshTimer = setInterval(() => {
                     const todayStr = new Date().toISOString().split('T')[0];
                     const isToday = selectedDate === todayStr;
