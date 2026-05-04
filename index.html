@@ -6564,6 +6564,7 @@
                     if (window.notificationMgr) notificationMgr.checkUpdates(allEvents);
                     allEvents.slice(0, 8).forEach(match => prefetchMatchDetails(match.id));
                     window._lastFetchError = false;
+                    pendingMatchScrollRestore = captureMatchScrollPosition();
                     applyFilters();
                     if (syncOverlay) syncOverlay.style.display = 'none';
                     
@@ -6576,6 +6577,7 @@
                     );
 
                     if (restoredFromCache || (allEvents && allEvents.length > 0)) {
+                        pendingMatchScrollRestore = captureMatchScrollPosition();
                         applyFilters();
                     } else {
                         renderMatchView({});
@@ -6690,10 +6692,36 @@
             }
 
             let renderAnimationFrameId = null;
+            let pendingMatchScrollRestore = null;
+
+            function captureMatchScrollPosition() {
+                const list = document.getElementById("matchList");
+                const matchesView = document.getElementById("matchesView");
+                if (!list || !matchesView?.classList.contains('active')) return null;
+                if (!list.children.length || list.querySelector('.loader-wrapper')) return null;
+                const scroller = document.scrollingElement || document.documentElement;
+                const scrollTop = scroller.scrollTop;
+                const listTop = list.getBoundingClientRect().top + window.scrollY;
+                return {
+                    scrollTop,
+                    listOffset: Math.max(0, scrollTop - listTop)
+                };
+            }
+
+            function restoreMatchScrollPosition(snapshot) {
+                if (!snapshot) return;
+                const list = document.getElementById("matchList");
+                if (!list) return;
+                const listTop = list.getBoundingClientRect().top + window.scrollY;
+                const target = Math.max(0, listTop + snapshot.listOffset);
+                window.scrollTo({ top: target, behavior: 'auto' });
+            }
 
             function renderMatchView(grouped) {
                 const list = document.getElementById("matchList");
                 if (!list) return;
+                const scrollRestore = pendingMatchScrollRestore;
+                pendingMatchScrollRestore = null;
 
                 if (renderAnimationFrameId) {
                     cancelAnimationFrame(renderAnimationFrameId);
@@ -6728,6 +6756,7 @@
                         if (keys.length > maxLeaguesToRender) {
                             list.insertAdjacentHTML('beforeend', `<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">Qalan ${keys.length - maxLeaguesToRender} liqa gizlədilib (performans üçün). Cədvəl səhifəsindən axtarış edə bilərsiniz.</div>`);
                         }
+                        restoreMatchScrollPosition(scrollRestore);
                         return;
                     }
                     
@@ -6757,6 +6786,7 @@
                     }
                     
                     list.insertAdjacentHTML('beforeend', html);
+                    restoreMatchScrollPosition(scrollRestore);
                     i += 5;
                     
                     if (i < renderKeys.length) {
