@@ -1619,7 +1619,15 @@ async function fetchTopPlayersData(tournamentId, seasonId) {
             2800
         );
         const goals = Array.isArray(statisticsData?.results)
-            ? statisticsData.results.filter(item => Number(item?.goals || item?.statistics?.goals || 0) > 0)
+            ? statisticsData.results
+                .filter(item => Number(item?.goals || item?.statistics?.goals || 0) > 0)
+                .map(item => ({
+                    ...item,
+                    statistics: {
+                        ...(item.statistics || {}),
+                        goals: Number(item.goals || item.statistics?.goals || 0)
+                    }
+                }))
             : [];
         if (goals.length) {
             return {
@@ -2373,7 +2381,7 @@ app.get("/api/search", async (req, res) => {
 app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
     try {
         const { id, sid } = req.params;
-        const data = await getCachedDataWithTimeout(`topplayers_goals_v2_${id}_${sid}`, async () => {
+        const data = await getCachedDataWithTimeout(`topplayers_goals_v3_${id}_${sid}`, async () => {
             return await fetchTopPlayersData(id, sid);
         }, CACHE_TIMES.STATIC, 9000, "Top players");
         warmTopPlayerImages(data, 32).catch(e => {

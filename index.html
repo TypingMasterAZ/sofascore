@@ -5138,6 +5138,7 @@
             const prefetchedCategoryLeagues = new Set();
             const knownLeaguesById = {};
             const leagueTopPlayersCache = {};
+            const TOP_PLAYERS_CACHE_VERSION = "v3";
             const FEATURED_CATEGORY_IDS = new Set(['1', '7', '30', '31', '32', '46', '297', '1465']);
             const FEATURED_CATEGORY_NAMES = new Set([
                 'england', 'spain', 'italy', 'germany', 'france', 'turkey', 'azerbaijan',
@@ -5611,6 +5612,12 @@
             function setPersistedLeagueData(key, value) {
                 try {
                     localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), value }));
+                } catch (e) {}
+            }
+
+            function clearPersistedLeagueData(key) {
+                try {
+                    localStorage.removeItem(key);
                 } catch (e) {}
             }
 
@@ -6117,8 +6124,9 @@
                 if (!tourId) return;
                 const resolvedSeasonId = seasonId || await resolveLeagueSeasonId(tourId).catch(() => null);
                 if (!resolvedSeasonId) return;
-                const cacheKey = `topplayers_${tourId}_${resolvedSeasonId}`;
-                if (leagueTopPlayersCache[cacheKey] || getPersistedLeagueData(cacheKey, 12 * 60 * 60 * 1000)) return;
+                const cacheKey = `topplayers_${TOP_PLAYERS_CACHE_VERSION}_${tourId}_${resolvedSeasonId}`;
+                const cached = leagueTopPlayersCache[cacheKey] || getPersistedLeagueData(cacheKey, 12 * 60 * 60 * 1000);
+                if (extractTopPlayersList(cached).length) return;
                 fetchLeagueTopPlayersData(tourId, resolvedSeasonId)
                     .then(data => {
                         const topPlayers = extractTopPlayersList(data);
@@ -6146,13 +6154,12 @@
                     }
                 }
 
-                const cacheKey = `topplayers_${tourId}_${seasonId}`;
+                const cacheKey = `topplayers_${TOP_PLAYERS_CACHE_VERSION}_${tourId}_${seasonId}`;
+                clearPersistedLeagueData(`topplayers_${tourId}_${seasonId}`);
                 const persisted = leagueTopPlayersCache[cacheKey] || getPersistedLeagueData(cacheKey, 12 * 60 * 60 * 1000);
-                if (persisted) {
-                    const topPlayers = extractTopPlayersList(persisted);
-                    if (topPlayers.length) {
-                        box.innerHTML = renderTopPlayersHtml(topPlayers);
-                    }
+                const persistedTopPlayers = extractTopPlayersList(persisted);
+                if (persistedTopPlayers.length) {
+                    box.innerHTML = renderTopPlayersHtml(persistedTopPlayers);
                 } else {
                     box.innerHTML = `<div class="loader-wrapper"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:100%;"></div></div></div><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:75%;"></div></div></div></div>`;
                 }
@@ -6167,7 +6174,7 @@
                     box.innerHTML = renderTopPlayersHtml(topPlayers);
                 } catch (e) {
                     console.error("Top players load error", e);
-                    if (!persisted) {
+                    if (!persistedTopPlayers.length) {
                         box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Yükləmə xətası baş verdi.</div>";
                     }
                 }
@@ -7338,10 +7345,12 @@
             }
 
             async function fetchLeagueTopPlayersData(tourId, seasonId) {
-                const cacheKey = `topplayers_${tourId}_${seasonId}`;
+                const cacheKey = `topplayers_${TOP_PLAYERS_CACHE_VERSION}_${tourId}_${seasonId}`;
+                const legacyCacheKey = `topplayers_${tourId}_${seasonId}`;
                 const persisted = leagueTopPlayersCache[cacheKey] || getPersistedLeagueData(cacheKey, 12 * 60 * 60 * 1000);
                 if (extractTopPlayersList(persisted).length) return persisted;
                 delete leagueTopPlayersCache[cacheKey];
+                clearPersistedLeagueData(legacyCacheKey);
 
                 let data = null;
                 try {
