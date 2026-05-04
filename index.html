@@ -4593,7 +4593,7 @@
         <div id="toast" class="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
 
         <script>
-            console.log("SCRIPT START: index.html VERSION 1.2.5 running");
+            console.log("SCRIPT START: index.html VERSION 1.2.6 running");
 
             const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"defaultView": "matches"}');
             const auth = firebase.auth();
@@ -6070,6 +6070,11 @@
                     if (nested.length) return nested;
                 }
                 if (data?.topPlayers?.goals && Array.isArray(data.topPlayers.goals)) return data.topPlayers.goals;
+                if (data?.topPlayers?.scoring && Array.isArray(data.topPlayers.scoring)) return data.topPlayers.scoring;
+                if (data?.topPlayers?.topScorers && Array.isArray(data.topPlayers.topScorers)) return data.topPlayers.topScorers;
+                if (Array.isArray(data?.goals)) return data.goals;
+                if (Array.isArray(data?.scoring)) return data.scoring;
+                if (Array.isArray(data?.topScorers)) return data.topScorers;
                 if (Array.isArray(data?.topPlayers)) return data.topPlayers;
                 if (data?.topPlayers && typeof data.topPlayers === 'object') {
                     const firstList = Object.values(data.topPlayers).find(Array.isArray);
@@ -6088,7 +6093,7 @@
 
                 let html = '<div class="top-players-list">';
                 topPlayers.slice(0, 20).forEach((p, index) => {
-                    const goals = p.statistics?.goals ?? p.goals ?? p.totalGoals ?? p.value ?? 0;
+                    const goals = p.statistics?.goals ?? p.statistics?.totalGoals ?? p.goals ?? p.totalGoals ?? p.value ?? p.statistic ?? 0;
                     const playerId = p.player?.id || '';
                     const playerImg = playerId ? sofaImageUrl(`/player/${playerId}/image`, {
                         strict: true,
@@ -7350,8 +7355,10 @@
 
                 if (data && !data?.error && !extractTopPlayersList(data).length) {
                     const paths = [
-                        `/unique-tournament/${tourId}/season/${seasonId}/top-players/overall`,
                         `/unique-tournament/${tourId}/season/${seasonId}/top-players/goals`,
+                        `/unique-tournament/${tourId}/season/${seasonId}/top-players/overall`,
+                        `/unique-tournament/${tourId}/season/${seasonId}/top-players/scoring`,
+                        `/unique-tournament/${tourId}/season/${seasonId}/top-players-per-game/all/overall`,
                         `/unique-tournament/${tourId}/season/${seasonId}/top-players`
                     ];
                     for (const path of paths) {
@@ -9541,7 +9548,7 @@
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js?v=21').then(reg => {
+                    navigator.serviceWorker.register('/sw.js?v=22').then(reg => {
                         console.log('SW registered:', reg.scope);
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });

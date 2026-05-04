@@ -1515,22 +1515,47 @@ function extractTopPlayersList(data) {
     return [];
 }
 
+function extractGoalTopPlayersList(data) {
+    if (!data) return [];
+    if (data.data) {
+        const nested = extractGoalTopPlayersList(data.data);
+        if (nested.length) return nested;
+    }
+    if (Array.isArray(data)) return data;
+    const topPlayers = data.topPlayers || {};
+    const direct = data.goals || data.scoring || data.topScorers || data.players || data.results;
+    if (Array.isArray(direct)) return direct;
+    if (Array.isArray(topPlayers.goals)) return topPlayers.goals;
+    if (Array.isArray(topPlayers.scoring)) return topPlayers.scoring;
+    if (Array.isArray(topPlayers.topScorers)) return topPlayers.topScorers;
+    return [];
+}
+
 async function fetchTopPlayersData(tournamentId, seasonId) {
     const paths = [
-        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players/overall`,
         `/unique-tournament/${tournamentId}/season/${seasonId}/top-players/goals`,
+        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players/overall`,
+        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players/scoring`,
+        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players-per-game/all/overall`,
         `/unique-tournament/${tournamentId}/season/${seasonId}/top-players`
     ];
 
     const attempts = paths.map(apiPath =>
         fetchFromSofaFastRace(apiPath, {}, 5500)
-            .then(data => ({ apiPath, data, count: extractTopPlayersList(data).length }))
+            .then(data => ({
+                apiPath,
+                data,
+                goalCount: extractGoalTopPlayersList(data).length,
+                count: extractTopPlayersList(data).length
+            }))
     );
 
     const results = await Promise.allSettled(attempts);
     const fulfilled = results
         .filter(result => result.status === "fulfilled")
         .map(result => result.value);
+    const withGoals = fulfilled.find(result => result.goalCount > 0);
+    if (withGoals) return withGoals.data;
     const withPlayers = fulfilled.find(result => result.count > 0);
     if (withPlayers) return withPlayers.data;
     if (fulfilled.length) return fulfilled[0].data;
