@@ -6076,10 +6076,6 @@
                 if (Array.isArray(data?.scoring)) return data.scoring;
                 if (Array.isArray(data?.topScorers)) return data.topScorers;
                 if (Array.isArray(data?.topPlayers)) return data.topPlayers;
-                if (data?.topPlayers && typeof data.topPlayers === 'object') {
-                    const firstList = Object.values(data.topPlayers).find(Array.isArray);
-                    if (firstList) return firstList;
-                }
                 if (Array.isArray(data?.players)) return data.players;
                 if (Array.isArray(data?.results)) return data.results;
                 if (Array.isArray(data)) return data;
@@ -7353,7 +7349,7 @@
                     console.warn("Top players API failed, trying browser SofaScore fallback:", serverErr.message);
                 }
 
-                if (data && !data?.error && !extractTopPlayersList(data).length) {
+                if (!extractTopPlayersList(data).length) {
                     const paths = [
                         `/unique-tournament/${tourId}/season/${seasonId}/top-players/goals`,
                         `/unique-tournament/${tourId}/season/${seasonId}/top-players/overall`,

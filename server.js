@@ -1531,6 +1531,86 @@ function extractGoalTopPlayersList(data) {
     return [];
 }
 
+function getGoalIncidentPlayer(incident) {
+    return incident?.player || incident?.footballPlayer || incident?.scorer || incident?.playerTeam || null;
+}
+
+function getGoalIncidentPlayerName(incident, player) {
+    return player?.name || player?.shortName || incident?.playerName || incident?.scorerName || incident?.name || "";
+}
+
+async function fetchTopPlayersFromEventsFallback(tournamentId, seasonId) {
+    const eventPaths = [0, 1, 2, 3].map(page => `/unique-tournament/${tournamentId}/season/${seasonId}/events/last/${page}`);
+    const eventResults = await Promise.allSettled(
+        eventPaths.map(path => fetchFromSofaFastRace(path, {}, 4500))
+    );
+    const eventsById = new Map();
+    for (const result of eventResults) {
+        if (result.status !== "fulfilled") continue;
+        const events = result.value?.events || result.value?.data?.events || [];
+        if (!Array.isArray(events)) continue;
+        for (const event of events) {
+            if (!event?.id) continue;
+            const statusType = String(event.status?.type || "").toLowerCase();
+            if (statusType && !["finished", "inprogress", "notstarted"].includes(statusType)) continue;
+            eventsById.set(event.id, event);
+        }
+    }
+
+    const events = Array.from(eventsById.values()).slice(0, 80);
+    if (!events.length) return null;
+
+    const scorers = new Map();
+    const batchSize = 8;
+    for (let i = 0; i < events.length; i += batchSize) {
+        const batch = events.slice(i, i + batchSize);
+        const incidentResults = await Promise.allSettled(
+            batch.map(event => fetchFromSofaFastRace(`/event/${event.id}/incidents`, {}, 4500).then(data => ({ event, data })))
+        );
+
+        for (const result of incidentResults) {
+            if (result.status !== "fulfilled") continue;
+            const { event, data } = result.value;
+            const incidents = normalizeIncidentsData(data)?.incidents || data?.incidents || [];
+            if (!Array.isArray(incidents)) continue;
+
+            for (const incident of incidents) {
+                if (incident?.incidentType !== "goal") continue;
+                if (incident?.incidentClass === "ownGoal") continue;
+
+                const player = getGoalIncidentPlayer(incident);
+                const playerName = getGoalIncidentPlayerName(incident, player);
+                if (!playerName) continue;
+
+                const team = incident.team || (incident.isHome ? event.homeTeam : event.awayTeam) || {};
+                const key = player?.id ? `id_${player.id}` : `name_${playerName.toLowerCase()}_${team?.id || ""}`;
+                const current = scorers.get(key) || {
+                    player: {
+                        id: player?.id,
+                        name: playerName,
+                        shortName: player?.shortName || playerName
+                    },
+                    team: team?.id ? { id: team.id, name: team.name, shortName: team.shortName } : undefined,
+                    statistics: { goals: 0 }
+                };
+                current.statistics.goals += 1;
+                scorers.set(key, current);
+            }
+        }
+    }
+
+    const goals = Array.from(scorers.values())
+        .sort((a, b) => (b.statistics?.goals || 0) - (a.statistics?.goals || 0) || String(a.player?.name || "").localeCompare(String(b.player?.name || "")))
+        .slice(0, 50);
+
+    if (!goals.length) return null;
+    return {
+        topPlayers: { goals },
+        source: "events-fallback",
+        derived: true
+    };
+}
+
 async function fetchTopPlayersData(tournamentId, seasonId) {
     const paths = [
         `/unique-tournament/${tournamentId}/season/${seasonId}/top-players/goals`,
@@ -1556,11 +1636,12 @@ async function fetchTopPlayersData(tournamentId, seasonId) {
         .map(result => result.value);
     const withGoals = fulfilled.find(result => result.goalCount > 0);
     if (withGoals) return withGoals.data;
-    const withPlayers = fulfilled.find(result => result.count > 0);
-    if (withPlayers) return withPlayers.data;
-    if (fulfilled.length) return fulfilled[0].data;
+
+    const fallbackData = await fetchTopPlayersFromEventsFallback(tournamentId, seasonId);
+    if (fallbackData && extractGoalTopPlayersList(fallbackData).length) return fallbackData;
 
     const firstError = results.find(result => result.status === "rejected")?.reason;
+    if (fulfilled.length) return { topPlayers: { goals: [] }, source: "top-players-empty" };
     throw firstError || new Error("Top players unavailable");
 }
 
@@ -2277,7 +2358,7 @@ app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
         const { id, sid } = req.params;
         const data = await getCachedDataWithTimeout(`topplayers_${id}_${sid}`, async () => {
             return await fetchTopPlayersData(id, sid);
-        }, CACHE_TIMES.STATIC, 7000, "Top players");
+        }, CACHE_TIMES.STATIC, 16000, "Top players");
         warmTopPlayerImages(data, 32).catch(e => {
             console.warn(`[Image Warmup] Top players ${id}/${sid} failed:`, e.message);
         });
