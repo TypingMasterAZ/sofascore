@@ -2778,11 +2778,57 @@ app.get("/api/auth/profile/:email", async (req, res) => {
     }
 });
 
+app.post("/api/support", (req, res) => {
+    try {
+        const type = String(req.body?.type || "other").slice(0, 40);
+        const title = String(req.body?.title || "").trim().slice(0, 120);
+        const message = String(req.body?.message || "").trim().slice(0, 1200);
+        const contact = String(req.body?.contact || "").trim().slice(0, 120);
+
+        if (!title || !message) {
+            return res.status(400).json({ success: false, message: "Başlıq və mesaj lazımdır" });
+        }
+
+        let items = [];
+        if (fs.existsSync(SUPPORT_MESSAGES_FILE)) {
+            try {
+                const parsed = JSON.parse(fs.readFileSync(SUPPORT_MESSAGES_FILE, "utf-8"));
+                if (Array.isArray(parsed)) items = parsed;
+            } catch (_) {}
+        }
+
+        const item = {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+            type,
+            title,
+            message,
+            contact,
+            page: String(req.body?.page || "").slice(0, 300),
+            userAgent: String(req.body?.userAgent || req.headers["user-agent"] || "").slice(0, 300),
+            user: req.body?.user ? {
+                uid: String(req.body.user.uid || "").slice(0, 120),
+                email: String(req.body.user.email || "").slice(0, 160),
+                displayName: String(req.body.user.displayName || "").slice(0, 120)
+            } : null,
+            createdAt: req.body?.createdAt || new Date().toISOString(),
+            ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || ""
+        };
+
+        items.unshift(item);
+        fs.writeFileSync(SUPPORT_MESSAGES_FILE, JSON.stringify(items.slice(0, 500), null, 2));
+        res.json({ success: true, id: item.id });
+    } catch (error) {
+        console.error("[Support] Save error:", error.message);
+        res.status(500).json({ success: false, message: "Dəstək mesajı saxlanmadı" });
+    }
+});
+
 // FCM Device & Favorites Tracking
 const REG_FILE = "./registrations.json";
 let fcmRegistrations = {}; // { token: { favorites: [] } }
 const WEB_PUSH_FILE = "./webpush_registrations.json";
 let webPushRegistrations = {}; // { deviceId: { subscription, favorites, leagues } }
+const SUPPORT_MESSAGES_FILE = "./support_messages.json";
 
 // Persistent History for sync
 const NOTIF_HISTORY_FILE = "./notif_history.json";

@@ -2921,6 +2921,125 @@
             opacity: 0.9;
         }
 
+        .support-page {
+            padding: 16px;
+        }
+
+        .support-hero {
+            padding: 22px 18px;
+            background: linear-gradient(145deg, rgba(59, 130, 246, 0.18), rgba(15, 23, 42, 0.96)), var(--card);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28);
+            margin-bottom: 16px;
+        }
+
+        .support-hero-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            font-size: 24px;
+            margin-bottom: 14px;
+        }
+
+        .support-title {
+            font-size: 24px;
+            font-weight: 900;
+            margin: 0 0 7px;
+            letter-spacing: 0;
+        }
+
+        .support-subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.55;
+            margin: 0;
+        }
+
+        .support-form {
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            padding: 16px;
+        }
+
+        .support-field {
+            margin-bottom: 14px;
+        }
+
+        .support-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .support-input,
+        .support-select,
+        .support-textarea {
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(2, 6, 23, 0.42);
+            color: var(--text-main);
+            border-radius: 12px;
+            padding: 13px 14px;
+            font-family: inherit;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .support-textarea {
+            min-height: 140px;
+            resize: vertical;
+            line-height: 1.45;
+        }
+
+        .support-input:focus,
+        .support-select:focus,
+        .support-textarea:focus {
+            border-color: rgba(59, 130, 246, 0.7);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
+        }
+
+        .support-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 6px;
+        }
+
+        .support-submit {
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), #2563eb);
+            color: #fff;
+            padding: 13px 18px;
+            font-weight: 900;
+            font-size: 15px;
+            cursor: pointer;
+            flex: 1;
+            box-shadow: 0 10px 22px rgba(37, 99, 235, 0.3);
+        }
+
+        .support-submit:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .support-note {
+            margin: 14px 16px 0;
+            color: var(--text-muted);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
         /* Social Media Section */
         .social-section {
             margin-top: auto;
@@ -4132,6 +4251,7 @@
         </div>
         <div class="sidebar-nav">
             <div class="side-item" onclick="switchMainView('profile'); toggleSidebar()"><i>&#9881;</i> Tənzimləmələr</div>
+            <div class="side-item" onclick="switchMainView('support'); toggleSidebar()"><i>&#128172;</i> Dəstək</div>
             <div class="side-item" onclick="showAboutApp(); toggleSidebar()"><i>&#8505;</i> Haqqımızda</div>
         </div>
     </div>
@@ -4248,7 +4368,45 @@
                 </div>
             </div>
 
-            <!-- 6. Auth View -->
+            <!-- 6. Support View -->
+            <div class="container" id="supportView">
+                <div class="support-page">
+                    <div class="support-hero">
+                        <div class="support-hero-icon">&#128172;</div>
+                        <h2 class="support-title">Dəstək</h2>
+                        <p class="support-subtitle">Proqramda gördüyünüz səhvləri, gecikmələri və yeni ideyalarınızı buradan göndərə bilərsiniz.</p>
+                    </div>
+                </div>
+                <form class="support-form" onsubmit="submitSupportRequest(event)">
+                    <div class="support-field">
+                        <label class="support-label" for="supportType">Mövzu</label>
+                        <select class="support-select" id="supportType">
+                            <option value="bug">Səhv bildirmək</option>
+                            <option value="idea">Təklif göndərmək</option>
+                            <option value="notification">Bildiriş problemi</option>
+                            <option value="other">Digər</option>
+                        </select>
+                    </div>
+                    <div class="support-field">
+                        <label class="support-label" for="supportTitle">Başlıq</label>
+                        <input class="support-input" id="supportTitle" maxlength="120" placeholder="Məsələn: Bildiriş gec gəlir">
+                    </div>
+                    <div class="support-field">
+                        <label class="support-label" for="supportMessage">Mesaj</label>
+                        <textarea class="support-textarea" id="supportMessage" maxlength="1200" placeholder="Problemi və ya təklifinizi qısa izah edin"></textarea>
+                    </div>
+                    <div class="support-field">
+                        <label class="support-label" for="supportContact">Əlaqə (istəyə bağlı)</label>
+                        <input class="support-input" id="supportContact" maxlength="120" placeholder="Email və ya istifadəçi adınız">
+                    </div>
+                    <div class="support-actions">
+                        <button class="support-submit" id="supportSubmitBtn" type="submit">Göndər</button>
+                    </div>
+                </form>
+                <div class="support-note">Göndərdiyiniz məlumatlar tətbiqi yaxşılaşdırmaq üçün saxlanılır. Şifrə və ya gizli kod yazmayın.</div>
+            </div>
+
+            <!-- 7. Auth View -->
             <div class="container" id="authView">
                 <div class="auth-container">
                     <div class="auth-tabs">
@@ -5205,6 +5363,8 @@
                         item.classList.add('active');
                     } else if (view === 'notifications' && text.includes('bildiriş')) {
                         item.classList.add('active');
+                    } else if (view === 'support' && text.includes('dəstək')) {
+                        item.classList.add('active');
                     }
                 });
             }
@@ -5724,6 +5884,67 @@
                 });
             }
 
+            async function submitSupportRequest(event) {
+                event.preventDefault();
+                const type = document.getElementById('supportType')?.value || 'other';
+                const title = document.getElementById('supportTitle')?.value.trim() || '';
+                const message = document.getElementById('supportMessage')?.value.trim() || '';
+                const contact = document.getElementById('supportContact')?.value.trim() || '';
+                const btn = document.getElementById('supportSubmitBtn');
+
+                if (!title || !message) {
+                    showToast('Başlıq və mesaj yazın', 'error');
+                    return;
+                }
+
+                const payload = {
+                    type,
+                    title,
+                    message,
+                    contact,
+                    page: location.href,
+                    userAgent: navigator.userAgent,
+                    createdAt: new Date().toISOString(),
+                    user: auth.currentUser ? {
+                        uid: auth.currentUser.uid || '',
+                        email: auth.currentUser.email || '',
+                        displayName: auth.currentUser.displayName || ''
+                    } : null
+                };
+
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerText = 'Göndərilir...';
+                }
+
+                try {
+                    const res = await fetch(API_BASE_URL + '/api/support', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json().catch(() => null);
+                    if (!res.ok || !data?.success) throw new Error(data?.message || 'Göndərilmədi');
+                    document.getElementById('supportTitle').value = '';
+                    document.getElementById('supportMessage').value = '';
+                    document.getElementById('supportContact').value = '';
+                    showToast('Mesajınız göndərildi', 'success');
+                } catch (error) {
+                    try {
+                        const saved = JSON.parse(localStorage.getItem('supportDrafts') || '[]');
+                        saved.unshift(payload);
+                        localStorage.setItem('supportDrafts', JSON.stringify(saved.slice(0, 20)));
+                    } catch (_) {}
+                    showToast('Serverə göndərilmədi, cihazda saxlandı', 'error');
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerText = 'Göndər';
+                    }
+                }
+            }
+            window.submitSupportRequest = submitSupportRequest;
+
             function switchMainView(viewType) {
                 currentStandingsTourId = null;
                 document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
@@ -5808,6 +6029,13 @@
                     notificationMgr.renderHistory();
                     notificationMgr.markAllAsRead();
                     mc.style.paddingTop = '60px';
+                }
+                else if (viewType === 'support') {
+                    document.getElementById('supportView').classList.add('active');
+                    document.getElementById('dateTabsContainer').style.display = 'none';
+                    document.getElementById('logoTitle').innerText = 'DƏSTƏK';
+                    showBackBtn();
+                    mc.style.paddingTop = '70px';
                 }
                 mc.scrollTo({ top: 0, behavior: 'auto' });
                 updateSidebarActive(viewType);
@@ -6245,7 +6473,13 @@
                 document.getElementById('menuBtn').style.display = 'block';
             }
 
-            function goBack() { switchMainView('leagues'); }
+            function goBack() {
+                if (document.getElementById('singleLeagueView')?.classList.contains('active')) {
+                    switchMainView('leagues');
+                    return;
+                }
+                switchMainView('matches');
+            }
 
             window.toggleCollapsible = function (headerElement) {
                 const matchesContainer = headerElement.nextElementSibling;
