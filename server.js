@@ -2778,7 +2778,60 @@ app.get("/api/auth/profile/:email", async (req, res) => {
     }
 });
 
-app.post("/api/support", (req, res) => {
+const SUPPORT_NOTIFY_EMAIL = process.env.SUPPORT_NOTIFY_EMAIL || "eltensabutov23@gmail.com";
+
+function escapeEmailHtml(value) {
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function buildSupportEmail(item) {
+    const userLine = item.user
+        ? `${item.user.displayName || "Adsiz"} ${item.user.email ? `<${item.user.email}>` : ""} ${item.user.uid ? `(${item.user.uid})` : ""}`.trim()
+        : "Giris edilmeyib";
+    const text = [
+        "Yeni destek mesaji",
+        "",
+        `ID: ${item.id}`,
+        `Movzu: ${item.type}`,
+        `Basliq: ${item.title}`,
+        `Elaqe: ${item.contact || "Yoxdur"}`,
+        `Istifadeci: ${userLine}`,
+        `Sehife: ${item.page || "Yoxdur"}`,
+        `Tarix: ${item.createdAt}`,
+        `IP: ${item.ip || "Yoxdur"}`,
+        "",
+        "Mesaj:",
+        item.message,
+        "",
+        `User-Agent: ${item.userAgent || ""}`
+    ].join("\n");
+
+    const html = `
+        <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111827">
+            <h2>Yeni dəstək mesajı</h2>
+            <p><b>ID:</b> ${escapeEmailHtml(item.id)}</p>
+            <p><b>Mövzu:</b> ${escapeEmailHtml(item.type)}</p>
+            <p><b>Başlıq:</b> ${escapeEmailHtml(item.title)}</p>
+            <p><b>Əlaqə:</b> ${escapeEmailHtml(item.contact || "Yoxdur")}</p>
+            <p><b>İstifadəçi:</b> ${escapeEmailHtml(userLine)}</p>
+            <p><b>Səhifə:</b> ${escapeEmailHtml(item.page || "Yoxdur")}</p>
+            <p><b>Tarix:</b> ${escapeEmailHtml(item.createdAt)}</p>
+            <p><b>IP:</b> ${escapeEmailHtml(item.ip || "Yoxdur")}</p>
+            <hr>
+            <p style="white-space:pre-wrap">${escapeEmailHtml(item.message)}</p>
+            <hr>
+            <p style="font-size:12px;color:#6b7280"><b>User-Agent:</b> ${escapeEmailHtml(item.userAgent || "")}</p>
+        </div>`;
+
+    return { text, html };
+}
+
+app.post("/api/support", async (req, res) => {
     try {
         const type = String(req.body?.type || "other").slice(0, 40);
         const title = String(req.body?.title || "").trim().slice(0, 120);
@@ -2816,7 +2869,27 @@ app.post("/api/support", (req, res) => {
 
         items.unshift(item);
         fs.writeFileSync(SUPPORT_MESSAGES_FILE, JSON.stringify(items.slice(0, 500), null, 2));
-        res.json({ success: true, id: item.id });
+
+        let emailSent = false;
+        try {
+            const { text, html } = buildSupportEmail(item);
+            const replyTo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)
+                ? contact
+                : (item.user?.email || undefined);
+            await transporter.sendMail({
+                from: `"Rabona Media Dəstək" <${process.env.EMAIL_USER || 'typingmaster.az@gmail.com'}>`,
+                to: SUPPORT_NOTIFY_EMAIL,
+                replyTo,
+                subject: `Rabona Media dəstək: ${title}`,
+                text,
+                html
+            });
+            emailSent = true;
+        } catch (mailError) {
+            console.error("[Support] Email send error:", mailError.message);
+        }
+
+        res.json({ success: true, id: item.id, emailSent });
     } catch (error) {
         console.error("[Support] Save error:", error.message);
         res.status(500).json({ success: false, message: "Dəstək mesajı saxlanmadı" });
