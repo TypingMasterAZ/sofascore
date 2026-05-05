@@ -16,6 +16,10 @@ services:
         sync: false
       - key: GAS_PROXY_URL
         value: https://script.google.com/macros/s/AKfycbwFuXK4oHJIAjMoCxPEMeh5hH5jn10PGYEEo048pnmQLFNQoI-M0Fqr5-NZ1wyITYJQrQ/exec
+      - key: LIVE_PRIMARY_SOURCE
+        value: sofascore
+      - key: ALLOW_MACKOLIK_FALLBACK
+        value: "false"
       - key: RAPIDAPI_KEY
         sync: false
       - key: WEB_PUSH_PUBLIC_KEY

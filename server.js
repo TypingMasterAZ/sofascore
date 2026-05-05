@@ -887,6 +887,7 @@ let liveSnapshotLoadPromise = null;
 const LIVE_SNAPSHOT_FILE = "./live_snapshot.json";
 const LIVE_SNAPSHOT_MAX_AGE = 2500;
 const LIVE_PRIMARY_SOURCE = String(process.env.LIVE_PRIMARY_SOURCE || "sofascore").toLowerCase();
+const ALLOW_MACKOLIK_FALLBACK = String(process.env.ALLOW_MACKOLIK_FALLBACK || "false").toLowerCase() === "true";
 const MACKOLIK_LIVE_URL = "https://www.mackolik.com/perform/p0/ajax/components/competition/livescores/json";
 const MACKOLIK_LIVE_PAGE_URL = "https://www.mackolik.com/canli-sonuclar";
 const MACKOLIK_HEADERS = {
@@ -1088,7 +1089,7 @@ function normalizeMackolikMatchesData(payload, options = {}) {
     };
 }
 
-function normalizeSofaLiveEventsData(payload) {
+function normalizeSofaEventsData(payload) {
     const events = Array.isArray(payload?.events) ? payload.events : [];
     return {
         ...payload,
@@ -1104,11 +1105,24 @@ function normalizeSofaLiveEventsData(payload) {
     };
 }
 
+function normalizeSofaLiveEventsData(payload) {
+    return normalizeSofaEventsData(payload);
+}
+
 async function fetchLiveFromSofaScore() {
     const data = await fetchFromSofaFastRace("/sport/football/events/live", {}, 6500);
     const normalized = normalizeSofaLiveEventsData(data);
     if (!Array.isArray(normalized.events)) {
         throw new Error("SofaScore live response missing events array");
+    }
+    return normalized;
+}
+
+async function fetchScheduledFromSofaScore(date) {
+    const data = await fetchFromSofa(`/sport/football/scheduled-events/${date}`);
+    const normalized = normalizeSofaEventsData(data.data);
+    if (!Array.isArray(normalized.events)) {
+        throw new Error("SofaScore scheduled response missing events array");
     }
     return normalized;
 }
@@ -1141,6 +1155,9 @@ async function fetchLiveWithFallback() {
     try {
         return await fetchLiveFromSofaScore();
     } catch (sofaError) {
+        if (!ALLOW_MACKOLIK_FALLBACK) {
+            throw sofaError;
+        }
         console.warn(`[LIVE SOURCE] SofaScore failed, falling back to Mackolik: ${sofaError.message}`);
         const fallback = await fetchLiveFromMackolik();
         return {
@@ -2105,8 +2122,12 @@ app.get("/api/matches/:date", async (req, res) => {
     try {
         const today = new Date().toISOString().split('T')[0];
         const ttl = (date === today) ? 10 * 1000 : CACHE_TIMES.SCHEDULED; // 10s cache for today
-        const data = await getCachedData(`matches_${date}`, async () => {
-            return await fetchMackolikMatchesByDate(date);
+        const source = String(req.query.source || "sofascore").toLowerCase();
+        const data = await getCachedData(`matches_${source}_${date}`, async () => {
+            if (source === "mackolik") {
+                return await fetchMackolikMatchesByDate(date);
+            }
+            return await fetchScheduledFromSofaScore(date);
         }, ttl);
         res.json(data);
     } catch (error) {
