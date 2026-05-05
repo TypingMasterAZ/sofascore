@@ -1,0 +1,52 @@
+[
+  {
+    "item": {
+      "id": "mosxjhonpzh6mx",
+      "type": "bug",
+      "title": "salam",
+      "message": "saılam",
+      "contact": "sabahlardangeıirem123@gmail.com",
+      "page": "http://localhost:3000/",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "user": {
+        "uid": "6GEQNvT1dpTIpTKGgzYWwRy08D62",
+        "email": "eltensabutov23@gmail.com",
+        "displayName": "salam"
+      },
+      "createdAt": "2026-05-05T17:56:12.046Z",
+      "ip": "127.0.0.1"
+    },
+    "status": "sent",
+    "attempts": 1,
+    "createdAt": "2026-05-05T17:56:15.815Z",
+    "lastError": "",
+    "lastAttemptAt": "2026-05-05T17:56:15.815Z",
+    "sentAt": "2026-05-05T17:56:17.135Z",
+    "messageId": "<70fc048c-769f-3b91-548e-84322965abaa@gmail.com>"
+  },
+  {
+    "item": {
+      "id": "mosxmpb6mwr0qe",
+      "type": "notification",
+      "title": "salam",
+      "message": "necesen",
+      "contact": "eltnsabutov@gmail.com",
+      "page": "http://localhost:3000/",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+      "user": {
+        "uid": "6GEQNvT1dpTIpTKGgzYWwRy08D62",
+        "email": "eltensabutov23@gmail.com",
+        "displayName": "salam"
+      },
+      "createdAt": "2026-05-05T17:58:45.515Z",
+      "ip": "127.0.0.1"
+    },
+    "status": "sent",
+    "attempts": 1,
+    "createdAt": "2026-05-05T17:58:45.666Z",
+    "lastError": "",
+    "lastAttemptAt": "2026-05-05T17:58:45.667Z",
+    "sentAt": "2026-05-05T17:58:46.993Z",
+    "messageId": "<8b6e037a-4719-0ebf-19a9-2b2affd33daf@gmail.com>"
+  }
+]

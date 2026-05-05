@@ -4769,7 +4769,7 @@
             const IMAGE_PLACEHOLDER = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iMTIiIGZpbGw9IiMxMTE4MjciLz48Y2lyY2xlIGN4PSIyNCIgY3k9IjI0IiByPSIxMSIgZmlsbD0iIzMzNDE1NSIvPjwvc3ZnPg==";
 
             function sofaImageUrl(path, options = {}) {
-                if (options.direct !== false) {
+                if (options.direct === true) {
                     return `${SOFA_IMAGE_BASE_URL}${path}`;
                 }
                 const params = new URLSearchParams({ path, v: "3" });
@@ -5293,10 +5293,13 @@
             let allCategoriesGlobal = [];
             let expandedCategories = new Set();
             const categoryLeaguesCache = {};
+            const categoryLeaguesMeta = {};
+            const categoryLeaguesRetryTimers = {};
             const prefetchedCategoryLeagues = new Set();
             const knownLeaguesById = {};
             const leagueTopPlayersCache = {};
             const TOP_PLAYERS_CACHE_VERSION = "v5";
+            const CATEGORY_LEAGUES_CACHE_VERSION = "v2";
             const FEATURED_CATEGORY_IDS = new Set(['1', '7', '30', '31', '32', '46', '297', '1465']);
             const FEATURED_CATEGORY_NAMES = new Set([
                 'england', 'spain', 'italy', 'germany', 'france', 'turkey', 'azerbaijan',
@@ -6113,6 +6116,9 @@
                     resolveLeagueSeasonId(group.id).then(seasonId => {
                         if (seasonId && window.currentLeagueContext?.id?.toString() === group.id.toString()) {
                             window.currentLeagueContext.seasonId = seasonId;
+                            group.seasonId = seasonId;
+                            loadStandings(group.id, seasonId);
+                            prefetchLeagueTopPlayers(group.id, seasonId);
                         }
                     }).catch(e => console.warn("Background season fetch error:", e.message));
                 }
@@ -6252,7 +6258,7 @@
                         }
                     } else {
                         if (currentStandingsTourId === tourId && document.getElementById('leagueStandings').innerHTML.includes('skeleton')) {
-                            document.getElementById('leagueStandings').innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Cədvəl məlumatı yoxdur.</div>";
+                            document.getElementById('leagueStandings').innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Cədvəl məlumatı hazırda yoxdur.</div>";
                         }
                     }
                 } catch (e) {
@@ -6264,9 +6270,8 @@
                         (box.innerHTML.includes('skeleton') || box.innerHTML.includes('loader-wrapper'))
                     ) {
                         box.innerHTML = `<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:700;'>
-                            Cədvəl hələ yüklənir...<br>
-                            <span style="display:block; font-size:12px; opacity:.75; margin-top:8px;">Bağlantı gec cavab verdi. Bir neçə saniyə sonra yenidən yoxlaya bilərsiniz.</span>
-                            <button class="save-btn" style="width:auto; margin-top:16px; padding:10px 18px;" onclick="loadStandings('${tourId}', '${seasonId || ''}')">Yenidən yoxla</button>
+                            Cədvəl məlumatı gecikir.
+                            <span style="display:block; font-size:12px; opacity:.75; margin-top:8px;">Açıq qalarsa arxa planda yenidən yoxlanacaq.</span>
                         </div>`;
                     }
                 }
@@ -7191,12 +7196,66 @@
                 const key = String(catId);
                 if (categoryLeaguesCache[key]) return categoryLeaguesCache[key];
 
-                const data = await fetchServerJson(`/api/category/${key}/tournaments?fast=1`, "Ölkə liqaları server xətası");
+                const cacheKey = `category_leagues_${CATEGORY_LEAGUES_CACHE_VERSION}_${key}`;
+                const persisted = getPersistedLeagueData(cacheKey, 7 * 24 * 60 * 60 * 1000);
+                if (Array.isArray(persisted) && persisted.length) {
+                    categoryLeaguesCache[key] = persisted;
+                    fetchServerJson(`/api/category/${key}/tournaments?fast=1`, "Ölkə liqaları server xətası")
+                        .then(data => {
+                            const fresh = normalizeCategoryLeaguesPayload(data);
+                            if (fresh.length) {
+                                const category = getCategoryById(key);
+                                fresh.forEach(league => rememberLeagueMeta(league, category));
+                                categoryLeaguesCache[key] = fresh;
+                                setPersistedLeagueData(cacheKey, fresh);
+                            }
+                        })
+                        .catch(() => {});
+                    return persisted;
+                }
+
+                const data = await withTimeout(
+                    fetchServerJson(`/api/category/${key}/tournaments?fast=1`, "Ölkə liqaları server xətası"),
+                    6500
+                );
                 const leagues = normalizeCategoryLeaguesPayload(data);
+                categoryLeaguesMeta[key] = {
+                    pending: !!(data?.pending || data?.unavailable),
+                    updatedAt: Date.now()
+                };
+                if (!leagues.length && categoryLeaguesMeta[key].pending) {
+                    delete categoryLeaguesCache[key];
+                    return [];
+                }
                 const category = getCategoryById(key);
                 leagues.forEach(league => rememberLeagueMeta(league, category));
                 categoryLeaguesCache[key] = leagues;
+                if (leagues.length) setPersistedLeagueData(cacheKey, leagues);
                 return leagues;
+            }
+
+            function scheduleCategoryLeaguesRetry(key, cat, delay = 2200) {
+                key = String(key);
+                clearTimeout(categoryLeaguesRetryTimers[key]);
+                categoryLeaguesRetryTimers[key] = setTimeout(() => {
+                    delete categoryLeaguesCache[key];
+                    fetchCategoryLeaguesData(key)
+                        .then(leagues => {
+                            if (!leagues.length && categoryLeaguesMeta[key]?.pending) {
+                                scheduleCategoryLeaguesRetry(key, cat, Math.min(delay + 1800, 7000));
+                                return;
+                            }
+                            if (window.currentCountryContext?.id === key) {
+                                renderCountryLeaguesPage(cat, leagues, { delayed: !leagues.length });
+                            }
+                        })
+                        .catch(err => {
+                            console.warn("Country leagues background retry failed:", err.message);
+                            if (window.currentCountryContext?.id === key) {
+                                scheduleCategoryLeaguesRetry(key, cat, Math.min(delay + 1800, 7000));
+                            }
+                        });
+                }, delay);
             }
 
             function prefetchCategoryLeagues(catId) {
@@ -7213,8 +7272,11 @@
                 const displayName = escapeHtml(cat?.name || 'Ölkə');
                 const flagUrl = getCountryFlagUrl(cat || {});
                 const fallbackFlag = sofaImageUrl(`/category/${cat?.id || 1}/image`);
-                const statusText = options.loading
+                const isLoading = !!options.loading && !leagues.length;
+                const statusText = isLoading
                     ? 'Liqalar yüklənir...'
+                    : options.delayed
+                        ? 'Məlumat gecikir, arxa planda yenilənir'
                     : `${leagues.length} liqa tapıldı`;
 
                 const leagueRows = leagues.length ? leagues.map(l => {
@@ -7253,7 +7315,7 @@
                             </div>
                         </div>
                     </div>
-                    ${options.loading ? `
+                    ${isLoading ? `
                         <div class="league-group" style="border-radius:18px; padding:18px; margin-top:14px;">
                             <div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton"></div><div class="skel-team skeleton" style="width:55%"></div></div></div>
                             <div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton"></div><div class="skel-team skeleton" style="width:65%"></div></div></div>
@@ -7278,6 +7340,14 @@
                 currentStandingsTourId = null;
                 window.currentCountryContext = { id: key };
 
+                const countryLoadingGuard = setTimeout(() => {
+                    if (window.currentCountryContext?.id !== key) return;
+                    const content = document.getElementById('singleLeagueContent');
+                    if (content && content.innerHTML.includes('Məlumat hazırlanır')) {
+                        renderCountryLeaguesPage(cat, categoryLeaguesCache[key] || [], { delayed: true });
+                    }
+                }, 4500);
+
                 if (categoryLeaguesCache[key]) {
                     renderCountryLeaguesPage(cat, categoryLeaguesCache[key]);
                 } else {
@@ -7285,18 +7355,17 @@
                 }
 
                 try {
-                    const leagues = await withTimeout(fetchCategoryLeaguesData(key), 12000);
+                    const leagues = await withTimeout(fetchCategoryLeaguesData(key), 8000);
+                    clearTimeout(countryLoadingGuard);
                     if (window.currentCountryContext?.id !== key) return;
-                    renderCountryLeaguesPage(cat, leagues);
+                    const delayed = !leagues.length && categoryLeaguesMeta[key]?.pending;
+                    renderCountryLeaguesPage(cat, leagues, { delayed });
+                    if (delayed) scheduleCategoryLeaguesRetry(key, cat);
                 } catch (e) {
+                    clearTimeout(countryLoadingGuard);
                     if (window.currentCountryContext?.id !== key) return;
-                    document.getElementById('singleLeagueContent').innerHTML = `
-                        <div class="league-group" style="margin-top:20px; border-radius:18px; padding:28px; text-align:center;">
-                            <div style="font-size:42px; margin-bottom:12px;">&#9888;</div>
-                            <div style="font-size:18px; font-weight:900; margin-bottom:8px;">Liqalar gecikir</div>
-                            <div style="color:var(--text-muted); font-size:14px; line-height:1.5; margin-bottom:18px;">Bu ölkənin liqaları hazırda tez açılmadı. Yenidən yoxlayın.</div>
-                            <button class="auth-btn" style="width:auto; padding:12px 20px; margin:0 auto;" onclick="openCountryLeaguesPage('${key}')">Yenidən yüklə</button>
-                        </div>`;
+                    renderCountryLeaguesPage(cat, categoryLeaguesCache[key] || [], { delayed: true });
+                    scheduleCategoryLeaguesRetry(key, cat);
                 }
             }
 
@@ -7322,7 +7391,7 @@
                     leagueContainer.dataset.loaded = "1";
                 } catch (e) {
                     console.warn("Category leagues load failed:", key, e.message);
-                    leagueContainer.innerHTML = `<div style="padding:15px; color:var(--live); text-align:center; font-size:12px;">Liqalar yüklənmədi. Yenidən basıb yoxlayın.</div>`;
+                    leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">Liqa məlumatı hazırda gecikir.</div>`;
                 }
             }
 
@@ -7647,7 +7716,7 @@
                         : `/api/standings-fast/${tourId}`;
                     data = await withTimeout(
                         fetchServerJson(fastPath, "Standings fast server xətası"),
-                        2800
+                        6500
                     );
                 } catch (serverErr) {
                     console.warn("Fast standings API failed:", serverErr.message);
@@ -7718,10 +7787,10 @@
                 try {
                     data = await withTimeout(
                         fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players server xətası"),
-                        2800
+                        6200
                     );
                 } catch (serverErr) {
-                    console.warn("Top players API failed, trying browser SofaScore fallback:", serverErr.message);
+                    console.warn("Top players API failed:", serverErr.message);
                 }
 
                 if (!extractTopPlayersList(data).length) {
@@ -7729,12 +7798,7 @@
                         {
                             path: `/unique-tournament/${tourId}/season/${seasonId}/statistics`,
                             params: { limit: 50, order: '-goals', accumulation: 'total', group: 'summary' }
-                        },
-                        { path: `/unique-tournament/${tourId}/season/${seasonId}/top-players/goals` },
-                        { path: `/unique-tournament/${tourId}/season/${seasonId}/top-players/overall` },
-                        { path: `/unique-tournament/${tourId}/season/${seasonId}/top-players/scoring` },
-                        { path: `/unique-tournament/${tourId}/season/${seasonId}/top-players-per-game/all/overall` },
-                        { path: `/unique-tournament/${tourId}/season/${seasonId}/top-players` }
+                        }
                     ];
                     for (const item of paths) {
                         try {

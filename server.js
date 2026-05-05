@@ -1468,6 +1468,27 @@ function getFallbackCategoryTournaments(categoryId) {
     return item?.data || null;
 }
 
+function saveCategoryTournamentsSnapshot(categoryId, data) {
+    if (!data) return;
+    try {
+        let parsed = { generatedAt: new Date().toISOString(), source: "runtime-category-unique-tournaments", items: {} };
+        if (fs.existsSync(FOOTBALL_CATEGORY_TOURNAMENTS_SNAPSHOT_FILE)) {
+            try { parsed = JSON.parse(fs.readFileSync(FOOTBALL_CATEGORY_TOURNAMENTS_SNAPSHOT_FILE, "utf8")); } catch (_) {}
+        }
+        parsed.items = parsed.items || {};
+        const category = data.category || FALLBACK_CATEGORIES.find(cat => String(cat.id) === String(categoryId)) || null;
+        parsed.items[String(categoryId)] = {
+            category,
+            data,
+            timestamp: Date.now()
+        };
+        fs.writeFileSync(FOOTBALL_CATEGORY_TOURNAMENTS_SNAPSHOT_FILE, JSON.stringify(parsed));
+        FALLBACK_CATEGORY_TOURNAMENTS[String(categoryId)] = parsed.items[String(categoryId)];
+    } catch (error) {
+        console.warn(`[Category Snapshot Save] ${categoryId}: ${error.message}`);
+    }
+}
+
 let imageWarmIndex = 0;
 
 function collectStaticLeagueImagePaths() {
@@ -1694,13 +1715,13 @@ async function fetchTopPlayersFromEventsFallback(tournamentId, seasonId) {
 }
 
 async function fetchTopPlayersData(tournamentId, seasonId) {
-    const hasKnownSeason = !!KNOWN_CURRENT_SEASONS[tournamentId];
     try {
         const statsPath = `/unique-tournament/${tournamentId}/season/${seasonId}/statistics`;
-        const statsParams = { limit: 50, order: "-goals", accumulation: "total", group: "summary" };
         const statisticsData = await Promise.any([
-            fetchFromSofaNativeFast(statsPath, statsParams, 2500),
-            fetchFromSofaFastRace(statsPath, statsParams, 5000)
+            fetchFromSofaNativeFast(statsPath, { limit: 50, order: "-goals", accumulation: "total", group: "summary" }, 2600),
+            fetchFromSofaNativeFast(statsPath, { limit: 50, order: "-goals", group: "attack" }, 2600),
+            fetchFromSofaFastRace(statsPath, { limit: 50, order: "-goals", accumulation: "total", group: "summary" }, 4200),
+            fetchFromSofaFastRace(statsPath, { limit: 50, order: "-goals", group: "attack" }, 4200)
         ]);
         const goals = Array.isArray(statisticsData?.results)
             ? statisticsData.results
@@ -1723,37 +1744,10 @@ async function fetchTopPlayersData(tournamentId, seasonId) {
         console.warn(`[Top Players] Fast statistics goals failed for ${tournamentId}/${seasonId}: ${error.message}`);
     }
 
-    const paths = [
-        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players/goals`,
-        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players/overall`,
-        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players/scoring`,
-        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players-per-game/all/overall`,
-        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players`
-    ];
-
-    const attempts = paths.map(apiPath =>
-        fetchFromSofaFastRace(apiPath, {}, 4500)
-            .then(data => ({
-                apiPath,
-                data,
-                goalCount: extractGoalTopPlayersList(data).length,
-                count: extractTopPlayersList(data).length
-            }))
-    );
-
-    const results = await Promise.allSettled(attempts);
-    const fulfilled = results
-        .filter(result => result.status === "fulfilled")
-        .map(result => result.value);
-    const withGoals = fulfilled.find(result => result.goalCount > 0);
-    if (withGoals) return withGoals.data;
-
     const fallbackData = await fetchTopPlayersFromEventsFallback(tournamentId, seasonId);
     if (fallbackData && extractGoalTopPlayersList(fallbackData).length) return fallbackData;
 
-    const firstError = results.find(result => result.status === "rejected")?.reason;
-    if (fulfilled.length) return { topPlayers: { goals: [] }, source: "top-players-empty" };
-    throw firstError || new Error("Top players unavailable");
+    throw new Error("Top players unavailable");
 }
 
 async function fetchTopPlayersDataForBestSeason(tournamentId, seasonId) {
@@ -2442,13 +2436,52 @@ app.get("/api/category/:id/tournaments", async (req, res) => {
     const categoryId = String(req.params.id);
     const fallbackData = getFallbackCategoryTournaments(categoryId);
     const cacheKey = `category_tournaments_${categoryId}`;
-    const fetchFresh = async () => await fetchFromSofaFastRace(`/category/${categoryId}/unique-tournaments`, {}, 5500);
+    const cached = cache[cacheKey]?.data;
+    const fetchFresh = async () => {
+        const data = await Promise.any([
+            fetchFromSofaNativeFast(`/category/${categoryId}/unique-tournaments`, {}, 2500),
+            fetchFromSofaFastRace(`/category/${categoryId}/unique-tournaments`, {}, 4200)
+        ]);
+        if (data?.uniqueTournaments?.length || data?.groups?.length) saveCategoryTournamentsSnapshot(categoryId, data);
+        return data;
+    };
+
+    if (req.query.fast === "1" && cached) {
+        res.json({ ...cached, cached: true, fast: true });
+        getCachedData(cacheKey, fetchFresh, CACHE_TIMES.STATIC, { skipJitter: true })
+            .then(data => warmImagePaths(collectTournamentImagePaths(data), 24))
+            .catch(e => console.warn(`[Category Cache Refresh] ${categoryId} failed:`, e.message));
+        return;
+    }
 
     if (req.query.fast === "1" && fallbackData) {
         res.json({ ...fallbackData, fallback: true, snapshot: true });
         getCachedData(cacheKey, fetchFresh, CACHE_TIMES.STATIC, { skipJitter: true })
             .then(data => warmImagePaths(collectTournamentImagePaths(data), 36))
             .catch(e => console.warn(`[Category Snapshot Refresh] ${categoryId} failed:`, e.message));
+        return;
+    }
+
+    if (req.query.fast === "1") {
+        try {
+            const data = await fetchFresh();
+            cache[cacheKey] = { data, timestamp: Date.now() };
+            res.json({ ...data, fast: true });
+            warmImagePaths(collectTournamentImagePaths(data), 24).catch(e => {
+                console.warn(`[Image Warmup] Category ${categoryId} fast leagues failed:`, e.message);
+            });
+        } catch (error) {
+            res.json({
+                uniqueTournaments: [],
+                groups: [],
+                pending: true,
+                fast: true,
+                message: "Category tournaments are loading"
+            });
+            getCachedData(cacheKey, fetchFresh, CACHE_TIMES.STATIC, { skipJitter: true })
+                .then(data => warmImagePaths(collectTournamentImagePaths(data), 24))
+                .catch(e => console.warn(`[Category Fast Refresh] ${categoryId} failed:`, e.message));
+        }
         return;
     }
 
@@ -2472,7 +2505,12 @@ app.get("/api/category/:id/tournaments", async (req, res) => {
         if (fallbackData) {
             return res.json({ ...fallbackData, fallback: true, snapshot: true });
         }
-        res.status(500).json({ error: true });
+        res.json({
+            uniqueTournaments: [],
+            groups: [],
+            unavailable: true,
+            message: "Category tournaments unavailable"
+        });
     }
 });
 
@@ -2531,11 +2569,11 @@ app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
             console.log(`[CACHE HIT] Key: ${cacheKey}`);
             data = cached.data;
         } else {
-            data = await withServerTimeout(fetchTopPlayersDataForBestSeason(id, sid), 9000, "Top players");
+            data = await withServerTimeout(fetchTopPlayersDataForBestSeason(id, sid), 6000, "Top players");
             if (data?.derived && cached?.data && !cached.data.derived && extractTopPlayersList(cached.data).length) {
                 console.warn(`[Top Players] Keeping official cached data over derived fallback for ${id}/${sid}`);
                 data = cached.data;
-            } else {
+            } else if (hasTopPlayers(data)) {
                 cache[cacheKey] = { data, timestamp: Date.now() };
             }
         }
@@ -2779,6 +2817,8 @@ app.get("/api/auth/profile/:email", async (req, res) => {
 });
 
 const SUPPORT_NOTIFY_EMAIL = process.env.SUPPORT_NOTIFY_EMAIL || "eltensabutov23@gmail.com";
+const SUPPORT_EMAIL_QUEUE_FILE = "./support_email_queue.json";
+let supportEmailQueueProcessing = false;
 
 function escapeEmailHtml(value) {
     return String(value || "")
@@ -2837,7 +2877,7 @@ async function sendSupportEmail(item) {
     const replyTo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)
         ? contact
         : (item.user?.email || undefined);
-    await transporter.sendMail({
+    return await transporter.sendMail({
         from: `"Rabona Media Dəstək" <${process.env.EMAIL_USER || 'typingmaster.az@gmail.com'}>`,
         to: SUPPORT_NOTIFY_EMAIL,
         replyTo,
@@ -2845,6 +2885,72 @@ async function sendSupportEmail(item) {
         text,
         html
     });
+}
+
+function loadSupportEmailQueue() {
+    try {
+        if (!fs.existsSync(SUPPORT_EMAIL_QUEUE_FILE)) return [];
+        const parsed = JSON.parse(fs.readFileSync(SUPPORT_EMAIL_QUEUE_FILE, "utf-8"));
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        console.error("[Support] Email queue read error:", error.message);
+        return [];
+    }
+}
+
+function saveSupportEmailQueue(queue) {
+    try {
+        fs.writeFileSync(SUPPORT_EMAIL_QUEUE_FILE, JSON.stringify(queue.slice(-200), null, 2));
+    } catch (error) {
+        console.error("[Support] Email queue write error:", error.message);
+    }
+}
+
+function enqueueSupportEmail(item) {
+    const queue = loadSupportEmailQueue();
+    queue.push({
+        item,
+        status: "pending",
+        attempts: 0,
+        createdAt: new Date().toISOString(),
+        lastError: ""
+    });
+    saveSupportEmailQueue(queue);
+    processSupportEmailQueue();
+}
+
+async function processSupportEmailQueue() {
+    if (supportEmailQueueProcessing) return;
+    supportEmailQueueProcessing = true;
+    try {
+        const queue = loadSupportEmailQueue();
+        let changed = false;
+        for (const entry of queue) {
+            if (entry.status === "sent") continue;
+            if ((entry.attempts || 0) >= 5) continue;
+            try {
+                entry.attempts = (entry.attempts || 0) + 1;
+                entry.lastAttemptAt = new Date().toISOString();
+                const info = await sendSupportEmail(entry.item);
+                entry.status = "sent";
+                entry.sentAt = new Date().toISOString();
+                entry.messageId = info?.messageId || "";
+                entry.lastError = "";
+                changed = true;
+                console.log(`[Support] Email sent to ${SUPPORT_NOTIFY_EMAIL}: ${entry.item?.id || ""}`);
+            } catch (error) {
+                entry.status = "pending";
+                entry.lastError = error.message;
+                changed = true;
+                console.error("[Support] Email send error:", error.message);
+                break;
+            }
+        }
+        const keep = queue.filter(entry => entry.status !== "sent" || Date.now() - Date.parse(entry.sentAt || 0) < 24 * 60 * 60 * 1000);
+        if (changed || keep.length !== queue.length) saveSupportEmailQueue(keep);
+    } finally {
+        supportEmailQueueProcessing = false;
+    }
 }
 
 app.post("/api/support", async (req, res) => {
@@ -2886,9 +2992,7 @@ app.post("/api/support", async (req, res) => {
         items.unshift(item);
         fs.writeFileSync(SUPPORT_MESSAGES_FILE, JSON.stringify(items.slice(0, 500), null, 2));
 
-        sendSupportEmail(item).catch(mailError => {
-            console.error("[Support] Email send error:", mailError.message);
-        });
+        enqueueSupportEmail(item);
 
         res.json({ success: true, id: item.id, emailQueued: true });
     } catch (error) {
@@ -3803,6 +3907,8 @@ app.listen(PORT, "0.0.0.0", () => {
         console.warn("[Warmup] Initial league image prefetch failed:", e.message);
     });
     warmRuntimeCaches();
+    processSupportEmailQueue();
+    setInterval(processSupportEmailQueue, 60 * 1000);
     setInterval(warmRuntimeCaches, 8 * 1000);
     setInterval(() => warmLeagueImages(16).catch(e => {
         console.warn("[Warmup] League image interval failed:", e.message);
