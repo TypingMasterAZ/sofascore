@@ -4758,7 +4758,8 @@
 
             try {
             // API ünvanının təyin edilm?si (Lokal v? ya Render)
-            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:';
+            const isFileProtocol = window.location.protocol === 'file:';
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             const isRender = window.location.hostname.includes('onrender.com');
             // DİQQƏT: Render-d?n aldüçün?z ünvanı aşağıdakı DEPLOYED_URL hissəsin? yazın
             const DEPLOYED_URL = 'https://proscore-live.onrender.com';
@@ -4769,7 +4770,7 @@
             const IMAGE_PLACEHOLDER = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iMTIiIGZpbGw9IiMxMTE4MjciLz48Y2lyY2xlIGN4PSIyNCIgY3k9IjI0IiByPSIxMSIgZmlsbD0iIzMzNDE1NSIvPjwvc3ZnPg==";
 
             function sofaImageUrl(path, options = {}) {
-                if (options.direct === true) {
+                if (options.direct !== false) {
                     return `${SOFA_IMAGE_BASE_URL}${path}`;
                 }
                 const params = new URLSearchParams({ path, v: "3" });
@@ -6582,11 +6583,8 @@
                 console.log("Applying filters... allEvents count:", allEvents.length);
                 let listRaw = allEvents;
                 if (isLiveFiltered) {
-                    listRaw = listRaw.filter(m => m && m.source === 'mackolik');
-                }
-                if (isLiveFiltered) {
                     listRaw = allEvents.filter(m => {
-                        if (!m || m.source !== 'mackolik') return false;
+                        if (!m) return false;
                         if (!m.status) return false;
                         if (m.status.type === 'inprogress') return true;
                         const desc = (m.status.description || "").toUpperCase();
@@ -6651,7 +6649,7 @@
             const LIVE_BOOT_CACHE_MAX_AGE = 45 * 1000;
             const LIVE_ERROR_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
             const SCHEDULED_BOOT_CACHE_MAX_AGE = 5 * 60 * 1000;
-            const LIVE_CACHE_KEY = 'cached_events_live_mackolik_v1';
+            const LIVE_CACHE_KEY = 'cached_events_live_v2';
 
             function restoreEventsFromCache(cacheKey, maxAgeMs = LIVE_BOOT_CACHE_MAX_AGE) {
                 try {
@@ -6771,10 +6769,6 @@
                         allEvents = [];
                     }
 
-                    if (dataCacheKey === 'live') {
-                        allEvents = allEvents.filter(ev => ev && ev.source === 'mackolik');
-                    }
-
                     try {
                         localStorage.setItem(eventsCacheKey, JSON.stringify({
                             events: allEvents,
@@ -6808,7 +6802,9 @@
                     }
 
                     if (window.notificationMgr) notificationMgr.checkUpdates(allEvents);
-                    allEvents.slice(0, 8).forEach(match => prefetchMatchDetails(match.id));
+                    if (dataCacheKey !== 'live') {
+                        allEvents.slice(0, 4).forEach(match => prefetchMatchDetails(match.id));
+                    }
                     window._lastFetchError = false;
                     pendingMatchScrollRestore = captureMatchScrollPosition();
                     applyFilters();
@@ -7967,12 +7963,8 @@
                 const serverUrl = isMackolik
                     ? `/api/match/${id}/details?stats=0&source=mackolik&slug=${encodeURIComponent(match?.slug || '')}`
                     : `/api/match/${id}/details?stats=0`;
-                const serverPromise = fetchServerJson(serverUrl).catch(() => null);
-                const directPromise = isMackolik
-                    ? Promise.resolve(null)
-                    : fetchDirectSofaJson(`/event/${id}/incidents`).catch(() => null);
-                const [serverData, directData] = await Promise.all([serverPromise, directPromise]);
-                return directData || serverData?.incidents || { incidents: [] };
+                const serverData = await fetchServerJson(serverUrl).catch(() => null);
+                return serverData?.incidents || { incidents: [] };
             }
 
             async function fetchMatchStatsLazy(id, match = null) {
@@ -7980,12 +7972,8 @@
                 const serverUrl = isMackolik
                     ? `/api/match/${id}/details?source=mackolik&slug=${encodeURIComponent(match?.slug || '')}`
                     : `/api/match/${id}/details`;
-                const serverPromise = fetchServerJson(serverUrl).catch(() => null);
-                const directPromise = isMackolik
-                    ? Promise.resolve(null)
-                    : fetchDirectSofaJson(`/event/${id}/statistics`).catch(() => null);
-                const [serverData, directData] = await Promise.all([serverPromise, directPromise]);
-                return directData || serverData?.stats || { statistics: [] };
+                const serverData = await fetchServerJson(serverUrl).catch(() => null);
+                return serverData?.stats || { statistics: [] };
             }
 
             function renderMatchIncidents(dataI) {
@@ -9927,8 +9915,8 @@
             let autoRefreshTimer = null;
             function setupAutoRefreshLoop() {
                 if (autoRefreshTimer) clearInterval(autoRefreshTimer);
-                const configuredSeconds = Math.max(3, Math.min(30, Number(userSettings.refreshIntervalSec) || 4));
-                const seconds = Math.min(configuredSeconds, 3);
+                const configuredSeconds = Math.max(8, Math.min(30, Number(userSettings.refreshIntervalSec) || 8));
+                const seconds = configuredSeconds;
                 autoRefreshTimer = setInterval(() => {
                     const todayStr = new Date().toISOString().split('T')[0];
                     const isToday = selectedDate === todayStr;

@@ -886,6 +886,7 @@ let liveFetchPromise = null;
 let liveSnapshotLoadPromise = null;
 const LIVE_SNAPSHOT_FILE = "./live_snapshot.json";
 const LIVE_SNAPSHOT_MAX_AGE = 2500;
+const LIVE_PRIMARY_SOURCE = String(process.env.LIVE_PRIMARY_SOURCE || "sofascore").toLowerCase();
 const MACKOLIK_LIVE_URL = "https://www.mackolik.com/perform/p0/ajax/components/competition/livescores/json";
 const MACKOLIK_LIVE_PAGE_URL = "https://www.mackolik.com/canli-sonuclar";
 const MACKOLIK_HEADERS = {
@@ -1087,6 +1088,31 @@ function normalizeMackolikMatchesData(payload, options = {}) {
     };
 }
 
+function normalizeSofaLiveEventsData(payload) {
+    const events = Array.isArray(payload?.events) ? payload.events : [];
+    return {
+        ...payload,
+        events: events.map(event => ({
+            ...event,
+            homeTeam: event.homeTeam ? { ...event.homeTeam } : event.homeTeam,
+            awayTeam: event.awayTeam ? { ...event.awayTeam } : event.awayTeam,
+            tournament: event.tournament ? { ...event.tournament } : event.tournament,
+            source: "sofascore"
+        })),
+        source: "sofascore",
+        generatedAt: new Date().toISOString()
+    };
+}
+
+async function fetchLiveFromSofaScore() {
+    const data = await fetchFromSofaFastRace("/sport/football/events/live", {}, 6500);
+    const normalized = normalizeSofaLiveEventsData(data);
+    if (!Array.isArray(normalized.events)) {
+        throw new Error("SofaScore live response missing events array");
+    }
+    return normalized;
+}
+
 async function fetchLiveFromMackolik() {
     const config = await fetchMackolikLiveConfig();
     const response = await axios.get(config.urlJson, {
@@ -1105,6 +1131,24 @@ async function fetchLiveFromMackolik() {
     const normalized = normalizeMackolikMatchesData(response.data, { liveOnly: true });
     normalized.matchDate = config.matchDate;
     return normalized;
+}
+
+async function fetchLiveWithFallback() {
+    if (LIVE_PRIMARY_SOURCE === "mackolik") {
+        return fetchLiveFromMackolik();
+    }
+
+    try {
+        return await fetchLiveFromSofaScore();
+    } catch (sofaError) {
+        console.warn(`[LIVE SOURCE] SofaScore failed, falling back to Mackolik: ${sofaError.message}`);
+        const fallback = await fetchLiveFromMackolik();
+        return {
+            ...fallback,
+            fallback: true,
+            primarySourceError: sofaError.message
+        };
+    }
 }
 
 async function fetchMackolikMatchesByDate(matchDate) {
@@ -1242,10 +1286,6 @@ function loadLiveSnapshot() {
         if (!fs.existsSync(LIVE_SNAPSHOT_FILE)) return;
         const snapshot = JSON.parse(fs.readFileSync(LIVE_SNAPSHOT_FILE, "utf-8"));
         if (snapshot?.data?.events && Array.isArray(snapshot.data.events)) {
-            if (snapshot.data.source && snapshot.data.source !== "mackolik") {
-                console.log(`[LIVE SNAPSHOT] Ignoring unsupported snapshot source: ${snapshot.data.source}`);
-                return;
-            }
             globalLiveEvents = snapshot.data;
             lastLiveFetchTime = snapshot.timestamp || 0;
             console.log(`[LIVE SNAPSHOT] Loaded ${snapshot.data.events.length} events from disk cache.`);
@@ -1261,10 +1301,6 @@ async function loadLiveSnapshotFromFirestore() {
         const snap = await db.collection('app_state').doc('live_snapshot').get();
         const data = snap.data();
         if (data?.payload?.events && Array.isArray(data.payload.events)) {
-            if (data.payload.source && data.payload.source !== "mackolik") {
-                console.log(`[LIVE SNAPSHOT] Ignoring unsupported Firestore snapshot source: ${data.payload.source}`);
-                return false;
-            }
             globalLiveEvents = data.payload;
             lastLiveFetchTime = data.timestamp || 0;
             console.log(`[LIVE SNAPSHOT] Loaded ${data.payload.events.length} events from Firestore cache.`);
@@ -1925,7 +1961,7 @@ async function getLiveEventsData(forceFresh = false, preferImmediateCache = fals
     if (!liveFetchPromise) {
         lastLiveFetchAttemptTime = now;
         liveFetchPromise = (async () => {
-            const data = await fetchLiveFromMackolik();
+            const data = await fetchLiveWithFallback();
             if (!data || !Array.isArray(data.events)) {
                 throw new Error("Live response missing events array");
             }
@@ -2006,8 +2042,8 @@ function pruneGoalNotificationState(maxAgeMs = 6 * 60 * 60 * 1000) {
 async function getMatchIncidentsData(matchId) {
     return getCachedData(`incidents_${matchId}`, async () => {
         try {
-            const result = await fetchFromSofa(`/event/${matchId}/incidents`);
-            return normalizeIncidentsData(result.data);
+            const data = await fetchFromSofaFastRace(`/event/${matchId}/incidents`, {}, 4500);
+            return normalizeIncidentsData(data);
         } catch (error) {
             console.warn(`[INCIDENTS FALLBACK] Native incidents failed for ${matchId}: ${error.message}`);
             const fallback = await fetchRapidApiIncidents(matchId);
@@ -2048,8 +2084,14 @@ app.get("/api/matches/live", async (req, res) => {
 
     try {
         await ensureLiveSnapshotLoaded();
+        if (req.query.source === "mackolik") {
+            return res.json(await fetchLiveFromMackolik());
+        }
+        if (req.query.source === "sofascore") {
+            return res.json(await fetchLiveFromSofaScore());
+        }
         const allowImmediateCache = req.query.fresh !== "1" && (req.query.fast === "1" || !!globalLiveEvents?.events?.length);
-        const data = await getLiveEventsData(false, allowImmediateCache);
+        const data = await getLiveEventsData(req.query.fresh === "1", allowImmediateCache);
         res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Live matches: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
@@ -2137,8 +2179,10 @@ app.get("/api/match/:id/details", async (req, res) => {
         const statsDisabled = req.query.stats === "0";
         const optionalCachedFetch = (key, path, ttl) => getCachedData(key, async () => {
             try {
-                const result = await fetchFromSofa(path);
-                return key.startsWith("incidents_") ? normalizeIncidentsData(result.data) : result.data;
+                const data = key.startsWith("incidents_")
+                    ? await fetchFromSofaFastRace(path, {}, 4500)
+                    : (await fetchFromSofa(path)).data;
+                return key.startsWith("incidents_") ? normalizeIncidentsData(data) : data;
             } catch (error) {
                 if (error.response?.status === 404 || error.message.includes("404")) {
                     return null;
