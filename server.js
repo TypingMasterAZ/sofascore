@@ -2220,7 +2220,10 @@ function pruneGoalNotificationState(maxAgeMs = 6 * 60 * 60 * 1000) {
 async function getMatchIncidentsData(matchId) {
     return getCachedData(`incidents_${matchId}`, async () => {
         try {
-            const data = await fetchFromSofaFastRace(`/event/${matchId}/incidents`, {}, 4500);
+            const data = await Promise.any([
+                fetchFromSofaFastRace(`/event/${matchId}/incidents`, {}, 4500),
+                fetchRapidApiSofaPath(`/event/${matchId}/incidents`, {}, 6500)
+            ]);
             return normalizeIncidentsData(data);
         } catch (error) {
             console.warn(`[INCIDENTS FALLBACK] Native incidents failed for ${matchId}: ${error.message}`);
@@ -2376,7 +2379,8 @@ app.get("/api/match/:id/statistics", async (req, res) => {
         const fetchStats = async () => {
             const fast = await Promise.any([
                 fetchFromSofaNativeFast(`/event/${id}/statistics`, {}, 2800),
-                fetchFromSofaFastRace(`/event/${id}/statistics`, {}, 4500)
+                fetchFromSofaFastRace(`/event/${id}/statistics`, {}, 4500),
+                fetchRapidApiSofaPath(`/event/${id}/statistics`, {}, 6500)
             ]);
             return fast?.statistics ? fast : (fast?.data || fast);
         };
@@ -2429,9 +2433,13 @@ app.get("/api/match/:id/details", async (req, res) => {
                     const data = key.startsWith("stats_")
                         ? await Promise.any([
                             fetchFromSofaNativeFast(path, {}, 2800),
-                            fetchFromSofaFastRace(path, {}, 4500)
+                            fetchFromSofaFastRace(path, {}, 4500),
+                            fetchRapidApiSofaPath(path, {}, 6500)
                         ])
-                        : await fetchFromSofaFastRace(path, {}, 4500);
+                        : await Promise.any([
+                            fetchFromSofaFastRace(path, {}, 4500),
+                            fetchRapidApiSofaPath(path, {}, 6500)
+                        ]);
                     return key.startsWith("incidents_") ? normalizeIncidentsData(data) : (data?.statistics ? data : (data?.data || data));
                 } catch (error) {
                     if (error.response?.status === 404 || error.message.includes("404")) {

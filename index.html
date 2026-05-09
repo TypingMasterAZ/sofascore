@@ -8341,6 +8341,19 @@
                     fetchServerJson(serverUrl, "Hadisələr xətası"),
                     options.timeout || 5500
                 ).catch(() => null);
+                if (Array.isArray(serverData?.incidents) && serverData.incidents.length) {
+                    return serverData;
+                }
+                if (!isMackolik) {
+                    const directData = await withTimeout(
+                        fetchDirectSofaJson(`/event/${id}/incidents`),
+                        4200
+                    ).catch(() => null);
+                    const normalizedDirect = directData?.incidents ? directData : (directData?.data?.incidents ? directData.data : null);
+                    if (Array.isArray(normalizedDirect?.incidents) && normalizedDirect.incidents.length) {
+                        return normalizedDirect;
+                    }
+                }
                 return serverData?.incidents ? serverData : (serverData || { incidents: [] });
             }
 
@@ -8377,10 +8390,44 @@
                     fetchServerJson(serverUrl, "Matç detalları xətası"),
                     options.timeout || 6500
                 ).catch(() => null);
+                let incidents = serverData?.incidents || { incidents: [] };
+                let stats = serverData?.stats || { statistics: [] };
+                if (!isMackolik && (!Array.isArray(incidents?.incidents) || incidents.incidents.length === 0)) {
+                    const directIncidents = await withTimeout(
+                        fetchDirectSofaJson(`/event/${id}/incidents`),
+                        4200
+                    ).catch(() => null);
+                    if (Array.isArray(directIncidents?.incidents) && directIncidents.incidents.length) {
+                        incidents = directIncidents;
+                    }
+                }
+                if (!isMackolik && (!Array.isArray(stats?.statistics) || stats.statistics.length === 0)) {
+                    const directStats = await withTimeout(
+                        fetchDirectSofaJson(`/event/${id}/statistics`),
+                        4200
+                    ).catch(() => null);
+                    if (Array.isArray(directStats?.statistics) && directStats.statistics.length) {
+                        stats = directStats;
+                    }
+                }
                 return {
-                    incidents: serverData?.incidents || { incidents: [] },
-                    stats: serverData?.stats || { statistics: [] }
+                    incidents,
+                    stats
                 };
+            }
+
+            function hasUsefulIncidentsPayload(data) {
+                return Array.isArray(data?.incidents) && data.incidents.length > 0;
+            }
+
+            function hasUsefulStatsPayload(data) {
+                const periods = Array.isArray(data?.statistics) ? data.statistics : [];
+                return periods.some(period => {
+                    const groups = Array.isArray(period?.groups)
+                        ? period.groups
+                        : (Array.isArray(period?.statisticsItems) ? [{ statisticsItems: period.statisticsItems }] : []);
+                    return groups.some(group => Array.isArray(group.statisticsItems) && group.statisticsItems.length > 0);
+                });
             }
 
             function renderMatchIncidents(dataI) {
@@ -8529,16 +8576,16 @@
                 });
 
                 await Promise.allSettled([incidentsPromise, statsPromise]);
-                if (isStillOpen() && !latestIncidents) {
+                if (isStillOpen() && (!hasUsefulIncidentsPayload(latestIncidents) || !hasUsefulStatsPayload(latestStats))) {
                     const fallbackDetails = await fetchMatchDetailsFast(id, match, {
                         fresh: false,
                         timeout: options.background ? 4500 : 6500
                     }).catch(() => null);
-                    if (fallbackDetails?.incidents) {
+                    if (fallbackDetails?.incidents && !hasUsefulIncidentsPayload(latestIncidents)) {
                         latestIncidents = fallbackDetails.incidents;
                         renderMatchIncidents(latestIncidents);
                     }
-                    if (!latestStats && fallbackDetails?.stats) {
+                    if (fallbackDetails?.stats && !hasUsefulStatsPayload(latestStats)) {
                         latestStats = fallbackDetails.stats;
                         renderMatchStats(latestStats);
                     }
