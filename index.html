@@ -7048,9 +7048,10 @@
                     }
 
                     if (window.notificationMgr) notificationMgr.checkUpdates(allEvents);
-                    if (dataCacheKey !== 'live') {
-                        allEvents.slice(0, 4).forEach(match => prefetchMatchDetails(match.id));
-                    }
+                    const prefetchCount = dataCacheKey === 'live' ? 24 : 4;
+                    allEvents.slice(0, prefetchCount).forEach((match, index) => {
+                        setTimeout(() => prefetchMatchDetails(match.id), index * 220);
+                    });
                     window._lastFetchError = false;
                     pendingMatchScrollRestore = captureMatchScrollPosition();
                     applyFilters();
@@ -8557,6 +8558,33 @@
                         }
                     };
 
+                    if (!options.force) {
+                        const fastDetails = await fetchMatchDetailsFast(id, match, {
+                            fresh: false,
+                            timeout: options.background ? 3800 : 5200
+                        }).catch(() => null);
+                        if (fastDetails?.incidents) {
+                            latestIncidents = fastDetails.incidents;
+                            if (isStillOpen()) renderMatchIncidents(latestIncidents);
+                        }
+                        if (fastDetails?.stats) {
+                            latestStats = fastDetails.stats;
+                            if (isStillOpen()) renderMatchStats(latestStats);
+                        }
+                        maybeSave();
+                        if (hasUsefulIncidentsPayload(latestIncidents) || hasUsefulStatsPayload(latestStats)) {
+                            modalDetailsLastFetch[id] = Date.now();
+                            if (!options.background) {
+                                setTimeout(() => {
+                                    if (currentOpenMatchId?.toString() === id.toString()) {
+                                        updateModalStatsAndIncidents(id, { force: true, background: true, match });
+                                    }
+                                }, 1800);
+                            }
+                            return;
+                        }
+                    }
+
                     const incidentsPromise = fetchMatchIncidentsFast(id, match, {
                         fresh: options.force,
                         timeout: options.background ? 4500 : 6000
@@ -8630,7 +8658,7 @@
                     renderMatchStats(cachedDetails.stats || { statistics: [] });
                 }
 
-                updateModalStatsAndIncidents(id, { force: true, match: currentMatch });
+                updateModalStatsAndIncidents(id, { force: false, match: currentMatch });
             }
 
             function openMatchById(id) {

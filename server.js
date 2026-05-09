@@ -2460,10 +2460,10 @@ app.get("/api/match/:id/details", async (req, res) => {
             }).catch(() => null);
         };
 
-        const incidentsPromise = optionalCachedFetch(`incidents_${id}`, `/event/${id}/incidents`, 5000);
+        const incidentsPromise = optionalCachedFetch(`incidents_${id}`, `/event/${id}/incidents`, 30000);
         const statsPromise = statsDisabled
             ? Promise.resolve(null)
-            : optionalCachedFetch(`stats_${id}`, `/event/${id}/statistics`, 8000);
+            : optionalCachedFetch(`stats_${id}`, `/event/${id}/statistics`, 30000);
 
         const [incidents, stats] = await Promise.all([incidentsPromise, statsPromise]);
 
