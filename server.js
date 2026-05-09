@@ -236,6 +236,9 @@ async function getUserByIdentity({ email, uid }) {
 // DÄ°QQÆT: Buraya Ã¶z email vÉ™ tÉ™tbiq ÅŸifrÉ™nizi (App Password) yazmalÄ±sÄ±nÄ±z
 const transporter = nodemailer.createTransport({
     service: 'gmail',
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 10000,
     auth: {
         user: process.env.EMAIL_USER || 'typingmaster.az@gmail.com', // Sizin email
         pass: process.env.EMAIL_PASS || 'hlwg iaey ryxn klsq'    // Sizin "App Password" ÅŸifrÉ™niz
@@ -1166,7 +1169,17 @@ async function fetchLiveFromMackolik() {
 
 async function fetchLiveWithFallback() {
     if (ENABLE_MACKOLIK_MATCHES && LIVE_PRIMARY_SOURCE === "mackolik") {
-        return fetchLiveFromMackolik();
+        try {
+            return await fetchLiveFromMackolik();
+        } catch (mackolikError) {
+            console.warn(`[LIVE SOURCE] Mackolik failed, falling back to SofaScore: ${mackolikError.message}`);
+            const fallback = await fetchLiveFromSofaScore();
+            return {
+                ...fallback,
+                fallback: true,
+                primarySourceError: mackolikError.message
+            };
+        }
     }
 
     try {
@@ -2050,10 +2063,7 @@ async function getLiveEventsData(forceFresh = false, preferImmediateCache = fals
     const now = Date.now();
     const hasUsableCache = globalLiveEvents && Array.isArray(globalLiveEvents.events);
     const cacheAge = lastLiveFetchTime ? (now - lastLiveFetchTime) : Infinity;
-    const cacheIsSofascoreOnly = hasUsableCache
-        && String(globalLiveEvents.source || "").toLowerCase() === "sofascore"
-        && !globalLiveEvents.events.some(event => event?.source === "mackolik");
-    if (preferImmediateCache && cacheIsSofascoreOnly && (cacheAge <= LIVE_SNAPSHOT_MAX_AGE)) {
+    if (preferImmediateCache && hasUsableCache && (cacheAge <= LIVE_SNAPSHOT_MAX_AGE)) {
         if (!liveFetchPromise) {
             getLiveEventsData(true).catch(() => {});
         }
@@ -2064,11 +2074,11 @@ async function getLiveEventsData(forceFresh = false, preferImmediateCache = fals
         };
     }
 
-    if (!forceFresh && cacheIsSofascoreOnly && (cacheAge < CACHE_TIMES.LIVE)) {
+    if (!forceFresh && hasUsableCache && (cacheAge < CACHE_TIMES.LIVE)) {
         return globalLiveEvents;
     }
 
-    if (!forceFresh && cacheIsSofascoreOnly && (now - lastLiveFetchAttemptTime < CACHE_TIMES.LIVE)) {
+    if (!forceFresh && hasUsableCache && (now - lastLiveFetchAttemptTime < CACHE_TIMES.LIVE)) {
         return {
             ...globalLiveEvents,
             stale: true,
@@ -2095,7 +2105,7 @@ async function getLiveEventsData(forceFresh = false, preferImmediateCache = fals
     try {
         return await liveFetchPromise;
     } catch (error) {
-        if (cacheIsSofascoreOnly && cacheAge <= LIVE_STALE_RETURN_MAX_AGE) {
+        if (hasUsableCache && cacheAge <= LIVE_STALE_RETURN_MAX_AGE) {
             console.warn(`[LIVE STALE] Returning cached live events after fetch error: ${error.message}`);
             return {
                 ...globalLiveEvents,
@@ -2233,7 +2243,21 @@ app.get("/api/matches/live", async (req, res) => {
         res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Live matches: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
-        res.status(500).json({ error: true, message: error.message, details: error.response?.data?.substring?.(0, 100) });
+        if (globalLiveEvents && Array.isArray(globalLiveEvents.events)) {
+            return res.json({
+                ...globalLiveEvents,
+                stale: true,
+                staleSince: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null,
+                warning: error.message
+            });
+        }
+        res.json({
+            events: [],
+            source: "none",
+            stale: true,
+            warning: error.message,
+            generatedAt: new Date().toISOString()
+        });
     }
 });
 
@@ -3259,11 +3283,26 @@ app.post("/api/support", async (req, res) => {
         };
 
         items.unshift(item);
-        fs.writeFileSync(SUPPORT_MESSAGES_FILE, JSON.stringify(items.slice(0, 500), null, 2));
-
-        enqueueSupportEmail(item);
-
-        res.json({ success: true, id: item.id, emailQueued: true });
+        try {
+            const info = await sendSupportEmail(item);
+            item.emailStatus = "sent";
+            item.emailSentAt = new Date().toISOString();
+            item.emailMessageId = info?.messageId || "";
+            fs.writeFileSync(SUPPORT_MESSAGES_FILE, JSON.stringify(items.slice(0, 500), null, 2));
+            res.json({ success: true, id: item.id, emailSent: true });
+        } catch (mailError) {
+            item.emailStatus = "failed";
+            item.emailError = mailError.message;
+            item.emailFailedAt = new Date().toISOString();
+            fs.writeFileSync(SUPPORT_MESSAGES_FILE, JSON.stringify(items.slice(0, 500), null, 2));
+            enqueueSupportEmail(item);
+            console.error("[Support] Email send failed:", mailError.message);
+            res.status(502).json({
+                success: false,
+                id: item.id,
+                message: "Mesaj saxlanıldı, amma email göndərilmədi. Email ayarlarını yoxlayın."
+            });
+        }
     } catch (error) {
         console.error("[Support] Save error:", error.message);
         res.status(500).json({ success: false, message: "Dəstək mesajı saxlanmadı" });

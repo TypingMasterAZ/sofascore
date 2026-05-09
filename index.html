@@ -6883,8 +6883,8 @@
 
             function keepSofascoreEventsOnly(events) {
                 return (Array.isArray(events) ? events : []).filter(event => {
-                    if (!event || event.source === 'mackolik') return false;
-                    return !event.source || event.source === 'sofascore';
+                    if (!event) return false;
+                    return !event.source || event.source === 'sofascore' || event.source === 'mackolik';
                 });
             }
 
@@ -6985,7 +6985,7 @@
                 }
                 
                 try {
-                    const allowDirectBrowserFallback = dataCacheKey !== 'live';
+                    const allowDirectBrowserFallback = true;
                     let dataEvents = await fetchEventsFromBestSource(url, sofaFallbackPath, fetchOptions, allowDirectBrowserFallback);
                     
                     if (typeof dataEvents === 'string') {
