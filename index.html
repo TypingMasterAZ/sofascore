@@ -6919,7 +6919,15 @@
 
             async function fetchEventsFromBestSource(localUrl, sofaPath, options = {}, allowDirectBrowserFallback = true) {
                 try {
-                    return await fetchJsonOrThrow(localUrl, options, 'Server xətası');
+                    const serverData = await fetchJsonOrThrow(localUrl, options, 'Server xətası');
+                    const serverEvents = Array.isArray(serverData?.events) ? serverData.events : [];
+                    const isEmptyLiveFallback = sofaPath === '/sport/football/events/live'
+                        && serverEvents.length === 0
+                        && (serverData?.stale || serverData?.source === 'none' || serverData?.warning);
+                    if (!isEmptyLiveFallback) {
+                        return serverData;
+                    }
+                    throw new Error(serverData?.warning || 'Server canlı oyunları boş qaytardı');
                 } catch (serverError) {
                     if (!allowDirectBrowserFallback) {
                         throw serverError;

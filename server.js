@@ -443,6 +443,24 @@ async function fetchRapidApiIncidents(matchId) {
     return normalizeIncidentsData(response.data);
 }
 
+async function fetchRapidApiSofaPath(path, params = {}, timeout = 12000) {
+    const rapidApiKey = process.env.RAPIDAPI_KEY;
+    if (!rapidApiKey) {
+        throw new Error("RAPIDAPI_KEY is not configured");
+    }
+
+    const response = await axios.get(`https://${RAPIDAPI_HOST}${path}`, {
+        headers: {
+            "x-rapidapi-key": rapidApiKey,
+            "x-rapidapi-host": RAPIDAPI_HOST
+        },
+        params,
+        timeout
+    });
+
+    return normalizeSofaData(response.data);
+}
+
 function shouldRetrySofa(error) {
     const status = error.response?.status;
     return !status || status >= 500;
@@ -1138,6 +1156,19 @@ async function fetchLiveFromSofaScore() {
     return normalized;
 }
 
+async function fetchLiveFromRapidApi() {
+    const data = await fetchRapidApiSofaPath("/sport/football/events/live", {}, 12000);
+    const normalized = normalizeSofaLiveEventsData(data);
+    if (!Array.isArray(normalized.events)) {
+        throw new Error("RapidAPI live response missing events array");
+    }
+    return {
+        ...normalized,
+        source: "rapidapi-sofascore",
+        fallback: true
+    };
+}
+
 async function fetchScheduledFromSofaScore(date) {
     const data = await fetchFromSofa(`/sport/football/scheduled-events/${date}`);
     const normalized = normalizeSofaEventsData(data.data);
@@ -1173,28 +1204,47 @@ async function fetchLiveWithFallback() {
             return await fetchLiveFromMackolik();
         } catch (mackolikError) {
             console.warn(`[LIVE SOURCE] Mackolik failed, falling back to SofaScore: ${mackolikError.message}`);
-            const fallback = await fetchLiveFromSofaScore();
-            return {
-                ...fallback,
-                fallback: true,
-                primarySourceError: mackolikError.message
-            };
+            try {
+                const fallback = await fetchLiveFromSofaScore();
+                return {
+                    ...fallback,
+                    fallback: true,
+                    primarySourceError: mackolikError.message
+                };
+            } catch (sofaError) {
+                console.warn(`[LIVE SOURCE] SofaScore failed, falling back to RapidAPI: ${sofaError.message}`);
+                const rapidFallback = await fetchLiveFromRapidApi();
+                return {
+                    ...rapidFallback,
+                    primarySourceError: `${mackolikError.message}; ${sofaError.message}`
+                };
+            }
         }
     }
 
     try {
         return await fetchLiveFromSofaScore();
     } catch (sofaError) {
-        if (!ENABLE_MACKOLIK_MATCHES || !ALLOW_MACKOLIK_FALLBACK) {
-            throw sofaError;
+        console.warn(`[LIVE SOURCE] SofaScore failed, trying RapidAPI: ${sofaError.message}`);
+        try {
+            const rapidFallback = await fetchLiveFromRapidApi();
+            return {
+                ...rapidFallback,
+                primarySourceError: sofaError.message
+            };
+        } catch (rapidError) {
+            console.warn(`[LIVE SOURCE] RapidAPI failed: ${rapidError.message}`);
+            if (!ENABLE_MACKOLIK_MATCHES || !ALLOW_MACKOLIK_FALLBACK) {
+                throw sofaError;
+            }
+            console.warn(`[LIVE SOURCE] SofaScore failed, falling back to Mackolik: ${sofaError.message}`);
+            const fallback = await fetchLiveFromMackolik();
+            return {
+                ...fallback,
+                fallback: true,
+                primarySourceError: `${sofaError.message}; ${rapidError.message}`
+            };
         }
-        console.warn(`[LIVE SOURCE] SofaScore failed, falling back to Mackolik: ${sofaError.message}`);
-        const fallback = await fetchLiveFromMackolik();
-        return {
-            ...fallback,
-            fallback: true,
-            primarySourceError: sofaError.message
-        };
     }
 }
 
