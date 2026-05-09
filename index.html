@@ -1156,10 +1156,12 @@
         }
 
         .team-details-sheet {
-            width: min(720px, 100%);
-            max-height: 88vh;
+            width: min(860px, 100%);
+            max-height: 90vh;
             overflow-y: auto;
-            background: linear-gradient(180deg, rgba(17, 27, 48, 0.98), rgba(5, 11, 24, 0.98));
+            background:
+                radial-gradient(circle at 18% 0%, rgba(59, 130, 246, 0.24), transparent 32%),
+                linear-gradient(180deg, rgba(17, 27, 48, 0.99), rgba(5, 11, 24, 0.99));
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 24px 24px 0 0;
             box-shadow: 0 -24px 70px rgba(0, 0, 0, 0.55);
@@ -1234,6 +1236,116 @@
             padding: 18px 20px 8px;
         }
 
+        .team-profile-hero {
+            position: relative;
+            overflow: hidden;
+            margin: 18px 20px 0;
+            padding: 22px;
+            border-radius: 22px;
+            background:
+                linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(34, 197, 94, 0.10)),
+                rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .team-profile-hero::after {
+            content: "";
+            position: absolute;
+            right: -44px;
+            top: -44px;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            border: 28px solid rgba(255, 255, 255, 0.035);
+        }
+
+        .team-profile-top {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            z-index: 1;
+        }
+
+        .team-profile-logo {
+            width: 86px;
+            height: 86px;
+            object-fit: contain;
+            border-radius: 24px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 18px 38px rgba(0, 0, 0, 0.28);
+            flex-shrink: 0;
+        }
+
+        .team-profile-name {
+            color: var(--text-main);
+            font-size: 26px;
+            font-weight: 950;
+            line-height: 1.12;
+            word-break: break-word;
+        }
+
+        .team-profile-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .team-profile-pill {
+            display: inline-flex;
+            align-items: center;
+            min-height: 28px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.07);
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 850;
+        }
+
+        .coach-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 14px 20px 0;
+            padding: 14px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .coach-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 17px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, rgba(250, 204, 21, 0.22), rgba(59, 130, 246, 0.16));
+            color: #facc15;
+            font-size: 24px;
+            font-weight: 900;
+            flex-shrink: 0;
+        }
+
+        .coach-card span {
+            display: block;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 4px;
+        }
+
+        .coach-card strong {
+            display: block;
+            color: var(--text-main);
+            font-size: 16px;
+            font-weight: 900;
+        }
+
         .team-info-card {
             background: rgba(255, 255, 255, 0.035);
             border: 1px solid rgba(255, 255, 255, 0.065);
@@ -1267,21 +1379,30 @@
         }
 
         .squad-list {
-            padding: 0 20px 22px;
+            padding: 0 20px 24px;
             display: grid;
-            gap: 8px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
         }
 
         .squad-row {
             display: grid;
-            grid-template-columns: 34px 1fr auto;
+            grid-template-columns: 52px minmax(0, 1fr) 34px auto;
             align-items: center;
-            gap: 10px;
-            min-height: 48px;
-            background: rgba(255, 255, 255, 0.025);
-            border: 1px solid rgba(255, 255, 255, 0.045);
-            border-radius: 13px;
-            padding: 8px 12px;
+            gap: 12px;
+            min-height: 72px;
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(255, 255, 255, 0.065);
+            border-radius: 16px;
+            padding: 10px;
+        }
+
+        .squad-photo {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            object-fit: cover;
+            background: rgba(255, 255, 255, 0.07);
         }
 
         .squad-num {
@@ -1289,6 +1410,7 @@
             font-size: 13px;
             font-weight: 900;
             text-align: center;
+            min-width: 30px;
         }
 
         .squad-name {
@@ -4084,8 +4206,39 @@
             }
 
             .squad-row {
-                grid-template-columns: 30px minmax(0, 1fr) auto;
+                grid-template-columns: 46px minmax(0, 1fr) 30px auto;
                 padding: 8px 10px;
+            }
+
+            .team-profile-hero {
+                margin: 14px 14px 0;
+                padding: 18px;
+            }
+
+            .team-profile-logo {
+                width: 70px;
+                height: 70px;
+                border-radius: 20px;
+            }
+
+            .team-profile-name {
+                font-size: 21px;
+            }
+
+            .coach-card {
+                margin: 12px 14px 0;
+            }
+
+            .squad-list {
+                grid-template-columns: 1fr;
+                padding-left: 14px;
+                padding-right: 14px;
+            }
+
+            .squad-photo {
+                width: 46px;
+                height: 46px;
+                border-radius: 14px;
             }
 
             .league-detail-tabs {
@@ -5720,6 +5873,7 @@
             let currentStandingsTourId = null;
             let standingsTimeout = null;
             const teamDetailsCache = {};
+            const knownTeamsById = {};
             const leagueSeasonCache = {};
             const leagueStandingsCache = {};
             const KNOWN_LEAGUE_SEASONS = {
@@ -5787,8 +5941,53 @@
                 } catch (e) {}
             }
 
+            function rememberTeamMeta(team) {
+                if (!team?.id) return;
+                knownTeamsById[String(team.id)] = {
+                    ...knownTeamsById[String(team.id)],
+                    ...team
+                };
+            }
+
             function buildStandingsTable(data, tourId) {
-                if (!data?.standings?.length) return "";
+                if (!data?.standings?.length) {
+                    const teams = Array.isArray(data?.teamsFallback) ? data.teamsFallback : [];
+                    if (!teams.length) return "";
+                    let teamsHtml = `
+                    <div style="background:var(--card); border-radius:12px; margin-top:10px; padding:0; overflow:hidden;">
+                        <div style="padding:14px 16px; font-weight:900; color:var(--text-main); border-bottom:1px solid rgba(255,255,255,0.06);">
+                            Klublar
+                            <span style="color:var(--text-muted); font-size:12px; font-weight:700; margin-left:8px;">${teams.length} komanda</span>
+                        </div>
+                        <table class="standings-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 30px;">#</th>
+                                    <th>KOMANDA</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                    teams.forEach((team, index) => {
+                        rememberTeamMeta(team);
+                        const teamId = team?.id || '';
+                        const teamName = escapeHtml(team?.name || team?.shortName || 'Komanda');
+                        const safeTeamName = escapeJsString(team?.name || team?.shortName || 'Komanda');
+                        const logoUrl = normalizeSofaImageUrl(team?.logoUrl, getTeamImageOptions(team, true)) || getTeamLogoUrl(teamId, true, team);
+                        const fallbackLogo = getTeamFallbackLogo(team);
+                        const clickAction = /^\d+$/.test(String(teamId))
+                            ? `openTeamDetails('${teamId}', '${safeTeamName}')`
+                            : `showToast('Klub məlumatı hazırda yalnız SofaScore klubları üçün açılır')`;
+                        teamsHtml += `
+                            <tr style="transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
+                                <td style="font-weight:700; color:var(--text-muted);">${index + 1}</td>
+                                <td class="team-cell" onclick="${clickAction}">
+                                    <img class="team-logo club-logo" loading="eager" decoding="async" fetchpriority="high" src="${logoUrl}" onerror="this.onerror=null; this.src='${fallbackLogo}'">
+                                    <span>${teamName}</span>
+                                </td>
+                            </tr>`;
+                    });
+                    return `${teamsHtml}</tbody></table></div>`;
+                }
                 const sData = data.standings[0];
                 const rows = sData.rows || [];
                 if (!rows.length) return "";
@@ -5811,6 +6010,7 @@
                         <tbody>`;
 
                 rows.forEach(row => {
+                    rememberTeamMeta(row.team);
                     const teamId = row.team?.id || '';
                     const teamName = escapeHtml(row.team?.name || 'Komanda');
                     const safeTeamName = escapeJsString(row.team?.name || 'Komanda');
@@ -6248,9 +6448,20 @@
 
                     const data = await fetchLeagueStandingsData(tourId, seasonId);
 
-                    if (data && data.standings && data.standings.length > 0) {
+                    if (data && ((data.standings && data.standings.length > 0) || (data.teamsFallback && data.teamsFallback.length > 0))) {
+                        const resolvedSeasonId = data.seasonId || seasonId || 'auto';
+                        const resolvedKey = `standings_${tourId}_${resolvedSeasonId}`;
                         leagueStandingsCache[cacheKey] = data;
+                        leagueStandingsCache[resolvedKey] = data;
+                        leagueStandingsCache[`standings_${tourId}_auto`] = data;
                         setPersistedLeagueData(cacheKey, data);
+                        setPersistedLeagueData(resolvedKey, data);
+                        setPersistedLeagueData(`standings_${tourId}_auto`, data);
+                        if (data.seasonId && window.currentLeagueContext?.id?.toString() === tourId.toString()) {
+                            window.currentLeagueContext.seasonId = data.seasonId;
+                            window.currentLeagueContext.seasonName = data.season?.name || data.season?.year || window.currentLeagueContext.seasonName;
+                            leagueSeasonCache[tourId] = data.seasonId;
+                        }
                         const tableHtml = buildStandingsTable(data, tourId);
 
                         const box = document.getElementById('leagueStandings');
@@ -6259,7 +6470,8 @@
                         }
                     } else {
                         if (currentStandingsTourId === tourId && document.getElementById('leagueStandings').innerHTML.includes('skeleton')) {
-                            document.getElementById('leagueStandings').innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Cədvəl məlumatı hazırda yoxdur.</div>";
+                            const fallbackHtml = buildStandingsTable(data, tourId);
+                            document.getElementById('leagueStandings').innerHTML = fallbackHtml || "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Cədvəl və klub məlumatı hazırda yoxdur.</div>";
                         }
                     }
                 } catch (e) {
@@ -6366,6 +6578,11 @@
 
             async function prefetchLeagueTopPlayers(tourId, seasonId) {
                 if (!tourId) return;
+                if (!seasonId) {
+                    const standingsData = leagueStandingsCache[`standings_${tourId}_auto`] ||
+                        getPersistedLeagueData(`standings_${tourId}_auto`, 12 * 60 * 60 * 1000);
+                    seasonId = standingsData?.seasonId || seasonId;
+                }
                 const resolvedSeasonId = seasonId || await resolveLeagueSeasonId(tourId).catch(() => null);
                 if (!resolvedSeasonId) return;
                 const cacheKey = `topplayers_${TOP_PLAYERS_CACHE_VERSION}_${tourId}_${resolvedSeasonId}`;
@@ -6405,6 +6622,19 @@
             window.loadTopPlayers = async function(tourId, seasonId) {
                 const box = document.getElementById("leagueTopPlayers");
                 if (!tourId || !box) return;
+
+                if (!seasonId) {
+                    const standingsData = leagueStandingsCache[`standings_${tourId}_auto`] ||
+                        getPersistedLeagueData(`standings_${tourId}_auto`, 12 * 60 * 60 * 1000);
+                    if (standingsData?.seasonId) {
+                        seasonId = standingsData.seasonId;
+                        if (window.currentLeagueContext?.id?.toString() === tourId.toString()) {
+                            window.currentLeagueContext.seasonId = seasonId;
+                            window.currentLeagueContext.seasonName = standingsData.season?.name || standingsData.season?.year || window.currentLeagueContext.seasonName;
+                            leagueSeasonCache[tourId] = seasonId;
+                        }
+                    }
+                }
 
                 if (!seasonId) {
                     box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:700;'>Mövsüm məlumatı axtarılır...</div>";
@@ -6647,17 +6877,25 @@
             }
 
             const LIVE_BOOT_CACHE_MAX_AGE = 45 * 1000;
-            const LIVE_ERROR_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
+            const LIVE_ERROR_CACHE_MAX_AGE = 2 * 60 * 1000;
             const SCHEDULED_BOOT_CACHE_MAX_AGE = 5 * 60 * 1000;
-            const LIVE_CACHE_KEY = 'cached_events_live_v2';
+            const LIVE_CACHE_KEY = 'cached_events_live_sofascore_v3';
+
+            function keepSofascoreEventsOnly(events) {
+                return (Array.isArray(events) ? events : []).filter(event => {
+                    if (!event || event.source === 'mackolik') return false;
+                    return !event.source || event.source === 'sofascore';
+                });
+            }
 
             function restoreEventsFromCache(cacheKey, maxAgeMs = LIVE_BOOT_CACHE_MAX_AGE) {
                 try {
                     const cachedRaw = localStorage.getItem(cacheKey);
                     const cachedData = cachedRaw ? JSON.parse(cachedRaw) : null;
                     const cacheAge = cachedData?.timestamp ? (Date.now() - cachedData.timestamp) : Infinity;
-                    if (cachedData && Array.isArray(cachedData.events) && cachedData.events.length > 0 && cacheAge <= maxAgeMs) {
-                        allEvents = cachedData.events;
+                    const cachedEvents = keepSofascoreEventsOnly(cachedData?.events);
+                    if (cachedData && cachedEvents.length > 0 && cacheAge <= maxAgeMs) {
+                        allEvents = cachedEvents;
                         applyFilters();
                         return true;
                     }
@@ -6762,9 +7000,9 @@
                     }
 
                     if (dataEvents && dataEvents.events) {
-                        allEvents = dataEvents.events;
+                        allEvents = keepSofascoreEventsOnly(dataEvents.events);
                     } else if (Array.isArray(dataEvents)) {
-                        allEvents = dataEvents;
+                        allEvents = keepSofascoreEventsOnly(dataEvents);
                     } else {
                         allEvents = [];
                     }
@@ -7068,12 +7306,15 @@
             }
 
             function normalizeCategoryLeaguesPayload(data) {
+                data = data?.data || data?.payload || data;
                 let leagues = [];
                 if (Array.isArray(data?.groups) && data.groups.length > 0) {
-                    leagues = data.groups.flatMap(group => group.uniqueTournaments || []);
+                    leagues = data.groups.flatMap(group => group.uniqueTournaments || group.tournaments || []);
                 }
                 if (Array.isArray(data?.uniqueTournaments)) {
                     leagues = leagues.concat(data.uniqueTournaments);
+                } else if (Array.isArray(data?.tournaments)) {
+                    leagues = leagues.concat(data.tournaments);
                 } else if (data?.uniqueTournament) {
                     leagues.push(data.uniqueTournament);
                 }
@@ -7210,18 +7451,29 @@
                     return persisted;
                 }
 
-                const data = await withTimeout(
+                let data = await withTimeout(
                     fetchServerJson(`/api/category/${key}/tournaments?fast=1`, "Ölkə liqaları server xətası"),
                     6500
                 );
-                const leagues = normalizeCategoryLeaguesPayload(data);
+                let leagues = normalizeCategoryLeaguesPayload(data);
                 categoryLeaguesMeta[key] = {
                     pending: !!(data?.pending || data?.unavailable),
                     updatedAt: Date.now()
                 };
                 if (!leagues.length && categoryLeaguesMeta[key].pending) {
-                    delete categoryLeaguesCache[key];
-                    return [];
+                    const slowerData = await withTimeout(
+                        fetchServerJson(`/api/category/${key}/tournaments`, "Ölkə liqaları server xətası"),
+                        9000
+                    ).catch(() => null);
+                    const slowerLeagues = normalizeCategoryLeaguesPayload(slowerData);
+                    if (slowerLeagues.length) {
+                        data = slowerData;
+                        leagues = slowerLeagues;
+                        categoryLeaguesMeta[key].pending = false;
+                    } else {
+                        delete categoryLeaguesCache[key];
+                        return [];
+                    }
                 }
                 const category = getCategoryById(key);
                 leagues.forEach(league => rememberLeagueMeta(league, category));
@@ -7723,11 +7975,31 @@
                     const resolvedKey = `standings_${tourId}_${resolvedSeasonId || 'auto'}`;
                     leagueStandingsCache[resolvedKey] = data;
                     leagueStandingsCache[cacheKey] = data;
+                    leagueStandingsCache[`standings_${tourId}_auto`] = data;
                     setPersistedLeagueData(resolvedKey, data);
                     setPersistedLeagueData(cacheKey, data);
+                    setPersistedLeagueData(`standings_${tourId}_auto`, data);
                     if (resolvedSeasonId && window.currentLeagueContext?.id?.toString() === tourId.toString()) {
                         window.currentLeagueContext.seasonId = resolvedSeasonId;
+                        window.currentLeagueContext.seasonName = data.season?.name || data.season?.year || window.currentLeagueContext.seasonName;
                         leagueSeasonCache[tourId] = resolvedSeasonId;
+                    }
+                    return data;
+                }
+
+                if (data?.teamsFallback?.length) {
+                    const resolvedSeasonId = data.seasonId || seasonId || 'auto';
+                    const resolvedKey = `standings_${tourId}_${resolvedSeasonId}`;
+                    leagueStandingsCache[resolvedKey] = data;
+                    leagueStandingsCache[cacheKey] = data;
+                    leagueStandingsCache[`standings_${tourId}_auto`] = data;
+                    setPersistedLeagueData(resolvedKey, data);
+                    setPersistedLeagueData(cacheKey, data);
+                    setPersistedLeagueData(`standings_${tourId}_auto`, data);
+                    if (data.seasonId && window.currentLeagueContext?.id?.toString() === tourId.toString()) {
+                        window.currentLeagueContext.seasonId = data.seasonId;
+                        window.currentLeagueContext.seasonName = data.season?.name || data.season?.year || window.currentLeagueContext.seasonName;
+                        leagueSeasonCache[tourId] = data.seasonId;
                     }
                     return data;
                 }
@@ -7817,10 +8089,14 @@
 
             async function fetchTeamInfoData(teamId) {
                 if (teamDetailsCache[teamId]) return teamDetailsCache[teamId];
+                const knownTeam = knownTeamsById[String(teamId)] || null;
 
                 let data = null;
                 try {
-                    data = await fetchServerJson(`/api/team/${teamId}`, "Klub server xətası");
+                    data = await withTimeout(
+                        fetchServerJson(`/api/team/${teamId}`, "Klub server xətası"),
+                        8000
+                    );
                 } catch (serverErr) {
                     console.warn("Team API failed, trying browser SofaScore fallback:", serverErr.message);
                 }
@@ -7833,8 +8109,18 @@
                         ]);
                         data = { info, players };
                     } catch (directErr) {
-                        if (!data) throw directErr;
+                        if (!data && !knownTeam) throw directErr;
                     }
+                }
+
+                if (!data?.info?.team && knownTeam) {
+                    data = {
+                        ...(data || {}),
+                        info: { team: knownTeam },
+                        team: knownTeam,
+                        players: data?.players || { players: [] },
+                        fallback: true
+                    };
                 }
 
                 teamDetailsCache[teamId] = data;
@@ -7842,7 +8128,7 @@
             }
 
             function normalizeTeamPlayers(playersData) {
-                const rawPlayers = playersData?.players || playersData?.foreignPlayers || [];
+                const rawPlayers = playersData?.players || playersData?.foreignPlayers || playersData?.squad || [];
                 if (!Array.isArray(rawPlayers)) return [];
                 return rawPlayers
                     .map(item => {
@@ -7850,9 +8136,18 @@
                         return {
                             id: player.id,
                             name: player.name || player.shortName || "Oyunçu",
+                            shortName: player.shortName || player.name || "Oyunçu",
                             position: item.position || player.position || player.proposedMarketValueRaw?.position || "Oyunçu",
                             shirtNumber: item.jerseyNumber || item.shirtNumber || player.jerseyNumber || "",
-                            value: player.proposedMarketValue || player.proposedMarketValueRaw?.value || ""
+                            value: player.proposedMarketValue || player.proposedMarketValueRaw?.value || "",
+                            country: player.country?.name || item.country?.name || "",
+                            photoUrl: player.id ? sofaImageUrl(`/player/${player.id}/image`, {
+                                strict: true,
+                                fallbackLabel: player.shortName || player.name || "PL",
+                                fallbackType: "player",
+                                primary: "#2563eb",
+                                secondary: "#16a34a"
+                            }) : IMAGE_PLACEHOLDER
                         };
                     })
                     .filter(p => p.name)
@@ -7866,6 +8161,19 @@
                 if (key.includes('midfielder') || key === 'm') return 'Yarımmüdafiəçi';
                 if (key.includes('forward') || key === 'f') return 'Hücumçu';
                 return position || 'Oyunçu';
+            }
+
+            function getTeamCoachName(team = {}, data = {}) {
+                const candidates = [
+                    team.manager,
+                    team.headCoach,
+                    team.coach,
+                    data.manager,
+                    data.headCoach,
+                    data.coach
+                ];
+                const found = candidates.find(item => item && (item.name || item.shortName));
+                return found?.name || found?.shortName || 'Məlumat yoxdur';
             }
 
             function ensureTeamDetailsModal() {
@@ -7923,24 +8231,52 @@
                     const name = team.name || fallbackName || 'Klub';
                     const country = team.country?.name || team.category?.name || 'Ölkə məlum deyil';
                     const venue = team.venue?.stadium?.name || team.venue?.name || team.stadium?.name || 'Məlumat yoxdur';
-                    const manager = team.manager?.name || team.headCoach?.name || 'Məlumat yoxdur';
+                    const manager = getTeamCoachName(team, data);
                     const founded = team.foundationDateTimestamp
                         ? new Date(team.foundationDateTimestamp * 1000).getFullYear()
                         : (team.foundationDate || 'Məlumat yoxdur');
+                    const logo = normalizeSofaImageUrl(team.logoUrl, getTeamImageOptions(team, true)) || getTeamLogoUrl(teamId, true, team);
+                    const fallbackLogo = getTeamFallbackLogo(team);
+                    const playerCount = players.length ? `${players.length} oyunçu` : 'Heyət gözlənilir';
 
                     document.getElementById('teamDetailsName').textContent = name;
                     document.getElementById('teamDetailsMeta').textContent = country;
+                    document.getElementById('teamDetailsLogo').src = logo;
 
                     const squadHtml = players.length
                         ? players.map(player => `
                             <div class="squad-row">
+                                <img class="squad-photo" loading="lazy" decoding="async" src="${player.photoUrl}" onerror="this.onerror=null; this.src='${IMAGE_PLACEHOLDER}'">
+                                <div style="min-width:0;">
+                                    <span class="squad-name">${escapeHtml(player.name)}</span>
+                                    <span style="display:block; color:var(--text-muted); font-size:11px; font-weight:750; margin-top:3px;">${escapeHtml(player.country || translatePosition(player.position))}</span>
+                                </div>
                                 <span class="squad-num">${escapeHtml(player.shirtNumber || '-')}</span>
-                                <span class="squad-name">${escapeHtml(player.name)}</span>
                                 <span class="squad-pos">${escapeHtml(player.value || translatePosition(player.position))}</span>
                             </div>`).join('')
                         : `<div style="padding:20px; text-align:center; color:var(--text-muted); font-weight:700;">Heyət məlumatı tapılmadı.</div>`;
 
                     document.getElementById('teamDetailsBody').innerHTML = `
+                        <div class="team-profile-hero">
+                            <div class="team-profile-top">
+                                <img class="team-profile-logo" src="${logo}" onerror="this.onerror=null; this.src='${fallbackLogo}'">
+                                <div style="min-width:0;">
+                                    <div class="team-profile-name">${escapeHtml(name)}</div>
+                                    <div class="team-profile-meta">
+                                        <span class="team-profile-pill">${escapeHtml(country)}</span>
+                                        <span class="team-profile-pill">${escapeHtml(playerCount)}</span>
+                                        <span class="team-profile-pill">ID ${escapeHtml(teamId)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="coach-card">
+                            <div class="coach-avatar">&#127944;</div>
+                            <div style="min-width:0;">
+                                <span>Baş məşqçi</span>
+                                <strong>${escapeHtml(manager)}</strong>
+                            </div>
+                        </div>
                         <div class="team-info-grid">
                             <div class="team-info-card"><span>Klub adı</span><strong>${escapeHtml(name)}</strong></div>
                             <div class="team-info-card"><span>Ölkə</span><strong>${escapeHtml(country)}</strong></div>
@@ -7953,27 +8289,90 @@
                         <div class="squad-list">${squadHtml}</div>`;
                 } catch (error) {
                     console.error("Team details load error", error);
-                    document.getElementById('teamDetailsMeta').textContent = 'Məlumat alınmadı';
-                    document.getElementById('teamDetailsBody').innerHTML = `<div style="padding:34px 20px; text-align:center; color:var(--live); font-weight:800;">Klub məlumatı yüklənmədi. Bir az sonra yenidən yoxlayın.</div>`;
+                    const knownTeam = knownTeamsById[String(teamId)] || { id: teamId, name: fallbackName || 'Klub' };
+                    const name = knownTeam.name || knownTeam.shortName || fallbackName || 'Klub';
+                    const country = knownTeam.country?.name || 'Ölkə məlumatı gözlənilir';
+                    const logo = normalizeSofaImageUrl(knownTeam.logoUrl, getTeamImageOptions(knownTeam, true)) || getTeamLogoUrl(teamId, true, knownTeam);
+                    const fallbackLogo = getTeamFallbackLogo(knownTeam);
+                    document.getElementById('teamDetailsName').textContent = name;
+                    document.getElementById('teamDetailsMeta').textContent = country;
+                    document.getElementById('teamDetailsLogo').src = logo;
+                    document.getElementById('teamDetailsBody').innerHTML = `
+                        <div class="team-profile-hero">
+                            <div class="team-profile-top">
+                                <img class="team-profile-logo" src="${logo}" onerror="this.onerror=null; this.src='${fallbackLogo}'">
+                                <div style="min-width:0;">
+                                    <div class="team-profile-name">${escapeHtml(name)}</div>
+                                    <div class="team-profile-meta">
+                                        <span class="team-profile-pill">${escapeHtml(country)}</span>
+                                        <span class="team-profile-pill">ID ${escapeHtml(teamId)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="coach-card">
+                            <div class="coach-avatar">&#127944;</div>
+                            <div style="min-width:0;">
+                                <span>Baş məşqçi</span>
+                                <strong>Məlumat yenilənir</strong>
+                            </div>
+                        </div>
+                        <div style="padding:22px 20px 28px; text-align:center; color:var(--text-muted); font-weight:750; line-height:1.55;">
+                            Tam heyət məlumatı hazırda Sofascore-dən gecikir. Klub profili açıldı, məlumat gələndə yenilənəcək.
+                        </div>`;
                 }
             };
 
-            async function fetchMatchIncidentsFast(id, match = null) {
+            async function fetchMatchIncidentsFast(id, match = null, options = {}) {
                 const isMackolik = match?.source === 'mackolik';
+                const freshParam = options.fresh ? '?fresh=1' : '';
                 const serverUrl = isMackolik
                     ? `/api/match/${id}/details?stats=0&source=mackolik&slug=${encodeURIComponent(match?.slug || '')}`
-                    : `/api/match/${id}/details?stats=0`;
-                const serverData = await fetchServerJson(serverUrl).catch(() => null);
-                return serverData?.incidents || { incidents: [] };
+                    : `/api/match/${id}/incidents${freshParam}`;
+                const serverData = await withTimeout(
+                    fetchServerJson(serverUrl, "Hadisələr xətası"),
+                    options.timeout || 5500
+                ).catch(() => null);
+                return serverData?.incidents ? serverData : (serverData || { incidents: [] });
             }
 
-            async function fetchMatchStatsLazy(id, match = null) {
+            async function fetchMatchStatsLazy(id, match = null, options = {}) {
                 const isMackolik = match?.source === 'mackolik';
+                const freshParam = options.fresh ? '?fresh=1' : '';
                 const serverUrl = isMackolik
                     ? `/api/match/${id}/details?source=mackolik&slug=${encodeURIComponent(match?.slug || '')}`
-                    : `/api/match/${id}/details`;
-                const serverData = await fetchServerJson(serverUrl).catch(() => null);
-                return serverData?.stats || { statistics: [] };
+                    : `/api/match/${id}/statistics${freshParam}`;
+                const serverData = await withTimeout(
+                    fetchServerJson(serverUrl, "Statistika xətası"),
+                    options.timeout || 5500
+                ).catch(() => null);
+                if (serverData?.statistics || serverData?.stats?.statistics) {
+                    return serverData.statistics ? serverData : serverData.stats;
+                }
+                if (!isMackolik) {
+                    const directData = await withTimeout(
+                        fetchDirectSofaJson(`/event/${id}/statistics`),
+                        4200
+                    ).catch(() => null);
+                    if (directData?.statistics) return directData;
+                }
+                return { statistics: [] };
+            }
+
+            async function fetchMatchDetailsFast(id, match = null, options = {}) {
+                const isMackolik = match?.source === 'mackolik';
+                const freshParam = options.fresh ? 'fresh=1' : '';
+                const serverUrl = isMackolik
+                    ? `/api/match/${id}/details?source=mackolik&slug=${encodeURIComponent(match?.slug || '')}`
+                    : `/api/match/${id}/details${freshParam ? `?${freshParam}` : ''}`;
+                const serverData = await withTimeout(
+                    fetchServerJson(serverUrl, "Matç detalları xətası"),
+                    options.timeout || 6500
+                ).catch(() => null);
+                return {
+                    incidents: serverData?.incidents || { incidents: [] },
+                    stats: serverData?.stats || { statistics: [] }
+                };
             }
 
             function renderMatchIncidents(dataI) {
@@ -8031,12 +8430,18 @@
             }
 
             function renderMatchStats(dataS) {
-                const stats = dataS.statistics ? (dataS.statistics.find(s => s.period === "ALL") || dataS.statistics[0]) : null;
-                if (stats) {
+                const periods = Array.isArray(dataS?.statistics) ? dataS.statistics : [];
+                const stats = periods.find(s => s.period === "ALL") || periods[0] || null;
+                const groups = Array.isArray(stats?.groups)
+                    ? stats.groups
+                    : (Array.isArray(stats?.statisticsItems) ? [{ groupName: stats.groupName || "Ümumi", statisticsItems: stats.statisticsItems }] : []);
+                const groupsWithItems = groups.filter(group => Array.isArray(group.statisticsItems) && group.statisticsItems.length);
+                if (groupsWithItems.length) {
                     let sHtml = "";
-                    stats.groups.forEach(group => {
+                    groupsWithItems.forEach(group => {
+                        const items = group.statisticsItems;
                         sHtml += `<div class="stat-group-title">${group.groupName}</div>`;
-                        group.statisticsItems.forEach(st => {
+                        items.forEach(st => {
                             const hV = parseFloat(st.homeValue) || 0;
                             const aV = parseFloat(st.awayValue) || 0;
                             const total = hV + aV;
@@ -8071,20 +8476,15 @@
                     return;
                 }
 
-                Promise.allSettled([
-                    fetchMatchIncidentsFast(matchId, match),
-                    fetchMatchStatsLazy(matchId, match)
-                ]).then(([incidentsResult, statsResult]) => {
-                    const incidents = incidentsResult.status === 'fulfilled' ? incidentsResult.value : { incidents: [] };
-                    const stats = statsResult.status === 'fulfilled' ? statsResult.value : { statistics: [] };
-                    saveMatchDetailsToCache(matchId, incidents, stats);
+                fetchMatchDetailsFast(matchId, match, { timeout: 6500 }).then(details => {
+                    saveMatchDetailsToCache(matchId, details.incidents, details.stats);
                 }).catch(() => {});
             }
 
             async function updateModalStatsAndIncidents(id, options = {}) {
                 const match = options.match || allEvents.find(m => m.id?.toString() === id?.toString()) || null;
                 const now = Date.now();
-                if (!options.force && modalDetailsLastFetch[id] && (now - modalDetailsLastFetch[id] < 12000)) {
+                if (!options.force && modalDetailsLastFetch[id] && (now - modalDetailsLastFetch[id] < 5000)) {
                     return;
                 }
                 if (modalDetailsInFlight === id) {
@@ -8093,15 +8493,50 @@
                 modalDetailsInFlight = id;
 
                 try {
-                    const incidentsData = await fetchMatchIncidentsFast(id, match);
-                    if (currentOpenMatchId && currentOpenMatchId.toString() !== id.toString()) return;
-                    renderMatchIncidents(incidentsData || { incidents: [] });
+                    let latestIncidents = null;
+                    let latestStats = null;
+                    const isStillOpen = () => !currentOpenMatchId || currentOpenMatchId.toString() === id.toString();
+                    const maybeSave = () => {
+                        if (latestIncidents && latestStats) {
+                            saveMatchDetailsToCache(id, latestIncidents, latestStats);
+                        }
+                    };
 
-                    const statsData = await fetchMatchStatsLazy(id, match);
-                    modalDetailsLastFetch[id] = Date.now();
-                    if (currentOpenMatchId && currentOpenMatchId.toString() !== id.toString()) return;
-                    renderMatchStats(statsData || { statistics: [] });
-                    saveMatchDetailsToCache(id, incidentsData, statsData);
+                    const incidentsPromise = fetchMatchIncidentsFast(id, match, {
+                        fresh: options.force,
+                        timeout: options.background ? 4500 : 6000
+                    }).then(data => {
+                        latestIncidents = data || { incidents: [] };
+                        if (isStillOpen()) renderMatchIncidents(latestIncidents);
+                        maybeSave();
+                    });
+
+                const statsPromise = fetchMatchStatsLazy(id, match, {
+                    fresh: options.force,
+                    timeout: options.background ? 4500 : 6000
+                }).then(data => {
+                    latestStats = data || { statistics: [] };
+                    if (isStillOpen()) renderMatchStats(latestStats);
+                    maybeSave();
+                });
+
+                await Promise.allSettled([incidentsPromise, statsPromise]);
+                if (isStillOpen() && !latestIncidents) {
+                    const fallbackDetails = await fetchMatchDetailsFast(id, match, {
+                        fresh: false,
+                        timeout: options.background ? 4500 : 6500
+                    }).catch(() => null);
+                    if (fallbackDetails?.incidents) {
+                        latestIncidents = fallbackDetails.incidents;
+                        renderMatchIncidents(latestIncidents);
+                    }
+                    if (!latestStats && fallbackDetails?.stats) {
+                        latestStats = fallbackDetails.stats;
+                        renderMatchStats(latestStats);
+                    }
+                    maybeSave();
+                }
+                modalDetailsLastFetch[id] = Date.now();
                 } catch (e) {
                     console.error("Modal sync error", e);
                 } finally {
