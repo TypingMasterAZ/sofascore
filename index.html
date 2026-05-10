@@ -6807,12 +6807,16 @@
                     });
                 }
 
-                // AbortController ilə 20 saniyəlik timeout - iOS-da donuq fetch-lərin qarşısını alır
+                const timeoutMs = Number(options.timeoutMs || 35000);
+                const cleanOptions = { ...options };
+                delete cleanOptions.timeoutMs;
+
+                // AbortController ilə timeout - iOS-da donuq fetch-lərin qarşısını alır
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 35000);
+                const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
                 try {
-                    const res = await fetch(url, { ...options, signal: controller.signal });
+                    const res = await fetch(url, { ...cleanOptions, signal: controller.signal });
                     clearTimeout(timeoutId);
                     if (!res.ok && retries > 0 && (res.status >= 502 && res.status <= 504)) {
                         console.log(`[RETRY] Server cavab vermir (${res.status}). ${backoff}ms sonra yenidən...`);
@@ -6823,7 +6827,7 @@
                 } catch (err) {
                     clearTimeout(timeoutId);
                     if (retries > 0) {
-                        const reason = err.name === 'AbortError' ? 'Timeout (35s)' : err.message;
+                        const reason = err.name === 'AbortError' ? `Timeout (${Math.round(timeoutMs / 1000)}s)` : err.message;
                         console.log(`[RETRY] Xəta: ${reason}. ${backoff}ms sonra yenidən (${retries} qalıb)...`);
                         await new Promise(r => setTimeout(r, backoff));
                         return fetchWithRetry(url, options, retries - 1, backoff + 2000);
@@ -6980,9 +6984,28 @@
                 return data;
             }
 
-            async function fetchEventsFromBestSource(localUrl, sofaPath, options = {}, allowDirectBrowserFallback = true) {
+            async function fetchEventsFromBestSource(localUrl, sofaPath, options = {}, allowDirectBrowserFallback = true, sourceOptions = {}) {
+                const directUrl = `https://api.sofascore.com/api/v1${sofaPath}`;
+                const directFetch = () => fetchJsonOrThrow(directUrl, {
+                    ...options,
+                    timeoutMs: sourceOptions.directTimeoutMs || options.timeoutMs || 6000
+                }, 'SofaScore direct xətası');
+                const serverFetch = () => fetchJsonOrThrow(localUrl, {
+                    ...options,
+                    timeoutMs: sourceOptions.serverTimeoutMs || options.timeoutMs || 6500
+                }, 'Server xətası');
+
+                if (allowDirectBrowserFallback && sourceOptions.raceDirect) {
+                    try {
+                        return await Promise.any([directFetch(), serverFetch()]);
+                    } catch (raceError) {
+                        const firstReason = raceError?.errors?.[0] || raceError;
+                        throw firstReason || raceError;
+                    }
+                }
+
                 try {
-                    const serverData = await fetchJsonOrThrow(localUrl, options, 'Server xətası');
+                    const serverData = await serverFetch();
                     const serverEvents = Array.isArray(serverData?.events) ? serverData.events : [];
                     const isEmptyLiveFallback = sofaPath === '/sport/football/events/live'
                         && serverEvents.length === 0
@@ -6996,9 +7019,8 @@
                         throw serverError;
                     }
 
-                    const directUrl = `https://api.sofascore.com/api/v1${sofaPath}`;
                     try {
-                        return await fetchJsonOrThrow(directUrl, options, 'SofaScore direct xətası');
+                        return await directFetch();
                     } catch (directError) {
                         throw directError || serverError;
                     }
@@ -7020,7 +7042,10 @@
                     sofaFallbackPath = `/sport/football/scheduled-events/${dateToFetch}`;
                 }
 
-                let fetchOptions = { cache: 'no-store' };
+                let fetchOptions = {
+                    cache: 'no-store',
+                    timeoutMs: dataCacheKey === 'live' ? 6500 : 14000
+                };
                 const eventsCacheKey = dataCacheKey === 'live'
                     ? LIVE_CACHE_KEY
                     : `cached_events_${dataCacheKey}`;
@@ -7035,7 +7060,9 @@
                 const syncOverlay = document.getElementById('syncStatusOverlay');
                 if (!isForced && (!allEvents || allEvents.length === 0)) {
                     const isLiveCache = dataCacheKey === 'live';
-                    restoreEventsFromCache(eventsCacheKey, isLiveCache ? LIVE_BOOT_CACHE_MAX_AGE : SCHEDULED_BOOT_CACHE_MAX_AGE);
+                    if (!isLiveCache) {
+                        restoreEventsFromCache(eventsCacheKey, SCHEDULED_BOOT_CACHE_MAX_AGE);
+                    }
                 }
                 
                 // --- HYBRID DATA POLICY REMOVED FOR FRESHNESS ---
@@ -7057,7 +7084,11 @@
                 
                 try {
                     const allowDirectBrowserFallback = true;
-                    let dataEvents = await fetchEventsFromBestSource(url, sofaFallbackPath, fetchOptions, allowDirectBrowserFallback);
+                    let dataEvents = await fetchEventsFromBestSource(url, sofaFallbackPath, fetchOptions, allowDirectBrowserFallback, {
+                        raceDirect: dataCacheKey === 'live',
+                        directTimeoutMs: dataCacheKey === 'live' ? 4500 : 8000,
+                        serverTimeoutMs: dataCacheKey === 'live' ? 6500 : 14000
+                    });
                     
                     if (typeof dataEvents === 'string') {
                         try {
@@ -10491,7 +10522,6 @@
             startAzerbaijaniTextRepair();
             fetchData();
             const todayBootKey = new Date().toISOString().split('T')[0];
-            restoreEventsFromCache(LIVE_CACHE_KEY, LIVE_ERROR_CACHE_MAX_AGE);
             if (selectedDate === todayBootKey && !isLiveFiltered) {
                 restoreEventsFromCache(`cached_events_${todayBootKey}`, SCHEDULED_BOOT_CACHE_MAX_AGE);
             }
@@ -10500,7 +10530,13 @@
                 if (typeof favMatches !== 'undefined' && favMatches.length > 0) {
                     const liveSource = Array.isArray(allEvents) && allEvents.length > 0
                         ? Promise.resolve({ events: allEvents })
-                        : fetchEventsFromBestSource(API_BASE_URL + '/api/matches/live', '/sport/football/events/live', { cache: 'no-store' }, false);
+                        : fetchEventsFromBestSource(
+                            API_BASE_URL + '/api/matches/live',
+                            '/sport/football/events/live',
+                            { cache: 'no-store', timeoutMs: 6000 },
+                            true,
+                            { raceDirect: true, directTimeoutMs: 4500, serverTimeoutMs: 6000 }
+                        );
 
                     liveSource.then(data => {
                         if (data && data.events) {
