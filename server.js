@@ -3362,8 +3362,8 @@ app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
             data = cached.data;
         } else {
             data = await withServerTimeout(
-                fetchTopPlayersDataForBestSeason(id, sid, fast ? { fast: true, maxSeasons: 2 } : {}),
-                fast ? 11000 : 28000,
+                fetchTopPlayersDataForBestSeason(id, sid, fast ? { fast: true, maxSeasons: 1 } : {}),
+                fast ? 5200 : 18000,
                 "Top players"
             );
             if (data?.derived && cached?.data && !cached.data.derived && extractTopPlayersList(cached.data).length) {

@@ -8241,7 +8241,7 @@
                         : `/api/standings-fast/${tourId}`;
                     data = await withTimeout(
                         fetchServerJson(fastPath, "Standings fast server xətası"),
-                        6500
+                        9500
                     );
                 } catch (serverErr) {
                     console.warn("Fast standings API failed:", serverErr.message);
@@ -8281,6 +8281,8 @@
                     return data;
                 }
 
+                if (data) return data;
+
                 if (!isNumericId(seasonId)) {
                     try {
                         seasonId = await resolveLeagueSeasonId(tourId);
@@ -8293,7 +8295,7 @@
                     try {
                         const directData = await withTimeout(
                             fetchDirectSofaJson(`/unique-tournament/${tourId}/season/${seasonId}/standings/total`),
-                            4500
+                            2500
                         );
                         if (directData?.standings?.length) {
                             leagueStandingsCache[cacheKey] = directData;
@@ -8335,8 +8337,8 @@
                 let data = null;
                 try {
                     data = await withTimeout(
-                        fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players?fast=1`, "Top players server xətası", 9000),
-                        8500
+                        fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players?fast=1`, "Top players server xətası", 6000),
+                        5500
                     );
                 } catch (serverErr) {
                     console.warn("Top players API failed:", serverErr.message);
@@ -8379,32 +8381,34 @@
                             params: { limit: 50, order: '-goals', group: 'attack' }
                         }
                     ];
-                    for (const item of paths) {
-                        try {
-                            const directData = await withTimeout(fetchDirectSofaJson(item.path, item.params), 4500);
-                            if (extractTopPlayersList(directData).length) {
-                                data = directData;
-                                break;
-                            }
-                            data = data || directData;
-                        } catch (e) {}
-                    }
-                }
-
-                if (!extractTopPlayersList(data).length) {
-                    try {
-                        data = await withTimeout(
-                            fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players fallback xətası", 24000),
-                            22000
-                        );
-                    } catch (fallbackErr) {
-                        console.warn("Top players deep fallback failed:", fallbackErr.message);
-                    }
+                    const directAttempts = paths.map(item =>
+                        withTimeout(fetchDirectSofaJson(item.path, item.params), 2600).catch(() => null)
+                    );
+                    const directResults = await Promise.all(directAttempts);
+                    data = directResults.find(item => extractTopPlayersList(item).length) || data;
                 }
 
                 if (extractTopPlayersList(data).length) {
                     leagueTopPlayersCache[cacheKey] = data;
                     setPersistedLeagueData(cacheKey, data);
+                }
+
+                if (!extractTopPlayersList(data).length) {
+                    fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players fallback xətası", 24000)
+                        .then(fresh => {
+                            if (!extractTopPlayersList(fresh).length) return;
+                            const resolvedSeasonId = fresh?.seasonId || seasonId;
+                            const resolvedCacheKey = `topplayers_${TOP_PLAYERS_CACHE_VERSION}_${tourId}_${resolvedSeasonId}`;
+                            leagueTopPlayersCache[cacheKey] = fresh;
+                            leagueTopPlayersCache[resolvedCacheKey] = fresh;
+                            setPersistedLeagueData(cacheKey, fresh);
+                            setPersistedLeagueData(resolvedCacheKey, fresh);
+                            if (window.currentLeagueContext?.id?.toString() === tourId.toString()) {
+                                const box = document.getElementById("leagueTopPlayers");
+                                if (box && box.offsetParent !== null) box.innerHTML = renderTopPlayersHtml(extractTopPlayersList(fresh));
+                            }
+                        })
+                        .catch(() => {});
                 }
                 return data;
             }
