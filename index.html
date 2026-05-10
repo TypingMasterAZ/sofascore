@@ -8010,9 +8010,16 @@
             }
 
             function saveMatchDetailsToCache(id, incidents, stats) {
+                const existing = modalDetailsMemoryCache[id] || {};
+                const mergedIncidents = hasUsefulIncidentsPayload(incidents)
+                    ? incidents
+                    : (hasUsefulIncidentsPayload(existing.incidents) ? existing.incidents : (incidents || existing.incidents || { incidents: [] }));
+                const mergedStats = hasUsefulStatsPayload(stats)
+                    ? stats
+                    : (hasUsefulStatsPayload(existing.stats) ? existing.stats : (stats || existing.stats || { statistics: [] }));
                 modalDetailsMemoryCache[id] = {
-                    incidents: incidents || { incidents: [] },
-                    stats: stats || { statistics: [] },
+                    incidents: mergedIncidents,
+                    stats: mergedStats,
                     savedAt: Date.now()
                 };
                 persistMatchDetailsCache();
@@ -8679,6 +8686,7 @@
                 try {
                     let latestIncidents = null;
                     let latestStats = null;
+                    const cachedBefore = getCachedMatchDetails(id, 5 * 60 * 1000);
                     const isStillOpen = () => !currentOpenMatchId || currentOpenMatchId.toString() === id.toString();
                     const maybeSave = () => {
                         if (latestIncidents && latestStats) {
@@ -8694,11 +8702,15 @@
                         }).catch(() => null);
                         if (fastDetails?.incidents) {
                             latestIncidents = fastDetails.incidents;
-                            if (isStillOpen()) renderMatchIncidents(latestIncidents);
+                            if (isStillOpen() && hasUsefulIncidentsPayload(latestIncidents)) {
+                                renderMatchIncidents(latestIncidents);
+                            }
                         }
                         if (fastDetails?.stats) {
                             latestStats = fastDetails.stats;
-                            if (isStillOpen()) renderMatchStats(latestStats);
+                            if (isStillOpen() && hasUsefulStatsPayload(latestStats)) {
+                                renderMatchStats(latestStats);
+                            }
                         }
                         maybeSave();
                         if (hasUsefulIncidentsPayload(latestIncidents) || hasUsefulStatsPayload(latestStats)) {
@@ -8720,7 +8732,9 @@
                         directFallback: !options.background
                     }).then(data => {
                         latestIncidents = data || { incidents: [] };
-                        if (isStillOpen()) renderMatchIncidents(latestIncidents);
+                        if (isStillOpen() && hasUsefulIncidentsPayload(latestIncidents)) {
+                            renderMatchIncidents(latestIncidents);
+                        }
                         maybeSave();
                     });
 
@@ -8730,7 +8744,9 @@
                     directFallback: false
                 }).then(data => {
                     latestStats = data || { statistics: [] };
-                    if (isStillOpen()) renderMatchStats(latestStats);
+                    if (isStillOpen() && hasUsefulStatsPayload(latestStats)) {
+                        renderMatchStats(latestStats);
+                    }
                     maybeSave();
                 });
 
@@ -8743,11 +8759,15 @@
                     }).catch(() => null);
                     if (fallbackDetails?.incidents && !hasUsefulIncidentsPayload(latestIncidents)) {
                         latestIncidents = fallbackDetails.incidents;
-                        renderMatchIncidents(latestIncidents);
+                        if (hasUsefulIncidentsPayload(latestIncidents) || !hasUsefulIncidentsPayload(cachedBefore?.incidents)) {
+                            renderMatchIncidents(latestIncidents);
+                        }
                     }
                     if (fallbackDetails?.stats && !hasUsefulStatsPayload(latestStats)) {
                         latestStats = fallbackDetails.stats;
-                        renderMatchStats(latestStats);
+                        if (hasUsefulStatsPayload(latestStats) || !hasUsefulStatsPayload(cachedBefore?.stats)) {
+                            renderMatchStats(latestStats);
+                        }
                     }
                     maybeSave();
                 }
