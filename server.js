@@ -1918,6 +1918,39 @@ function normalizeGoalTopPlayers(items = []) {
         .sort((a, b) => getTopPlayerGoalValue(b) - getTopPlayerGoalValue(a));
 }
 
+function extractSearchTeams(data) {
+    const buckets = [
+        data?.results,
+        data?.entities,
+        data?.teams,
+        data?.data?.results,
+        data?.data?.entities,
+        Array.isArray(data) ? data : null
+    ].filter(Array.isArray);
+    return buckets.flatMap(items => items)
+        .map(item => item?.entity || item?.team || item)
+        .filter(item => item?.id && (item.type === 0 || item.type === "team" || item.entityType === "team" || item.name || item.shortName));
+}
+
+function normalizeSearchName(value) {
+    return String(value || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\b(fc|fk|cf|sk|sc|afc|club|futbol|football)\b/g, "")
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+}
+
+function pickBestSearchTeam(teams, query) {
+    const target = normalizeSearchName(query);
+    if (!target) return null;
+    return teams.find(team => {
+        const name = normalizeSearchName(team.name || team.shortName);
+        return name === target || name.includes(target) || target.includes(name);
+    }) || teams[0] || null;
+}
+
 function addUniqueSeasonId(candidates, seasonId) {
     if (!seasonId) return;
     const normalized = String(seasonId);
@@ -1926,7 +1959,9 @@ function addUniqueSeasonId(candidates, seasonId) {
 
 function getPrimaryTopPlayerSeasonIds(tournamentId, requestedSeasonId) {
     const candidates = [];
-    addUniqueSeasonId(candidates, requestedSeasonId);
+    if (/^\d+$/.test(String(requestedSeasonId || ""))) {
+        addUniqueSeasonId(candidates, requestedSeasonId);
+    }
     addUniqueSeasonId(candidates, KNOWN_CURRENT_SEASONS[tournamentId]);
     (TOP_PLAYER_FALLBACK_SEASONS[tournamentId] || []).forEach(seasonId => addUniqueSeasonId(candidates, seasonId));
     return candidates;
@@ -2397,7 +2432,7 @@ async function warmLiveMatchDetails(events = []) {
 }
 
 // API vasitÉ™Ã§isi (Komanda mÉ™lumatlarÄ± vÉ™ heyÉ™t Ã¼Ã§Ã¼n)
-app.get("/api/team/:id", async (req, res) => {
+app.get("/api/team/:id(\\d+)", async (req, res) => {
     try {
         const teamId = req.params.id;
         const fast = req.query.fast === "1";
@@ -2422,7 +2457,7 @@ app.get("/api/team/:id", async (req, res) => {
             `team_info_${teamId}`,
             fetchTeamInfo,
             TEAM_INFO_TTL,
-            fast ? 3600 : 6500,
+            fast ? 4200 : 6500,
             `Team info ${teamId}`,
             { skipJitter: true }
         );
@@ -2430,7 +2465,7 @@ app.get("/api/team/:id", async (req, res) => {
             `team_players_${teamId}`,
             fetchTeamPlayers,
             TEAM_PLAYERS_TTL,
-            fast ? 900 : 7000,
+            fast ? 7000 : 7000,
             `Team players ${teamId}`,
             { skipJitter: true }
         );
@@ -3087,6 +3122,29 @@ app.get("/api/search", async (req, res) => {
     }
 });
 
+app.get("/api/team/resolve", async (req, res) => {
+    try {
+        const q = String(req.query.q || "").trim();
+        if (!q) return res.status(400).json({ error: true, message: "Team name required" });
+        const cacheKey = `team_resolve_${normalizeSearchName(q)}`;
+        const data = await getCachedDataWithTimeout(cacheKey, async () => {
+            const searchData = await Promise.any([
+                fetchFromSofaNativeFast("/search/all", { q }, 2600),
+                fetchFromSofaFastRace("/search/all", { q }, 4200),
+                fetchFromSofa("/search/all", { q }).then(result => result.data)
+            ]);
+            const teams = extractSearchTeams(searchData);
+            const team = pickBestSearchTeam(teams, q);
+            if (!team?.id) throw new Error("Team not found");
+            return { team, teamId: team.id, query: q };
+        }, 7 * 24 * 60 * 60 * 1000, 5200, `Resolve team ${q}`, { skipJitter: true });
+        res.json(data);
+    } catch (error) {
+        console.error(`[API ERROR] Team resolve "${req.query.q || ""}": ${error.message}`);
+        res.status(404).json({ error: true, message: error.message });
+    }
+});
+
 // Yeni API: BombardirlÉ™r (Top Players)
 app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
     try {
@@ -3102,7 +3160,7 @@ app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
             console.log(`[CACHE HIT] Key: ${cacheKey}`);
             data = cached.data;
         } else {
-            data = await withServerTimeout(fetchTopPlayersDataForBestSeason(id, sid), 11000, "Top players");
+            data = await withServerTimeout(fetchTopPlayersDataForBestSeason(id, sid), 15000, "Top players");
             if (data?.derived && cached?.data && !cached.data.derived && extractTopPlayersList(cached.data).length) {
                 console.warn(`[Top Players] Keeping official cached data over derived fallback for ${id}/${sid}`);
                 data = cached.data;

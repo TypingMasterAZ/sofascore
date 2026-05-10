@@ -5984,6 +5984,10 @@
                 ]);
             }
 
+            function isNumericId(value) {
+                return /^\d+$/.test(String(value || ''));
+            }
+
             function getPersistedLeagueData(key, maxAgeMs) {
                 try {
                     const data = JSON.parse(localStorage.getItem(key) || 'null');
@@ -6524,9 +6528,9 @@
                         setPersistedLeagueData(resolvedKey, data);
                         setPersistedLeagueData(`standings_${tourId}_auto`, data);
                         if (data.seasonId && window.currentLeagueContext?.id?.toString() === tourId.toString()) {
-                            window.currentLeagueContext.seasonId = data.seasonId;
+                            if (isNumericId(data.seasonId)) window.currentLeagueContext.seasonId = data.seasonId;
                             window.currentLeagueContext.seasonName = data.season?.name || data.season?.year || window.currentLeagueContext.seasonName;
-                            leagueSeasonCache[tourId] = data.seasonId;
+                            if (isNumericId(data.seasonId)) leagueSeasonCache[tourId] = data.seasonId;
                         }
                         const tableHtml = buildStandingsTable(data, tourId);
 
@@ -6564,8 +6568,8 @@
             async function resolveLeagueSeasonId(tourId) {
                 if (!tourId) return null;
                 const ctx = window.currentLeagueContext || {};
-                if (ctx.id?.toString() === tourId.toString() && ctx.seasonId) return ctx.seasonId;
-                if (leagueSeasonCache[tourId]) return leagueSeasonCache[tourId];
+                if (ctx.id?.toString() === tourId.toString() && isNumericId(ctx.seasonId)) return ctx.seasonId;
+                if (isNumericId(leagueSeasonCache[tourId])) return leagueSeasonCache[tourId];
                 if (KNOWN_LEAGUE_SEASONS[tourId]) {
                     leagueSeasonCache[tourId] = KNOWN_LEAGUE_SEASONS[tourId];
                     if (ctx.id?.toString() === tourId.toString()) {
@@ -6644,13 +6648,13 @@
 
             async function prefetchLeagueTopPlayers(tourId, seasonId) {
                 if (!tourId) return;
-                if (!seasonId) {
+                if (!isNumericId(seasonId)) {
                     const standingsData = leagueStandingsCache[`standings_${tourId}_auto`] ||
                         getPersistedLeagueData(`standings_${tourId}_auto`, 12 * 60 * 60 * 1000);
-                    seasonId = standingsData?.seasonId || seasonId;
+                    seasonId = isNumericId(standingsData?.seasonId) ? standingsData.seasonId : null;
                 }
                 const resolvedSeasonId = seasonId || await resolveLeagueSeasonId(tourId).catch(() => null);
-                if (!resolvedSeasonId) return;
+                if (!isNumericId(resolvedSeasonId)) return;
                 const cacheKey = `topplayers_${TOP_PLAYERS_CACHE_VERSION}_${tourId}_${resolvedSeasonId}`;
                 const cached = leagueTopPlayersCache[cacheKey] || getPersistedLeagueData(cacheKey, 12 * 60 * 60 * 1000);
                 if (extractTopPlayersList(cached).length) return;
@@ -6678,7 +6682,7 @@
                 leagueTopPlayersCache[resolvedCacheKey] = data;
                 setPersistedLeagueData(requestedCacheKey, data);
                 setPersistedLeagueData(resolvedCacheKey, data);
-                if (resolvedSeasonId && window.currentLeagueContext?.id?.toString() === tourId.toString()) {
+                if (isNumericId(resolvedSeasonId) && window.currentLeagueContext?.id?.toString() === tourId.toString()) {
                     window.currentLeagueContext.seasonId = resolvedSeasonId;
                     leagueSeasonCache[tourId] = resolvedSeasonId;
                 }
@@ -6689,10 +6693,10 @@
                 const box = document.getElementById("leagueTopPlayers");
                 if (!tourId || !box) return;
 
-                if (!seasonId) {
+                if (!isNumericId(seasonId)) {
                     const standingsData = leagueStandingsCache[`standings_${tourId}_auto`] ||
                         getPersistedLeagueData(`standings_${tourId}_auto`, 12 * 60 * 60 * 1000);
-                    if (standingsData?.seasonId) {
+                    if (isNumericId(standingsData?.seasonId)) {
                         seasonId = standingsData.seasonId;
                         if (window.currentLeagueContext?.id?.toString() === tourId.toString()) {
                             window.currentLeagueContext.seasonId = seasonId;
@@ -6702,14 +6706,14 @@
                     }
                 }
 
-                if (!seasonId) {
+                if (!isNumericId(seasonId)) {
                     box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:700;'>Mövsüm məlumatı axtarılır...</div>";
                     try {
                         seasonId = await resolveLeagueSeasonId(tourId);
                     } catch (e) {
                         console.warn("Top players season resolve failed", e.message);
                     }
-                    if (!seasonId) {
+                    if (!isNumericId(seasonId)) {
                         box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:700;'>Bombardir məlumatı üçün mövsüm tapılmadı.</div>";
                         return;
                     }
@@ -8053,10 +8057,16 @@
                 return res.json();
             }
 
-            async function fetchServerJson(path, errorLabel = "Server xÃ‰â„¢tasÃ„Â±") {
-                const res = await fetch(API_BASE_URL + path, { cache: 'no-store' });
-                if (!res.ok) throw new Error(`${errorLabel}: ${res.status}`);
-                return res.json();
+            async function fetchServerJson(path, errorLabel = "Server xÃ‰â„¢tasÃ„Â±", timeoutMs = 12000) {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+                try {
+                    const res = await fetch(API_BASE_URL + path, { cache: 'no-store', signal: controller.signal });
+                    if (!res.ok) throw new Error(`${errorLabel}: ${res.status}`);
+                    return res.json();
+                } finally {
+                    clearTimeout(timeoutId);
+                }
             }
 
             async function fetchLeagueInfoData(tourId, isUnique = true) {
@@ -8124,7 +8134,7 @@
                     setPersistedLeagueData(resolvedKey, data);
                     setPersistedLeagueData(cacheKey, data);
                     setPersistedLeagueData(`standings_${tourId}_auto`, data);
-                    if (resolvedSeasonId && window.currentLeagueContext?.id?.toString() === tourId.toString()) {
+                    if (isNumericId(resolvedSeasonId) && window.currentLeagueContext?.id?.toString() === tourId.toString()) {
                         window.currentLeagueContext.seasonId = resolvedSeasonId;
                         window.currentLeagueContext.seasonName = data.season?.name || data.season?.year || window.currentLeagueContext.seasonName;
                         leagueSeasonCache[tourId] = resolvedSeasonId;
@@ -8141,7 +8151,7 @@
                     setPersistedLeagueData(resolvedKey, data);
                     setPersistedLeagueData(cacheKey, data);
                     setPersistedLeagueData(`standings_${tourId}_auto`, data);
-                    if (data.seasonId && window.currentLeagueContext?.id?.toString() === tourId.toString()) {
+                    if (isNumericId(data.seasonId) && window.currentLeagueContext?.id?.toString() === tourId.toString()) {
                         window.currentLeagueContext.seasonId = data.seasonId;
                         window.currentLeagueContext.seasonName = data.season?.name || data.season?.year || window.currentLeagueContext.seasonName;
                         leagueSeasonCache[tourId] = data.seasonId;
@@ -8149,7 +8159,7 @@
                     return data;
                 }
 
-                if (!seasonId) {
+                if (!isNumericId(seasonId)) {
                     try {
                         seasonId = await resolveLeagueSeasonId(tourId);
                     } catch (e) {
@@ -8173,7 +8183,7 @@
                     }
                 }
 
-                if (!seasonId) throw new Error("Season id tapılmadı");
+                if (!isNumericId(seasonId)) throw new Error("Season id tapılmadı");
 
                 const directData = await withTimeout(fetchServerJson(`/api/standings/${tourId}/${seasonId}`, "Standings server xətası"), 6500);
                 if (directData?.standings?.length) {
@@ -8184,6 +8194,10 @@
             }
 
             async function fetchLeagueTopPlayersData(tourId, seasonId, options = {}) {
+                if (!isNumericId(seasonId)) {
+                    seasonId = await resolveLeagueSeasonId(tourId);
+                }
+                if (!isNumericId(seasonId)) throw new Error("Top players season id tapılmadı");
                 const cacheKey = `topplayers_${TOP_PLAYERS_CACHE_VERSION}_${tourId}_${seasonId}`;
                 const legacyCacheKey = `topplayers_${tourId}_${seasonId}`;
                 const persisted = leagueTopPlayersCache[cacheKey] || getPersistedLeagueData(cacheKey, 12 * 60 * 60 * 1000);
@@ -8199,8 +8213,8 @@
                 let data = null;
                 try {
                     data = await withTimeout(
-                        fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players server xətası"),
-                        6200
+                        fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players server xətası", 16000),
+                        15000
                     );
                 } catch (serverErr) {
                     console.warn("Top players API failed:", serverErr.message);
@@ -8252,7 +8266,7 @@
                 try {
                     data = await withTimeout(
                         fetchServerJson(`/api/team/${teamId}?fast=1`, "Klub server xətası"),
-                        4500
+                        11000
                     );
                 } catch (serverErr) {
                     console.warn("Team API failed, trying browser SofaScore fallback:", serverErr.message);
@@ -8397,7 +8411,12 @@
             async function resolveTeamIdByName(teamName) {
                 const target = normalizeTeamSearchName(teamName);
                 if (!target) return null;
-                const searchData = await fetchServerJson(`/api/search?q=${encodeURIComponent(teamName)}`, "Klub axtarışı xətası");
+                const resolvedData = await fetchServerJson(`/api/team/resolve?q=${encodeURIComponent(teamName)}`, "Klub axtarışı xətası", 7000).catch(() => null);
+                if (resolvedData?.team?.id && isNumericId(resolvedData.team.id)) {
+                    rememberTeamMeta(resolvedData.team);
+                    return resolvedData.team.id;
+                }
+                const searchData = await fetchServerJson(`/api/search?q=${encodeURIComponent(teamName)}`, "Klub axtarışı xətası", 7000);
                 const teams = extractTeamSearchResults(searchData);
                 const exact = teams.find(team => {
                     const name = normalizeTeamSearchName(team.name || team.shortName);
