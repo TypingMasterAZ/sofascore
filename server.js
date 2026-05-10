@@ -1171,8 +1171,11 @@ function normalizeSofaLiveEventsData(payload) {
 function isLiveSofaEvent(event) {
     if (!event?.status) return false;
     if (event.status.type === "inprogress") return true;
+    if (event.status.type === "live") return true;
     const desc = String(event.status.description || "").toUpperCase();
-    return ["HT", "HALFTIME", "HALF TIME", "ET", "EXTRA TIME", "LIVE"].includes(desc) || desc.includes("'");
+    const code = Number(event.status.code || 0);
+    if (code >= 6 && code < 100) return true;
+    return ["HT", "HALFTIME", "HALF TIME", "ET", "EXTRA TIME", "LIVE", "1ST HALF", "2ND HALF", "STARTED"].includes(desc) || desc.includes("'");
 }
 
 async function fetchLiveFromSofaScore() {

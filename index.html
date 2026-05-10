@@ -6967,17 +6967,23 @@
                 return m.status.description || "";
             }
 
+            function isSofascoreLiveEvent(m) {
+                if (!m || !m.status) return false;
+                if (m.status.type === 'inprogress' || m.status.type === 'live') return true;
+                const desc = (m.status.description || "").toUpperCase();
+                const code = Number(m.status.code || 0);
+                if (code >= 6 && code < 100) return true;
+                return desc === 'HT' || desc === 'HALFTIME' || desc === 'HALF TIME' ||
+                    desc === 'ET' || desc === 'EXTRA TIME' || desc === 'LIVE' ||
+                    desc === '1ST HALF' || desc === '2ND HALF' || desc === 'STARTED' ||
+                    desc.includes("'");
+            }
+
             function applyFilters() {
                 console.log("Applying filters... allEvents count:", allEvents.length);
                 let listRaw = allEvents;
                 if (isLiveFiltered) {
-                    listRaw = allEvents.filter(m => {
-                        if (!m) return false;
-                        if (!m.status) return false;
-                        if (m.status.type === 'inprogress') return true;
-                        const desc = (m.status.description || "").toUpperCase();
-                        return desc === 'HT' || desc === 'HALFTIME' || desc === 'HALF TIME' || desc === 'ET' || desc === 'EXTRA TIME' || desc === 'LIVE' || desc.includes("'");
-                    });
+                    listRaw = allEvents.filter(isSofascoreLiveEvent);
                 }
 
                 // Axtar?? s?zg?ci
@@ -7337,7 +7343,7 @@
 
             function createMatchRow(m, group) {
                 const timeRaw = getMatchTime(m);
-                const isLive = m.status.type === 'inprogress' || timeRaw === 'HT' || timeRaw === 'ET' || timeRaw === 'LIVE';
+                const isLive = isSofascoreLiveEvent(m);
                 const isStateLabel = ['HT', 'FT', 'ET', 'AET', 'PEN', 'LIVE'].includes(timeRaw);
                 const homeLogo = normalizeSofaImageUrl(m.homeTeam?.logoUrl, getTeamImageOptions(m.homeTeam, false)) || getTeamLogoUrl(m.homeTeam.id, false, m.homeTeam);
                 const awayLogo = normalizeSofaImageUrl(m.awayTeam?.logoUrl, getTeamImageOptions(m.awayTeam, false)) || getTeamLogoUrl(m.awayTeam.id, false, m.awayTeam);
