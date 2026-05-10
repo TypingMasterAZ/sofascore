@@ -5558,7 +5558,7 @@
             const prefetchedCategoryLeagues = new Set();
             const knownLeaguesById = {};
             const leagueTopPlayersCache = {};
-            const TOP_PLAYERS_CACHE_VERSION = "v6";
+            const TOP_PLAYERS_CACHE_VERSION = "v7";
             const CATEGORY_LEAGUES_CACHE_VERSION = "v2";
             const FEATURED_CATEGORY_IDS = new Set(['1', '7', '30', '31', '32', '46', '297', '1465']);
             const FEATURED_CATEGORY_NAMES = new Set([
@@ -6693,20 +6693,22 @@
             }
 
             function renderTopPlayersHtml(topPlayers) {
-                if (!Array.isArray(topPlayers) || topPlayers.length === 0) {
+                const playerRows = (Array.isArray(topPlayers) ? topPlayers : []).filter(p => {
+                    const playerId = String(p?.player?.id || '');
+                    return !p?.synthetic && !playerId.startsWith('team-');
+                });
+                if (!playerRows.length) {
                     return "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Bombardir məlumatı tapılmadı.</div>";
                 }
 
                 let html = '<div class="top-players-list">';
-                topPlayers.slice(0, 20).forEach((p, index) => {
+                playerRows.slice(0, 20).forEach((p, index) => {
                     const goals = p.statistics?.goals ?? p.statistics?.totalGoals ?? p.goals ?? p.totalGoals ?? p.value ?? p.statistic ?? 0;
                     const playerId = p.player?.id || '';
-                    const syntheticTeamRow = p.synthetic || String(playerId).startsWith('team-');
-                    const imagePath = syntheticTeamRow && p.team?.id ? `/team/${p.team.id}/image` : `/player/${playerId}/image`;
-                    const playerImg = (playerId || (syntheticTeamRow && p.team?.id)) ? sofaImageUrl(imagePath, {
+                    const playerImg = playerId ? sofaImageUrl(`/player/${playerId}/image`, {
                         strict: true,
                         fallbackLabel: p.player?.shortName || p.player?.name || 'PL',
-                        fallbackType: syntheticTeamRow ? 'team' : 'player',
+                        fallbackType: 'player',
                         primary: '#16a34a',
                         secondary: '#0f172a'
                     }) : IMAGE_PLACEHOLDER;
@@ -6716,7 +6718,7 @@
                                 <img class="player-img" loading="lazy" decoding="async" src="${playerImg}" onerror="this.onerror=null; this.src='${IMAGE_PLACEHOLDER}'">
                                 <div class="player-info">
                                     <span class="player-name">${p.player?.name || 'Oyunçu'}</span>
-                                    <span class="player-team">${syntheticTeamRow ? 'Komanda qollarına görə' : (p.team ? p.team.name : 'Komanda yoxdur')}</span>
+                                    <span class="player-team">${p.team ? p.team.name : 'Komanda yoxdur'}</span>
                                 </div>
                                 <span class="player-goals">${goals} Qol</span>
                             </div>`;

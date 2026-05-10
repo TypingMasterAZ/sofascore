@@ -2128,7 +2128,7 @@ async function getFallbackTopPlayerSeasonIds(tournamentId, existingCandidates = 
 }
 
 function getGoalIncidentPlayer(incident) {
-    return incident?.player || incident?.footballPlayer || incident?.scorer || incident?.playerTeam || null;
+    return incident?.player || incident?.footballPlayer || incident?.scorer || null;
 }
 
 function getGoalIncidentPlayerName(incident, player) {
@@ -2168,7 +2168,6 @@ async function fetchTopPlayersFromEventsFallback(tournamentId, seasonId, options
     if (!events.length) return null;
 
     const scorers = new Map();
-    const teamGoals = new Map();
     for (let i = 0; i < events.length; i += batchSize) {
         const batch = events.slice(i, i + batchSize);
         const incidentResults = await Promise.allSettled(
@@ -2192,21 +2191,6 @@ async function fetchTopPlayersFromEventsFallback(tournamentId, seasonId, options
                 const player = getGoalIncidentPlayer(incident);
                 const playerName = getGoalIncidentPlayerName(incident, player);
                 const team = incident.team || (incident.isHome ? event.homeTeam : event.awayTeam) || {};
-                if (team?.id || team?.name) {
-                    const teamKey = team?.id ? `team_${team.id}` : `team_${String(team.name || "").toLowerCase()}`;
-                    const currentTeam = teamGoals.get(teamKey) || {
-                        player: {
-                            id: `team-${team.id || teamKey}`,
-                            name: `${team.name || team.shortName || "Komanda"} qolları`,
-                            shortName: team.shortName || team.name || "Komanda"
-                        },
-                        team: team?.id ? { id: team.id, name: team.name, shortName: team.shortName } : undefined,
-                        statistics: { goals: 0 },
-                        synthetic: true
-                    };
-                    currentTeam.statistics.goals += 1;
-                    teamGoals.set(teamKey, currentTeam);
-                }
                 if (!playerName) continue;
 
                 const key = player?.id ? `id_${player.id}` : `name_${playerName.toLowerCase()}_${team?.id || ""}`;
@@ -2229,14 +2213,10 @@ async function fetchTopPlayersFromEventsFallback(tournamentId, seasonId, options
         .sort((a, b) => (b.statistics?.goals || 0) - (a.statistics?.goals || 0) || String(a.player?.name || "").localeCompare(String(b.player?.name || "")))
         .slice(0, 50);
 
-    const fallbackGoals = Array.from(teamGoals.values())
-        .sort((a, b) => (b.statistics?.goals || 0) - (a.statistics?.goals || 0) || String(a.team?.name || "").localeCompare(String(b.team?.name || "")))
-        .slice(0, 50);
-
-    if (!goals.length && !fallbackGoals.length) return null;
+    if (!goals.length) return null;
     return {
-        topPlayers: { goals: goals.length ? goals : fallbackGoals },
-        source: goals.length ? "events-fallback" : "team-goals-fallback",
+        topPlayers: { goals },
+        source: "events-fallback",
         derived: true
     };
 }
@@ -2290,10 +2270,6 @@ async function fetchTopPlayersData(tournamentId, seasonId, options = {}) {
     if (options.fast) {
         const officialPromise = fetchOfficialTopPlayersData(tournamentId, seasonId);
         const eventsPromise = fetchTopPlayersFromEventsFallback(tournamentId, seasonId, fastFallbackOptions);
-        const standingsPromise = fetchTopPlayersFromStandingsFallback(tournamentId, seasonId, {
-            fetchFresh: true,
-            timeout: 2200
-        }).catch(() => null);
         const realData = await Promise.race([
             Promise.any([officialPromise, eventsPromise]).catch(error => {
                 console.warn(`[Top Players] Fast real data failed for ${tournamentId}/${seasonId}: ${error.message}`);
@@ -2302,12 +2278,6 @@ async function fetchTopPlayersData(tournamentId, seasonId, options = {}) {
             new Promise(resolve => setTimeout(() => resolve(null), 900))
         ]);
         if (hasTopPlayers(realData)) return realData;
-
-        const standingsFallback = await Promise.race([
-            standingsPromise,
-            new Promise(resolve => setTimeout(() => resolve(null), 2200))
-        ]);
-        if (hasTopPlayers(standingsFallback)) return standingsFallback;
 
         const lateRealData = await Promise.race([
             Promise.any([officialPromise, eventsPromise]).catch(() => null),
@@ -2329,9 +2299,6 @@ async function fetchTopPlayersData(tournamentId, seasonId, options = {}) {
 
     const fallbackData = await fetchTopPlayersFromEventsFallback(tournamentId, seasonId, {});
     if (fallbackData && extractGoalTopPlayersList(fallbackData).length) return fallbackData;
-
-    const standingsFallback = await fetchTopPlayersFromStandingsFallback(tournamentId, seasonId, { fetchFresh: true });
-    if (hasTopPlayers(standingsFallback)) return standingsFallback;
 
     throw new Error("Top players unavailable");
 }
@@ -3383,7 +3350,7 @@ app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
     try {
         const { id, sid } = req.params;
         const fast = req.query.fast === "1";
-        const cacheKey = `topplayers_goals_v5_${id}_${sid}`;
+        const cacheKey = `topplayers_goals_v6_${id}_${sid}`;
         const now = Date.now();
         const cached = cache[cacheKey];
         const cachedHasPlayers = hasTopPlayers(cached?.data);
@@ -4724,7 +4691,7 @@ async function warmOneLeagueTopPlayers() {
     const seasonId = KNOWN_CURRENT_SEASONS[league.id];
     if (!seasonId) return;
 
-    const cacheKey = `topplayers_goals_v5_${league.id}_${seasonId}`;
+    const cacheKey = `topplayers_goals_v6_${league.id}_${seasonId}`;
     if (cache[cacheKey] && cache[cacheKey]?.data) return;
 
     console.log(`[Warmup] Prefetch top players for ${league.name} (${league.id})`);
