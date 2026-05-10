@@ -6808,8 +6808,14 @@
                 }
 
                 const timeoutMs = Number(options.timeoutMs || 35000);
+                const retryCount = options.retryCount !== undefined ? Number(options.retryCount) : retries;
+                const retryBackoff = options.retryBackoff !== undefined ? Number(options.retryBackoff) : backoff;
+                const quiet = options.quiet === true;
                 const cleanOptions = { ...options };
                 delete cleanOptions.timeoutMs;
+                delete cleanOptions.retryCount;
+                delete cleanOptions.retryBackoff;
+                delete cleanOptions.quiet;
 
                 // AbortController ilə timeout - iOS-da donuq fetch-lərin qarşısını alır
                 const controller = new AbortController();
@@ -6818,19 +6824,19 @@
                 try {
                     const res = await fetch(url, { ...cleanOptions, signal: controller.signal });
                     clearTimeout(timeoutId);
-                    if (!res.ok && retries > 0 && (res.status >= 502 && res.status <= 504)) {
-                        console.log(`[RETRY] Server cavab vermir (${res.status}). ${backoff}ms sonra yenidən...`);
-                        await new Promise(r => setTimeout(r, backoff));
-                        return fetchWithRetry(url, options, retries - 1, backoff + 2000);
+                    if (!res.ok && retryCount > 0 && (res.status >= 502 && res.status <= 504)) {
+                        if (!quiet) console.log(`[RETRY] Server cavab vermir (${res.status}). ${retryBackoff}ms sonra yenidən...`);
+                        await new Promise(r => setTimeout(r, retryBackoff));
+                        return fetchWithRetry(url, { ...options, retryCount: retryCount - 1, retryBackoff: retryBackoff + 2000 }, retries, backoff);
                     }
                     return res;
                 } catch (err) {
                     clearTimeout(timeoutId);
-                    if (retries > 0) {
+                    if (retryCount > 0) {
                         const reason = err.name === 'AbortError' ? `Timeout (${Math.round(timeoutMs / 1000)}s)` : err.message;
-                        console.log(`[RETRY] Xəta: ${reason}. ${backoff}ms sonra yenidən (${retries} qalıb)...`);
-                        await new Promise(r => setTimeout(r, backoff));
-                        return fetchWithRetry(url, options, retries - 1, backoff + 2000);
+                        if (!quiet) console.log(`[RETRY] Xəta: ${reason}. ${retryBackoff}ms sonra yenidən (${retryCount} qalıb)...`);
+                        await new Promise(r => setTimeout(r, retryBackoff));
+                        return fetchWithRetry(url, { ...options, retryCount: retryCount - 1, retryBackoff: retryBackoff + 2000 }, retries, backoff);
                     }
                     throw err;
                 }
@@ -6975,7 +6981,9 @@
             async function fetchJsonOrThrow(targetUrl, options = {}, errorPrefix = 'Sorğu xətası') {
                 const response = await fetchWithRetry(targetUrl, options);
                 if (!response.ok) {
-                    throw new Error(`${errorPrefix}: ${response.status}`);
+                    const error = new Error(`${errorPrefix}: ${response.status}`);
+                    error.status = response.status;
+                    throw error;
                 }
                 const data = await response.json();
                 if (data && data.error) {
@@ -6984,20 +6992,47 @@
                 return data;
             }
 
+            let sofaDirectBlockedUntil = Number(sessionStorage.getItem('sofaDirectBlockedUntil') || 0);
+
             async function fetchEventsFromBestSource(localUrl, sofaPath, options = {}, allowDirectBrowserFallback = true, sourceOptions = {}) {
                 const directUrl = `https://api.sofascore.com/api/v1${sofaPath}`;
+                const canUseDirect = () => allowDirectBrowserFallback && Date.now() > sofaDirectBlockedUntil;
+                const blockDirectTemporarily = () => {
+                    sofaDirectBlockedUntil = Date.now() + 10 * 60 * 1000;
+                    sessionStorage.setItem('sofaDirectBlockedUntil', String(sofaDirectBlockedUntil));
+                };
+                const validateLiveResponse = (data) => {
+                    const events = Array.isArray(data?.events) ? data.events : [];
+                    const isEmptyLiveFallback = sofaPath === '/sport/football/events/live'
+                        && events.length === 0
+                        && (data?.stale || data?.source === 'none' || data?.warning);
+                    if (isEmptyLiveFallback) {
+                        throw new Error(data?.warning || 'Server canlı oyunları boş qaytardı');
+                    }
+                    return data;
+                };
                 const directFetch = () => fetchJsonOrThrow(directUrl, {
                     ...options,
-                    timeoutMs: sourceOptions.directTimeoutMs || options.timeoutMs || 6000
+                    timeoutMs: sourceOptions.directTimeoutMs || options.timeoutMs || 6000,
+                    retryCount: 0,
+                    quiet: true
                 }, 'SofaScore direct xətası');
                 const serverFetch = () => fetchJsonOrThrow(localUrl, {
                     ...options,
-                    timeoutMs: sourceOptions.serverTimeoutMs || options.timeoutMs || 6500
-                }, 'Server xətası');
+                    timeoutMs: sourceOptions.serverTimeoutMs || options.timeoutMs || 6500,
+                    retryCount: sourceOptions.serverRetryCount ?? options.retryCount ?? 0,
+                    quiet: true
+                }, 'Server xətası').then(validateLiveResponse);
 
-                if (allowDirectBrowserFallback && sourceOptions.raceDirect) {
+                if (canUseDirect() && sourceOptions.raceDirect) {
                     try {
-                        return await Promise.any([directFetch(), serverFetch()]);
+                        return await Promise.any([
+                            directFetch().catch(error => {
+                                if (error.status === 403) blockDirectTemporarily();
+                                throw error;
+                            }),
+                            serverFetch()
+                        ]);
                     } catch (raceError) {
                         const firstReason = raceError?.errors?.[0] || raceError;
                         throw firstReason || raceError;
@@ -7005,23 +7040,16 @@
                 }
 
                 try {
-                    const serverData = await serverFetch();
-                    const serverEvents = Array.isArray(serverData?.events) ? serverData.events : [];
-                    const isEmptyLiveFallback = sofaPath === '/sport/football/events/live'
-                        && serverEvents.length === 0
-                        && (serverData?.stale || serverData?.source === 'none' || serverData?.warning);
-                    if (!isEmptyLiveFallback) {
-                        return serverData;
-                    }
-                    throw new Error(serverData?.warning || 'Server canlı oyunları boş qaytardı');
+                    return await serverFetch();
                 } catch (serverError) {
-                    if (!allowDirectBrowserFallback) {
+                    if (!canUseDirect()) {
                         throw serverError;
                     }
 
                     try {
                         return await directFetch();
                     } catch (directError) {
+                        if (directError.status === 403) blockDirectTemporarily();
                         throw directError || serverError;
                     }
                 }
@@ -7044,7 +7072,9 @@
 
                 let fetchOptions = {
                     cache: 'no-store',
-                    timeoutMs: dataCacheKey === 'live' ? 6500 : 14000
+                    timeoutMs: dataCacheKey === 'live' ? 12000 : 14000,
+                    retryCount: 0,
+                    quiet: true
                 };
                 const eventsCacheKey = dataCacheKey === 'live'
                     ? LIVE_CACHE_KEY
@@ -7087,7 +7117,8 @@
                     let dataEvents = await fetchEventsFromBestSource(url, sofaFallbackPath, fetchOptions, allowDirectBrowserFallback, {
                         raceDirect: dataCacheKey === 'live',
                         directTimeoutMs: dataCacheKey === 'live' ? 4500 : 8000,
-                        serverTimeoutMs: dataCacheKey === 'live' ? 6500 : 14000
+                        serverTimeoutMs: dataCacheKey === 'live' ? 12000 : 14000,
+                        serverRetryCount: 0
                     });
                     
                     if (typeof dataEvents === 'string') {
@@ -10533,9 +10564,9 @@
                         : fetchEventsFromBestSource(
                             API_BASE_URL + '/api/matches/live',
                             '/sport/football/events/live',
-                            { cache: 'no-store', timeoutMs: 6000 },
+                            { cache: 'no-store', timeoutMs: 12000, retryCount: 0, quiet: true },
                             true,
-                            { raceDirect: true, directTimeoutMs: 4500, serverTimeoutMs: 6000 }
+                            { raceDirect: true, directTimeoutMs: 4500, serverTimeoutMs: 12000, serverRetryCount: 0 }
                         );
 
                     liveSource.then(data => {
