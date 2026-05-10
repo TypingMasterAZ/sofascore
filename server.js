@@ -1147,6 +1147,13 @@ function normalizeSofaLiveEventsData(payload) {
     return normalizeSofaEventsData(payload);
 }
 
+function isLiveSofaEvent(event) {
+    if (!event?.status) return false;
+    if (event.status.type === "inprogress") return true;
+    const desc = String(event.status.description || "").toUpperCase();
+    return ["HT", "HALFTIME", "HALF TIME", "ET", "EXTRA TIME", "LIVE"].includes(desc) || desc.includes("'");
+}
+
 async function fetchLiveFromSofaScore() {
     const data = await fetchFromSofaFastRace("/sport/football/events/live", {}, 6500);
     const normalized = normalizeSofaLiveEventsData(data);
@@ -1166,6 +1173,39 @@ async function fetchLiveFromRapidApi() {
         ...normalized,
         source: "rapidapi-sofascore",
         fallback: true
+    };
+}
+
+async function fetchLiveFromScheduledFallback(sourceError = "") {
+    const now = Date.now();
+    const dateCandidates = Array.from(new Set([
+        new Date(now).toISOString().slice(0, 10),
+        new Date(now + 4 * 60 * 60 * 1000).toISOString().slice(0, 10),
+        new Date(now - 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+        new Date(now + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    ]));
+    const attempts = dateCandidates.flatMap(date => ([
+        fetchFromSofaFastRace(`/sport/football/scheduled-events/${date}`, {}, 9000),
+        fetchRapidApiSofaPath(`/sport/football/scheduled-events/${date}`, {}, 12000)
+    ]));
+    const results = await Promise.allSettled(attempts);
+    const eventsById = new Map();
+    for (const result of results) {
+        if (result.status !== "fulfilled") continue;
+        const normalized = normalizeSofaEventsData(result.value?.data || result.value);
+        normalized.events.filter(isLiveSofaEvent).forEach(event => {
+            if (event?.id) eventsById.set(event.id.toString(), event);
+        });
+    }
+    const liveEvents = Array.from(eventsById.values());
+    if (!liveEvents.length) {
+        throw new Error("Scheduled fallback returned no live events");
+    }
+    return {
+        events: liveEvents,
+        source: "scheduled-live-fallback",
+        fallback: true,
+        primarySourceError: sourceError
     };
 }
 
@@ -1213,11 +1253,16 @@ async function fetchLiveWithFallback() {
                 };
             } catch (sofaError) {
                 console.warn(`[LIVE SOURCE] SofaScore failed, falling back to RapidAPI: ${sofaError.message}`);
-                const rapidFallback = await fetchLiveFromRapidApi();
-                return {
-                    ...rapidFallback,
-                    primarySourceError: `${mackolikError.message}; ${sofaError.message}`
-                };
+                try {
+                    const rapidFallback = await fetchLiveFromRapidApi();
+                    return {
+                        ...rapidFallback,
+                        primarySourceError: `${mackolikError.message}; ${sofaError.message}`
+                    };
+                } catch (rapidError) {
+                    console.warn(`[LIVE SOURCE] RapidAPI failed, trying scheduled live fallback: ${rapidError.message}`);
+                    return fetchLiveFromScheduledFallback(`${mackolikError.message}; ${sofaError.message}; ${rapidError.message}`);
+                }
             }
         }
     }
@@ -1234,6 +1279,11 @@ async function fetchLiveWithFallback() {
             };
         } catch (rapidError) {
             console.warn(`[LIVE SOURCE] RapidAPI failed: ${rapidError.message}`);
+            try {
+                return await fetchLiveFromScheduledFallback(`${sofaError.message}; ${rapidError.message}`);
+            } catch (scheduledError) {
+                console.warn(`[LIVE SOURCE] Scheduled fallback failed: ${scheduledError.message}`);
+            }
             if (!ENABLE_MACKOLIK_MATCHES || !ALLOW_MACKOLIK_FALLBACK) {
                 throw sofaError;
             }

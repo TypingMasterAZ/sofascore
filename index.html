@@ -7034,8 +7034,9 @@
                             serverFetch()
                         ]);
                     } catch (raceError) {
-                        const firstReason = raceError?.errors?.[0] || raceError;
-                        throw firstReason || raceError;
+                        const reasons = raceError?.errors || [];
+                        const nonDirectReason = reasons.find(error => !String(error?.message || '').includes('SofaScore direct'));
+                        throw nonDirectReason || reasons[0] || raceError;
                     }
                 }
 
@@ -7183,7 +7184,7 @@
                     if (syncOverlay) syncOverlay.style.display = 'none';
                     
                 } catch (e) {
-                    console.error("Matches fetch error:", e);
+                    console.warn("Matches fetch warning:", e.message || e);
                     window._lastFetchError = true;
                     const restoredFromCache = restoreEventsFromCache(
                         eventsCacheKey,
@@ -10628,7 +10629,7 @@
                                 renderFavoritesView();
                             }
                         }
-                    }).catch(err => console.log("Fav live sync err:", err));
+                    }).catch(err => console.warn("Fav live sync warning:", err.message || err));
                 }
             }
 
