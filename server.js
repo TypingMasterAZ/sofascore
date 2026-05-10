@@ -3004,7 +3004,7 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
         let data = null;
         let resolvedSeasonId = seasonId;
         let resolvedSeason = season;
-        const candidates = getSeasonCandidates(seasons, seasonId, 5);
+        const candidates = getSeasonCandidates(seasons, seasonId, 3);
         const candidateResults = await Promise.all(candidates.map(async candidate => {
             const candidateKey = `standings_${tourId}_${candidate.id}`;
             const candidateData = await getCachedData(candidateKey, async () => {
@@ -3040,10 +3040,18 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
         let teamsFallback = [];
         if (!data?.standings?.length && resolvedSeasonId) {
             const teamsCacheKey = `tournament_teams_${tourId}_${resolvedSeasonId}`;
-            teamsFallback = await getCachedData(teamsCacheKey, async () => {
-                return await fetchTournamentTeamsFallback(tourId, resolvedSeasonId);
-            }, CACHE_TIMES.STATIC).catch(error => {
+            const teamsFetch = () => getCachedData(teamsCacheKey, async () => {
+                return await withServerTimeout(fetchTournamentTeamsFallback(tourId, resolvedSeasonId), 2400, "Teams fallback");
+            }, CACHE_TIMES.STATIC, { skipJitter: true });
+            teamsFallback = await withServerTimeout(teamsFetch(), 2600, "Teams fallback response").catch(error => {
                 console.warn(`[TEAMS FALLBACK] ${tourId}/${resolvedSeasonId}: ${error.message}`);
+                teamsFetch()
+                    .then(list => {
+                        if (Array.isArray(list) && list.length) {
+                            warmImagePaths(list.map(team => team?.id ? `/team/${team.id}/image` : null).filter(Boolean), 36).catch(() => {});
+                        }
+                    })
+                    .catch(() => {});
                 return [];
             });
             if (teamsFallback.length) {
