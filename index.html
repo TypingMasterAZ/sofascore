@@ -6180,6 +6180,7 @@
             }
 
             let popularStandingsPrefetchStarted = false;
+            const prefetchedCountryStandings = new Set();
             function prefetchPopularStandings() {
                 if (popularStandingsPrefetchStarted) return;
                 popularStandingsPrefetchStarted = true;
@@ -6206,6 +6207,31 @@
                             })
                             .catch(() => {});
                     }, index * 150);
+                });
+            }
+
+            function prefetchCountryLeagueStandings(leagues = []) {
+                const ids = normalizeLeagueListIds(leagues)
+                    .map(league => normalizeLeagueId(league.id))
+                    .filter(id => id && !prefetchedCountryStandings.has(String(id)))
+                    .slice(0, 10);
+
+                ids.forEach((id, index) => {
+                    prefetchedCountryStandings.add(String(id));
+                    setTimeout(() => {
+                        fetchServerJson(`/api/standings-fast/${id}`, "Country standings prefetch xətası", 7000)
+                            .then(data => {
+                                if (!data?.standings?.length) return;
+                                const key = `standings_${id}_${data.seasonId || 'auto'}`;
+                                leagueStandingsCache[key] = data;
+                                leagueStandingsCache[`standings_${id}_auto`] = data;
+                                setPersistedLeagueData(key, data);
+                                setPersistedLeagueData(`standings_${id}_auto`, data);
+                            })
+                            .catch(() => {
+                                prefetchedCountryStandings.delete(String(id));
+                            });
+                    }, 250 + index * 320);
                 });
             }
 
@@ -6675,10 +6701,12 @@
                 topPlayers.slice(0, 20).forEach((p, index) => {
                     const goals = p.statistics?.goals ?? p.statistics?.totalGoals ?? p.goals ?? p.totalGoals ?? p.value ?? p.statistic ?? 0;
                     const playerId = p.player?.id || '';
-                    const playerImg = playerId ? sofaImageUrl(`/player/${playerId}/image`, {
+                    const syntheticTeamRow = p.synthetic || String(playerId).startsWith('team-');
+                    const imagePath = syntheticTeamRow && p.team?.id ? `/team/${p.team.id}/image` : `/player/${playerId}/image`;
+                    const playerImg = (playerId || (syntheticTeamRow && p.team?.id)) ? sofaImageUrl(imagePath, {
                         strict: true,
                         fallbackLabel: p.player?.shortName || p.player?.name || 'PL',
-                        fallbackType: 'player',
+                        fallbackType: syntheticTeamRow ? 'team' : 'player',
                         primary: '#16a34a',
                         secondary: '#0f172a'
                     }) : IMAGE_PLACEHOLDER;
@@ -6688,7 +6716,7 @@
                                 <img class="player-img" loading="lazy" decoding="async" src="${playerImg}" onerror="this.onerror=null; this.src='${IMAGE_PLACEHOLDER}'">
                                 <div class="player-info">
                                     <span class="player-name">${p.player?.name || 'Oyunçu'}</span>
-                                    <span class="player-team">${p.team ? p.team.name : 'Komanda yoxdur'}</span>
+                                    <span class="player-team">${syntheticTeamRow ? 'Komanda qollarına görə' : (p.team ? p.team.name : 'Komanda yoxdur')}</span>
                                 </div>
                                 <span class="player-goals">${goals} Qol</span>
                             </div>`;
@@ -7804,6 +7832,7 @@
                         <div class="category-header"><span>Liqalar</span><span>${isWaiting ? '...' : leagues.length}</span></div>
                         <div>${leagueRows}</div>`}
                 `;
+                if (leagues.length) prefetchCountryLeagueStandings(leagues);
             }
 
             window.openCountryLeaguesPage = async function(catId) {
@@ -7869,6 +7898,7 @@
 
                     leagueContainer.innerHTML = renderCategoryLeagueRows(leagues);
                     leagueContainer.dataset.loaded = "1";
+                    prefetchCountryLeagueStandings(leagues);
                 } catch (e) {
                     console.warn("Category leagues load failed:", key, e.message);
                     leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">Liqa məlumatı hazırda gecikir.</div>`;
@@ -8356,6 +8386,17 @@
                             }
                             data = data || directData;
                         } catch (e) {}
+                    }
+                }
+
+                if (!extractTopPlayersList(data).length) {
+                    try {
+                        data = await withTimeout(
+                            fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players fallback xətası", 24000),
+                            22000
+                        );
+                    } catch (fallbackErr) {
+                        console.warn("Top players deep fallback failed:", fallbackErr.message);
                     }
                 }
 
