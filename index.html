@@ -8566,6 +8566,12 @@
                 });
             }
 
+            function matchHasGoalScore(match) {
+                const home = Number(match?.homeScore?.current || 0);
+                const away = Number(match?.awayScore?.current || 0);
+                return (home + away) > 0;
+            }
+
             function renderMatchIncidents(dataI) {
                 const incidents = (dataI.incidents || [])
                     .filter(i => ["goal", "card", "substitution"].includes(i.incidentType))
@@ -8713,7 +8719,7 @@
                             }
                         }
                         maybeSave();
-                        if (hasUsefulIncidentsPayload(latestIncidents) || hasUsefulStatsPayload(latestStats)) {
+                        if (hasUsefulIncidentsPayload(latestIncidents) || (hasUsefulStatsPayload(latestStats) && !matchHasGoalScore(match))) {
                             modalDetailsLastFetch[id] = Date.now();
                             if (!options.background) {
                                 setTimeout(() => {
@@ -8759,7 +8765,7 @@
                     }).catch(() => null);
                     if (fallbackDetails?.incidents && !hasUsefulIncidentsPayload(latestIncidents)) {
                         latestIncidents = fallbackDetails.incidents;
-                        if (hasUsefulIncidentsPayload(latestIncidents) || !hasUsefulIncidentsPayload(cachedBefore?.incidents)) {
+                        if (hasUsefulIncidentsPayload(latestIncidents)) {
                             renderMatchIncidents(latestIncidents);
                         }
                     }
@@ -8770,6 +8776,12 @@
                         }
                     }
                     maybeSave();
+                }
+                if (isStillOpen() && !hasUsefulIncidentsPayload(latestIncidents) && !hasUsefulIncidentsPayload(cachedBefore?.incidents) && !matchHasGoalScore(match)) {
+                    renderMatchIncidents(latestIncidents || { incidents: [] });
+                }
+                if (isStillOpen() && !hasUsefulStatsPayload(latestStats) && !hasUsefulStatsPayload(cachedBefore?.stats)) {
+                    renderMatchStats(latestStats || { statistics: [] });
                 }
                 modalDetailsLastFetch[id] = Date.now();
                 } catch (e) {
@@ -8806,8 +8818,12 @@
 
                 const cachedDetails = getCachedMatchDetails(id);
                 if (cachedDetails) {
-                    renderMatchIncidents(cachedDetails.incidents || { incidents: [] });
-                    renderMatchStats(cachedDetails.stats || { statistics: [] });
+                    if (hasUsefulIncidentsPayload(cachedDetails.incidents)) {
+                        renderMatchIncidents(cachedDetails.incidents);
+                    }
+                    if (hasUsefulStatsPayload(cachedDetails.stats)) {
+                        renderMatchStats(cachedDetails.stats);
+                    }
                 }
 
                 updateModalStatsAndIncidents(id, { force: false, match: currentMatch });
