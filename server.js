@@ -1262,63 +1262,45 @@ async function fetchLiveFromMackolik() {
 }
 
 async function fetchLiveWithFallback() {
-    if (ENABLE_MACKOLIK_MATCHES && LIVE_PRIMARY_SOURCE === "mackolik") {
+    const errors = [];
+    const trySource = async (name, fetchFn) => {
         try {
-            return await fetchLiveFromMackolik();
-        } catch (mackolikError) {
-            console.warn(`[LIVE SOURCE] Mackolik failed, falling back to SofaScore: ${mackolikError.message}`);
-            try {
-                const fallback = await fetchLiveFromSofaScore();
-                return {
-                    ...fallback,
-                    fallback: true,
-                    primarySourceError: mackolikError.message
-                };
-            } catch (sofaError) {
-                console.warn(`[LIVE SOURCE] SofaScore failed, falling back to RapidAPI: ${sofaError.message}`);
-                try {
-                    const rapidFallback = await fetchLiveFromRapidApi();
-                    return {
-                        ...rapidFallback,
-                        primarySourceError: `${mackolikError.message}; ${sofaError.message}`
-                    };
-                } catch (rapidError) {
-                    console.warn(`[LIVE SOURCE] RapidAPI failed, trying scheduled live fallback: ${rapidError.message}`);
-                    return fetchLiveFromScheduledFallback(`${mackolikError.message}; ${sofaError.message}; ${rapidError.message}`);
+            const data = await fetchFn();
+            if (Array.isArray(data?.events) && data.events.length > 0) {
+                if (errors.length) {
+                    data.primarySourceError = errors.join(" | ");
+                    data.fallback = true;
                 }
+                return data;
             }
+            errors.push(`${name}: empty`);
+        } catch (error) {
+            errors.push(`${name}: ${error.message}`);
+            console.warn(`[LIVE SOURCE] ${name} failed: ${error.message}`);
         }
+        return null;
+    };
+
+    const sources = LIVE_PRIMARY_SOURCE === "mackolik"
+        ? [
+            ["Mackolik", fetchLiveFromMackolik],
+            ["SofaScore live", fetchLiveFromSofaScore],
+            ["RapidAPI live", fetchLiveFromRapidApi],
+            ["Scheduled live", () => fetchLiveFromScheduledFallback(errors.join(" | "))]
+        ]
+        : [
+            ["SofaScore live", fetchLiveFromSofaScore],
+            ["RapidAPI live", fetchLiveFromRapidApi],
+            ["Scheduled live", () => fetchLiveFromScheduledFallback(errors.join(" | "))],
+            ["Mackolik", fetchLiveFromMackolik]
+        ];
+
+    for (const [name, fetchFn] of sources) {
+        const data = await trySource(name, fetchFn);
+        if (data) return data;
     }
 
-    try {
-        return await fetchLiveFromSofaScore();
-    } catch (sofaError) {
-        console.warn(`[LIVE SOURCE] SofaScore failed, trying RapidAPI: ${sofaError.message}`);
-        try {
-            const rapidFallback = await fetchLiveFromRapidApi();
-            return {
-                ...rapidFallback,
-                primarySourceError: sofaError.message
-            };
-        } catch (rapidError) {
-            console.warn(`[LIVE SOURCE] RapidAPI failed: ${rapidError.message}`);
-            try {
-                return await fetchLiveFromScheduledFallback(`${sofaError.message}; ${rapidError.message}`);
-            } catch (scheduledError) {
-                console.warn(`[LIVE SOURCE] Scheduled fallback failed: ${scheduledError.message}`);
-            }
-            if (!ENABLE_MACKOLIK_MATCHES || !ALLOW_MACKOLIK_FALLBACK) {
-                throw sofaError;
-            }
-            console.warn(`[LIVE SOURCE] SofaScore failed, falling back to Mackolik: ${sofaError.message}`);
-            const fallback = await fetchLiveFromMackolik();
-            return {
-                ...fallback,
-                fallback: true,
-                primarySourceError: `${sofaError.message}; ${rapidError.message}`
-            };
-        }
-    }
+    throw new Error(errors.join(" | ") || "All live sources failed");
 }
 
 async function fetchMackolikMatchesByDate(matchDate) {
