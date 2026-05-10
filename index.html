@@ -7496,6 +7496,10 @@
             }
 
             function normalizeCategoryLeaguesPayload(data) {
+                if (data?.items && typeof data.items === 'object') {
+                    const key = String(window.currentCountryContext?.id || '');
+                    data = data.items[key]?.data || data;
+                }
                 data = data?.data || data?.payload || data;
                 let leagues = [];
                 if (Array.isArray(data?.groups) && data.groups.length > 0) {
@@ -7521,6 +7525,17 @@
                         if (priorityDiff) return priorityDiff;
                         return String(a.name || '').localeCompare(String(b.name || ''), 'az');
                     });
+            }
+
+            async function fetchCategoryLeaguesSnapshot(catId) {
+                try {
+                    const snapshot = await fetchServerJson('/football_category_tournaments_snapshot.json', 'Ölkə snapshot xətası', 5000);
+                    const item = snapshot?.items?.[String(catId)];
+                    return normalizeCategoryLeaguesPayload(item?.data || item || {});
+                } catch (error) {
+                    console.warn("Country snapshot fallback failed:", error.message);
+                    return [];
+                }
             }
 
             function renderCategoryLeagueRows(leagues) {
@@ -7644,16 +7659,23 @@
                 let data = await withTimeout(
                     fetchServerJson(`/api/category/${key}/tournaments?fast=1`, "Ölkə liqaları server xətası"),
                     6500
-                );
+                ).catch(() => null);
                 let leagues = normalizeCategoryLeaguesPayload(data);
                 categoryLeaguesMeta[key] = {
                     pending: !!(data?.pending || data?.unavailable),
                     updatedAt: Date.now()
                 };
+                if (!leagues.length) {
+                    const snapshotLeagues = await fetchCategoryLeaguesSnapshot(key);
+                    if (snapshotLeagues.length) {
+                        leagues = snapshotLeagues;
+                        categoryLeaguesMeta[key].pending = false;
+                    }
+                }
                 if (!leagues.length && categoryLeaguesMeta[key].pending) {
                     const slowerData = await withTimeout(
                         fetchServerJson(`/api/category/${key}/tournaments`, "Ölkə liqaları server xətası"),
-                        9000
+                        12000
                     ).catch(() => null);
                     const slowerLeagues = normalizeCategoryLeaguesPayload(slowerData);
                     if (slowerLeagues.length) {
@@ -8261,11 +8283,29 @@
                 let data = null;
                 try {
                     data = await withTimeout(
-                        fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players server xətası", 32000),
-                        30000
+                        fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players?fast=1`, "Top players server xətası", 9000),
+                        8500
                     );
                 } catch (serverErr) {
                     console.warn("Top players API failed:", serverErr.message);
+                }
+
+                if (extractTopPlayersList(data).length) {
+                    fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players server xətası", 32000)
+                        .then(fresh => {
+                            if (extractTopPlayersList(fresh).length) {
+                                const resolvedSeasonId = fresh?.seasonId || seasonId;
+                                const resolvedCacheKey = `topplayers_${TOP_PLAYERS_CACHE_VERSION}_${tourId}_${resolvedSeasonId}`;
+                                leagueTopPlayersCache[cacheKey] = fresh;
+                                leagueTopPlayersCache[resolvedCacheKey] = fresh;
+                                setPersistedLeagueData(cacheKey, fresh);
+                                setPersistedLeagueData(resolvedCacheKey, fresh);
+                            }
+                        })
+                        .catch(() => {});
+                    leagueTopPlayersCache[cacheKey] = data;
+                    setPersistedLeagueData(cacheKey, data);
+                    return data;
                 }
 
                 if (!extractTopPlayersList(data).length) {

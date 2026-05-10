@@ -2086,47 +2086,50 @@ async function fetchTopPlayersFromEventsFallback(tournamentId, seasonId) {
     };
 }
 
-async function fetchTopPlayersData(tournamentId, seasonId) {
-    const topPlayerPaths = [
-        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players/overall`,
-        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players`
+async function fetchOfficialTopPlayersData(tournamentId, seasonId) {
+    const statsPath = `/unique-tournament/${tournamentId}/season/${seasonId}/statistics`;
+    const attempts = [
+        {
+            source: "top-players",
+            promise: Promise.any([
+                fetchFromSofaNativeFast(`/unique-tournament/${tournamentId}/season/${seasonId}/top-players/overall`, {}, 2400),
+                fetchFromSofaFastRace(`/unique-tournament/${tournamentId}/season/${seasonId}/top-players/overall`, {}, 3800)
+            ])
+        },
+        {
+            source: "top-players",
+            promise: Promise.any([
+                fetchFromSofaNativeFast(`/unique-tournament/${tournamentId}/season/${seasonId}/top-players`, {}, 2400),
+                fetchFromSofaFastRace(`/unique-tournament/${tournamentId}/season/${seasonId}/top-players`, {}, 3800)
+            ])
+        },
+        {
+            source: "statistics-goals",
+            promise: Promise.any([
+                fetchFromSofaNativeFast(statsPath, { limit: 50, order: "-goals", accumulation: "total", group: "summary" }, 2600),
+                fetchFromSofaNativeFast(statsPath, { limit: 50, order: "-goals", group: "attack" }, 2600),
+                fetchFromSofaFastRace(statsPath, { limit: 50, order: "-goals", accumulation: "total", group: "summary" }, 4200),
+                fetchFromSofaFastRace(statsPath, { limit: 50, order: "-goals", group: "attack" }, 4200)
+            ])
+        }
     ];
 
-    for (const topPlayersPath of topPlayerPaths) {
-        try {
-            const officialData = await Promise.any([
-                fetchFromSofaNativeFast(topPlayersPath, {}, 2600),
-                fetchFromSofaFastRace(topPlayersPath, {}, 4200)
-            ]);
-            const goals = normalizeGoalTopPlayers(extractGoalTopPlayersList(officialData));
-            if (goals.length) {
-                return {
-                    topPlayers: { goals },
-                    source: "top-players"
-                };
-            }
-        } catch (error) {
-            console.warn(`[Top Players] ${topPlayersPath} failed for ${tournamentId}/${seasonId}: ${error.message}`);
-        }
+    return Promise.any(attempts.map(({ source, promise }) => promise.then(data => {
+        const goals = normalizeGoalTopPlayers(extractGoalTopPlayersList(data));
+        if (!goals.length) throw new Error(`${source} returned no goal players`);
+        return { topPlayers: { goals }, source };
+    })));
+}
+
+async function fetchTopPlayersData(tournamentId, seasonId, options = {}) {
+    try {
+        return await fetchOfficialTopPlayersData(tournamentId, seasonId);
+    } catch (error) {
+        console.warn(`[Top Players] Official data failed for ${tournamentId}/${seasonId}: ${error.message}`);
     }
 
-    try {
-        const statsPath = `/unique-tournament/${tournamentId}/season/${seasonId}/statistics`;
-        const statisticsData = await Promise.any([
-            fetchFromSofaNativeFast(statsPath, { limit: 50, order: "-goals", accumulation: "total", group: "summary" }, 2600),
-            fetchFromSofaNativeFast(statsPath, { limit: 50, order: "-goals", group: "attack" }, 2600),
-            fetchFromSofaFastRace(statsPath, { limit: 50, order: "-goals", accumulation: "total", group: "summary" }, 4200),
-            fetchFromSofaFastRace(statsPath, { limit: 50, order: "-goals", group: "attack" }, 4200)
-        ]);
-        const goals = normalizeGoalTopPlayers(extractGoalTopPlayersList(statisticsData));
-        if (goals.length) {
-            return {
-                topPlayers: { goals },
-                source: "statistics-goals"
-            };
-        }
-    } catch (error) {
-        console.warn(`[Top Players] Fast statistics goals failed for ${tournamentId}/${seasonId}: ${error.message}`);
+    if (options.officialOnly) {
+        throw new Error("Official top players unavailable");
     }
 
     const fallbackData = await fetchTopPlayersFromEventsFallback(tournamentId, seasonId);
@@ -2135,7 +2138,7 @@ async function fetchTopPlayersData(tournamentId, seasonId) {
     throw new Error("Top players unavailable");
 }
 
-async function fetchTopPlayersDataForBestSeason(tournamentId, seasonId) {
+async function fetchTopPlayersDataForBestSeason(tournamentId, seasonId, options = {}) {
     let seasonIds = getPrimaryTopPlayerSeasonIds(tournamentId, seasonId);
     if (!seasonIds.length) {
         seasonIds = await getFallbackTopPlayerSeasonIds(tournamentId, seasonIds);
@@ -2148,7 +2151,7 @@ async function fetchTopPlayersDataForBestSeason(tournamentId, seasonId) {
     const trySeasonIds = async (ids) => {
         for (const sid of ids) {
             try {
-                const data = await fetchTopPlayersData(tournamentId, sid);
+                const data = await fetchTopPlayersData(tournamentId, sid, options);
                 if (!firstData) firstData = { ...data, seasonId: sid };
                 if (hasTopPlayers(data)) {
                     return { ...data, seasonId: sid };
@@ -3171,6 +3174,7 @@ app.get("/api/team/resolve", async (req, res) => {
 app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
     try {
         const { id, sid } = req.params;
+        const fast = req.query.fast === "1";
         const cacheKey = `topplayers_goals_v5_${id}_${sid}`;
         const now = Date.now();
         const cached = cache[cacheKey];
@@ -3182,13 +3186,22 @@ app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
             console.log(`[CACHE HIT] Key: ${cacheKey}`);
             data = cached.data;
         } else {
-            data = await withServerTimeout(fetchTopPlayersDataForBestSeason(id, sid), 28000, "Top players");
+            data = await withServerTimeout(
+                fetchTopPlayersDataForBestSeason(id, sid, { officialOnly: fast }),
+                fast ? 7000 : 28000,
+                "Top players"
+            );
             if (data?.derived && cached?.data && !cached.data.derived && extractTopPlayersList(cached.data).length) {
                 console.warn(`[Top Players] Keeping official cached data over derived fallback for ${id}/${sid}`);
                 data = cached.data;
             } else if (hasTopPlayers(data)) {
                 cache[cacheKey] = { data, timestamp: Date.now() };
             }
+        }
+
+        if (fast && !data?.derived && hasTopPlayers(data)) {
+            getCachedData(cacheKey, async () => fetchTopPlayersDataForBestSeason(id, data.seasonId || sid), CACHE_TIMES.STATIC, { skipJitter: true })
+                .catch(e => console.warn(`[Top Players Deep Refresh] ${id}/${sid}: ${e.message}`));
         }
 
         warmTopPlayerImages(data, 32).catch(e => {
