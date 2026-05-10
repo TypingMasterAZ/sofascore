@@ -5515,7 +5515,7 @@
             const prefetchedCategoryLeagues = new Set();
             const knownLeaguesById = {};
             const leagueTopPlayersCache = {};
-            const TOP_PLAYERS_CACHE_VERSION = "v5";
+            const TOP_PLAYERS_CACHE_VERSION = "v6";
             const CATEGORY_LEAGUES_CACHE_VERSION = "v2";
             const FEATURED_CATEGORY_IDS = new Set(['1', '7', '30', '31', '32', '46', '297', '1465']);
             const FEATURED_CATEGORY_NAMES = new Set([
@@ -6012,6 +6012,14 @@
                 };
             }
 
+            function getTeamClickAction(teamId, teamName) {
+                const safeTeamId = escapeJsString(teamId || '');
+                const safeTeamName = escapeJsString(teamName || 'Komanda');
+                return /^\d+$/.test(String(teamId))
+                    ? `openTeamDetails('${safeTeamId}', '${safeTeamName}')`
+                    : `openTeamDetailsByName('${safeTeamName}', '${safeTeamId}')`;
+            }
+
             function buildStandingsTable(data, tourId) {
                 if (!data?.standings?.length) {
                     const teams = Array.isArray(data?.teamsFallback) ? data.teamsFallback : [];
@@ -6034,12 +6042,10 @@
                         rememberTeamMeta(team);
                         const teamId = team?.id || '';
                         const teamName = escapeHtml(team?.name || team?.shortName || 'Komanda');
-                        const safeTeamName = escapeJsString(team?.name || team?.shortName || 'Komanda');
+                        const rawTeamName = team?.name || team?.shortName || 'Komanda';
                         const logoUrl = normalizeSofaImageUrl(team?.logoUrl, getTeamImageOptions(team, true)) || getTeamLogoUrl(teamId, true, team);
                         const fallbackLogo = getTeamFallbackLogo(team);
-                        const clickAction = /^\d+$/.test(String(teamId))
-                            ? `openTeamDetails('${teamId}', '${safeTeamName}')`
-                            : `showToast('Klub məlumatı hazırda yalnız SofaScore klubları üçün açılır')`;
+                        const clickAction = getTeamClickAction(teamId, rawTeamName);
                         teamsHtml += `
                             <tr style="transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
                                 <td style="font-weight:700; color:var(--text-muted);">${index + 1}</td>
@@ -6076,13 +6082,10 @@
                     rememberTeamMeta(row.team);
                     const teamId = row.team?.id || '';
                     const teamName = escapeHtml(row.team?.name || 'Komanda');
-                    const safeTeamName = escapeJsString(row.team?.name || 'Komanda');
+                    const rawTeamName = row.team?.name || row.team?.shortName || 'Komanda';
                     const logoUrl = normalizeSofaImageUrl(row.team?.logoUrl, getTeamImageOptions(row.team, true)) || getTeamLogoUrl(teamId, true, row.team);
                     const fallbackLogo = getTeamFallbackLogo(row.team);
-                    const isSofaTeam = /^\d+$/.test(String(teamId));
-                    const clickAction = isSofaTeam
-                        ? `openTeamDetails('${teamId}', '${safeTeamName}')`
-                        : `showToast('Klub məlumatı hazırda yalnız SofaScore klubları üçün açılır')`;
+                    const clickAction = getTeamClickAction(teamId, rawTeamName);
 
                     tableHtml += `
                         <tr style="transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
@@ -8206,8 +8209,20 @@
                 if (!extractTopPlayersList(data).length) {
                     const paths = [
                         {
+                            path: `/unique-tournament/${tourId}/season/${seasonId}/top-players/overall`,
+                            params: {}
+                        },
+                        {
+                            path: `/unique-tournament/${tourId}/season/${seasonId}/top-players`,
+                            params: {}
+                        },
+                        {
                             path: `/unique-tournament/${tourId}/season/${seasonId}/statistics`,
                             params: { limit: 50, order: '-goals', accumulation: 'total', group: 'summary' }
+                        },
+                        {
+                            path: `/unique-tournament/${tourId}/season/${seasonId}/statistics`,
+                            params: { limit: 50, order: '-goals', group: 'attack' }
                         }
                     ];
                     for (const item of paths) {
@@ -8236,8 +8251,8 @@
                 let data = null;
                 try {
                     data = await withTimeout(
-                        fetchServerJson(`/api/team/${teamId}`, "Klub server xətası"),
-                        8000
+                        fetchServerJson(`/api/team/${teamId}?fast=1`, "Klub server xətası"),
+                        4500
                     );
                 } catch (serverErr) {
                     console.warn("Team API failed, trying browser SofaScore fallback:", serverErr.message);
@@ -8353,6 +8368,69 @@
                 setTimeout(() => {
                     if (!modal.classList.contains('show')) modal.style.display = 'none';
                 }, 230);
+            };
+
+            function extractTeamSearchResults(data) {
+                const buckets = [
+                    data?.results,
+                    data?.entities,
+                    data?.teams,
+                    data?.data?.results,
+                    data?.data?.entities,
+                    Array.isArray(data) ? data : null
+                ].filter(Array.isArray);
+                return buckets.flatMap(items => items)
+                    .map(item => item.entity || item.team || item)
+                    .filter(item => item?.id && (item.type === 'team' || item.entityType === 'team' || item.name || item.shortName));
+            }
+
+            function normalizeTeamSearchName(value) {
+                return String(value || '')
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/\b(fc|fk|cf|sk|sc|afc|club|futbol|football)\b/g, '')
+                    .replace(/[^a-z0-9]+/g, ' ')
+                    .trim();
+            }
+
+            async function resolveTeamIdByName(teamName) {
+                const target = normalizeTeamSearchName(teamName);
+                if (!target) return null;
+                const searchData = await fetchServerJson(`/api/search?q=${encodeURIComponent(teamName)}`, "Klub axtarışı xətası");
+                const teams = extractTeamSearchResults(searchData);
+                const exact = teams.find(team => {
+                    const name = normalizeTeamSearchName(team.name || team.shortName);
+                    return name === target || name.includes(target) || target.includes(name);
+                });
+                const found = exact || teams[0];
+                if (!found?.id || !/^\d+$/.test(String(found.id))) return null;
+                rememberTeamMeta(found);
+                return found.id;
+            }
+
+            window.openTeamDetailsByName = async function(teamName, sourceId = '') {
+                const modal = ensureTeamDetailsModal();
+                modal.style.display = 'flex';
+                requestAnimationFrame(() => modal.classList.add('show'));
+                document.getElementById('teamDetailsName').textContent = teamName || 'Klub';
+                document.getElementById('teamDetailsMeta').textContent = 'Klub tapılır...';
+                document.getElementById('teamDetailsLogo').src = IMAGE_PLACEHOLDER;
+                document.getElementById('teamDetailsBody').innerHTML = `<div class="loader-wrapper" style="padding:34px;"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:100%;"></div></div></div><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:75%;"></div></div></div></div>`;
+                try {
+                    const resolvedId = await resolveTeamIdByName(teamName);
+                    if (resolvedId) {
+                        return openTeamDetails(resolvedId, teamName);
+                    }
+                    throw new Error('Team id not resolved');
+                } catch (error) {
+                    console.warn("Team resolve failed", sourceId, error.message);
+                    document.getElementById('teamDetailsMeta').textContent = 'Məlumat tapılmadı';
+                    document.getElementById('teamDetailsBody').innerHTML = `
+                        <div style="padding:24px 20px 30px; text-align:center; color:var(--text-muted); font-weight:750; line-height:1.55;">
+                            ${escapeHtml(teamName || 'Klub')} üçün SofaScore klub profili tapılmadı. Cədvəl məlumatı göstərilir, tam profil hazırda əlçatan deyil.
+                        </div>`;
+                }
             };
 
             window.openTeamDetails = async function(teamId, fallbackName = 'Klub') {

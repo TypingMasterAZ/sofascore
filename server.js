@@ -1564,6 +1564,9 @@ const TOP_PLAYER_FALLBACK_SEASONS = {
     7: [61644, 41897, 29267] // Champions League recent seasons; current stats can be 403-limited
 };
 
+const TEAM_INFO_TTL = 12 * 60 * 60 * 1000;
+const TEAM_PLAYERS_TTL = 30 * 60 * 1000;
+
 const ESPN_STANDINGS_LEAGUES = {
     7: "uefa.champions",
     679: "uefa.europa",
@@ -1868,6 +1871,53 @@ function hasTopPlayers(data) {
     return extractTopPlayersList(data).length > 0 || extractGoalTopPlayersList(data).length > 0;
 }
 
+function getTopPlayerGoalValue(item = {}) {
+    const candidates = [
+        item.goals,
+        item.totalGoals,
+        item.value,
+        item.statistic,
+        item.statistics?.goals,
+        item.statistics?.totalGoals,
+        item.statistics?.goal,
+        item.stat?.goals,
+        item.stat?.value
+    ];
+    for (const value of candidates) {
+        const number = Number(value);
+        if (Number.isFinite(number) && number > 0) return number;
+    }
+    if (Array.isArray(item.statistics)) {
+        const stat = item.statistics.find(entry => {
+            const key = String(entry?.name || entry?.key || entry?.type || "").toLowerCase();
+            return key.includes("goal") || key === "g";
+        });
+        const number = Number(stat?.value || stat?.statistic || stat?.total);
+        if (Number.isFinite(number) && number > 0) return number;
+    }
+    return 0;
+}
+
+function normalizeGoalTopPlayers(items = []) {
+    return (Array.isArray(items) ? items : [])
+        .map(item => {
+            const goals = getTopPlayerGoalValue(item);
+            const player = item.player || item;
+            return {
+                ...item,
+                player: player?.id || player?.name ? player : item.player,
+                team: item.team || player?.team,
+                statistics: {
+                    ...(item.statistics && !Array.isArray(item.statistics) ? item.statistics : {}),
+                    goals
+                },
+                goals
+            };
+        })
+        .filter(item => getTopPlayerGoalValue(item) > 0)
+        .sort((a, b) => getTopPlayerGoalValue(b) - getTopPlayerGoalValue(a));
+}
+
 function addUniqueSeasonId(candidates, seasonId) {
     if (!seasonId) return;
     const normalized = String(seasonId);
@@ -1983,6 +2033,29 @@ async function fetchTopPlayersFromEventsFallback(tournamentId, seasonId) {
 }
 
 async function fetchTopPlayersData(tournamentId, seasonId) {
+    const topPlayerPaths = [
+        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players/overall`,
+        `/unique-tournament/${tournamentId}/season/${seasonId}/top-players`
+    ];
+
+    for (const topPlayersPath of topPlayerPaths) {
+        try {
+            const officialData = await Promise.any([
+                fetchFromSofaNativeFast(topPlayersPath, {}, 2600),
+                fetchFromSofaFastRace(topPlayersPath, {}, 4200)
+            ]);
+            const goals = normalizeGoalTopPlayers(extractGoalTopPlayersList(officialData));
+            if (goals.length) {
+                return {
+                    topPlayers: { goals },
+                    source: "top-players"
+                };
+            }
+        } catch (error) {
+            console.warn(`[Top Players] ${topPlayersPath} failed for ${tournamentId}/${seasonId}: ${error.message}`);
+        }
+    }
+
     try {
         const statsPath = `/unique-tournament/${tournamentId}/season/${seasonId}/statistics`;
         const statisticsData = await Promise.any([
@@ -1991,17 +2064,7 @@ async function fetchTopPlayersData(tournamentId, seasonId) {
             fetchFromSofaFastRace(statsPath, { limit: 50, order: "-goals", accumulation: "total", group: "summary" }, 4200),
             fetchFromSofaFastRace(statsPath, { limit: 50, order: "-goals", group: "attack" }, 4200)
         ]);
-        const goals = Array.isArray(statisticsData?.results)
-            ? statisticsData.results
-                .filter(item => Number(item?.goals || item?.statistics?.goals || 0) > 0)
-                .map(item => ({
-                    ...item,
-                    statistics: {
-                        ...(item.statistics || {}),
-                        goals: Number(item.goals || item.statistics?.goals || 0)
-                    }
-                }))
-            : [];
+        const goals = normalizeGoalTopPlayers(extractGoalTopPlayersList(statisticsData));
         if (goals.length) {
             return {
                 topPlayers: { goals },
@@ -2337,6 +2400,7 @@ async function warmLiveMatchDetails(events = []) {
 app.get("/api/team/:id", async (req, res) => {
     try {
         const teamId = req.params.id;
+        const fast = req.query.fast === "1";
         const fetchTeamInfo = async () => {
             const data = await Promise.any([
                 fetchFromSofaNativeFast(`/team/${teamId}`, {}, 2800),
@@ -2354,9 +2418,40 @@ app.get("/api/team/:id", async (req, res) => {
             return data?.players ? data : (data?.data || data);
         };
 
+        const infoPromise = getCachedDataWithTimeout(
+            `team_info_${teamId}`,
+            fetchTeamInfo,
+            TEAM_INFO_TTL,
+            fast ? 3600 : 6500,
+            `Team info ${teamId}`,
+            { skipJitter: true }
+        );
+        const playersPromise = getCachedDataWithTimeout(
+            `team_players_${teamId}`,
+            fetchTeamPlayers,
+            TEAM_PLAYERS_TTL,
+            fast ? 900 : 7000,
+            `Team players ${teamId}`,
+            { skipJitter: true }
+        );
+        const safePlayersPromise = fast
+            ? playersPromise.catch(() => ({ players: [], partial: true }))
+            : playersPromise;
+
+        if (fast) {
+            const info = await infoPromise;
+            const players = await safePlayersPromise;
+            if (players?.partial) {
+                getCachedData(`team_players_${teamId}`, fetchTeamPlayers, TEAM_PLAYERS_TTL, { skipJitter: true }).catch(e => {
+                    console.warn(`[TEAM PLAYERS WARMUP] ${teamId}: ${e.message}`);
+                });
+            }
+            return res.json({ info, players, fast: true, partialPlayers: !!players?.partial });
+        }
+
         const [infoResult, playersResult] = await Promise.allSettled([
-            fetchTeamInfo(),
-            fetchTeamPlayers()
+            infoPromise,
+            safePlayersPromise
         ]);
 
         if (infoResult.status !== "fulfilled") {
@@ -4328,7 +4423,7 @@ async function warmOneLeagueTopPlayers() {
     const seasonId = KNOWN_CURRENT_SEASONS[league.id];
     if (!seasonId) return;
 
-    const cacheKey = `topplayers_${league.id}_${seasonId}`;
+    const cacheKey = `topplayers_goals_v5_${league.id}_${seasonId}`;
     if (cache[cacheKey] && cache[cacheKey]?.data) return;
 
     console.log(`[Warmup] Prefetch top players for ${league.name} (${league.id})`);
