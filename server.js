@@ -1975,11 +1975,24 @@ async function getFallbackTopPlayerSeasonIds(tournamentId, existingCandidates = 
 
     try {
         const data = await getCachedData(`seasons_unique-tournament_${tournamentId}`, async () => {
-            const result = await fetchFromSofa(`/unique-tournament/${tournamentId}/seasons`);
-            return result.data;
+            return await Promise.any([
+                fetchFromSofaNativeFast(`/unique-tournament/${tournamentId}/seasons`, {}, 3200),
+                fetchFromSofaFastRace(`/unique-tournament/${tournamentId}/seasons`, {}, 5200),
+                fetchFromSofa(`/unique-tournament/${tournamentId}/seasons`).then(result => result.data)
+            ]);
         }, CACHE_TIMES.STATIC, { skipJitter: true });
         const seasons = Array.isArray(data?.seasons) ? data.seasons : [];
-        seasons.slice(0, 5).forEach(season => addCandidate(season.id));
+        const currentYear = new Date().getFullYear();
+        seasons
+            .slice()
+            .sort((a, b) => {
+                const aCurrent = a.isCurrent || a.current || a.editor || Number(a.year) === currentYear ? 1 : 0;
+                const bCurrent = b.isCurrent || b.current || b.editor || Number(b.year) === currentYear ? 1 : 0;
+                if (aCurrent !== bCurrent) return bCurrent - aCurrent;
+                return Number(b.year || b.id || 0) - Number(a.year || a.id || 0);
+            })
+            .slice(0, 10)
+            .forEach(season => addCandidate(season.id));
     } catch (error) {
         console.warn(`[Top Players] Season candidates failed for ${tournamentId}: ${error.message}`);
     }
@@ -1996,9 +2009,12 @@ function getGoalIncidentPlayerName(incident, player) {
 }
 
 async function fetchTopPlayersFromEventsFallback(tournamentId, seasonId) {
-    const eventPaths = [0, 1].map(page => `/unique-tournament/${tournamentId}/season/${seasonId}/events/last/${page}`);
+    const eventPaths = Array.from({ length: 6 }, (_, page) => `/unique-tournament/${tournamentId}/season/${seasonId}/events/last/${page}`);
     const eventResults = await Promise.allSettled(
-        eventPaths.map(path => fetchFromSofaFastRace(path, {}, 3200))
+        eventPaths.map(path => Promise.any([
+            fetchFromSofaNativeFast(path, {}, 2600),
+            fetchFromSofaFastRace(path, {}, 4200)
+        ]))
     );
     const eventsById = new Map();
     for (const result of eventResults) {
@@ -2013,15 +2029,18 @@ async function fetchTopPlayersFromEventsFallback(tournamentId, seasonId) {
         }
     }
 
-    const events = Array.from(eventsById.values()).slice(0, 36);
+    const events = Array.from(eventsById.values()).slice(0, 90);
     if (!events.length) return null;
 
     const scorers = new Map();
-    const batchSize = 8;
+    const batchSize = 10;
     for (let i = 0; i < events.length; i += batchSize) {
         const batch = events.slice(i, i + batchSize);
         const incidentResults = await Promise.allSettled(
-            batch.map(event => fetchFromSofaFastRace(`/event/${event.id}/incidents`, {}, 3200).then(data => ({ event, data })))
+            batch.map(event => Promise.any([
+                fetchFromSofaNativeFast(`/event/${event.id}/incidents`, {}, 2300),
+                fetchFromSofaFastRace(`/event/${event.id}/incidents`, {}, 3600)
+            ]).then(data => ({ event, data })))
         );
 
         for (const result of incidentResults) {
@@ -2118,6 +2137,9 @@ async function fetchTopPlayersData(tournamentId, seasonId) {
 
 async function fetchTopPlayersDataForBestSeason(tournamentId, seasonId) {
     let seasonIds = getPrimaryTopPlayerSeasonIds(tournamentId, seasonId);
+    if (!seasonIds.length) {
+        seasonIds = await getFallbackTopPlayerSeasonIds(tournamentId, seasonIds);
+    }
     if (!seasonIds.length) throw new Error("Season id tapılmadı");
 
     let firstData = null;
@@ -3160,7 +3182,7 @@ app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
             console.log(`[CACHE HIT] Key: ${cacheKey}`);
             data = cached.data;
         } else {
-            data = await withServerTimeout(fetchTopPlayersDataForBestSeason(id, sid), 15000, "Top players");
+            data = await withServerTimeout(fetchTopPlayersDataForBestSeason(id, sid), 28000, "Top players");
             if (data?.derived && cached?.data && !cached.data.derived && extractTopPlayersList(cached.data).length) {
                 console.warn(`[Top Players] Keeping official cached data over derived fallback for ${id}/${sid}`);
                 data = cached.data;

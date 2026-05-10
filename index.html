@@ -456,6 +456,49 @@
             padding: 16px;
         }
 
+        .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            min-height: 170px;
+            padding: 28px 18px;
+            text-align: center;
+            color: var(--text-muted);
+            font-weight: 800;
+        }
+
+        .loading-gif {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            position: relative;
+            background:
+                radial-gradient(circle at 50% 50%, var(--bg-main) 0 23%, transparent 24%),
+                conic-gradient(from 0deg, var(--primary), var(--live), var(--primary));
+            animation: loadingSpin 0.9s linear infinite;
+            box-shadow: 0 0 24px rgba(var(--primary-rgb), 0.24);
+        }
+
+        .loading-gif::after {
+            content: "";
+            position: absolute;
+            inset: 16px;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.86);
+            border-top-color: transparent;
+        }
+
+        .loading-state span {
+            max-width: 270px;
+            line-height: 1.45;
+        }
+
+        @keyframes loadingSpin {
+            to { transform: rotate(360deg); }
+        }
+
         .skel-header {
             height: 40px;
             border-radius: 12px;
@@ -5969,6 +6012,14 @@
                 return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, ' ');
             }
 
+            function renderLoadingState(message = 'Məlumat yüklənir...') {
+                return `
+                    <div class="loading-state">
+                        <div class="loading-gif" aria-hidden="true"></div>
+                        <span>${escapeHtml(message)}</span>
+                    </div>`;
+            }
+
             function getTeamLogoUrl(teamId, strict = false, team = {}) {
                 return sofaImageUrl(`/team/${teamId}/image`, getTeamImageOptions(team, strict));
             }
@@ -6473,10 +6524,10 @@
                     ${matchesHtml}
                 </div>
                 <div class="league-tab-content ${!hasMatches ? 'active' : ''}" id="leagueStandings" style="${hasMatches ? 'display:none;' : ''} padding:16px 0;">
-                    <div class="loader-wrapper"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton"></div></div></div></div>
+                    ${renderLoadingState('Cədvəl məlumatı yüklənir...')}
                 </div>
                 <div class="league-tab-content" id="leagueTopPlayers" style="display:none; padding:16px 0;">
-                    <div class="loader-wrapper"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton"></div></div></div></div>
+                    ${renderLoadingState('Bombardirlər cədvəli yüklənir...')}
                 </div>
                 <div class="league-tab-content" id="leagueInfo" style="display:none; padding:24px; color:var(--text-main); font-size:14px; line-height:1.6;">
                     ${leagueInfoHtml}
@@ -6707,16 +6758,13 @@
                 }
 
                 if (!isNumericId(seasonId)) {
-                    box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:700;'>Mövsüm məlumatı axtarılır...</div>";
+                    box.innerHTML = renderLoadingState('Mövsüm məlumatı axtarılır...');
                     try {
                         seasonId = await resolveLeagueSeasonId(tourId);
                     } catch (e) {
                         console.warn("Top players season resolve failed", e.message);
                     }
-                    if (!isNumericId(seasonId)) {
-                        box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:700;'>Bombardir məlumatı üçün mövsüm tapılmadı.</div>";
-                        return;
-                    }
+                    if (!isNumericId(seasonId)) seasonId = 'auto';
                 }
 
                 const cacheKey = `topplayers_${TOP_PLAYERS_CACHE_VERSION}_${tourId}_${seasonId}`;
@@ -6735,7 +6783,7 @@
                         .catch(() => {});
                     return;
                 } else {
-                    box.innerHTML = `<div class="loader-wrapper"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:100%;"></div></div></div><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:75%;"></div></div></div></div>`;
+                    box.innerHTML = renderLoadingState('Bombardirlər cədvəli yüklənir...');
                 }
 
                 try {
@@ -6745,7 +6793,7 @@
                 } catch (e) {
                     console.error("Top players load error", e);
                     if (!persistedTopPlayers.length) {
-                        box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Yükləmə xətası baş verdi.</div>";
+                        box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Bu liqa üçün bombardir məlumatı hazırda tapılmadı. Sistem rəsmi statistikanı və son oyunlardakı qolları yoxladı.</div>";
                     }
                 }
             }
@@ -8197,7 +8245,7 @@
                 if (!isNumericId(seasonId)) {
                     seasonId = await resolveLeagueSeasonId(tourId);
                 }
-                if (!isNumericId(seasonId)) throw new Error("Top players season id tapılmadı");
+                if (!isNumericId(seasonId)) seasonId = 'auto';
                 const cacheKey = `topplayers_${TOP_PLAYERS_CACHE_VERSION}_${tourId}_${seasonId}`;
                 const legacyCacheKey = `topplayers_${tourId}_${seasonId}`;
                 const persisted = leagueTopPlayersCache[cacheKey] || getPersistedLeagueData(cacheKey, 12 * 60 * 60 * 1000);
@@ -8213,8 +8261,8 @@
                 let data = null;
                 try {
                     data = await withTimeout(
-                        fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players server xətası", 16000),
-                        15000
+                        fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players server xətası", 32000),
+                        30000
                     );
                 } catch (serverErr) {
                     console.warn("Top players API failed:", serverErr.message);
