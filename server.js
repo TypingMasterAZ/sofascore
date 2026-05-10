@@ -3906,7 +3906,7 @@ setInterval(async () => {
     } catch (e) {
         console.error("[Background Tracker] Error:", e.message);
     }
-}, 2000);
+}, 1000);
 
 setInterval(async () => {
     try {

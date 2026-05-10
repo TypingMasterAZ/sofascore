@@ -5442,6 +5442,31 @@
             let favMatches = JSON.parse(localStorage.getItem('favMatches') || '[]');
             let favLeagues = JSON.parse(localStorage.getItem('favLeagues') || '[]');
             let favCountries = JSON.parse(localStorage.getItem('favCountries') || '[]');
+
+            function normalizeFavText(value) {
+                return String(value || '').toLowerCase().trim().replace(/\s+/g, ' ');
+            }
+
+            function getMatchFavoriteKey(match) {
+                if (!match) return '';
+                const home = normalizeFavText(match.homeTeam?.name || match.homeTeam?.shortName);
+                const away = normalizeFavText(match.awayTeam?.name || match.awayTeam?.shortName);
+                const tournament = normalizeFavText(match.tournament?.name);
+                const start = match.startTimestamp ? String(match.startTimestamp) : '';
+                return [home, away, tournament, start].filter(Boolean).join('|');
+            }
+
+            function normalizeFavoriteMatch(match) {
+                if (!match) return match;
+                return {
+                    ...match,
+                    favoriteKey: match.favoriteKey || getMatchFavoriteKey(match),
+                    favoritedAt: match.favoritedAt || Date.now()
+                };
+            }
+
+            favMatches = favMatches.map(normalizeFavoriteMatch).filter(m => m && m.id);
+            localStorage.setItem('favMatches', JSON.stringify(favMatches));
             let toastTimer = null;
             let topLeaguesRaw = [];
             let allCategoriesGlobal = [];
@@ -7142,7 +7167,11 @@
                 const safeAwayName = m.awayTeam.name.replace(/'/g, "\\'");
                 const safeGroupName = group.name.replace(/'/g, "\\'");
 
-                const isFav = favMatches.some(f => f.id.toString() === m.id.toString());
+                const matchFavKey = getMatchFavoriteKey(m);
+                const isFav = favMatches.some(f =>
+                    f.id?.toString() === m.id?.toString() ||
+                    ((f.favoriteKey || getMatchFavoriteKey(f)) && (f.favoriteKey || getMatchFavoriteKey(f)) === matchFavKey)
+                );
                 
                 // Handle undefined scores for future matches
                 const homeScore = (m.homeScore && m.homeScore.current !== undefined) ? m.homeScore.current : '';
@@ -8704,11 +8733,16 @@
             /* Favorites Logic */
             function toggleFavoriteMatch(id, btn) {
                 event.stopPropagation();
-                const idx = favMatches.findIndex(f => f.id.toString() === id.toString());
+                const currentMatch = allEvents.find(m => m.id.toString() === id.toString());
+                const currentKey = getMatchFavoriteKey(currentMatch);
+                const idx = favMatches.findIndex(f =>
+                    f.id?.toString() === id.toString() ||
+                    (currentKey && (f.favoriteKey || getMatchFavoriteKey(f)) === currentKey)
+                );
                 if (idx === -1) {
-                    const match = allEvents.find(m => m.id.toString() === id.toString());
+                    const match = currentMatch;
                     if (match) {
-                        favMatches.push(match);
+                        favMatches.push(normalizeFavoriteMatch(match));
                         btn.innerHTML = '&#9733;';
                         btn.classList.add('active');
                         showToast('Oyun favoritlərə əlavə edildi');
@@ -9109,7 +9143,8 @@
                     html += "<div style='padding: 24px 24px 10px; font-weight:700; color:var(--text-muted); font-size:13px; text-transform:uppercase;'>Favorit Oyunlar</div>";
                     html += `<div class="league-group" style="margin-top:0;">`;
                     favMatches.forEach(m => {
-                        const liveMatch = allEvents.find(ev => ev.id.toString() === m.id.toString()) || m;
+                        const favKey = m.favoriteKey || getMatchFavoriteKey(m);
+                        const liveMatch = allEvents.find(ev => ev.id.toString() === m.id.toString() || (favKey && getMatchFavoriteKey(ev) === favKey)) || m;
                         const group = { name: liveMatch.tournament.name };
                         html += createMatchRow(liveMatch, group);
                     });
@@ -10414,13 +10449,21 @@
 
                     liveSource.then(data => {
                         if (data && data.events) {
+                            const beforeIds = getFavoriteIds().join(',');
                             const updatedFavs = favMatches.map(fm => {
-                                const liveMatch = data.events.find(m => m.id.toString() === fm.id.toString());
-                                return liveMatch || fm;
+                                const favKey = fm.favoriteKey || getMatchFavoriteKey(fm);
+                                const liveMatch = data.events.find(m => {
+                                    if (m.id?.toString() === fm.id?.toString()) return true;
+                                    return favKey && getMatchFavoriteKey(m) === favKey;
+                                });
+                                return normalizeFavoriteMatch(liveMatch || fm);
                             });
 
                             favMatches = updatedFavs;
                             localStorage.setItem('favMatches', JSON.stringify(favMatches));
+                            if (beforeIds !== getFavoriteIds().join(',')) {
+                                syncRegisteredPushState();
+                            }
 
                             if (document.getElementById('favoritesView') && document.getElementById('favoritesView').classList.contains('active')) {
                                 renderFavoritesView();
@@ -10433,8 +10476,10 @@
             let autoRefreshTimer = null;
             function setupAutoRefreshLoop() {
                 if (autoRefreshTimer) clearInterval(autoRefreshTimer);
-                const configuredSeconds = Math.max(8, Math.min(30, Number(userSettings.refreshIntervalSec) || 8));
-                const seconds = configuredSeconds;
+                const configuredSeconds = Math.max(2, Math.min(30, Number(userSettings.refreshIntervalSec) || 2));
+                const seconds = (isLiveFiltered || selectedDate === new Date().toISOString().split('T')[0])
+                    ? Math.min(configuredSeconds, 2)
+                    : configuredSeconds;
                 autoRefreshTimer = setInterval(() => {
                     const todayStr = new Date().toISOString().split('T')[0];
                     const isToday = selectedDate === todayStr;
