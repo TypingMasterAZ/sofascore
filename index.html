@@ -8723,11 +8723,15 @@
                         if (hasUsefulIncidentsPayload(latestIncidents) || (hasUsefulStatsPayload(latestStats) && !matchHasGoalScore(match))) {
                             modalDetailsLastFetch[id] = Date.now();
                             if (!options.background) {
-                                setTimeout(() => {
-                                    if (currentOpenMatchId?.toString() === id.toString()) {
-                                        updateModalStatsAndIncidents(id, { force: true, background: true, match });
-                                    }
-                                }, 1800);
+                                const hasGoalIncidents = hasUsefulIncidentsPayload(latestIncidents);
+                                const hasScoreGoal = matchHasGoalScore(match);
+                                if (!hasScoreGoal || hasGoalIncidents) {
+                                    setTimeout(() => {
+                                        if (currentOpenMatchId?.toString() === id.toString()) {
+                                            updateModalStatsAndIncidents(id, { force: true, background: true, match });
+                                        }
+                                    }, 3500);
+                                }
                             }
                             return;
                         }

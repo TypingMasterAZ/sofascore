@@ -919,10 +919,14 @@ let lastLiveFetchTime = 0;
 let lastLiveFetchAttemptTime = 0;
 let liveFetchPromise = null;
 let liveSnapshotLoadPromise = null;
+let liveDetailsWarmupPromise = null;
+let lastLiveDetailsWarmupAt = 0;
+let liveScoreWorkerInFlight = false;
 const LIVE_SNAPSHOT_FILE = "./live_snapshot.json";
 const LIVE_SNAPSHOT_MAX_AGE = 2500;
 const LIVE_DISK_SNAPSHOT_MAX_AGE = 2 * 60 * 1000;
 const LIVE_STALE_RETURN_MAX_AGE = 2 * 60 * 1000;
+const LIVE_SCORE_POLL_INTERVAL_MS = Number(process.env.LIVE_SCORE_POLL_INTERVAL_MS || 750);
 const LIVE_PRIMARY_SOURCE = String(process.env.LIVE_PRIMARY_SOURCE || "sofascore").toLowerCase();
 const ENABLE_MACKOLIK_MATCHES = String(process.env.ENABLE_MACKOLIK_MATCHES || "false").toLowerCase() === "true";
 const ALLOW_MACKOLIK_FALLBACK = String(process.env.ALLOW_MACKOLIK_FALLBACK || "false").toLowerCase() === "true";
@@ -1174,6 +1178,25 @@ async function fetchLiveFromRapidApi() {
         source: "rapidapi-sofascore",
         fallback: true
     };
+}
+
+async function fetchLiveScoresForNotifications() {
+    try {
+        const data = await Promise.any([
+            fetchFromSofaFastRace("/sport/football/events/live", {}, 3200),
+            fetchRapidApiSofaPath("/sport/football/events/live", {}, 4200)
+        ]);
+        const normalized = normalizeSofaLiveEventsData(data);
+        if (Array.isArray(normalized.events)) {
+            globalLiveEvents = normalized;
+            lastLiveFetchTime = Date.now();
+            saveLiveSnapshot();
+            return normalized;
+        }
+    } catch (fastError) {
+        console.warn(`[LIVE SCORE POLL] Fast source failed: ${fastError.message}`);
+    }
+    return getLiveEventsData(true);
 }
 
 async function fetchLiveFromScheduledFallback(sourceError = "") {
@@ -2196,6 +2219,7 @@ async function getLiveEventsData(forceFresh = false, preferImmediateCache = fals
             globalLiveEvents = data;
             lastLiveFetchTime = Date.now();
             saveLiveSnapshot();
+            warmLiveMatchDetails(globalLiveEvents.events).catch(() => {});
             return globalLiveEvents;
         })().finally(() => {
             liveFetchPromise = null;
@@ -2282,6 +2306,49 @@ async function getMatchIncidentsData(matchId) {
             throw error;
         }
     }, 1500);
+}
+
+async function getMatchStatisticsData(matchId, ttl = 30000) {
+    return getCachedData(`stats_${matchId}`, async () => {
+        const fast = await Promise.any([
+            fetchFromSofaNativeFast(`/event/${matchId}/statistics`, {}, 2800),
+            fetchFromSofaFastRace(`/event/${matchId}/statistics`, {}, 4500),
+            fetchRapidApiSofaPath(`/event/${matchId}/statistics`, {}, 6500)
+        ]);
+        return fast?.statistics ? fast : (fast?.data || fast);
+    }, ttl, { skipJitter: true });
+}
+
+async function warmLiveMatchDetails(events = []) {
+    const now = Date.now();
+    if (liveDetailsWarmupPromise || now - lastLiveDetailsWarmupAt < 10000) return;
+    const liveEvents = events
+        .filter(event => event?.id && isLiveSofaEvent(event))
+        .slice(0, 30);
+    if (!liveEvents.length) return;
+
+    lastLiveDetailsWarmupAt = now;
+    liveDetailsWarmupPromise = (async () => {
+        const batchSize = 5;
+        for (let i = 0; i < liveEvents.length; i += batchSize) {
+            const batch = liveEvents.slice(i, i + batchSize);
+            await Promise.allSettled(batch.flatMap(event => {
+                const id = event.id.toString();
+                const tasks = [];
+                if (!cache[`incidents_${id}`] || Date.now() - cache[`incidents_${id}`].timestamp > 30000) {
+                    tasks.push(getMatchIncidentsData(id));
+                }
+                if (!cache[`stats_${id}`] || Date.now() - cache[`stats_${id}`].timestamp > 30000) {
+                    tasks.push(getMatchStatisticsData(id));
+                }
+                return tasks;
+            }));
+        }
+    })().catch(error => {
+        console.warn("[LIVE DETAILS WARMUP] Failed:", error.message);
+    }).finally(() => {
+        liveDetailsWarmupPromise = null;
+    });
 }
 
 // API vasitÉ™Ã§isi (Komanda mÉ™lumatlarÄ± vÉ™ heyÉ™t Ã¼Ã§Ã¼n)
@@ -2426,20 +2493,12 @@ app.get("/api/match/:id/incidents", async (req, res) => {
 app.get("/api/match/:id/statistics", async (req, res) => {
     const id = req.params.id;
     try {
-        const fetchStats = async () => {
-            const fast = await Promise.any([
-                fetchFromSofaNativeFast(`/event/${id}/statistics`, {}, 2800),
-                fetchFromSofaFastRace(`/event/${id}/statistics`, {}, 4500),
-                fetchRapidApiSofaPath(`/event/${id}/statistics`, {}, 6500)
-            ]);
-            return fast?.statistics ? fast : (fast?.data || fast);
-        };
         const data = req.query.fresh === "1"
-            ? await fetchStats().then(data => {
+            ? await getMatchStatisticsData(id, 0).then(data => {
                 if (data) cache[`stats_${id}`] = { data, timestamp: Date.now() };
                 return data;
             })
-            : await getCachedData(`stats_${id}`, fetchStats, 8000);
+            : await getMatchStatisticsData(id, 30000);
         res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Match statistics ${id}: ${error.message}`);
@@ -2481,11 +2540,7 @@ app.get("/api/match/:id/details", async (req, res) => {
             const fetchFresh = async () => {
                 try {
                     const data = key.startsWith("stats_")
-                        ? await Promise.any([
-                            fetchFromSofaNativeFast(path, {}, 2800),
-                            fetchFromSofaFastRace(path, {}, 4500),
-                            fetchRapidApiSofaPath(path, {}, 6500)
-                        ])
+                        ? await getMatchStatisticsData(id, 30000)
                         : await Promise.any([
                             fetchFromSofaFastRace(path, {}, 4500),
                             fetchRapidApiSofaPath(path, {}, 6500)
@@ -3566,7 +3621,7 @@ async function sendWebPushMessage(deviceId, payload) {
     }
 }
 
-function createPushPayload({ title, body, matchId, type, tag, requireInteraction = false }) {
+function createPushPayload({ title, body, matchId, type, tag, requireInteraction = false, ttl = 4 * 60 * 60, urgency = "high" }) {
     return {
         title,
         body,
@@ -3575,9 +3630,12 @@ function createPushPayload({ title, body, matchId, type, tag, requireInteraction
         tag,
         vibrate: [300, 100, 300],
         requireInteraction,
+        ttl,
+        urgency,
         data: {
             matchId: matchId?.toString() || "",
             type: type || "general",
+            sentAt: Date.now().toString(),
             url: "/"
         }
     };
@@ -3860,8 +3918,10 @@ app.get("/api/fcm/broadcast-test", async (req, res) => {
 
 // Background Worker for Live Matches Push Notifications
 setInterval(async () => {
+    if (liveScoreWorkerInFlight) return;
+    liveScoreWorkerInFlight = true;
     try {
-        const liveData = await getLiveEventsData(true);
+        const liveData = await fetchLiveScoresForNotifications();
         if (!liveData || !Array.isArray(liveData.events)) return;
 
         if (Object.keys(fcmRegistrations).length === 0 && Object.keys(webPushRegistrations).length === 0) return;
@@ -3908,18 +3968,19 @@ setInterval(async () => {
                     if (fcmRecipients.length > 0 && firebaseInitialized) {
                         const message = {
                             notification: { title, body },
-                            data: { matchId: matchId, type: 'goal' },
+                            data: { matchId: matchId, type: 'goal', score: `${hs}-${as}`, sentAt: Date.now().toString() },
                             android: { 
                                 priority: 'high',
                                 notification: { sound: 'default', channelId: 'goal_notifications' } 
                             },
+                            apns: { payload: { aps: { sound: "default", badge: 1, contentAvailable: true } } },
                             webpush: { 
-                                headers: { Urgency: 'high' },
+                                headers: { Urgency: 'high', TTL: '30' },
                                 notification: { 
                                     vibrate: [500, 110, 500], 
                                     icon: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
                                     badge: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
-                                    tag: `goal-${matchId}`,
+                                    tag: `goal-${matchId}-${hs}-${as}`,
                                     renotify: true
                                 },
                                 fcm_options: { link: '/' }
@@ -3940,8 +4001,10 @@ setInterval(async () => {
                             body,
                             matchId,
                             type: "goal",
-                            tag: `goal-${matchId}`,
-                            requireInteraction: true
+                            tag: `goal-${matchId}-${hs}-${as}`,
+                            requireInteraction: true,
+                            ttl: 30,
+                            urgency: "high"
                         });
                         webPushRecipients.forEach(({ id: deviceId }) => {
                             sendWebPushMessage(deviceId, payload);
@@ -3955,8 +4018,10 @@ setInterval(async () => {
         });
     } catch (e) {
         console.error("[Background Tracker] Error:", e.message);
+    } finally {
+        liveScoreWorkerInFlight = false;
     }
-}, 1000);
+}, LIVE_SCORE_POLL_INTERVAL_MS);
 
 setInterval(async () => {
     try {
