@@ -995,6 +995,7 @@ async function fetchSofaImageCached(imagePath) {
 let lastScores = {};
 let liveGoalIncidentState = {};
 let goalNotificationState = {};
+let pendingGoalDetailNotifications = {};
 let globalLiveEvents = null;
 let lastLiveFetchTime = 0;
 let lastLiveFetchAttemptTime = 0;
@@ -2639,6 +2640,94 @@ function pruneGoalNotificationState(maxAgeMs = 6 * 60 * 60 * 1000) {
             delete goalNotificationState[matchId];
         }
     });
+    Object.keys(pendingGoalDetailNotifications).forEach(matchId => {
+        if (now - pendingGoalDetailNotifications[matchId].createdAt > 10 * 60 * 1000) {
+            delete pendingGoalDetailNotifications[matchId];
+        }
+    });
+}
+
+function addServerNotification({ type, title, body, matchId, leagueId }) {
+    const notifObj = {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        type,
+        title,
+        body,
+        matchId,
+        leagueId,
+        time: new Date().toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' })
+    };
+    serverNotifHistory.unshift(notifObj);
+    if (serverNotifHistory.length > 50) serverNotifHistory.pop();
+    saveNotifHistory();
+}
+
+function buildFcmGoalMessage({ title, body, matchId, type, tag, score = "", ttl = "120" }) {
+    return {
+        notification: { title, body },
+        data: {
+            matchId: matchId?.toString() || "",
+            type,
+            score: score?.toString() || "",
+            sentAt: Date.now().toString()
+        },
+        android: {
+            priority: "high",
+            notification: {
+                sound: "default",
+                channelId: "goal_notifications",
+                notificationPriority: "PRIORITY_MAX",
+                tag
+            }
+        },
+        apns: { payload: { aps: { sound: "default", badge: 1, contentAvailable: true } } },
+        webpush: {
+            headers: { Urgency: "high", TTL: ttl },
+            notification: {
+                vibrate: [500, 110, 500],
+                icon: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
+                badge: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
+                tag,
+                renotify: true,
+                requireInteraction: true
+            },
+            fcm_options: { link: "/" }
+        }
+    };
+}
+
+function sendGoalPushToRecipients(recipients, payload) {
+    const fcmRecipients = recipients.filter(r => r.channel === "fcm");
+    const webPushRecipients = recipients.filter(r => r.channel === "webpush");
+
+    if (fcmRecipients.length > 0 && firebaseInitialized) {
+        const message = buildFcmGoalMessage(payload);
+        fcmRecipients.forEach(({ id: token }) => {
+            admin.messaging().send({ ...message, token })
+                .catch(err => {
+                    if (err.code === "messaging/registration-token-not-registered") {
+                        delete fcmRegistrations[token];
+                        saveRegistrations();
+                    }
+                });
+        });
+    }
+
+    if (webPushRecipients.length > 0) {
+        const webPayload = createPushPayload({
+            title: payload.title,
+            body: payload.body,
+            matchId: payload.matchId,
+            type: payload.type,
+            tag: payload.tag,
+            requireInteraction: true,
+            ttl: Number(payload.ttl || 120),
+            urgency: "high"
+        });
+        webPushRecipients.forEach(({ id: deviceId }) => {
+            sendWebPushMessage(deviceId, webPayload);
+        });
+    }
 }
 
 function normalizeStatisticsData(data) {
@@ -4692,73 +4781,45 @@ setInterval(async () => {
                         lastScores[matchId] = { homeScore: hs, awayScore: as };
                         return;
                     }
+                    const scoringSide = hs > prev.homeScore ? "home" : "away";
+                    const previousGoalTotal = (Number(prev.homeScore) || 0) + (Number(prev.awayScore) || 0);
                     const title = `Rabona Media`;
-                    const body = `${ev.homeTeam.name} ${hs} - ${as} ${ev.awayTeam.name}. Qol vuruldu.`;
+                    const body = `${ev.homeTeam.name} ${hs} - ${as} ${ev.awayTeam.name}. Hesab dəyişdi, qol vuruldu.`;
                     
                     console.log(`[GOAL] ${ev.homeTeam.name} - ${ev.awayTeam.name} GOOOL!`);
 
-                    // Add to server history
-                    const notifObj = {
-                        id: Date.now(),
-                        type: 'goal',
+                    addServerNotification({
+                        type: 'goal_score',
                         title,
                         body,
                         matchId: ev.id,
-                        leagueId: leagueId,
-                        time: new Date().toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' })
-                    };
-                    serverNotifHistory.unshift(notifObj);
-                    if (serverNotifHistory.length > 50) serverNotifHistory.pop();
-                    saveNotifHistory();
+                        leagueId
+                    });
 
                     const recipients = collectFavoriteRecipients(matchId, leagueId);
-                    const fcmRecipients = recipients.filter(r => r.channel === "fcm");
-                    const webPushRecipients = recipients.filter(r => r.channel === "webpush");
-
-                    if (fcmRecipients.length > 0 && firebaseInitialized) {
-                        const message = {
-                            notification: { title, body },
-                            data: { matchId: matchId, type: 'goal', score: `${hs}-${as}`, sentAt: Date.now().toString() },
-                            android: { 
-                                priority: 'high',
-                                notification: { sound: 'default', channelId: 'goal_notifications' } 
-                            },
-                            apns: { payload: { aps: { sound: "default", badge: 1, contentAvailable: true } } },
-                            webpush: { 
-                                headers: { Urgency: 'high', TTL: '30' },
-                                notification: { 
-                                    vibrate: [500, 110, 500], 
-                                    icon: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
-                                    badge: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
-                                    tag: `goal-${matchId}-${hs}-${as}`,
-                                    renotify: true
-                                },
-                                fcm_options: { link: '/' }
-                            }
-                        };
-                        
-                        fcmRecipients.forEach(({ id: token }) => {
-                            admin.messaging().send({ ...message, token })
-                                .catch(err => {
-                                    if (err.code === 'messaging/registration-token-not-registered') delete fcmRegistrations[token];
-                                });
-                        });
-                    }
-
-                    if (webPushRecipients.length > 0) {
-                        const payload = createPushPayload({
+                    if (recipients.length > 0) {
+                        sendGoalPushToRecipients(recipients, {
                             title,
                             body,
                             matchId,
-                            type: "goal",
-                            tag: `goal-${matchId}-${hs}-${as}`,
-                            requireInteraction: true,
-                            ttl: 30,
-                            urgency: "high"
+                            type: "goal_score",
+                            score: `${hs}-${as}`,
+                            tag: `goal-score-${matchId}-${hs}-${as}`,
+                            ttl: "120"
                         });
-                        webPushRecipients.forEach(({ id: deviceId }) => {
-                            sendWebPushMessage(deviceId, payload);
-                        });
+
+                        pendingGoalDetailNotifications[matchId] = {
+                            scoreMarker,
+                            homeScore: hs,
+                            awayScore: as,
+                            score: `${hs}-${as}`,
+                            previousGoalTotal,
+                            scoringSide,
+                            leagueId,
+                            createdAt: Date.now()
+                        };
+
+                        getMatchIncidentsData(matchId).catch(() => {});
                     }
 
                     markGoalNotification(matchId, scoreMarker);
@@ -4808,22 +4869,36 @@ setInterval(async () => {
 
             const goalIncidents = extractGoalIncidents(incidentsData);
             const goalKeys = goalIncidents.map(buildGoalIncidentKey);
+            const pendingGoalDetail = pendingGoalDetailNotifications[matchId];
 
             if (!liveGoalIncidentState[matchId]) {
-                liveGoalIncidentState[matchId] = new Set(goalKeys);
-                continue;
+                liveGoalIncidentState[matchId] = new Set();
+                if (!pendingGoalDetail || goalIncidents.length <= pendingGoalDetail.previousGoalTotal) {
+                    goalKeys.forEach(key => liveGoalIncidentState[matchId].add(key));
+                    continue;
+                }
             }
 
             const knownKeys = liveGoalIncidentState[matchId];
             const newGoalIncidents = goalIncidents.filter(incident => !knownKeys.has(buildGoalIncidentKey(incident)));
 
             goalKeys.forEach(key => knownKeys.add(key));
-            if (newGoalIncidents.length === 0) continue;
+            let incidentsToNotify = newGoalIncidents;
+            if (pendingGoalDetail && newGoalIncidents.length) {
+                const sideFiltered = newGoalIncidents.filter(incident =>
+                    pendingGoalDetail.scoringSide === "home" ? incident.isHome === true : incident.isHome === false
+                );
+                incidentsToNotify = (sideFiltered.length ? sideFiltered : newGoalIncidents)
+                    .slice()
+                    .sort((a, b) => (Number(b.time) || 0) - (Number(a.time) || 0))
+                    .slice(0, 1);
+            }
+            if (incidentsToNotify.length === 0) continue;
 
             const recipients = collectFavoriteRecipients(matchId, leagueId);
             if (recipients.length === 0) continue;
 
-            for (const incident of newGoalIncidents) {
+            for (const incident of incidentsToNotify) {
                 const incidentKey = buildGoalIncidentKey(incident);
                 if (hasRecentGoalNotification(matchId, incidentKey)) continue;
 
@@ -4841,55 +4916,21 @@ setInterval(async () => {
                 const title = "Rabona Media";
                 const body = `${minuteText} ${goalLabel}: ${scorerName}. ${ev.homeTeam.name} ${ev.homeScore?.current || 0} - ${ev.awayScore?.current || 0} ${ev.awayTeam.name}`;
 
-                const fcmRecipients = recipients.filter(r => r.channel === "fcm");
-                const webPushRecipients = recipients.filter(r => r.channel === "webpush");
-
-                if (fcmRecipients.length > 0 && firebaseInitialized) {
-                    const message = {
-                        notification: { title, body },
-                        data: { matchId, type: "goal" },
-                        android: {
-                            priority: "high",
-                            notification: { sound: "default", channelId: "goal_notifications" }
-                        },
-                        apns: { payload: { aps: { sound: "default", badge: 1, contentAvailable: true } } },
-                        webpush: {
-                            headers: { Urgency: "high" },
-                            notification: {
-                                vibrate: [500, 110, 500],
-                                icon: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
-                                badge: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
-                                tag: `goal-${matchId}-${incident.time || "live"}`,
-                                renotify: true
-                            },
-                            fcm_options: { link: "/" }
-                        }
-                    };
-
-                    fcmRecipients.forEach(({ id: token }) => {
-                        admin.messaging().send({ ...message, token }).catch(err => {
-                            if (err.code === "messaging/registration-token-not-registered") {
-                                delete fcmRegistrations[token];
-                            }
-                        });
-                    });
-                }
-
-                if (webPushRecipients.length > 0) {
-                    const payload = createPushPayload({
-                        title,
-                        body,
-                        matchId,
-                        type: "goal",
-                        tag: `goal-${matchId}-${incident.time || "live"}`,
-                        requireInteraction: true
-                    });
-                    webPushRecipients.forEach(({ id: deviceId }) => {
-                        sendWebPushMessage(deviceId, payload);
-                    });
-                }
+                addServerNotification({ type: "goal_scorer", title, body, matchId, leagueId });
+                sendGoalPushToRecipients(recipients, {
+                    title,
+                    body,
+                    matchId,
+                    type: "goal_scorer",
+                    score: `${ev.homeScore?.current || 0}-${ev.awayScore?.current || 0}`,
+                    tag: `goal-scorer-${matchId}-${incidentKey}`,
+                    ttl: "300"
+                });
 
                 markGoalNotification(matchId, incidentKey);
+                if (pendingGoalDetailNotifications[matchId]) {
+                    delete pendingGoalDetailNotifications[matchId];
+                }
             }
         }
 
