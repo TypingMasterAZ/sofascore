@@ -3,35 +3,47 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Push Test</title>
+  <title>Rabona Media Push Test</title>
   <style>
+    * { box-sizing: border-box; }
     body {
       margin: 0;
+      min-height: 100vh;
       font-family: Inter, Arial, sans-serif;
       background: #020617;
       color: #f8fafc;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
+      display: grid;
+      place-items: center;
       padding: 24px;
     }
     .panel {
-      width: min(560px, 100%);
+      width: min(620px, 100%);
       background: #0f172a;
       border: 1px solid #1e293b;
-      border-radius: 16px;
+      border-radius: 14px;
       padding: 24px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
     }
     h1 {
-      margin: 0 0 10px;
-      font-size: 28px;
+      margin: 0 0 8px;
+      font-size: clamp(24px, 4vw, 34px);
+      letter-spacing: 0;
     }
     p {
       margin: 0 0 16px;
-      color: #94a3b8;
-      line-height: 1.5;
+      color: #a8b3c7;
+      line-height: 1.55;
+      font-weight: 650;
+    }
+    .steps {
+      margin: 18px 0;
+      padding: 14px 16px;
+      border: 1px solid #243047;
+      border-radius: 10px;
+      background: #111c31;
+      color: #dbeafe;
+      line-height: 1.65;
+      font-weight: 700;
     }
     .row {
       display: flex;
@@ -39,47 +51,73 @@
       flex-wrap: wrap;
       margin: 18px 0;
     }
-    button {
-      border: none;
-      border-radius: 12px;
+    button, a.button {
+      border: 0;
+      border-radius: 10px;
       padding: 14px 18px;
       font-size: 15px;
-      font-weight: 700;
+      font-weight: 850;
       cursor: pointer;
       color: white;
       background: #2563eb;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
     }
     button.secondary {
       background: #334155;
     }
+    button:disabled {
+      opacity: 0.65;
+      cursor: wait;
+    }
     pre {
+      margin: 16px 0 0;
       background: #020617;
       border: 1px solid #1e293b;
-      border-radius: 12px;
+      border-radius: 10px;
       padding: 14px;
       overflow: auto;
       color: #cbd5e1;
-      min-height: 120px;
+      min-height: 128px;
       white-space: pre-wrap;
+      font-size: 13px;
+      line-height: 1.45;
     }
   </style>
 </head>
 <body>
-  <div class="panel">
+  <main class="panel">
     <h1>Push Test</h1>
-    <p>Bu səhifədən test bildirişi göndərib yoxlaya bilərsən. Telefonda sayt açıq olmasa belə push gəlməlidir.</p>
+    <p>Bu paneldən telefona test bildirişi göndər. Telefonunda saytı tam bağla, ekranı söndür, sonra buradan düyməyə bas.</p>
+    <div class="steps">
+      1. Telefonda bildiriş icazəsinin açıq olduğundan əmin ol.<br>
+      2. Saytı telefonda bağla və ekranı söndür.<br>
+      3. Bu səhifəni kompüterdən açıb test düyməsinə bas.
+    </div>
     <div class="row">
-      <button id="sendBtn">Test Bildirişi Göndər</button>
-      <button id="statusBtn" class="secondary">Statusu Yoxla</button>
+      <button id="sendBtn">Telefona Test Bildirişi Göndər</button>
+      <button id="statusBtn" class="secondary">Qeydiyyat Statusunu Yoxla</button>
+      <a class="button" id="directLink" href="/api/push/broadcast-test" target="_blank" rel="noopener">Birbaşa Linklə Göndər</a>
     </div>
     <pre id="output">Hazırdır.</pre>
-  </div>
+  </main>
 
   <script>
     const output = document.getElementById('output');
+    const sendBtn = document.getElementById('sendBtn');
+    const statusBtn = document.getElementById('statusBtn');
+    const directLink = document.getElementById('directLink');
+    const API_BASE_URL = location.protocol === 'file:'
+      ? 'https://sofascore-xoyr.onrender.com'
+      : location.origin;
+    directLink.href = API_BASE_URL + '/api/push/broadcast-test';
 
     async function callApi(path, options = {}) {
-      const res = await fetch(path, {
+      const url = path.startsWith('http') ? path : API_BASE_URL + path;
+      const res = await fetch(url, {
         method: options.method || 'GET',
         headers: { 'Content-Type': 'application/json' },
         body: options.body ? JSON.stringify(options.body) : undefined
@@ -88,20 +126,33 @@
       let data = text;
       try {
         data = JSON.parse(text);
-      } catch (e) {
-        // Keep raw text if response is not JSON.
-      }
-      output.textContent = JSON.stringify(data, null, 2);
+      } catch (e) {}
+      output.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+      return data;
     }
 
-    document.getElementById('sendBtn').addEventListener('click', () => {
+    sendBtn.addEventListener('click', async () => {
+      sendBtn.disabled = true;
       output.textContent = 'Göndərilir...';
-      callApi('/api/push/broadcast-test', { method: 'POST' });
+      try {
+        await callApi('/api/push/broadcast-test', { method: 'POST' });
+      } catch (error) {
+        output.textContent = 'Xəta: ' + error.message;
+      } finally {
+        sendBtn.disabled = false;
+      }
     });
 
-    document.getElementById('statusBtn').addEventListener('click', () => {
+    statusBtn.addEventListener('click', async () => {
+      statusBtn.disabled = true;
       output.textContent = 'Yoxlanılır...';
-      callApi('/api/push/status');
+      try {
+        await callApi('/api/push/status');
+      } catch (error) {
+        output.textContent = 'Xəta: ' + error.message;
+      } finally {
+        statusBtn.disabled = false;
+      }
     });
   </script>
 </body>

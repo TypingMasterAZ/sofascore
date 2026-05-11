@@ -1275,7 +1275,8 @@ async function fetchLiveScoresForNotifications() {
     try {
         const data = await Promise.any([
             fetchFromSofaFastRace("/sport/football/events/live", {}, 3200),
-            fetchRapidApiSofaPath("/sport/football/events/live", {}, 4200)
+            fetchRapidApiSofaPath("/sport/football/events/live", {}, 4200),
+            fetchLiveFromScheduledFallback("live-poll-fast-fallback")
         ]);
         const normalized = normalizeSofaLiveEventsData(data);
         if (Array.isArray(normalized.events)) {
@@ -1300,7 +1301,9 @@ async function fetchLiveFromScheduledFallback(sourceError = "") {
     ]));
     const attempts = dateCandidates.flatMap(date => ([
         fetchFromSofaFastRace(`/sport/football/scheduled-events/${date}`, {}, 9000),
-        fetchRapidApiSofaPath(`/sport/football/scheduled-events/${date}`, {}, 12000)
+        fetchFromSofaFastRace(`/sport/football/scheduled-events/${date}/inverse`, {}, 9000),
+        fetchRapidApiSofaPath(`/sport/football/scheduled-events/${date}`, {}, 12000),
+        fetchRapidApiSofaPath(`/sport/football/scheduled-events/${date}/inverse`, {}, 12000)
     ]));
     const results = await Promise.allSettled(attempts);
     const eventsById = new Map();
@@ -4643,9 +4646,9 @@ app.get("/api/push/status", (req, res) => {
     });
 });
 
-app.post("/api/push/broadcast-test", async (req, res) => {
+async function sendBroadcastPushTest() {
     const title = "Rabona Media Test";
-    const body = "Bu test bildirişidir. Sayt açıq olmasa da telefona çatmalıdır.";
+    const body = "Bu test bildirişidir. Sayt bağlı olsa da telefona çatmalıdır.";
 
     const fcmTokens = Object.keys(fcmRegistrations);
     const webPushDevices = Object.keys(webPushRegistrations);
@@ -4701,12 +4704,40 @@ app.post("/api/push/broadcast-test", async (req, res) => {
         if (ok) sentWebPush++;
     }
 
-    res.json({
+    return {
         success: true,
         sentFcm,
         sentWebPush,
-        totalTargets: fcmTokens.length + webPushDevices.length
-    });
+        totalTargets: fcmTokens.length + webPushDevices.length,
+        timestamp: new Date().toISOString()
+    };
+}
+
+app.post("/api/push/broadcast-test", async (req, res) => {
+    try {
+        res.json(await sendBroadcastPushTest());
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+app.get("/api/push/broadcast-test", async (req, res) => {
+    try {
+        const result = await sendBroadcastPushTest();
+        res.type("html").send(`
+            <!doctype html>
+            <meta charset="utf-8">
+            <title>Push Test</title>
+            <body style="font-family:Arial,sans-serif;background:#020617;color:#f8fafc;padding:32px">
+                <h1>Push test göndərildi</h1>
+                <p>FCM: ${result.sentFcm} | WebPush: ${result.sentWebPush} | Cəmi qeydiyyat: ${result.totalTargets}</p>
+                <pre style="background:#0f172a;border:1px solid #1e293b;padding:16px;border-radius:12px">${JSON.stringify(result, null, 2)}</pre>
+                <a href="/push-test.html" style="color:#60a5fa">Test panelinə qayıt</a>
+            </body>
+        `);
+    } catch (error) {
+        res.status(500).send("Push test xətası: " + error.message);
+    }
 });
 
 // YENI YOXLANIS UCUN (KÆNAR VASÄ°TÆ)
