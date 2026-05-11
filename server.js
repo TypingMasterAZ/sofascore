@@ -2767,7 +2767,7 @@ app.get("/api/match/:id/incidents", async (req, res) => {
     try {
         if (req.query.source === "mackolik") {
             if (!ENABLE_MACKOLIK_MATCHES) {
-                return res.status(410).json({ error: true, message: "Mackolik match source is disabled. Sofascore-only mode is active." });
+                return res.json([]);
             }
             const data = await getCachedData(`mackolik_incidents_${id}_${req.query.slug || ""}`, async () => {
                 const details = await fetchMackolikMatchDetails(id, req.query.slug || "");
@@ -2833,7 +2833,7 @@ app.get("/api/match/:id/details", async (req, res) => {
     try {
         if (req.query.source === "mackolik") {
             if (!ENABLE_MACKOLIK_MATCHES) {
-                return res.status(410).json({ error: true, message: "Mackolik match source is disabled. Sofascore-only mode is active." });
+                return res.json({ incidents: [], stats: null, unavailable: true, source: "mackolik", message: "Mackolik details disabled" });
             }
             const data = await getCachedData(`mackolik_details_${id}_${req.query.slug || ""}_${req.query.stats === "0" ? "nostats" : "all"}`, async () => {
                 return await fetchMackolikMatchDetails(id, req.query.slug || "");
@@ -3053,9 +3053,12 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
         }
 
         if (!seasonId) {
-            return res.status(404).json({
-                error: true,
+            return res.json({
+                standings: [],
+                teamsFallback: [],
                 message: "Season not found",
+                unavailable: true,
+                fast: true,
                 durationMs: Date.now() - startedAt
             });
         }

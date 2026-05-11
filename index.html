@@ -4947,7 +4947,7 @@
         <div id="toast" class="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
 
         <script>
-            console.log("SCRIPT START: index.html VERSION 1.2.8 running");
+            console.log("SCRIPT START: index.html VERSION 1.2.9 running");
 
             const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"defaultView": "matches"}');
             const auth = firebase.auth();
@@ -6468,7 +6468,7 @@
                             loadStandings(group.id, seasonId);
                             prefetchLeagueTopPlayers(group.id, seasonId);
                         }
-                    }).catch(e => console.warn("Background season fetch error:", e.message));
+                    }).catch(() => {});
                 }
 
                 if (!group.info) {
@@ -6479,7 +6479,7 @@
                         group.country = info.category?.name || group.country;
                         group.catId = info.category?.id || group.catId;
                         document.getElementById('logoTitle').innerText = group.name.toUpperCase();
-                    }).catch(e => console.warn("League info background fetch failed:", e.message));
+                    }).catch(() => {});
                 }
 
                 const { logoUrl, fallBack } = getLeagueLogoData(group);
@@ -6739,7 +6739,7 @@
                 const cacheKey = `topplayers_${TOP_PLAYERS_CACHE_VERSION}_${tourId}_${resolvedSeasonId}`;
                 const cached = leagueTopPlayersCache[cacheKey] || getPersistedLeagueData(cacheKey, 12 * 60 * 60 * 1000);
                 if (extractTopPlayersList(cached).length) return;
-                fetchLeagueTopPlayersData(tourId, resolvedSeasonId)
+                fetchLeagueTopPlayersData(tourId, resolvedSeasonId, { silent: true })
                     .then(data => {
                         const topPlayers = extractTopPlayersList(data);
                         if (!topPlayers.length) return;
@@ -6803,7 +6803,7 @@
                 const persistedTopPlayers = extractTopPlayersList(persisted);
                 if (persistedTopPlayers.length) {
                     box.innerHTML = renderTopPlayersHtml(persistedTopPlayers);
-                    fetchLeagueTopPlayersData(tourId, seasonId)
+                    fetchLeagueTopPlayersData(tourId, seasonId, { silent: true })
                         .then(data => {
                             const freshTopPlayers = cacheTopPlayersData(tourId, seasonId, data);
                             if (freshTopPlayers.length && window.currentLeagueContext?.id?.toString() === tourId.toString()) {
@@ -6821,7 +6821,7 @@
                     const topPlayers = cacheTopPlayersData(tourId, seasonId, data);
                     box.innerHTML = renderTopPlayersHtml(topPlayers);
                 } catch (e) {
-                    console.error("Top players load error", e);
+                    console.warn("Top players load warning", e.message || e);
                     if (!persistedTopPlayers.length) {
                         box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Bu liqa üçün bombardir məlumatı hazırda tapılmadı. Sistem rəsmi statistikanı və son oyunlardakı qolları yoxladı.</div>";
                     }
@@ -8276,14 +8276,14 @@
                 try {
                     data = await fetchServerJson(`/api/tournament/${tourId}?isUnique=${isUnique}`, "League info server xətası");
                 } catch (serverErr) {
-                    console.warn("League info API failed, trying browser SofaScore fallback:", serverErr.message);
+                    data = null;
                 }
 
                 const entity = isUnique ? data?.uniqueTournament : data?.tournament;
                 if (entity) return entity;
 
                 const directPath = isUnique ? `/unique-tournament/${tourId}` : `/tournament/${tourId}`;
-                const directData = await fetchDirectSofaJson(directPath);
+                const directData = await withTimeout(fetchDirectSofaJson(directPath), 2200).catch(() => null);
                 return isUnique ? directData?.uniqueTournament : directData?.tournament;
             }
 
@@ -8292,13 +8292,13 @@
                 try {
                     data = await fetchServerJson(`/api/tournament/${tourId}/seasons?isUnique=${isUnique}`, "League seasons server xətası");
                 } catch (serverErr) {
-                    console.warn("League seasons API failed, trying browser SofaScore fallback:", serverErr.message);
+                    data = null;
                 }
 
                 if (data?.seasons?.length) return data.seasons;
 
                 const directPath = isUnique ? `/unique-tournament/${tourId}/seasons` : `/tournament/${tourId}/seasons`;
-                const directData = await fetchDirectSofaJson(directPath);
+                const directData = await withTimeout(fetchDirectSofaJson(directPath), 2200).catch(() => null);
                 return directData?.seasons || [];
             }
 
@@ -8323,9 +8323,7 @@
                         fetchServerJson(fastPath, "Standings fast server xətası", 15000),
                         15500
                     );
-                } catch (serverErr) {
-                    console.warn("Fast standings API failed:", serverErr.message);
-                }
+                } catch (serverErr) {}
 
                 if (data?.standings?.length) {
                     const resolvedSeasonId = data.seasonId || seasonId;
@@ -8395,9 +8393,7 @@
                         fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players?fast=1`, "Top players server xətası", 6000),
                         5500
                     );
-                } catch (serverErr) {
-                    console.warn("Top players API warning:", serverErr.message);
-                }
+                } catch (serverErr) {}
 
                 if (extractTopPlayersList(data).length) {
                     fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players server xətası", 32000)
@@ -8954,6 +8950,8 @@
                 if (!matchId || getCachedMatchDetails(matchId, 60 * 1000) || modalDetailsInFlight === matchId) {
                     return;
                 }
+
+                if (match?.source === 'mackolik') return;
 
                 fetchMatchDetailsFast(matchId, match, { timeout: 6500, directFallback: false }).then(details => {
                     saveMatchDetailsToCache(matchId, details.incidents, details.stats);
@@ -10984,7 +10982,7 @@
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js?v=23').then(reg => {
+                    navigator.serviceWorker.register('/sw.js?v=25').then(reg => {
                         console.log('SW registered:', reg.scope);
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
