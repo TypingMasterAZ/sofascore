@@ -8281,7 +8281,12 @@
             async function fetchDirectSofaJson(path, params = null) {
                 const query = params ? `?${new URLSearchParams(params).toString()}` : '';
                 const directUrl = `https://api.sofascore.com/api/v1${path}${query}`;
-                const res = await fetchWithRetry(directUrl, { cache: 'no-store' });
+                const res = await fetchWithRetry(directUrl, {
+                    cache: 'no-store',
+                    timeoutMs: 3500,
+                    retryCount: 0,
+                    quiet: true
+                });
                 if (!res.ok) throw new Error(`SofaScore direct xətası: ${res.status}`);
                 return res.json();
             }
@@ -8791,10 +8796,10 @@
                     : `/api/match/${id}/incidents${freshParam}`;
                 const serverPromise = withTimeout(
                     fetchServerJson(serverUrl, "Hadisələr xətası"),
-                    options.timeout || 5500
+                    options.timeout || 3800
                 ).catch(() => null);
                 const directPromise = (!isMackolik && allowDirectFallback)
-                    ? withTimeout(fetchDirectSofaJson(`/event/${id}/incidents`), Math.min(options.timeout || 4200, 4200))
+                    ? withTimeout(fetchDirectSofaJson(`/event/${id}/incidents`), Math.min(options.timeout || 3000, 3000))
                         .then(directData => {
                             const normalizedDirect = directData?.incidents ? directData : (directData?.data?.incidents ? directData.data : null);
                             if (Array.isArray(normalizedDirect?.incidents) && normalizedDirect.incidents.length) return normalizedDirect;
@@ -8840,10 +8845,10 @@
                     : `/api/match/${id}/details${freshParam ? `?${freshParam}` : ''}`;
                 const serverPromise = withTimeout(
                     fetchServerJson(serverUrl, "Matç detalları xətası"),
-                    options.timeout || 6500
+                    options.timeout || 4200
                 ).catch(() => null);
                 const directPromise = (!isMackolik && allowDirectFallback)
-                    ? withTimeout(fetchDirectSofaJson(`/event/${id}/incidents`), Math.min(options.timeout || 4200, 4200))
+                    ? withTimeout(fetchDirectSofaJson(`/event/${id}/incidents`), Math.min(options.timeout || 3000, 3000))
                         .then(directData => {
                             const normalizedDirect = directData?.incidents ? directData : (directData?.data?.incidents ? directData.data : null);
                             return Array.isArray(normalizedDirect?.incidents) && normalizedDirect.incidents.length ? normalizedDirect : null;
@@ -9049,7 +9054,7 @@
                     if (!options.force) {
                         const fastDetails = await fetchMatchDetailsFast(id, match, {
                             fresh: false,
-                            timeout: options.background ? 3800 : 5200,
+                            timeout: options.background ? 2800 : 3600,
                             directFallback: !options.background
                         }).catch(() => null);
                         if (fastDetails?.incidents) {
@@ -9089,7 +9094,7 @@
 
                     const incidentsPromise = fetchMatchIncidentsFast(id, match, {
                         fresh: options.force,
-                        timeout: options.background ? 4500 : 6000,
+                        timeout: options.background ? 3000 : 3800,
                         directFallback: !options.background
                     }).then(data => {
                         latestIncidents = data || { incidents: [] };
@@ -9105,7 +9110,7 @@
                 if (isStillOpen() && (!hasUsefulIncidentsPayload(latestIncidents) || !hasUsefulStatsPayload(latestStats))) {
                     const fallbackDetails = await fetchMatchDetailsFast(id, match, {
                         fresh: false,
-                        timeout: options.background ? 4500 : 6500,
+                        timeout: options.background ? 3200 : 4200,
                         directFallback: !options.background
                     }).catch(() => null);
                     if (fallbackDetails?.incidents && !hasUsefulIncidentsPayload(latestIncidents)) {

@@ -455,38 +455,60 @@ function normalizeIncidentsData(data) {
     return data;
 }
 
-async function fetchRapidApiIncidents(matchId) {
+let rapidApiDisabledUntil = 0;
+
+function rememberRapidApiFailure(error) {
+    const status = error?.response?.status;
+    const message = String(error?.response?.data?.message || error?.message || "");
+    if (status === 429 || message.toLowerCase().includes("quota") || message.toLowerCase().includes("rate limit")) {
+        rapidApiDisabledUntil = Date.now() + 30 * 60 * 1000;
+        console.warn(`[RAPIDAPI] Disabled temporarily: ${message.slice(0, 160)}`);
+    }
+}
+
+function ensureRapidApiAvailable() {
     const rapidApiKey = process.env.RAPIDAPI_KEY;
-    if (!rapidApiKey) return null;
+    if (!rapidApiKey) throw new Error("RAPIDAPI_KEY is not configured");
+    if (Date.now() < rapidApiDisabledUntil) throw new Error("RAPIDAPI temporarily disabled after quota/rate-limit response");
+    return rapidApiKey;
+}
 
-    const response = await axios.get(`https://${RAPIDAPI_HOST}/matches/get-incidents`, {
-        headers: {
-            "x-rapidapi-key": rapidApiKey,
-            "x-rapidapi-host": RAPIDAPI_HOST
-        },
-        params: { matchId },
-        timeout: 12000
-    });
+async function fetchRapidApiIncidents(matchId) {
+    try {
+        const rapidApiKey = ensureRapidApiAvailable();
+        const response = await axios.get(`https://${RAPIDAPI_HOST}/matches/get-incidents`, {
+            headers: {
+                "x-rapidapi-key": rapidApiKey,
+                "x-rapidapi-host": RAPIDAPI_HOST
+            },
+            params: { matchId },
+            timeout: 5500
+        });
 
-    return normalizeIncidentsData(response.data);
+        return normalizeIncidentsData(response.data);
+    } catch (error) {
+        rememberRapidApiFailure(error);
+        throw error;
+    }
 }
 
 async function fetchRapidApiSofaPath(path, params = {}, timeout = 12000) {
-    const rapidApiKey = process.env.RAPIDAPI_KEY;
-    if (!rapidApiKey) {
-        throw new Error("RAPIDAPI_KEY is not configured");
+    try {
+        const rapidApiKey = ensureRapidApiAvailable();
+        const response = await axios.get(`https://${RAPIDAPI_HOST}${path}`, {
+            headers: {
+                "x-rapidapi-key": rapidApiKey,
+                "x-rapidapi-host": RAPIDAPI_HOST
+            },
+            params,
+            timeout: Math.min(timeout, 5500)
+        });
+
+        return normalizeSofaData(response.data);
+    } catch (error) {
+        rememberRapidApiFailure(error);
+        throw error;
     }
-
-    const response = await axios.get(`https://${RAPIDAPI_HOST}${path}`, {
-        headers: {
-            "x-rapidapi-key": rapidApiKey,
-            "x-rapidapi-host": RAPIDAPI_HOST
-        },
-        params,
-        timeout
-    });
-
-    return normalizeSofaData(response.data);
 }
 
 function shouldRetrySofa(error) {
@@ -5018,6 +5040,8 @@ app.get("/api/health", (req, res) => {
         mackolikEnabled: ENABLE_MACKOLIK_MATCHES,
         mackolikFallback: ALLOW_MACKOLIK_FALLBACK,
         rapidApiConfigured: !!process.env.RAPIDAPI_KEY,
+        rapidApiCoolingDown: Date.now() < rapidApiDisabledUntil,
+        rapidApiDisabledUntil: rapidApiDisabledUntil ? new Date(rapidApiDisabledUntil).toISOString() : null,
         proxyCount: GAS_PROXIES.length,
         liveEvents: globalLiveEvents?.events?.length || 0,
         liveTimestamp: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null,
