@@ -1332,7 +1332,7 @@ async function fetchLiveWithFallback() {
         return null;
     };
 
-    const sources = LIVE_PRIMARY_SOURCE === "mackolik"
+    const sources = LIVE_PRIMARY_SOURCE === "mackolik" && ENABLE_MACKOLIK_MATCHES
         ? [
             ["Mackolik", fetchLiveFromMackolik],
             ["SofaScore live", fetchLiveFromSofaScore],
@@ -1342,9 +1342,12 @@ async function fetchLiveWithFallback() {
         : [
             ["SofaScore live", fetchLiveFromSofaScore],
             ["RapidAPI live", fetchLiveFromRapidApi],
-            ["Scheduled live", () => fetchLiveFromScheduledFallback(errors.join(" | "))],
-            ["Mackolik", fetchLiveFromMackolik]
+            ["Scheduled live", () => fetchLiveFromScheduledFallback(errors.join(" | "))]
         ];
+
+    if (ALLOW_MACKOLIK_FALLBACK && ENABLE_MACKOLIK_MATCHES && LIVE_PRIMARY_SOURCE !== "mackolik") {
+        sources.push(["Mackolik", fetchLiveFromMackolik]);
+    }
 
     for (const [name, fetchFn] of sources) {
         const data = await trySource(name, fetchFn);
