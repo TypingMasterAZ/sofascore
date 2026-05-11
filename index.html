@@ -4947,7 +4947,7 @@
         <div id="toast" class="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
 
         <script>
-            console.log("SCRIPT START: index.html VERSION 1.2.7 running");
+            console.log("SCRIPT START: index.html VERSION 1.2.8 running");
 
             const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"defaultView": "matches"}');
             const auth = firebase.auth();
@@ -7044,12 +7044,89 @@
             const LIVE_ERROR_CACHE_MAX_AGE = 2 * 60 * 1000;
             const SCHEDULED_BOOT_CACHE_MAX_AGE = 5 * 60 * 1000;
             const LIVE_CACHE_KEY = 'cached_events_live_sofascore_v3';
+            try { localStorage.removeItem(LIVE_CACHE_KEY); } catch (_) {}
 
             function keepSofascoreEventsOnly(events) {
                 return (Array.isArray(events) ? events : []).filter(event => {
                     if (!event) return false;
                     return !event.source || event.source === 'sofascore' || event.source === 'mackolik';
                 });
+            }
+
+            function compactEventForStorage(event) {
+                if (!event) return null;
+                const tournament = event.tournament || {};
+                const uniqueTournament = tournament.uniqueTournament || event.uniqueTournament || {};
+                return {
+                    id: event.id,
+                    slug: event.slug,
+                    startTimestamp: event.startTimestamp,
+                    status: event.status,
+                    time: event.time,
+                    homeScore: event.homeScore,
+                    awayScore: event.awayScore,
+                    homeTeam: event.homeTeam ? {
+                        id: event.homeTeam.id,
+                        name: event.homeTeam.name,
+                        shortName: event.homeTeam.shortName,
+                        slug: event.homeTeam.slug
+                    } : null,
+                    awayTeam: event.awayTeam ? {
+                        id: event.awayTeam.id,
+                        name: event.awayTeam.name,
+                        shortName: event.awayTeam.shortName,
+                        slug: event.awayTeam.slug
+                    } : null,
+                    tournament: {
+                        id: tournament.id,
+                        name: tournament.name,
+                        category: tournament.category ? {
+                            id: tournament.category.id,
+                            name: tournament.category.name
+                        } : null,
+                        uniqueTournament: uniqueTournament?.id ? {
+                            id: uniqueTournament.id,
+                            name: uniqueTournament.name
+                        } : null
+                    },
+                    season: event.season ? { id: event.season.id, name: event.season.name, year: event.season.year } : null,
+                    source: event.source
+                };
+            }
+
+            function pruneVolatileStorage() {
+                try {
+                    Object.keys(localStorage).forEach(key => {
+                        if (
+                            key === LIVE_CACHE_KEY ||
+                            key.startsWith('cached_events_') ||
+                            key.startsWith('match_details_cache') ||
+                            key.startsWith('topplayers_') ||
+                            key.startsWith('standings_')
+                        ) {
+                            localStorage.removeItem(key);
+                        }
+                    });
+                } catch (_) {}
+            }
+
+            function saveEventsCache(cacheKey, events, dataCacheKey) {
+                if (dataCacheKey === 'live') return;
+                const compactEvents = keepSofascoreEventsOnly(events).map(compactEventForStorage).filter(Boolean).slice(0, 260);
+                try {
+                    localStorage.setItem(cacheKey, JSON.stringify({
+                        events: compactEvents,
+                        timestamp: Date.now()
+                    }));
+                } catch (cacheErr) {
+                    pruneVolatileStorage();
+                    try {
+                        localStorage.setItem(cacheKey, JSON.stringify({
+                            events: compactEvents.slice(0, 120),
+                            timestamp: Date.now()
+                        }));
+                    } catch (_) {}
+                }
             }
 
             function restoreEventsFromCache(cacheKey, maxAgeMs = LIVE_BOOT_CACHE_MAX_AGE) {
@@ -7232,14 +7309,7 @@
                         allEvents = [];
                     }
 
-                    try {
-                        localStorage.setItem(eventsCacheKey, JSON.stringify({
-                            events: allEvents,
-                            timestamp: Date.now()
-                        }));
-                    } catch (cacheErr) {
-                        console.warn("Events cache write failed:", cacheErr.message);
-                    }
+                    saveEventsCache(eventsCacheKey, allEvents, dataCacheKey);
 
                     // Auto-update open modal scores
                     if (typeof currentOpenMatchId !== 'undefined' && currentOpenMatchId) {
@@ -8326,7 +8396,7 @@
                         5500
                     );
                 } catch (serverErr) {
-                    console.warn("Top players API failed:", serverErr.message);
+                    console.warn("Top players API warning:", serverErr.message);
                 }
 
                 if (extractTopPlayersList(data).length) {
@@ -8345,32 +8415,6 @@
                     leagueTopPlayersCache[cacheKey] = data;
                     setPersistedLeagueData(cacheKey, data);
                     return data;
-                }
-
-                if (!extractTopPlayersList(data).length) {
-                    const paths = [
-                        {
-                            path: `/unique-tournament/${tourId}/season/${seasonId}/top-players/overall`,
-                            params: {}
-                        },
-                        {
-                            path: `/unique-tournament/${tourId}/season/${seasonId}/top-players`,
-                            params: {}
-                        },
-                        {
-                            path: `/unique-tournament/${tourId}/season/${seasonId}/statistics`,
-                            params: { limit: 50, order: '-goals', accumulation: 'total', group: 'summary' }
-                        },
-                        {
-                            path: `/unique-tournament/${tourId}/season/${seasonId}/statistics`,
-                            params: { limit: 50, order: '-goals', group: 'attack' }
-                        }
-                    ];
-                    const directAttempts = paths.map(item =>
-                        withTimeout(fetchDirectSofaJson(item.path, item.params), 2600).catch(() => null)
-                    );
-                    const directResults = await Promise.all(directAttempts);
-                    data = directResults.find(item => extractTopPlayersList(item).length) || data;
                 }
 
                 if (extractTopPlayersList(data).length) {
