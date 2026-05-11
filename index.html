@@ -6181,6 +6181,14 @@
                 return `<div class="loader-wrapper"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:100%;"></div></div></div><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:70%;"></div></div></div><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:90%;"></div></div></div></div>`;
             }
 
+            function renderModalDetailsLoadingState() {
+                return `<div class="loader-wrapper"><div class="skel-row"><div class="skel-time skeleton"></div><div class="skel-teams"><div class="skel-team skeleton"></div></div></div><div class="skel-row"><div class="skel-time skeleton"></div><div class="skel-teams"><div class="skel-team skeleton" style="width:60%"></div></div></div></div>`;
+            }
+
+            function renderModalStatsLoadingState() {
+                return `<div class="loader-wrapper"><div class="skel-header skeleton" style="height:20px;width:30%;margin:auto;"></div><div class="skel-header skeleton" style="height:8px;margin-top:20px;"></div><div class="skel-header skeleton" style="height:8px;margin-top:20px;"></div><div class="skel-header skeleton" style="height:8px;margin-top:20px;width:76%;"></div></div>`;
+            }
+
             function normalizeLeagueId(id) {
                 const value = String(id ?? '');
                 const replacements = {
@@ -8967,7 +8975,12 @@
                     });
                     document.getElementById("statsBox").innerHTML = sHtml;
                 } else {
-                    document.getElementById("statsBox").innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Statistika tapılmadı</div>";
+                    const statsBox = document.getElementById("statsBox");
+                    if (statsBox?.dataset.loading === "1") {
+                        statsBox.innerHTML = renderModalStatsLoadingState();
+                    } else {
+                        statsBox.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Statistika tapılmadı</div>";
+                    }
                 }
             }
 
@@ -9006,6 +9019,30 @@
                             saveMatchDetailsToCache(id, latestIncidents, latestStats);
                         }
                     };
+                    const statsBox = document.getElementById("statsBox");
+                    if (statsBox && !hasUsefulStatsPayload(cachedBefore?.stats)) {
+                        statsBox.dataset.loading = "1";
+                        if (!statsBox.innerHTML.trim() || statsBox.innerHTML.includes("Statistika tapılmadı")) {
+                            statsBox.innerHTML = renderModalStatsLoadingState();
+                        }
+                    }
+                    const statsRequest = fetchMatchStatsLazy(id, match, {
+                        fresh: options.force,
+                        timeout: options.background ? 4500 : 6000,
+                        directFallback: false
+                    }).then(data => {
+                        latestStats = data || { statistics: [] };
+                        if (isStillOpen() && hasUsefulStatsPayload(latestStats)) {
+                            renderMatchStats(latestStats);
+                        }
+                        maybeSave();
+                        return latestStats;
+                    }).finally(() => {
+                        const box = document.getElementById("statsBox");
+                        if (box && currentOpenMatchId?.toString() === id.toString()) {
+                            box.dataset.loading = "0";
+                        }
+                    });
 
                     if (!options.force) {
                         const fastDetails = await fetchMatchDetailsFast(id, match, {
@@ -9028,6 +9065,11 @@
                         maybeSave();
                         if (hasUsefulIncidentsPayload(latestIncidents) || (hasUsefulStatsPayload(latestStats) && !matchHasGoalScore(match))) {
                             modalDetailsLastFetch[id] = Date.now();
+                            statsRequest.then(data => {
+                                if (currentOpenMatchId?.toString() === id.toString() && !hasUsefulStatsPayload(data) && !hasUsefulStatsPayload(cachedBefore?.stats)) {
+                                    renderMatchStats(data || { statistics: [] });
+                                }
+                            }).catch(() => {});
                             if (!options.background) {
                                 const hasGoalIncidents = hasUsefulIncidentsPayload(latestIncidents);
                                 const hasScoreGoal = matchHasGoalScore(match);
@@ -9055,17 +9097,7 @@
                         maybeSave();
                     });
 
-                const statsPromise = fetchMatchStatsLazy(id, match, {
-                    fresh: options.force,
-                    timeout: options.background ? 4500 : 6000,
-                    directFallback: false
-                }).then(data => {
-                    latestStats = data || { statistics: [] };
-                    if (isStillOpen() && hasUsefulStatsPayload(latestStats)) {
-                        renderMatchStats(latestStats);
-                    }
-                    maybeSave();
-                });
+                const statsPromise = statsRequest;
 
                 await Promise.allSettled([incidentsPromise, statsPromise]);
                 if (isStillOpen() && (!hasUsefulIncidentsPayload(latestIncidents) || !hasUsefulStatsPayload(latestStats))) {
@@ -9123,9 +9155,12 @@
                 document.getElementById("leagueM").innerText = league;
 
                 // Skeleton loaders inside modal
-                const skelHtml = `<div class="loader-wrapper"><div class="skel-row"><div class="skel-time skeleton"></div><div class="skel-teams"><div class="skel-team skeleton"></div></div></div><div class="skel-row"><div class="skel-time skeleton"></div><div class="skel-teams"><div class="skel-team skeleton" style="width:60%"></div></div></div></div>`;
-                document.getElementById("goalsBox").innerHTML = skelHtml;
-                document.getElementById("statsBox").innerHTML = `<div class="loader-wrapper"><div class="skel-header skeleton" style="height:20px;width:30%;margin:auto;"></div><div class="skel-header skeleton" style="height:8px;margin-top:20px;"></div><div class="skel-header skeleton" style="height:8px;margin-top:20px;"></div></div>`;
+                const goalsBox = document.getElementById("goalsBox");
+                const statsBox = document.getElementById("statsBox");
+                goalsBox.dataset.loading = "1";
+                statsBox.dataset.loading = "1";
+                goalsBox.innerHTML = renderModalDetailsLoadingState();
+                statsBox.innerHTML = renderModalStatsLoadingState();
 
                 const cachedDetails = getCachedMatchDetails(id);
                 if (cachedDetails) {
@@ -9133,6 +9168,7 @@
                         renderMatchIncidents(cachedDetails.incidents);
                     }
                     if (hasUsefulStatsPayload(cachedDetails.stats)) {
+                        statsBox.dataset.loading = "0";
                         renderMatchStats(cachedDetails.stats);
                     }
                 }
@@ -9158,6 +9194,13 @@
                 btn.parentElement.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 document.getElementById(tabId).classList.add('active');
                 btn.classList.add('active');
+                if (tabId === 'statsBox' && currentOpenMatchId) {
+                    const statsBox = document.getElementById("statsBox");
+                    if (statsBox?.dataset.loading === "1" && !statsBox.innerHTML.includes("skeleton")) {
+                        statsBox.innerHTML = renderModalStatsLoadingState();
+                    }
+                    updateModalStatsAndIncidents(currentOpenMatchId, { background: true });
+                }
             }
 
             function closeModal() {
