@@ -967,6 +967,9 @@ let liveSnapshotLoadPromise = null;
 let liveDetailsWarmupPromise = null;
 let lastLiveDetailsWarmupAt = 0;
 let liveScoreWorkerInFlight = false;
+const INCIDENTS_CACHE_TTL = 60 * 1000;
+const INCIDENTS_STALE_REFRESH_MS = 15 * 1000;
+const DETAILS_WARMUP_INTERVAL_MS = 2500;
 const LIVE_SNAPSHOT_FILE = "./live_snapshot.json";
 const LIVE_SNAPSHOT_MAX_AGE = 2500;
 const LIVE_DISK_SNAPSHOT_MAX_AGE = 2 * 60 * 1000;
@@ -2602,7 +2605,7 @@ async function getMatchIncidentsData(matchId) {
             if (fallback) return fallback;
             throw error;
         }
-    }, 1500);
+    }, INCIDENTS_CACHE_TTL, { skipJitter: true });
 }
 
 async function getMatchStatisticsData(matchId, ttl = 30000) {
@@ -2626,23 +2629,32 @@ async function getMatchStatisticsData(matchId, ttl = 30000) {
 
 async function warmLiveMatchDetails(events = []) {
     const now = Date.now();
-    if (liveDetailsWarmupPromise || now - lastLiveDetailsWarmupAt < 10000) return;
-    const liveEvents = events
-        .filter(event => event?.id && isLiveSofaEvent(event))
-        .slice(0, 30);
-    if (!liveEvents.length) return;
+    if (liveDetailsWarmupPromise || now - lastLiveDetailsWarmupAt < DETAILS_WARMUP_INTERVAL_MS) return;
+    const warmableEvents = events
+        .filter(event => event?.id && String(event.source || "sofascore").toLowerCase() !== "mackolik")
+        .sort((a, b) => {
+            const aLive = isLiveSofaEvent(a) ? 1 : 0;
+            const bLive = isLiveSofaEvent(b) ? 1 : 0;
+            return bLive - aLive;
+        })
+        .slice(0, 60);
+    if (!warmableEvents.length) return;
 
     lastLiveDetailsWarmupAt = now;
     liveDetailsWarmupPromise = (async () => {
-        const batchSize = 5;
-        for (let i = 0; i < liveEvents.length; i += batchSize) {
-            const batch = liveEvents.slice(i, i + batchSize);
+        const batchSize = 10;
+        for (let i = 0; i < warmableEvents.length; i += batchSize) {
+            const batch = warmableEvents.slice(i, i + batchSize);
+            await Promise.allSettled(batch.map(event => {
+                const id = event.id.toString();
+                if (!cache[`incidents_${id}`] || Date.now() - cache[`incidents_${id}`].timestamp > INCIDENTS_STALE_REFRESH_MS) {
+                    return getMatchIncidentsData(id);
+                }
+                return Promise.resolve();
+            }));
             await Promise.allSettled(batch.flatMap(event => {
                 const id = event.id.toString();
                 const tasks = [];
-                if (!cache[`incidents_${id}`] || Date.now() - cache[`incidents_${id}`].timestamp > 30000) {
-                    tasks.push(getMatchIncidentsData(id));
-                }
                 if (!cache[`stats_${id}`] || Date.now() - cache[`stats_${id}`].timestamp > 30000) {
                     tasks.push(getMatchStatisticsData(id));
                 }
@@ -2784,6 +2796,9 @@ app.get("/api/matches/:date", async (req, res) => {
             }
             return await fetchScheduledFromSofaScore(date);
         }, ttl);
+        if (source !== "mackolik" && Array.isArray(data?.events)) {
+            warmLiveMatchDetails(data.events).catch(() => {});
+        }
         res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Scheduled matches for date ${date}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
@@ -2804,6 +2819,15 @@ app.get("/api/match/:id/incidents", async (req, res) => {
                 return details.incidents;
             }, 12000);
             return res.json(data);
+        }
+        const cached = cache[`incidents_${id}`];
+        if (req.query.fresh !== "1" && cached?.data) {
+            if (Date.now() - cached.timestamp > INCIDENTS_STALE_REFRESH_MS) {
+                getMatchIncidentsData(id).catch(error => {
+                    console.warn(`[INCIDENTS BACKGROUND REFRESH] ${id}: ${error.message}`);
+                });
+            }
+            return res.json({ ...cached.data, cached: true, instant: true });
         }
         let data;
         if (req.query.fresh === "1") {
@@ -2873,6 +2897,26 @@ app.get("/api/match/:id/details", async (req, res) => {
 
         const statsDisabled = req.query.stats === "0";
         const forceFresh = req.query.fresh === "1";
+        const cachedIncidents = cache[`incidents_${id}`];
+        const cachedStats = cache[`stats_${id}`];
+        if (!forceFresh && cachedIncidents?.data) {
+            if (Date.now() - cachedIncidents.timestamp > INCIDENTS_STALE_REFRESH_MS) {
+                getMatchIncidentsData(id).catch(error => {
+                    console.warn(`[DETAILS INCIDENTS BACKGROUND REFRESH] ${id}: ${error.message}`);
+                });
+            }
+            if (!statsDisabled && (!cachedStats || Date.now() - cachedStats.timestamp > 30000)) {
+                getMatchStatisticsData(id).catch(error => {
+                    console.warn(`[DETAILS STATS BACKGROUND REFRESH] ${id}: ${error.message}`);
+                });
+            }
+            return res.json({
+                incidents: cachedIncidents.data,
+                stats: statsDisabled ? null : (cachedStats?.data || null),
+                cached: true,
+                instant: true
+            });
+        }
         const optionalCachedFetch = (key, path, ttl) => {
             const fetchFresh = async () => {
                 try {
@@ -2902,7 +2946,7 @@ app.get("/api/match/:id/details", async (req, res) => {
             }).catch(() => null);
         };
 
-        const incidentsPromise = optionalCachedFetch(`incidents_${id}`, `/event/${id}/incidents`, 30000);
+        const incidentsPromise = optionalCachedFetch(`incidents_${id}`, `/event/${id}/incidents`, INCIDENTS_CACHE_TTL);
         const statsPromise = statsDisabled
             ? Promise.resolve(null)
             : optionalCachedFetch(`stats_${id}`, `/event/${id}/statistics`, 30000);
