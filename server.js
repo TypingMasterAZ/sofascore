@@ -1005,6 +1005,9 @@ let lastLiveDetailsWarmupAt = 0;
 let liveScoreWorkerInFlight = false;
 const INCIDENTS_CACHE_TTL = 60 * 1000;
 const INCIDENTS_STALE_REFRESH_MS = 15 * 1000;
+const STATS_CACHE_TTL = 45 * 1000;
+const STATS_STALE_REFRESH_MS = 12 * 1000;
+const EMPTY_STATS_CACHE_TTL = 6 * 1000;
 const DETAILS_WARMUP_INTERVAL_MS = 2500;
 const LIVE_SNAPSHOT_FILE = "./live_snapshot.json";
 const LIVE_SNAPSHOT_MAX_AGE = 2500;
@@ -2638,6 +2641,34 @@ function pruneGoalNotificationState(maxAgeMs = 6 * 60 * 60 * 1000) {
     });
 }
 
+function normalizeStatisticsData(data) {
+    const payload = data?.data || data || {};
+    if (Array.isArray(payload.statistics)) return payload;
+    if (Array.isArray(payload.stats?.statistics)) return payload.stats;
+    if (Array.isArray(payload.statisticsItems)) {
+        return {
+            statistics: [{
+                period: payload.period || "ALL",
+                groups: [{
+                    groupName: payload.groupName || "Ümumi",
+                    statisticsItems: payload.statisticsItems
+                }]
+            }]
+        };
+    }
+    return { statistics: [] };
+}
+
+function hasUsefulStatsData(data) {
+    const payload = normalizeStatisticsData(data);
+    return payload.statistics.some(period => {
+        const groups = Array.isArray(period?.groups)
+            ? period.groups
+            : (Array.isArray(period?.statisticsItems) ? [{ statisticsItems: period.statisticsItems }] : []);
+        return groups.some(group => Array.isArray(group.statisticsItems) && group.statisticsItems.length > 0);
+    });
+}
+
 async function getMatchIncidentsData(matchId) {
     return getCachedData(`incidents_${matchId}`, async () => {
         try {
@@ -2655,23 +2686,54 @@ async function getMatchIncidentsData(matchId) {
     }, INCIDENTS_CACHE_TTL, { skipJitter: true });
 }
 
-async function getMatchStatisticsData(matchId, ttl = 30000) {
-    return getCachedData(`stats_${matchId}`, async () => {
+async function fetchMatchStatisticsFresh(matchId) {
+    try {
+        const fast = await Promise.any([
+            fetchFromSofaApiDirect(`/event/${matchId}/statistics`, {}, 2400),
+            fetchFromSofaNativeFast(`/event/${matchId}/statistics`, {}, 2800),
+            fetchFromSofaFastRace(`/event/${matchId}/statistics`, {}, 4200),
+            fetchRapidApiSofaPath(`/event/${matchId}/statistics`, {}, 6200)
+        ]);
+        return normalizeStatisticsData(fast);
+    } catch (error) {
+        const reasons = error.errors?.map(e => e.message).join(" | ") || error.message;
+        if (String(reasons).includes("404") || String(reasons).toLowerCase().includes("not found")) {
+            return { statistics: [], unavailable: true, reason: "not-found" };
+        }
+        throw error;
+    }
+}
+
+async function getMatchStatisticsData(matchId, ttl = STATS_CACHE_TTL) {
+    const key = `stats_${matchId}`;
+    const cached = cache[key];
+    const cachedTtl = hasUsefulStatsData(cached?.data) ? ttl : Math.min(ttl, EMPTY_STATS_CACHE_TTL);
+    if (cached && Date.now() - cached.timestamp < cachedTtl) {
+        console.log(`[CACHE HIT] Key: ${key}`);
+        return cached.data;
+    }
+
+    return getCachedData(key, async () => {
         try {
-            const fast = await Promise.any([
-                fetchFromSofaNativeFast(`/event/${matchId}/statistics`, {}, 2800),
-                fetchFromSofaFastRace(`/event/${matchId}/statistics`, {}, 4500),
-                fetchRapidApiSofaPath(`/event/${matchId}/statistics`, {}, 6500)
-            ]);
-            return fast?.statistics ? fast : (fast?.data || fast);
+            return await fetchMatchStatisticsFresh(matchId);
         } catch (error) {
-            const reasons = error.errors?.map(e => e.message).join(" | ") || error.message;
-            if (String(reasons).includes("404") || String(reasons).toLowerCase().includes("not found")) {
-                return { statistics: [], unavailable: true, reason: "not-found" };
-            }
             throw error;
         }
-    }, ttl, { skipJitter: true });
+    }, cachedTtl, { skipJitter: true });
+}
+
+function refreshMatchStatisticsInBackground(matchId, label = "STATS BACKGROUND REFRESH") {
+    fetchMatchStatisticsFresh(matchId)
+        .then(data => {
+            if (!data) return;
+            const existing = cache[`stats_${matchId}`]?.data;
+            if (hasUsefulStatsData(data) || !hasUsefulStatsData(existing)) {
+                cache[`stats_${matchId}`] = { data, timestamp: Date.now() };
+            }
+        })
+        .catch(error => {
+            console.warn(`[${label}] ${matchId}: ${error.message}`);
+        });
 }
 
 async function warmLiveMatchDetails(events = []) {
@@ -2692,18 +2754,16 @@ async function warmLiveMatchDetails(events = []) {
         const batchSize = 10;
         for (let i = 0; i < warmableEvents.length; i += batchSize) {
             const batch = warmableEvents.slice(i, i + batchSize);
-            await Promise.allSettled(batch.map(event => {
-                const id = event.id.toString();
-                if (!cache[`incidents_${id}`] || Date.now() - cache[`incidents_${id}`].timestamp > INCIDENTS_STALE_REFRESH_MS) {
-                    return getMatchIncidentsData(id);
-                }
-                return Promise.resolve();
-            }));
             await Promise.allSettled(batch.flatMap(event => {
                 const id = event.id.toString();
                 const tasks = [];
-                if (!cache[`stats_${id}`] || Date.now() - cache[`stats_${id}`].timestamp > 30000) {
-                    tasks.push(getMatchStatisticsData(id));
+                if (!cache[`incidents_${id}`] || Date.now() - cache[`incidents_${id}`].timestamp > INCIDENTS_STALE_REFRESH_MS) {
+                    tasks.push(getMatchIncidentsData(id));
+                }
+                const statsCached = cache[`stats_${id}`];
+                const statsAge = statsCached ? Date.now() - statsCached.timestamp : Infinity;
+                if (!statsCached || statsAge > STATS_STALE_REFRESH_MS || !hasUsefulStatsData(statsCached.data)) {
+                    tasks.push(getMatchStatisticsData(id, STATS_CACHE_TTL));
                 }
                 return tasks;
             }));
@@ -2901,17 +2961,33 @@ app.get("/api/match/:id/incidents", async (req, res) => {
 app.get("/api/match/:id/statistics", async (req, res) => {
     const id = req.params.id;
     try {
+        const cached = cache[`stats_${id}`];
+        const cachedUseful = hasUsefulStatsData(cached?.data);
+        const cachedAge = cached ? Date.now() - cached.timestamp : Infinity;
+
+        if (req.query.fresh !== "1" && cached?.data && (cachedUseful || cachedAge < EMPTY_STATS_CACHE_TTL)) {
+            if (cachedAge > STATS_STALE_REFRESH_MS || !cachedUseful) {
+                refreshMatchStatisticsInBackground(id, "STATS INSTANT REFRESH");
+            }
+            return res.json({
+                ...normalizeStatisticsData(cached.data),
+                cached: true,
+                instant: true,
+                stale: cachedAge > STATS_STALE_REFRESH_MS
+            });
+        }
+
         const data = req.query.fresh === "1"
-            ? await getMatchStatisticsData(id, 0).then(data => {
+            ? await fetchMatchStatisticsFresh(id).then(data => {
                 if (data) cache[`stats_${id}`] = { data, timestamp: Date.now() };
                 return data;
             })
-            : await getMatchStatisticsData(id, 30000);
-        res.json(data);
+            : await getMatchStatisticsData(id, STATS_CACHE_TTL);
+        res.json(normalizeStatisticsData(data));
     } catch (error) {
         console.error(`[API ERROR] Match statistics ${id}: ${error.message}`);
         const cached = cache[`stats_${id}`];
-        if (cached) return res.json(cached.data);
+        if (cached) return res.json({ ...normalizeStatisticsData(cached.data), cached: true, stale: true });
         res.status(500).json({ error: true, message: error.message });
     }
 });
@@ -2952,14 +3028,12 @@ app.get("/api/match/:id/details", async (req, res) => {
                     console.warn(`[DETAILS INCIDENTS BACKGROUND REFRESH] ${id}: ${error.message}`);
                 });
             }
-            if (!statsDisabled && (!cachedStats || Date.now() - cachedStats.timestamp > 30000)) {
-                getMatchStatisticsData(id).catch(error => {
-                    console.warn(`[DETAILS STATS BACKGROUND REFRESH] ${id}: ${error.message}`);
-                });
+            if (!statsDisabled && (!cachedStats || Date.now() - cachedStats.timestamp > STATS_STALE_REFRESH_MS || !hasUsefulStatsData(cachedStats.data))) {
+                refreshMatchStatisticsInBackground(id, "DETAILS STATS BACKGROUND REFRESH");
             }
             return res.json({
                 incidents: cachedIncidents.data,
-                stats: statsDisabled ? null : (cachedStats?.data || null),
+                stats: statsDisabled ? null : (cachedStats?.data ? normalizeStatisticsData(cachedStats.data) : null),
                 cached: true,
                 instant: true
             });
@@ -2968,12 +3042,12 @@ app.get("/api/match/:id/details", async (req, res) => {
             const fetchFresh = async () => {
                 try {
                     const data = key.startsWith("stats_")
-                        ? await getMatchStatisticsData(id, 30000)
+                        ? await getMatchStatisticsData(id, STATS_CACHE_TTL)
                         : await Promise.any([
                             fetchFromSofaFastRace(path, {}, 4500),
                             fetchRapidApiSofaPath(path, {}, 6500)
                         ]);
-                    return key.startsWith("incidents_") ? normalizeIncidentsData(data) : (data?.statistics ? data : (data?.data || data));
+                    return key.startsWith("incidents_") ? normalizeIncidentsData(data) : normalizeStatisticsData(data);
                 } catch (error) {
                     if (error.response?.status === 404 || error.message.includes("404")) {
                         return null;
@@ -2996,7 +3070,7 @@ app.get("/api/match/:id/details", async (req, res) => {
         const incidentsPromise = optionalCachedFetch(`incidents_${id}`, `/event/${id}/incidents`, INCIDENTS_CACHE_TTL);
         const statsPromise = statsDisabled
             ? Promise.resolve(null)
-            : optionalCachedFetch(`stats_${id}`, `/event/${id}/statistics`, 30000);
+            : optionalCachedFetch(`stats_${id}`, `/event/${id}/statistics`, STATS_CACHE_TTL);
 
         const [incidents, stats] = await Promise.all([incidentsPromise, statsPromise]);
 
