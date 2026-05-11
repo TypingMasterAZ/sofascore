@@ -6198,7 +6198,7 @@
                     setTimeout(() => {
                         fetchServerJson(`/api/standings-fast/${id}`, "Standings prefetch xətası")
                             .then(data => {
-                                if (!data?.standings?.length) return;
+                                if (!data?.standings?.length && !data?.teamsFallback?.length) return;
                                 const key = `standings_${id}_${data.seasonId || 'auto'}`;
                                 leagueStandingsCache[key] = data;
                                 leagueStandingsCache[`standings_${id}_auto`] = data;
@@ -6214,14 +6214,14 @@
                 const ids = normalizeLeagueListIds(leagues)
                     .map(league => normalizeLeagueId(league.id))
                     .filter(id => id && !prefetchedCountryStandings.has(String(id)))
-                    .slice(0, 10);
+                    .slice(0, 24);
 
                 ids.forEach((id, index) => {
                     prefetchedCountryStandings.add(String(id));
                     setTimeout(() => {
-                        fetchServerJson(`/api/standings-fast/${id}`, "Country standings prefetch xətası", 7000)
+                        fetchServerJson(`/api/standings-fast/${id}?fast=1`, "Country standings prefetch xətası", 12000)
                             .then(data => {
-                                if (!data?.standings?.length) return;
+                                if (!data?.standings?.length && !data?.teamsFallback?.length) return;
                                 const key = `standings_${id}_${data.seasonId || 'auto'}`;
                                 leagueStandingsCache[key] = data;
                                 leagueStandingsCache[`standings_${id}_auto`] = data;
@@ -6231,7 +6231,7 @@
                             .catch(() => {
                                 prefetchedCountryStandings.delete(String(id));
                             });
-                    }, 250 + index * 320);
+                    }, 120 + index * 140);
                 });
             }
 
@@ -6622,7 +6622,7 @@
                         }
                     }
                 } catch (e) {
-                    console.error("Standings fetch error: ", e);
+                    console.warn("Standings fetch warning: ", e);
                     const box = document.getElementById('leagueStandings');
                     if (
                         currentStandingsTourId === tourId &&
@@ -7776,9 +7776,13 @@
                 const key = String(catId);
                 if (!key || (Array.isArray(categoryLeaguesCache[key]) && categoryLeaguesCache[key].length) || prefetchedCategoryLeagues.has(key)) return;
                 prefetchedCategoryLeagues.add(key);
-                fetchCategoryLeaguesData(key).catch(() => {
-                    prefetchedCategoryLeagues.delete(key);
-                });
+                fetchCategoryLeaguesData(key)
+                    .then(leagues => {
+                        if (Array.isArray(leagues) && leagues.length) prefetchCountryLeagueStandings(leagues);
+                    })
+                    .catch(() => {
+                        prefetchedCategoryLeagues.delete(key);
+                    });
             }
 
             function renderCountryLeaguesPage(cat, leagues, options = {}) {
@@ -8242,12 +8246,12 @@
 
                 let data = null;
                 try {
-                    const fastPath = seasonId
-                        ? `/api/standings-fast/${tourId}?seasonId=${encodeURIComponent(seasonId)}`
-                        : `/api/standings-fast/${tourId}`;
+                    const params = new URLSearchParams({ fast: '1' });
+                    if (seasonId) params.set('seasonId', seasonId);
+                    const fastPath = `/api/standings-fast/${tourId}?${params.toString()}`;
                     data = await withTimeout(
-                        fetchServerJson(fastPath, "Standings fast server xətası"),
-                        9500
+                        fetchServerJson(fastPath, "Standings fast server xətası", 15000),
+                        15500
                     );
                 } catch (serverErr) {
                     console.warn("Fast standings API failed:", serverErr.message);
@@ -8289,38 +8293,13 @@
 
                 if (data) return data;
 
-                if (!isNumericId(seasonId)) {
-                    try {
-                        seasonId = await resolveLeagueSeasonId(tourId);
-                    } catch (e) {
-                        console.warn("Standings season resolve fallback failed:", e.message);
-                    }
-                }
-
-                if (seasonId) {
-                    try {
-                        const directData = await withTimeout(
-                            fetchDirectSofaJson(`/unique-tournament/${tourId}/season/${seasonId}/standings/total`),
-                            2500
-                        );
-                        if (directData?.standings?.length) {
-                            leagueStandingsCache[cacheKey] = directData;
-                            setPersistedLeagueData(cacheKey, directData);
-                            return directData;
-                        }
-                    } catch (directErr) {
-                        console.warn("Direct standings fallback failed:", directErr.message);
-                    }
-                }
-
-                if (!isNumericId(seasonId)) throw new Error("Season id tapılmadı");
-
-                const directData = await withTimeout(fetchServerJson(`/api/standings/${tourId}/${seasonId}`, "Standings server xətası"), 6500);
-                if (directData?.standings?.length) {
-                    leagueStandingsCache[cacheKey] = directData;
-                    setPersistedLeagueData(cacheKey, directData);
-                }
-                return directData;
+                return {
+                    standings: [],
+                    seasonId: seasonId || 'auto',
+                    unavailable: true,
+                    fast: true,
+                    message: 'Cədvəl məlumatı hazırda provayderdən gəlmədi'
+                };
             }
 
             async function fetchLeagueTopPlayersData(tourId, seasonId, options = {}) {

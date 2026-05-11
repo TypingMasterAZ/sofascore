@@ -2892,6 +2892,53 @@ app.get("/api/match/:id/details", async (req, res) => {
 
 
 // Yeni API: CanlÄ± Liqa CÉ™dvÉ™li Ã¼Ã§Ã¼n Proxy
+function fetchFastStandingForSeason(tourId, seasonId) {
+    const standingPath = `/unique-tournament/${tourId}/season/${seasonId}/standings/total`;
+    return Promise.any([
+        fetchFromSofaApiDirect(standingPath, {}, 2200),
+        fetchFromSofaNativeFast(standingPath, {}, 2200),
+        fetchFromSofaFastRace(standingPath, {}, 3200)
+    ]);
+}
+
+function extractCategoryTournamentIds(data, limit = 24) {
+    const out = [];
+    const add = (item) => {
+        const id = item?.id || item?.uniqueTournament?.id || item?.tournament?.id;
+        if (id && !out.some(existing => String(existing) === String(id))) out.push(id);
+    };
+    if (Array.isArray(data?.uniqueTournaments)) data.uniqueTournaments.forEach(add);
+    if (Array.isArray(data?.tournaments)) data.tournaments.forEach(add);
+    if (Array.isArray(data?.groups)) {
+        data.groups.forEach(group => {
+            if (Array.isArray(group?.uniqueTournaments)) group.uniqueTournaments.forEach(add);
+            if (Array.isArray(group?.tournaments)) group.tournaments.forEach(add);
+            if (Array.isArray(group?.items)) group.items.forEach(add);
+        });
+    }
+    return out.slice(0, limit);
+}
+
+function warmCategoryStandings(data, limit = 20) {
+    const ids = extractCategoryTournamentIds(data, limit);
+    ids.forEach((tourId, index) => {
+        setTimeout(() => {
+            const fallbackStanding = getFallbackStanding(tourId, null, { allowSeasonMismatch: true });
+            const seasonId = KNOWN_CURRENT_SEASONS[tourId] || fallbackStanding?.seasonId;
+            if (!seasonId) return;
+            const cacheKey = `standings_${tourId}_${seasonId}`;
+            if (cache[cacheKey]?.data?.standings?.length) return;
+            getCachedData(cacheKey, async () => {
+                return await fetchFastStandingForSeason(tourId, seasonId);
+            }, CACHE_TIMES.STATIC, { skipJitter: true })
+                .then(standing => {
+                    if (standing?.standings?.length) saveStandingSnapshot(cacheKey, standing);
+                })
+                .catch(() => {});
+        }, 300 + index * 220);
+    });
+}
+
 app.get("/api/standings-fast/:tourId", async (req, res) => {
     const startedAt = Date.now();
     try {
@@ -2947,6 +2994,16 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
         if (!seasonId) {
             seasonId = KNOWN_CURRENT_SEASONS[tourId];
         }
+
+        const initialSeasonId = seasonId || null;
+        const initialStandingPromise = initialSeasonId
+            ? getCachedData(`standings_${tourId}_${initialSeasonId}`, async () => {
+                return await fetchFastStandingForSeason(tourId, initialSeasonId);
+            }, CACHE_TIMES.STATIC, { skipJitter: true }).catch(error => {
+                console.warn(`[STANDINGS FAST INITIAL] ${tourId}/${initialSeasonId}: ${error.message}`);
+                return null;
+            })
+            : null;
 
         if (ESPN_STANDINGS_LEAGUES[tourId]) {
             const espnCacheKey = `standings_${tourId}_espn`;
@@ -3010,13 +3067,11 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
         const candidates = getSeasonCandidates(seasons, seasonId, 3);
         const candidateResults = await Promise.all(candidates.map(async candidate => {
             const candidateKey = `standings_${tourId}_${candidate.id}`;
-            const candidateData = await getCachedData(candidateKey, async () => {
-                return await Promise.any([
-                    fetchFromSofaApiDirect(`/unique-tournament/${tourId}/season/${candidate.id}/standings/total`, {}, 2200),
-                    fetchFromSofaNativeFast(`/unique-tournament/${tourId}/season/${candidate.id}/standings/total`, {}, 2200),
-                    fetchFromSofaFastRace(`/unique-tournament/${tourId}/season/${candidate.id}/standings/total`, {}, 3200)
-                ]);
-            }, CACHE_TIMES.STATIC, { skipJitter: true }).catch(error => {
+            const candidateData = String(candidate.id) === String(initialSeasonId) && initialStandingPromise
+                ? await initialStandingPromise
+                : await getCachedData(candidateKey, async () => {
+                    return await fetchFastStandingForSeason(tourId, candidate.id);
+                }, CACHE_TIMES.STATIC, { skipJitter: true }).catch(error => {
                 console.warn(`[STANDINGS TRY] ${tourId}/${candidate.id}: ${error.message}`);
                 return null;
             });
@@ -3227,6 +3282,7 @@ app.get("/api/category/:id/tournaments", async (req, res) => {
 
     if (req.query.fast === "1" && cached) {
         res.json({ ...cached, cached: true, fast: true });
+        warmCategoryStandings(cached, 20);
         getCachedData(cacheKey, fetchFresh, CACHE_TIMES.STATIC, { skipJitter: true })
             .then(data => warmImagePaths(collectTournamentImagePaths(data), 24))
             .catch(e => console.warn(`[Category Cache Refresh] ${categoryId} failed:`, e.message));
@@ -3235,6 +3291,7 @@ app.get("/api/category/:id/tournaments", async (req, res) => {
 
     if (req.query.fast === "1" && fallbackData) {
         res.json({ ...fallbackData, fallback: true, snapshot: true });
+        warmCategoryStandings(fallbackData, 20);
         getCachedData(cacheKey, fetchFresh, CACHE_TIMES.STATIC, { skipJitter: true })
             .then(data => warmImagePaths(collectTournamentImagePaths(data), 36))
             .catch(e => console.warn(`[Category Snapshot Refresh] ${categoryId} failed:`, e.message));
@@ -3246,6 +3303,7 @@ app.get("/api/category/:id/tournaments", async (req, res) => {
             const data = await fetchFresh();
             cache[cacheKey] = { data, timestamp: Date.now() };
             res.json({ ...data, fast: true });
+            warmCategoryStandings(data, 20);
             warmImagePaths(collectTournamentImagePaths(data), 24).catch(e => {
                 console.warn(`[Image Warmup] Category ${categoryId} fast leagues failed:`, e.message);
             });
@@ -3277,12 +3335,15 @@ app.get("/api/category/:id/tournaments", async (req, res) => {
             }
         }, CACHE_TIMES.STATIC, { skipJitter: true });
         res.json(data);
+        warmCategoryStandings(data, 20);
         warmImagePaths(collectTournamentImagePaths(data), 36).catch(e => {
             console.warn(`[Image Warmup] Category ${categoryId} leagues failed:`, e.message);
         });
     } catch (error) {
         if (fallbackData) {
-            return res.json({ ...fallbackData, fallback: true, snapshot: true });
+            res.json({ ...fallbackData, fallback: true, snapshot: true });
+            warmCategoryStandings(fallbackData, 20);
+            return;
         }
         res.json({
             uniqueTournaments: [],
