@@ -25,11 +25,13 @@ services:
       - key: KEEPALIVE_URL
         value: https://sofascore-xoyr.onrender.com
       - key: RUNTIME_WARMUP_INTERVAL_MS
-        value: "8000"
+        value: "45000"
       - key: SELF_PING_INTERVAL_MS
         value: "180000"
       - key: CATEGORY_WARMUP_INTERVAL_MS
-        value: "25000"
+        value: "120000"
+      - key: LIVE_SCORE_POLL_INTERVAL_MS
+        value: "3000"
       - key: RAPIDAPI_KEY
         sync: false
       - key: WEB_PUSH_PUBLIC_KEY

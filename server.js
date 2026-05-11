@@ -24,9 +24,9 @@ process.on("uncaughtException", (error) => {
 });
 
 const KEEPALIVE_ENABLED = process.env.KEEPALIVE_ENABLED !== "false";
-const RUNTIME_WARMUP_INTERVAL_MS = Math.max(5000, Number(process.env.RUNTIME_WARMUP_INTERVAL_MS) || 8000);
+const RUNTIME_WARMUP_INTERVAL_MS = Math.max(30000, Number(process.env.RUNTIME_WARMUP_INTERVAL_MS) || 45000);
 const SELF_PING_INTERVAL_MS = Math.max(60000, Number(process.env.SELF_PING_INTERVAL_MS) || 3 * 60 * 1000);
-const CATEGORY_WARMUP_INTERVAL_MS = Math.max(15000, Number(process.env.CATEGORY_WARMUP_INTERVAL_MS) || 25 * 1000);
+const CATEGORY_WARMUP_INTERVAL_MS = Math.max(60000, Number(process.env.CATEGORY_WARMUP_INTERVAL_MS) || 2 * 60 * 1000);
 
 // Firebase Admin SDK-nÄ±n yaradÄ±lmasÄ±
 let serviceAccount;
@@ -1014,7 +1014,7 @@ const LIVE_SNAPSHOT_FILE = "./live_snapshot.json";
 const LIVE_SNAPSHOT_MAX_AGE = 2500;
 const LIVE_DISK_SNAPSHOT_MAX_AGE = 2 * 60 * 1000;
 const LIVE_STALE_RETURN_MAX_AGE = 2 * 60 * 1000;
-const LIVE_SCORE_POLL_INTERVAL_MS = Number(process.env.LIVE_SCORE_POLL_INTERVAL_MS || 750);
+const LIVE_SCORE_POLL_INTERVAL_MS = Math.max(2500, Number(process.env.LIVE_SCORE_POLL_INTERVAL_MS) || 3000);
 const LIVE_PRIMARY_SOURCE = String(process.env.LIVE_PRIMARY_SOURCE || "sofascore").toLowerCase();
 const ENABLE_MACKOLIK_MATCHES = String(process.env.ENABLE_MACKOLIK_MATCHES || "false").toLowerCase() === "true";
 const ALLOW_MACKOLIK_FALLBACK = String(process.env.ALLOW_MACKOLIK_FALLBACK || "false").toLowerCase() === "true";
@@ -5120,28 +5120,32 @@ async function warmRuntimeCaches(options = {}) {
     };
 
     try {
-        warmLeagueImages(options.force ? 30 : 14).catch(e => {
+        warmLeagueImages(options.force ? 12 : 6).catch(e => {
             console.warn("[Warmup] League image prefetch failed:", e.message);
         });
 
         const liveData = await getLiveEventsData(true);
         result.liveEvents = liveData?.events?.length || 0;
 
-        const todayStr = new Date().toISOString().split('T')[0];
-        const scheduled = await getCachedData(`matches_sofascore_${todayStr}`, async () => {
-            return await fetchScheduledFromSofaScore(todayStr);
-        }, 10 * 1000);
-        result.scheduledEvents = scheduled?.events?.length || 0;
-        if (Array.isArray(scheduled?.events)) {
-            warmLiveMatchDetails(scheduled.events).catch(() => {});
+        if (options.force) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const scheduled = await getCachedData(`matches_sofascore_${todayStr}`, async () => {
+                return await fetchScheduledFromSofaScore(todayStr);
+            }, 30 * 1000);
+            result.scheduledEvents = scheduled?.events?.length || 0;
+            if (Array.isArray(scheduled?.events)) {
+                warmLiveMatchDetails(scheduled.events).catch(() => {});
+            }
         }
         warmOneLeagueStanding().catch(e => {
             console.warn("[Warmup] Standing prefetch failed:", e.message);
         });
-        warmOneLeagueTopPlayers().catch(e => {
-            console.warn("[Warmup] Top players prefetch failed:", e.message);
-        });
-        result.warmedCategories = await warmOneCategoryLeagues(options.force ? 2 : 1);
+        if (options.force) {
+            warmOneLeagueTopPlayers().catch(e => {
+                console.warn("[Warmup] Top players prefetch failed:", e.message);
+            });
+            result.warmedCategories = await warmOneCategoryLeagues(1);
+        }
     } catch (e) {
         console.warn("[Warmup] Cache prefetch failed:", e.message);
         result.error = e.message;
@@ -5327,15 +5331,19 @@ app.listen(PORT, "0.0.0.0", () => {
     warmLeagueImages(30).catch(e => {
         console.warn("[Warmup] Initial league image prefetch failed:", e.message);
     });
-    warmRuntimeCaches({ force: true });
+    setTimeout(() => {
+        warmRuntimeCaches({ force: true }).catch(e => {
+            console.warn("[Warmup] Initial delayed warmup failed:", e.message);
+        });
+    }, 5000);
     processSupportEmailQueue();
     setInterval(processSupportEmailQueue, 60 * 1000);
     setInterval(() => warmRuntimeCaches().catch(e => {
         console.warn("[Warmup] Runtime interval failed:", e.message);
     }), RUNTIME_WARMUP_INTERVAL_MS);
-    setInterval(() => warmLeagueImages(16).catch(e => {
+    setInterval(() => warmLeagueImages(8).catch(e => {
         console.warn("[Warmup] League image interval failed:", e.message);
-    }), 30 * 1000);
+    }), 2 * 60 * 1000);
 
     // â”€â”€â”€ RENDER KEEP-ALIVE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Render free plan serveri 15 dÉ™qiqÉ™lik hÉ™rÉ™kÉ™tsizlikdÉ™n sonra yuxuya gÃ¶ndÉ™rir.
@@ -5360,7 +5368,6 @@ app.listen(PORT, "0.0.0.0", () => {
         try {
             const results = await Promise.allSettled([
                 axios.get(`${baseUrl}/api/keepalive?t=${timestamp}`, { timeout: 10000 }),
-                axios.get(`${baseUrl}/api/matches/live?fast=1&t=${timestamp}`, { timeout: 10000 }),
                 axios.get(`${baseUrl}/api/health?t=${timestamp}`, { timeout: 10000 })
             ]);
             if (results.every(item => item.status === "rejected")) {
