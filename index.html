@@ -5558,6 +5558,7 @@
             const prefetchedCategoryLeagues = new Set();
             const knownLeaguesById = {};
             const leagueTopPlayersCache = {};
+            const leagueTopPlayersInFlight = {};
             const TOP_PLAYERS_CACHE_VERSION = "v7";
             const CATEGORY_LEAGUES_CACHE_VERSION = "v2";
             const FEATURED_CATEGORY_IDS = new Set(['1', '7', '30', '31', '32', '46', '297', '1465']);
@@ -6219,7 +6220,7 @@
                 ids.forEach((id, index) => {
                     prefetchedCountryStandings.add(String(id));
                     setTimeout(() => {
-                        fetchServerJson(`/api/standings-fast/${id}?fast=1`, "Country standings prefetch xətası", 12000)
+                        fetchServerJson(`/api/standings-fast/${id}?fast=1`, "Country standings prefetch xətası", 9500)
                             .then(data => {
                                 if (!data?.standings?.length && !data?.teamsFallback?.length) return;
                                 const key = `standings_${id}_${data.seasonId || 'auto'}`;
@@ -6466,7 +6467,7 @@
                             window.currentLeagueContext.seasonId = seasonId;
                             group.seasonId = seasonId;
                             loadStandings(group.id, seasonId);
-                            prefetchLeagueTopPlayers(group.id, seasonId);
+                            loadTopPlayers(group.id, seasonId);
                         }
                     }).catch(() => {});
                 }
@@ -6564,7 +6565,7 @@
                 window.scrollTo({ top: 0 });
 
                 loadStandings(group.id, group.seasonId);
-                prefetchLeagueTopPlayers(group.id, group.seasonId);
+                loadTopPlayers(group.id, group.seasonId);
             }
             window.switchLeagueTab = function (tabId, btn) {
                 document.querySelectorAll('.league-tab-content').forEach(c => c.style.display = 'none');
@@ -8320,8 +8321,8 @@
                     if (seasonId) params.set('seasonId', seasonId);
                     const fastPath = `/api/standings-fast/${tourId}?${params.toString()}`;
                     data = await withTimeout(
-                        fetchServerJson(fastPath, "Standings fast server xətası", 15000),
-                        15500
+                        fetchServerJson(fastPath, "Standings fast server xətası", 9500),
+                        9800
                     );
                 } catch (serverErr) {}
 
@@ -8379,6 +8380,9 @@
                 const legacyCacheKey = `topplayers_${tourId}_${seasonId}`;
                 const persisted = leagueTopPlayersCache[cacheKey] || getPersistedLeagueData(cacheKey, 12 * 60 * 60 * 1000);
                 if (!options.forceRefresh && extractTopPlayersList(persisted).length) return persisted;
+                if (!options.forceRefresh && leagueTopPlayersInFlight[cacheKey]) {
+                    return leagueTopPlayersInFlight[cacheKey];
+                }
                 if (options.forceRefresh) {
                     delete leagueTopPlayersCache[cacheKey];
                     clearPersistedLeagueData(cacheKey);
@@ -8387,39 +8391,34 @@
                 }
                 clearPersistedLeagueData(legacyCacheKey);
 
-                let data = null;
-                try {
-                    data = await withTimeout(
-                        fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players?fast=1`, "Top players server xətası", 6000),
-                        5500
-                    );
-                } catch (serverErr) {}
+                const request = (async () => {
+                    let data = null;
+                    try {
+                        data = await withTimeout(
+                            fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players?fast=1`, "Top players server xətası", 7200),
+                            7000
+                        );
+                    } catch (serverErr) {}
 
-                if (extractTopPlayersList(data).length) {
-                    fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players server xətası", 32000)
-                        .then(fresh => {
-                            if (extractTopPlayersList(fresh).length) {
-                                const resolvedSeasonId = fresh?.seasonId || seasonId;
-                                const resolvedCacheKey = `topplayers_${TOP_PLAYERS_CACHE_VERSION}_${tourId}_${resolvedSeasonId}`;
-                                leagueTopPlayersCache[cacheKey] = fresh;
-                                leagueTopPlayersCache[resolvedCacheKey] = fresh;
-                                setPersistedLeagueData(cacheKey, fresh);
-                                setPersistedLeagueData(resolvedCacheKey, fresh);
-                            }
-                        })
-                        .catch(() => {});
-                    leagueTopPlayersCache[cacheKey] = data;
-                    setPersistedLeagueData(cacheKey, data);
-                    return data;
-                }
+                    if (extractTopPlayersList(data).length) {
+                        fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players server xətası", 9000)
+                            .then(fresh => {
+                                if (extractTopPlayersList(fresh).length) {
+                                    const resolvedSeasonId = fresh?.seasonId || seasonId;
+                                    const resolvedCacheKey = `topplayers_${TOP_PLAYERS_CACHE_VERSION}_${tourId}_${resolvedSeasonId}`;
+                                    leagueTopPlayersCache[cacheKey] = fresh;
+                                    leagueTopPlayersCache[resolvedCacheKey] = fresh;
+                                    setPersistedLeagueData(cacheKey, fresh);
+                                    setPersistedLeagueData(resolvedCacheKey, fresh);
+                                }
+                            })
+                            .catch(() => {});
+                        leagueTopPlayersCache[cacheKey] = data;
+                        setPersistedLeagueData(cacheKey, data);
+                        return data;
+                    }
 
-                if (extractTopPlayersList(data).length) {
-                    leagueTopPlayersCache[cacheKey] = data;
-                    setPersistedLeagueData(cacheKey, data);
-                }
-
-                if (!extractTopPlayersList(data).length) {
-                    fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players fallback xətası", 24000)
+                    fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players fallback xətası", 8500)
                         .then(fresh => {
                             if (!extractTopPlayersList(fresh).length) return;
                             const resolvedSeasonId = fresh?.seasonId || seasonId;
@@ -8430,12 +8429,17 @@
                             setPersistedLeagueData(resolvedCacheKey, fresh);
                             if (window.currentLeagueContext?.id?.toString() === tourId.toString()) {
                                 const box = document.getElementById("leagueTopPlayers");
-                                if (box && box.offsetParent !== null) box.innerHTML = renderTopPlayersHtml(extractTopPlayersList(fresh));
+                                if (box) box.innerHTML = renderTopPlayersHtml(extractTopPlayersList(fresh));
                             }
                         })
                         .catch(() => {});
-                }
-                return data;
+                    return data;
+                })().finally(() => {
+                    delete leagueTopPlayersInFlight[cacheKey];
+                });
+
+                leagueTopPlayersInFlight[cacheKey] = request;
+                return request;
             }
 
             async function fetchTeamInfoData(teamId) {
@@ -8783,13 +8787,6 @@
                 if (serverData?.statistics || serverData?.stats?.statistics) {
                     return serverData.statistics ? serverData : serverData.stats;
                 }
-                if (!isMackolik && allowDirectFallback) {
-                    const directData = await withTimeout(
-                        fetchDirectSofaJson(`/event/${id}/statistics`),
-                        4200
-                    ).catch(() => null);
-                    if (directData?.statistics) return directData;
-                }
                 return { statistics: [] };
             }
 
@@ -8813,15 +8810,6 @@
                     ).catch(() => null);
                     if (Array.isArray(directIncidents?.incidents) && directIncidents.incidents.length) {
                         incidents = directIncidents;
-                    }
-                }
-                if (!isMackolik && allowDirectFallback && (!Array.isArray(stats?.statistics) || stats.statistics.length === 0)) {
-                    const directStats = await withTimeout(
-                        fetchDirectSofaJson(`/event/${id}/statistics`),
-                        4200
-                    ).catch(() => null);
-                    if (Array.isArray(directStats?.statistics) && directStats.statistics.length) {
-                        stats = directStats;
                     }
                 }
                 return {

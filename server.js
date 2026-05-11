@@ -2278,15 +2278,9 @@ async function fetchTopPlayersData(tournamentId, seasonId, options = {}) {
                 console.warn(`[Top Players] Fast real data failed for ${tournamentId}/${seasonId}: ${error.message}`);
                 return null;
             }),
-            new Promise(resolve => setTimeout(() => resolve(null), 900))
+            new Promise(resolve => setTimeout(() => resolve(null), 6500))
         ]);
         if (hasTopPlayers(realData)) return realData;
-
-        const lateRealData = await Promise.race([
-            Promise.any([officialPromise, eventsPromise]).catch(() => null),
-            new Promise(resolve => setTimeout(() => resolve(null), 3600))
-        ]);
-        if (hasTopPlayers(lateRealData)) return lateRealData;
         throw new Error("Top players unavailable");
     }
 
@@ -2585,12 +2579,20 @@ async function getMatchIncidentsData(matchId) {
 
 async function getMatchStatisticsData(matchId, ttl = 30000) {
     return getCachedData(`stats_${matchId}`, async () => {
-        const fast = await Promise.any([
-            fetchFromSofaNativeFast(`/event/${matchId}/statistics`, {}, 2800),
-            fetchFromSofaFastRace(`/event/${matchId}/statistics`, {}, 4500),
-            fetchRapidApiSofaPath(`/event/${matchId}/statistics`, {}, 6500)
-        ]);
-        return fast?.statistics ? fast : (fast?.data || fast);
+        try {
+            const fast = await Promise.any([
+                fetchFromSofaNativeFast(`/event/${matchId}/statistics`, {}, 2800),
+                fetchFromSofaFastRace(`/event/${matchId}/statistics`, {}, 4500),
+                fetchRapidApiSofaPath(`/event/${matchId}/statistics`, {}, 6500)
+            ]);
+            return fast?.statistics ? fast : (fast?.data || fast);
+        } catch (error) {
+            const reasons = error.errors?.map(e => e.message).join(" | ") || error.message;
+            if (String(reasons).includes("404") || String(reasons).toLowerCase().includes("not found")) {
+                return { statistics: [], unavailable: true, reason: "not-found" };
+            }
+            throw error;
+        }
     }, ttl, { skipJitter: true });
 }
 
@@ -3438,7 +3440,7 @@ app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
         } else {
             data = await withServerTimeout(
                 fetchTopPlayersDataForBestSeason(id, sid, fast ? { fast: true, maxSeasons: 1 } : {}),
-                fast ? 5200 : 18000,
+                fast ? 7000 : 9500,
                 "Top players"
             );
             if (data?.derived && cached?.data && !cached.data.derived && extractTopPlayersList(cached.data).length) {
