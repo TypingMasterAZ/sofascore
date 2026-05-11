@@ -5559,6 +5559,7 @@
             const knownLeaguesById = {};
             const leagueTopPlayersCache = {};
             const leagueTopPlayersInFlight = {};
+            const leagueStandingsInFlight = {};
             const TOP_PLAYERS_CACHE_VERSION = "v7";
             const CATEGORY_LEAGUES_CACHE_VERSION = "v2";
             const FEATURED_CATEGORY_IDS = new Set(['1', '7', '30', '31', '32', '46', '297', '1465']);
@@ -6176,6 +6177,10 @@
                 return !!(data?.standings?.length || data?.teamsFallback?.length);
             }
 
+            function renderStandingsLoadingState() {
+                return `<div class="loader-wrapper"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:100%;"></div></div></div><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:70%;"></div></div></div><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:90%;"></div></div></div></div>`;
+            }
+
             function normalizeLeagueId(id) {
                 const value = String(id ?? '');
                 const replacements = {
@@ -6599,11 +6604,12 @@
 
             async function fetchNativeStandings(tourId, seasonId) {
                 if (currentStandingsTourId !== tourId) return;
+                let retryDelay = 30000;
 
                 try {
                     const cacheKey = `standings_${tourId}_${seasonId || 'auto'}`;
                     const memoryCached = leagueStandingsCache[cacheKey];
-                    if (memoryCached && currentStandingsTourId === tourId) {
+                    if (hasStandingsPayload(memoryCached) && currentStandingsTourId === tourId) {
                         const cachedHtml = buildStandingsTable(memoryCached, tourId);
                         if (cachedHtml) document.getElementById('leagueStandings').innerHTML = cachedHtml;
                     }
@@ -6631,29 +6637,24 @@
                             box.innerHTML = tableHtml;
                         }
                     } else {
-                        if (currentStandingsTourId === tourId && document.getElementById('leagueStandings').innerHTML.includes('skeleton')) {
-                            const fallbackHtml = buildStandingsTable(data, tourId);
-                            document.getElementById('leagueStandings').innerHTML = fallbackHtml || "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Cədvəl və klub məlumatı hazırda yoxdur.</div>";
+                        retryDelay = 3500;
+                        const box = document.getElementById('leagueStandings');
+                        if (currentStandingsTourId === tourId && box && !hasStandingsPayload(memoryCached)) {
+                            box.innerHTML = renderStandingsLoadingState();
                         }
                     }
                 } catch (e) {
                     console.warn("Standings fetch warning: ", e);
                     const box = document.getElementById('leagueStandings');
-                    if (
-                        currentStandingsTourId === tourId &&
-                        box &&
-                        (box.innerHTML.includes('skeleton') || box.innerHTML.includes('loader-wrapper'))
-                    ) {
-                        box.innerHTML = `<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:700;'>
-                            Cədvəl məlumatı gecikir.
-                            <span style="display:block; font-size:12px; opacity:.75; margin-top:8px;">Açıq qalarsa arxa planda yenidən yoxlanacaq.</span>
-                        </div>`;
+                    retryDelay = 3500;
+                    if (currentStandingsTourId === tourId && box) {
+                        box.innerHTML = renderStandingsLoadingState();
                     }
                 }
 
                 if (currentStandingsTourId === tourId) {
                     clearTimeout(standingsTimeout);
-                    standingsTimeout = setTimeout(() => fetchNativeStandings(tourId, seasonId), 30000);
+                    standingsTimeout = setTimeout(() => fetchNativeStandings(tourId, seasonId), retryDelay);
                 }
             }
 
@@ -6864,7 +6865,7 @@
                     const cachedHtml = buildStandingsTable(persisted, tourId);
                     if (cachedHtml) box.innerHTML = cachedHtml;
                 } else {
-                    box.innerHTML = `<div class="loader-wrapper"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:100%;"></div></div></div><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:70%;"></div></div></div><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:90%;"></div></div></div></div>`;
+                    box.innerHTML = renderStandingsLoadingState();
                 }
 
                 fetchNativeStandings(tourId, seasonId);
@@ -8332,60 +8333,69 @@
                     return persisted;
                 }
 
-                let data = null;
-                try {
-                    const params = new URLSearchParams({ fast: '1' });
-                    if (seasonId) params.set('seasonId', seasonId);
-                    const fastPath = `/api/standings-fast/${tourId}?${params.toString()}`;
-                    data = await withTimeout(
-                        fetchServerJson(fastPath, "Standings fast server xətası", 9500),
-                        9800
-                    );
-                } catch (serverErr) {}
+                if (leagueStandingsInFlight[cacheKey]) return leagueStandingsInFlight[cacheKey];
 
-                if (data?.standings?.length) {
-                    const resolvedSeasonId = data.seasonId || seasonId;
-                    const resolvedKey = `standings_${tourId}_${resolvedSeasonId || 'auto'}`;
-                    leagueStandingsCache[resolvedKey] = data;
-                    leagueStandingsCache[cacheKey] = data;
-                    leagueStandingsCache[`standings_${tourId}_auto`] = data;
-                    setPersistedLeagueData(resolvedKey, data);
-                    setPersistedLeagueData(cacheKey, data);
-                    setPersistedLeagueData(`standings_${tourId}_auto`, data);
-                    if (isNumericId(resolvedSeasonId) && window.currentLeagueContext?.id?.toString() === tourId.toString()) {
-                        window.currentLeagueContext.seasonId = resolvedSeasonId;
-                        window.currentLeagueContext.seasonName = data.season?.name || data.season?.year || window.currentLeagueContext.seasonName;
-                        leagueSeasonCache[tourId] = resolvedSeasonId;
+                const request = (async () => {
+                    let data = null;
+                    try {
+                        const params = new URLSearchParams({ fast: '1' });
+                        if (seasonId) params.set('seasonId', seasonId);
+                        const fastPath = `/api/standings-fast/${tourId}?${params.toString()}`;
+                        data = await withTimeout(
+                            fetchServerJson(fastPath, "Standings fast server xətası", 9500),
+                            9800
+                        );
+                    } catch (serverErr) {}
+
+                    if (data?.standings?.length) {
+                        const resolvedSeasonId = data.seasonId || seasonId;
+                        const resolvedKey = `standings_${tourId}_${resolvedSeasonId || 'auto'}`;
+                        leagueStandingsCache[resolvedKey] = data;
+                        leagueStandingsCache[cacheKey] = data;
+                        leagueStandingsCache[`standings_${tourId}_auto`] = data;
+                        setPersistedLeagueData(resolvedKey, data);
+                        setPersistedLeagueData(cacheKey, data);
+                        setPersistedLeagueData(`standings_${tourId}_auto`, data);
+                        if (isNumericId(resolvedSeasonId) && window.currentLeagueContext?.id?.toString() === tourId.toString()) {
+                            window.currentLeagueContext.seasonId = resolvedSeasonId;
+                            window.currentLeagueContext.seasonName = data.season?.name || data.season?.year || window.currentLeagueContext.seasonName;
+                            leagueSeasonCache[tourId] = resolvedSeasonId;
+                        }
+                        return data;
                     }
-                    return data;
-                }
 
-                if (data?.teamsFallback?.length) {
-                    const resolvedSeasonId = data.seasonId || seasonId || 'auto';
-                    const resolvedKey = `standings_${tourId}_${resolvedSeasonId}`;
-                    leagueStandingsCache[resolvedKey] = data;
-                    leagueStandingsCache[cacheKey] = data;
-                    leagueStandingsCache[`standings_${tourId}_auto`] = data;
-                    setPersistedLeagueData(resolvedKey, data);
-                    setPersistedLeagueData(cacheKey, data);
-                    setPersistedLeagueData(`standings_${tourId}_auto`, data);
-                    if (isNumericId(data.seasonId) && window.currentLeagueContext?.id?.toString() === tourId.toString()) {
-                        window.currentLeagueContext.seasonId = data.seasonId;
-                        window.currentLeagueContext.seasonName = data.season?.name || data.season?.year || window.currentLeagueContext.seasonName;
-                        leagueSeasonCache[tourId] = data.seasonId;
+                    if (data?.teamsFallback?.length) {
+                        const resolvedSeasonId = data.seasonId || seasonId || 'auto';
+                        const resolvedKey = `standings_${tourId}_${resolvedSeasonId}`;
+                        leagueStandingsCache[resolvedKey] = data;
+                        leagueStandingsCache[cacheKey] = data;
+                        leagueStandingsCache[`standings_${tourId}_auto`] = data;
+                        setPersistedLeagueData(resolvedKey, data);
+                        setPersistedLeagueData(cacheKey, data);
+                        setPersistedLeagueData(`standings_${tourId}_auto`, data);
+                        if (isNumericId(data.seasonId) && window.currentLeagueContext?.id?.toString() === tourId.toString()) {
+                            window.currentLeagueContext.seasonId = data.seasonId;
+                            window.currentLeagueContext.seasonName = data.season?.name || data.season?.year || window.currentLeagueContext.seasonName;
+                            leagueSeasonCache[tourId] = data.seasonId;
+                        }
+                        return data;
                     }
-                    return data;
-                }
 
-                if (data) return data;
+                    if (data) return data;
 
-                return {
-                    standings: [],
-                    seasonId: seasonId || 'auto',
-                    unavailable: true,
-                    fast: true,
-                    message: 'Cədvəl məlumatı hazırda provayderdən gəlmədi'
-                };
+                    return {
+                        standings: [],
+                        seasonId: seasonId || 'auto',
+                        unavailable: true,
+                        fast: true,
+                        message: 'Cədvəl məlumatı hazırda provayderdən gəlmədi'
+                    };
+                })().finally(() => {
+                    delete leagueStandingsInFlight[cacheKey];
+                });
+
+                leagueStandingsInFlight[cacheKey] = request;
+                return request;
             }
 
             async function fetchLeagueTopPlayersData(tourId, seasonId, options = {}) {
