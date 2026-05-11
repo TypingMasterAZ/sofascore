@@ -6060,6 +6060,16 @@
                 } catch (e) {}
             }
 
+            function safeLocalStorageSet(key, value) {
+                try {
+                    localStorage.setItem(key, value);
+                    return true;
+                } catch (e) {
+                    console.warn(`[Storage] ${key} yazılmadı:`, e.message);
+                    return false;
+                }
+            }
+
             function rememberTeamMeta(team) {
                 if (!team?.id) return;
                 knownTeamsById[String(team.id)] = {
@@ -9178,7 +9188,7 @@
                 let deviceId = localStorage.getItem('pushDeviceId');
                 if (!deviceId) {
                     deviceId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `device-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-                    localStorage.setItem('pushDeviceId', deviceId);
+                    safeLocalStorageSet('pushDeviceId', deviceId);
                 }
                 return deviceId;
             }
@@ -9342,7 +9352,7 @@
                     throw new Error('Web Push qeydiyyatı alınmadı');
                 }
 
-                localStorage.setItem('webPushReady', '1');
+                safeLocalStorageSet('webPushReady', '1');
                 if (document.getElementById('debugTokenBox')) {
                     document.getElementById('debugTokenBox').innerText = 'Web Push hazırdır';
                 }
@@ -9394,8 +9404,8 @@
                     throw new Error('FCM token alınmadı');
                 }
 
-                localStorage.setItem('fcmToken', token);
-                localStorage.setItem('pushMode', 'fcm');
+                safeLocalStorageSet('fcmToken', token);
+                safeLocalStorageSet('pushMode', 'fcm');
 
                 if (document.getElementById('debugTokenBox')) {
                     document.getElementById('debugTokenBox').innerText = 'Token: ' + token;
@@ -9414,7 +9424,7 @@
                     throw new Error('FCM token serverə yazılmadı');
                 }
 
-                localStorage.setItem('fcmReady', '1');
+                safeLocalStorageSet('fcmReady', '1');
             }
 
             async function syncPushRegistration() {
@@ -9449,7 +9459,7 @@
                     return false;
                 }
 
-                localStorage.setItem('pushMode', successful.includes('webpush') ? 'webpush' : successful[0]);
+                safeLocalStorageSet('pushMode', successful.includes('webpush') ? 'webpush' : successful[0]);
                 return true;
             }
 
