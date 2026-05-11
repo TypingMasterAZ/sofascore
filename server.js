@@ -2493,6 +2493,7 @@ async function getLiveEventsData(forceFresh = false, preferImmediateCache = fals
         if (!liveFetchPromise) {
             getLiveEventsData(true).catch(() => {});
         }
+        warmLiveMatchDetails(globalLiveEvents.events).catch(() => {});
         return {
             ...globalLiveEvents,
             stale: true,
@@ -2501,10 +2502,12 @@ async function getLiveEventsData(forceFresh = false, preferImmediateCache = fals
     }
 
     if (!forceFresh && hasUsableCache && (cacheAge < CACHE_TIMES.LIVE)) {
+        warmLiveMatchDetails(globalLiveEvents.events).catch(() => {});
         return globalLiveEvents;
     }
 
     if (!forceFresh && hasUsableCache && (now - lastLiveFetchAttemptTime < CACHE_TIMES.LIVE)) {
+        warmLiveMatchDetails(globalLiveEvents.events).catch(() => {});
         return {
             ...globalLiveEvents,
             stale: true,
@@ -5004,6 +5007,23 @@ app.get("/api/keepalive", async (req, res) => {
 
     warmRuntimeCaches().catch(e => {
         console.warn("[Keep-Alive] Background warmup failed:", e.message);
+    });
+});
+
+app.get("/api/health", (req, res) => {
+    res.json({
+        status: "alive",
+        version: "v7",
+        liveSource: LIVE_PRIMARY_SOURCE,
+        mackolikEnabled: ENABLE_MACKOLIK_MATCHES,
+        mackolikFallback: ALLOW_MACKOLIK_FALLBACK,
+        rapidApiConfigured: !!process.env.RAPIDAPI_KEY,
+        proxyCount: GAS_PROXIES.length,
+        liveEvents: globalLiveEvents?.events?.length || 0,
+        liveTimestamp: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null,
+        liveDetailsWarmupRunning: !!liveDetailsWarmupPromise,
+        cacheKeys: Object.keys(cache).length,
+        timestamp: new Date().toISOString()
     });
 });
 
