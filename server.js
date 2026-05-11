@@ -14,6 +14,20 @@ const nodemailer = require("nodemailer");
 const admin = require("firebase-admin");
 const webpush = require("web-push");
 
+process.on("unhandledRejection", (reason) => {
+    const message = reason?.stack || reason?.message || String(reason);
+    console.error("[PROCESS] Unhandled rejection kept server alive:", message);
+});
+
+process.on("uncaughtException", (error) => {
+    console.error("[PROCESS] Uncaught exception kept server alive:", error?.stack || error?.message || error);
+});
+
+const KEEPALIVE_ENABLED = process.env.KEEPALIVE_ENABLED !== "false";
+const RUNTIME_WARMUP_INTERVAL_MS = Math.max(5000, Number(process.env.RUNTIME_WARMUP_INTERVAL_MS) || 8000);
+const SELF_PING_INTERVAL_MS = Math.max(60000, Number(process.env.SELF_PING_INTERVAL_MS) || 3 * 60 * 1000);
+const CATEGORY_WARMUP_INTERVAL_MS = Math.max(15000, Number(process.env.CATEGORY_WARMUP_INTERVAL_MS) || 25 * 1000);
+
 // Firebase Admin SDK-nÄ±n yaradÄ±lmasÄ±
 let serviceAccount;
 let firebaseInitialized = false;
@@ -1659,6 +1673,11 @@ const STANDINGS_SNAPSHOT_FILE = path.join(__dirname, "standings_snapshot.json");
 const FOOTBALL_STANDINGS_SNAPSHOT_FILE = path.join(__dirname, "football_standings_snapshot.json");
 let standingsWarmIndex = 0;
 let topPlayersWarmIndex = 0;
+let categoryWarmIndex = 0;
+let runtimeWarmupInFlight = false;
+let lastRuntimeWarmupAt = 0;
+let lastRuntimeWarmupResult = null;
+let selfPingInFlight = false;
 
 function loadStandingsSnapshot() {
     try {
@@ -4936,16 +4955,37 @@ setInterval(async () => {
     }
 }, 60 * 1000);
 
-async function warmRuntimeCaches() {
+async function warmRuntimeCaches(options = {}) {
+    const now = Date.now();
+    if (runtimeWarmupInFlight) return lastRuntimeWarmupResult;
+    if (!options.force && now - lastRuntimeWarmupAt < Math.max(4000, Math.floor(RUNTIME_WARMUP_INTERVAL_MS * 0.7))) {
+        return lastRuntimeWarmupResult;
+    }
+
+    runtimeWarmupInFlight = true;
+    const startedAt = Date.now();
+    const result = {
+        startedAt: new Date(startedAt).toISOString(),
+        liveEvents: 0,
+        scheduledEvents: 0,
+        warmedCategories: 0,
+        warmedAt: null,
+        durationMs: 0
+    };
+
     try {
-        warmLeagueImages(14).catch(e => {
+        warmLeagueImages(options.force ? 30 : 14).catch(e => {
             console.warn("[Warmup] League image prefetch failed:", e.message);
         });
-        await getLiveEventsData(true);
+
+        const liveData = await getLiveEventsData(true);
+        result.liveEvents = liveData?.events?.length || 0;
+
         const todayStr = new Date().toISOString().split('T')[0];
         const scheduled = await getCachedData(`matches_sofascore_${todayStr}`, async () => {
             return await fetchScheduledFromSofaScore(todayStr);
         }, 10 * 1000);
+        result.scheduledEvents = scheduled?.events?.length || 0;
         if (Array.isArray(scheduled?.events)) {
             warmLiveMatchDetails(scheduled.events).catch(() => {});
         }
@@ -4955,9 +4995,60 @@ async function warmRuntimeCaches() {
         warmOneLeagueTopPlayers().catch(e => {
             console.warn("[Warmup] Top players prefetch failed:", e.message);
         });
+        result.warmedCategories = await warmOneCategoryLeagues(options.force ? 2 : 1);
     } catch (e) {
         console.warn("[Warmup] Cache prefetch failed:", e.message);
+        result.error = e.message;
+    } finally {
+        result.warmedAt = new Date().toISOString();
+        result.durationMs = Date.now() - startedAt;
+        lastRuntimeWarmupAt = Date.now();
+        lastRuntimeWarmupResult = result;
+        runtimeWarmupInFlight = false;
     }
+
+    return result;
+}
+
+async function warmOneCategoryLeagues(limit = 1) {
+    if (Date.now() - (warmOneCategoryLeagues.lastRunAt || 0) < CATEGORY_WARMUP_INTERVAL_MS) return 0;
+    warmOneCategoryLeagues.lastRunAt = Date.now();
+
+    const categories = FALLBACK_CATEGORIES.filter(category => category?.id);
+    if (!categories.length) return 0;
+
+    let warmed = 0;
+    for (let i = 0; i < Math.min(limit, categories.length); i++) {
+        const category = categories[categoryWarmIndex % categories.length];
+        categoryWarmIndex++;
+        const categoryId = String(category.id);
+        const cacheKey = `category_tournaments_${categoryId}`;
+        const cached = cache[cacheKey]?.data || getFallbackCategoryTournaments(categoryId);
+
+        if (cached) {
+            warmCategoryStandings(cached, 14);
+            warmImagePaths(collectTournamentImagePaths(cached), 18).catch(() => {});
+            warmed++;
+        }
+
+        try {
+            const data = await Promise.any([
+                fetchFromSofaNativeFast(`/category/${categoryId}/unique-tournaments`, {}, 2500),
+                fetchFromSofaFastRace(`/category/${categoryId}/unique-tournaments`, {}, 4200)
+            ]);
+            if (data?.uniqueTournaments?.length || data?.groups?.length || data?.tournaments?.length) {
+                cache[cacheKey] = { data, timestamp: Date.now() };
+                saveCategoryTournamentsSnapshot(categoryId, data);
+                warmCategoryStandings(data, 18);
+                warmImagePaths(collectTournamentImagePaths(data), 24).catch(() => {});
+                warmed++;
+            }
+        } catch (error) {
+            if (!cached) console.warn(`[Warmup] Category ${categoryId} prefetch failed:`, error.message);
+        }
+    }
+
+    return warmed;
 }
 
 async function warmOneLeagueStanding() {
@@ -5018,17 +5109,36 @@ async function warmOneLeagueTopPlayers() {
 }
 
 app.get("/api/keepalive", async (req, res) => {
+    const force = req.query.force === "1";
     res.json({
         status: "alive",
         warmed: false,
         warmingInBackground: true,
+        keepaliveEnabled: KEEPALIVE_ENABLED,
         liveEvents: globalLiveEvents?.events?.length || 0,
         liveTimestamp: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null,
+        lastWarmup: lastRuntimeWarmupResult,
         timestamp: new Date().toISOString()
     });
 
-    warmRuntimeCaches().catch(e => {
+    warmRuntimeCaches({ force }).catch(e => {
         console.warn("[Keep-Alive] Background warmup failed:", e.message);
+    });
+});
+
+app.get("/api/warmup", async (req, res) => {
+    const force = req.query.force === "1";
+    warmRuntimeCaches({ force }).catch(e => {
+        console.warn("[Warmup API] Background warmup failed:", e.message);
+    });
+    res.json({
+        status: "warming",
+        keepaliveEnabled: KEEPALIVE_ENABLED,
+        force,
+        liveEvents: globalLiveEvents?.events?.length || 0,
+        liveTimestamp: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null,
+        lastWarmup: lastRuntimeWarmupResult,
+        timestamp: new Date().toISOString()
     });
 });
 
@@ -5036,6 +5146,10 @@ app.get("/api/health", (req, res) => {
     res.json({
         status: "alive",
         version: "v7",
+        uptimeSec: Math.round(process.uptime()),
+        keepaliveEnabled: KEEPALIVE_ENABLED,
+        runtimeWarmupIntervalMs: RUNTIME_WARMUP_INTERVAL_MS,
+        selfPingIntervalMs: SELF_PING_INTERVAL_MS,
         liveSource: LIVE_PRIMARY_SOURCE,
         mackolikEnabled: ENABLE_MACKOLIK_MATCHES,
         mackolikFallback: ALLOW_MACKOLIK_FALLBACK,
@@ -5046,6 +5160,8 @@ app.get("/api/health", (req, res) => {
         liveEvents: globalLiveEvents?.events?.length || 0,
         liveTimestamp: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null,
         liveDetailsWarmupRunning: !!liveDetailsWarmupPromise,
+        runtimeWarmupRunning: runtimeWarmupInFlight,
+        lastWarmup: lastRuntimeWarmupResult,
         cacheKeys: Object.keys(cache).length,
         timestamp: new Date().toISOString()
     });
@@ -5065,10 +5181,12 @@ app.listen(PORT, "0.0.0.0", () => {
     warmLeagueImages(30).catch(e => {
         console.warn("[Warmup] Initial league image prefetch failed:", e.message);
     });
-    warmRuntimeCaches();
+    warmRuntimeCaches({ force: true });
     processSupportEmailQueue();
     setInterval(processSupportEmailQueue, 60 * 1000);
-    setInterval(warmRuntimeCaches, 8 * 1000);
+    setInterval(() => warmRuntimeCaches().catch(e => {
+        console.warn("[Warmup] Runtime interval failed:", e.message);
+    }), RUNTIME_WARMUP_INTERVAL_MS);
     setInterval(() => warmLeagueImages(16).catch(e => {
         console.warn("[Warmup] League image interval failed:", e.message);
     }), 30 * 1000);
@@ -5078,28 +5196,37 @@ app.listen(PORT, "0.0.0.0", () => {
     // Bu interval hÉ™r 10 dÉ™qiqÉ™dÉ™ bir Ã¶zÃ¼nÉ™ sorÄŸu vurur - serveri daima ayaq Ã¼stÃ¼ndÉ™ saxlayÄ±r.
     // RENDER_EXTERNAL_URL mÃ¼hit dÉ™yiÅŸÉ™ni Render tÉ™rÉ™findÉ™n avtomatik tÉ™yin edilir.
     const getSelfUrl = () => {
+        if (process.env.KEEPALIVE_URL) return process.env.KEEPALIVE_URL;
         if (process.env.RENDER_EXTERNAL_URL) return process.env.RENDER_EXTERNAL_URL;
+        if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL;
         if (process.env.RENDER_SERVICE_NAME) return `https://${process.env.RENDER_SERVICE_NAME}.onrender.com`;
         return detectedHostUrl;
     };
 
     setInterval(async () => {
+        if (!KEEPALIVE_ENABLED || selfPingInFlight) return;
         const targetUrl = getSelfUrl();
         if (!targetUrl || !targetUrl.startsWith('http')) return;
-
-        try { await axios.get(`${targetUrl}/api/ping?t=${Date.now()}`, { timeout: 10000 }); } catch(e) {}
+        selfPingInFlight = true;
+        const baseUrl = targetUrl.replace(/\/$/, "");
+        const timestamp = Date.now();
 
         try {
-            const fallbackUrls = [
-                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl + '/api/ping?proxy=1&t=' + Date.now())}`,
-                `https://crossorigin.me/${targetUrl}/api/ping?proxy=2&t=${Date.now()}`,
-                `https://yacdn.org/proxy/${targetUrl}/api/ping?proxy=3&t=${Date.now()}`
-            ];
-            const proxyUrl = fallbackUrls[Math.floor(Math.random() * fallbackUrls.length)];
-            await axios.get(proxyUrl, { timeout: 15000 });
-            console.log(`[Keep-Alive] External proxy ping OK via ${proxyUrl.split('/')[2]} to prevent Render sleep`);
-        } catch(e) {}
-    }, 3 * 60 * 1000); // 3 minutes strictly prevents Render sleep
+            const results = await Promise.allSettled([
+                axios.get(`${baseUrl}/api/keepalive?t=${timestamp}`, { timeout: 10000 }),
+                axios.get(`${baseUrl}/api/matches/live?fast=1&t=${timestamp}`, { timeout: 10000 }),
+                axios.get(`${baseUrl}/api/health?t=${timestamp}`, { timeout: 10000 })
+            ]);
+            if (results.every(item => item.status === "rejected")) {
+                throw results[0].reason;
+            }
+            console.log(`[Keep-Alive] Self ping and warmup OK: ${baseUrl}`);
+        } catch(e) {
+            console.warn("[Keep-Alive] Self ping failed:", e.message);
+        } finally {
+            selfPingInFlight = false;
+        }
+    }, SELF_PING_INTERVAL_MS);
     // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 });
 

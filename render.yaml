@@ -20,6 +20,16 @@ services:
         value: sofascore
       - key: ALLOW_MACKOLIK_FALLBACK
         value: "false"
+      - key: KEEPALIVE_ENABLED
+        value: "true"
+      - key: KEEPALIVE_URL
+        value: https://sofascore-xoyr.onrender.com
+      - key: RUNTIME_WARMUP_INTERVAL_MS
+        value: "8000"
+      - key: SELF_PING_INTERVAL_MS
+        value: "180000"
+      - key: CATEGORY_WARMUP_INTERVAL_MS
+        value: "25000"
       - key: RAPIDAPI_KEY
         sync: false
       - key: WEB_PUSH_PUBLIC_KEY
