@@ -1,6 +1,5 @@
-const CACHE_NAME = 'proscore-shell-v25';
+const CACHE_NAME = 'proscore-shell-v26';
 const ASSETS_TO_CACHE = [
-  '/',
   '/manifest.json?v=2',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css'
@@ -12,7 +11,7 @@ importScripts('/firebase-messaging-sw.js');
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Pre-caching offline shell v4');
+      console.log('[SW] Pre-caching offline shell v26');
       // addAll uğursuz olarsa install bloklanmasın
       return Promise.allSettled(
         ASSETS_TO_CACHE.map(url => cache.add(url).catch(e => console.warn('[SW] Cache miss:', url, e.message)))
@@ -57,13 +56,8 @@ self.addEventListener('fetch', (event) => {
   // index.html üçün həmişə network-first - köhnə versiya göstərməsin
   if (url.pathname === '/' || url.pathname === '/index.html') {
     event.respondWith(
-      fetch(event.request)
-        .then(res => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
-          return res;
-        })
-        .catch(() => caches.match('/'))
+      fetch(event.request, { cache: 'no-store' })
+        .catch(() => new Response('', { status: 503 }))
     );
     return;
   }

@@ -251,7 +251,35 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json({ limit: "15mb" }));
-app.use(express.static(path.join(__dirname)));
+app.use((req, res, next) => {
+    const requestPath = req.path || "";
+    if (
+        requestPath === "/" ||
+        requestPath.endsWith(".html") ||
+        requestPath === "/sw.js" ||
+        requestPath === "/firebase-messaging-sw.js"
+    ) {
+        res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+        res.set("Pragma", "no-cache");
+        res.set("Expires", "0");
+        res.set("Surrogate-Control", "no-store");
+    }
+    next();
+});
+app.use(express.static(path.join(__dirname), {
+    setHeaders(res, filePath) {
+        if (
+            filePath.endsWith("index.html") ||
+            filePath.endsWith("sw.js") ||
+            filePath.endsWith("firebase-messaging-sw.js")
+        ) {
+            res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+            res.set("Pragma", "no-cache");
+            res.set("Expires", "0");
+            res.set("Surrogate-Control", "no-store");
+        }
+    }
+}));
 app.get("/favicon.ico", (req, res) => {
     res.set("Cache-Control", "public, max-age=86400");
     res.type("image/png").sendFile(path.join(__dirname, "ayble.png"));
