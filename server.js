@@ -2899,8 +2899,126 @@ function fetchFastStandingForSeason(tourId, seasonId) {
     return Promise.any([
         fetchFromSofaApiDirect(standingPath, {}, 2200),
         fetchFromSofaNativeFast(standingPath, {}, 2200),
-        fetchFromSofaFastRace(standingPath, {}, 3200)
+        fetchFromSofaFastRace(standingPath, {}, 3200),
+        fetchFromSofaApiDirect(`/unique-tournament/${tourId}/season/${seasonId}/standings`, {}, 2200),
+        fetchFromSofaNativeFast(`/unique-tournament/${tourId}/season/${seasonId}/standings`, {}, 2200),
+        fetchFromSofaFastRace(`/unique-tournament/${tourId}/season/${seasonId}/standings`, {}, 3200)
     ]);
+}
+
+function getEventScoreValue(score) {
+    const value = score?.current ?? score?.display ?? score?.normaltime;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+}
+
+function addDerivedStandingTeam(teams, team) {
+    if (!team?.id && !team?.name) return null;
+    const key = team.id ? `id_${team.id}` : `name_${String(team.name || team.shortName).toLowerCase()}`;
+    if (!teams.has(key)) {
+        teams.set(key, {
+            position: 0,
+            team: {
+                id: team.id,
+                name: team.name || team.shortName || "Komanda",
+                shortName: team.shortName || team.name || "Komanda",
+                slug: team.slug,
+                logoUrl: team.logoUrl || null
+            },
+            matches: 0,
+            wins: 0,
+            draws: 0,
+            losses: 0,
+            scoresFor: 0,
+            scoresAgainst: 0,
+            points: 0
+        });
+    }
+    return teams.get(key);
+}
+
+async function fetchStandingsFromEventsFallback(tourId, seasonId, options = {}) {
+    if (!seasonId) return null;
+    const pageCount = Number(options.pages || 8);
+    const timeout = Number(options.timeout || 4200);
+    const paths = Array.from({ length: pageCount }, (_, page) => `/unique-tournament/${tourId}/season/${seasonId}/events/last/${page}`);
+    const results = await Promise.allSettled(
+        paths.map(path => Promise.any([
+            fetchFromSofaApiDirect(path, {}, timeout),
+            fetchFromSofaNativeFast(path, {}, timeout),
+            fetchFromSofaFastRace(path, {}, timeout + 1200)
+        ]))
+    );
+
+    const eventsById = new Map();
+    for (const result of results) {
+        if (result.status !== "fulfilled") continue;
+        const events = result.value?.events || result.value?.data?.events || [];
+        if (!Array.isArray(events)) continue;
+        events.forEach(event => {
+            if (event?.id) eventsById.set(event.id, event);
+        });
+    }
+
+    const teams = new Map();
+    for (const event of eventsById.values()) {
+        const statusType = String(event.status?.type || "").toLowerCase();
+        if (!["finished", "inprogress"].includes(statusType)) continue;
+        const homeGoals = getEventScoreValue(event.homeScore);
+        const awayGoals = getEventScoreValue(event.awayScore);
+        if (homeGoals === null || awayGoals === null) continue;
+
+        const home = addDerivedStandingTeam(teams, event.homeTeam);
+        const away = addDerivedStandingTeam(teams, event.awayTeam);
+        if (!home || !away) continue;
+
+        home.matches += 1;
+        away.matches += 1;
+        home.scoresFor += homeGoals;
+        home.scoresAgainst += awayGoals;
+        away.scoresFor += awayGoals;
+        away.scoresAgainst += homeGoals;
+
+        if (homeGoals > awayGoals) {
+            home.wins += 1;
+            away.losses += 1;
+            home.points += 3;
+        } else if (awayGoals > homeGoals) {
+            away.wins += 1;
+            home.losses += 1;
+            away.points += 3;
+        } else {
+            home.draws += 1;
+            away.draws += 1;
+            home.points += 1;
+            away.points += 1;
+        }
+    }
+
+    const rows = Array.from(teams.values())
+        .filter(row => row.matches > 0)
+        .sort((a, b) => {
+            const goalDiffA = a.scoresFor - a.scoresAgainst;
+            const goalDiffB = b.scoresFor - b.scoresAgainst;
+            return b.points - a.points ||
+                goalDiffB - goalDiffA ||
+                b.scoresFor - a.scoresFor ||
+                String(a.team.name || "").localeCompare(String(b.team.name || ""), "az");
+        })
+        .map((row, index) => ({ ...row, position: index + 1 }));
+
+    if (!rows.length) return null;
+    return {
+        standings: [{
+            type: "total",
+            name: "Hesablanmış cədvəl",
+            rows
+        }],
+        seasonId,
+        source: "events-derived",
+        derived: true,
+        fast: true
+    };
 }
 
 function extractCategoryTournamentIds(data, limit = 24) {
@@ -3098,6 +3216,23 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
             warmStandingTeamImages(data, 36).catch(e => {
                 console.warn(`[Image Warmup] Standings teams ${tourId} failed:`, e.message);
             });
+        }
+
+        if (!data?.standings?.length && resolvedSeasonId) {
+            const derivedCacheKey = `standings_events_${tourId}_${resolvedSeasonId}`;
+            data = await getCachedData(derivedCacheKey, async () => {
+                return await fetchStandingsFromEventsFallback(tourId, resolvedSeasonId, { pages: 8, timeout: 3800 });
+            }, 10 * 60 * 1000, { skipJitter: true }).catch(error => {
+                console.warn(`[STANDINGS EVENTS FALLBACK] ${tourId}/${resolvedSeasonId}: ${error.message}`);
+                return null;
+            });
+            if (data?.standings?.length) {
+                standingsCacheKey = `standings_${tourId}_${resolvedSeasonId}`;
+                saveStandingSnapshot(standingsCacheKey, data);
+                warmStandingTeamImages(data, 36).catch(e => {
+                    console.warn(`[Image Warmup] Derived standings teams ${tourId} failed:`, e.message);
+                });
+            }
         }
 
         let teamsFallback = [];

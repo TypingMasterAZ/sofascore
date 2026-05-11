@@ -6172,6 +6172,10 @@
                 return `${tableHtml}</tbody></table></div>`;
             }
 
+            function hasStandingsPayload(data) {
+                return !!(data?.standings?.length || data?.teamsFallback?.length);
+            }
+
             function normalizeLeagueId(id) {
                 const value = String(id ?? '');
                 const replacements = {
@@ -6853,7 +6857,9 @@
                     `standings_${tourId}_${KNOWN_LEAGUE_SEASONS[tourId] || 'auto'}`,
                     `standings_${tourId}_auto`
                 ];
-                const persisted = cacheKeys.map(key => leagueStandingsCache[key] || getPersistedLeagueData(key, 12 * 60 * 60 * 1000)).find(Boolean);
+                const persisted = cacheKeys
+                    .map(key => leagueStandingsCache[key] || getPersistedLeagueData(key, 12 * 60 * 60 * 1000))
+                    .find(hasStandingsPayload);
                 if (persisted) {
                     const cachedHtml = buildStandingsTable(persisted, tourId);
                     if (cachedHtml) box.innerHTML = cachedHtml;
@@ -8316,11 +8322,12 @@
             async function fetchLeagueStandingsData(tourId, seasonId) {
                 seasonId = seasonId || KNOWN_LEAGUE_SEASONS[tourId] || null;
                 const cacheKey = `standings_${tourId}_${seasonId || 'auto'}`;
-                if (leagueStandingsCache[cacheKey]) return leagueStandingsCache[cacheKey];
+                if (hasStandingsPayload(leagueStandingsCache[cacheKey])) return leagueStandingsCache[cacheKey];
+                if (leagueStandingsCache[cacheKey]) delete leagueStandingsCache[cacheKey];
 
                 const persisted = getPersistedLeagueData(cacheKey, 12 * 60 * 60 * 1000) ||
                     getPersistedLeagueData(`standings_${tourId}_auto`, 12 * 60 * 60 * 1000);
-                if (persisted?.standings?.length) {
+                if (hasStandingsPayload(persisted)) {
                     leagueStandingsCache[cacheKey] = persisted;
                     return persisted;
                 }
