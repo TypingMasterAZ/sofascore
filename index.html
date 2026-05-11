@@ -7361,9 +7361,10 @@
                     }
 
                     if (window.notificationMgr) notificationMgr.checkUpdates(allEvents);
-                    const prefetchCount = dataCacheKey === 'live' ? 36 : 18;
+                    const prefetchCount = dataCacheKey === 'live' ? 60 : 28;
                     allEvents.slice(0, prefetchCount).forEach((match, index) => {
-                        setTimeout(() => prefetchMatchDetails(match.id), index * 220);
+                        const delay = index < 14 ? index * 35 : 490 + ((index - 14) * 90);
+                        setTimeout(() => prefetchMatchDetails(match.id), delay);
                     });
                     window._lastFetchError = false;
                     pendingMatchScrollRestore = captureMatchScrollPosition();
@@ -7462,7 +7463,7 @@
                 const awayScore = (m.awayScore && m.awayScore.current !== undefined) ? m.awayScore.current : '';
 
                 return `
-        <div class="match-row" onclick="openMatch('${m.id}', '${m.homeTeam.id}', '${m.awayTeam.id}', '${safeHomeName}', '${safeAwayName}', '${homeScore}', '${awayScore}', '${safeTimeRaw}', '${safeGroupName}')">
+        <div class="match-row" onmouseenter="prefetchMatchDetails('${m.id}')" onpointerdown="prefetchMatchDetails('${m.id}')" onclick="openMatch('${m.id}', '${m.homeTeam.id}', '${m.awayTeam.id}', '${safeHomeName}', '${safeAwayName}', '${homeScore}', '${awayScore}', '${safeTimeRaw}', '${safeGroupName}')">
             <div class="${timeClass}">${formattedMinute}</div>
             <div class="match-teams">
                 <div class="team-line">
@@ -8240,7 +8241,7 @@
                 try {
                     const entries = Object.entries(modalDetailsMemoryCache)
                         .sort((a, b) => (b[1]?.savedAt || 0) - (a[1]?.savedAt || 0))
-                        .slice(0, 25);
+                        .slice(0, 80);
                     localStorage.setItem(MATCH_DETAILS_CACHE_KEY, JSON.stringify(Object.fromEntries(entries)));
                 } catch (e) {}
             }
@@ -8993,10 +8994,11 @@
 
                 if (match?.source === 'mackolik') return;
 
-                fetchMatchDetailsFast(matchId, match, { timeout: 6500, directFallback: false }).then(details => {
+                fetchMatchDetailsFast(matchId, match, { timeout: 4200, directFallback: false }).then(details => {
                     saveMatchDetailsToCache(matchId, details.incidents, details.stats);
                 }).catch(() => {});
             }
+            window.prefetchMatchDetails = prefetchMatchDetails;
 
             async function updateModalStatsAndIncidents(id, options = {}) {
                 const match = options.match || allEvents.find(m => m.id?.toString() === id?.toString()) || null;

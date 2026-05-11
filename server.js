@@ -4915,10 +4915,12 @@ async function warmRuntimeCaches() {
         });
         await getLiveEventsData(true);
         const todayStr = new Date().toISOString().split('T')[0];
-        await getCachedData(`matches_${todayStr}`, async () => {
-            const result = await fetchFromSofa(`/sport/football/scheduled-events/${todayStr}`);
-            return result.data;
+        const scheduled = await getCachedData(`matches_sofascore_${todayStr}`, async () => {
+            return await fetchScheduledFromSofaScore(todayStr);
         }, 10 * 1000);
+        if (Array.isArray(scheduled?.events)) {
+            warmLiveMatchDetails(scheduled.events).catch(() => {});
+        }
         warmOneLeagueStanding().catch(e => {
             console.warn("[Warmup] Standing prefetch failed:", e.message);
         });
