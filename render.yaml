@@ -28,3 +28,13 @@ services:
         sync: false
       - key: WEB_PUSH_SUBJECT
         sync: false
+
+  - type: cron
+    name: proscore-live-keepalive
+    runtime: node
+    schedule: "*/5 * * * *"
+    buildCommand: npm install
+    startCommand: npm run keepalive
+    envVars:
+      - key: KEEPALIVE_URL
+        value: https://sofascore-xoyr.onrender.com

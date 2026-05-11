@@ -4958,7 +4958,7 @@
             const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             const isRender = window.location.hostname.includes('onrender.com');
             // DİQQƏT: Render-d?n aldüçün?z ünvanı aşağıdakı DEPLOYED_URL hissəsin? yazın
-            const DEPLOYED_URL = 'https://proscore-live.onrender.com';
+            const DEPLOYED_URL = 'https://sofascore-xoyr.onrender.com';
             const API_BASE_URL = (isLocalhost || isRender || !DEPLOYED_URL) ? '' : DEPLOYED_URL;
             const SOFA_IMAGE_BASE_URL = 'https://img.sofascore.com/api/v1';
             console.log("API Base URL:", API_BASE_URL || "Local/SameOrigin");
@@ -7353,7 +7353,7 @@
                     }
 
                     if (window.notificationMgr) notificationMgr.checkUpdates(allEvents);
-                    const prefetchCount = dataCacheKey === 'live' ? 24 : 4;
+                    const prefetchCount = dataCacheKey === 'live' ? 36 : 18;
                     allEvents.slice(0, prefetchCount).forEach((match, index) => {
                         setTimeout(() => prefetchMatchDetails(match.id), index * 220);
                     });
@@ -8780,22 +8780,27 @@
                 const serverUrl = isMackolik
                     ? `/api/match/${id}/details?stats=0&source=mackolik&slug=${encodeURIComponent(match?.slug || '')}`
                     : `/api/match/${id}/incidents${freshParam}`;
-                const serverData = await withTimeout(
+                const serverPromise = withTimeout(
                     fetchServerJson(serverUrl, "Hadisələr xətası"),
                     options.timeout || 5500
                 ).catch(() => null);
+                const directPromise = (!isMackolik && allowDirectFallback)
+                    ? withTimeout(fetchDirectSofaJson(`/event/${id}/incidents`), Math.min(options.timeout || 4200, 4200))
+                        .then(directData => {
+                            const normalizedDirect = directData?.incidents ? directData : (directData?.data?.incidents ? directData.data : null);
+                            if (Array.isArray(normalizedDirect?.incidents) && normalizedDirect.incidents.length) return normalizedDirect;
+                            return null;
+                        })
+                        .catch(() => null)
+                    : Promise.resolve(null);
+                const firstUseful = await Promise.any([
+                    serverPromise.then(data => Array.isArray(data?.incidents) && data.incidents.length ? data : Promise.reject(new Error('empty server incidents'))),
+                    directPromise.then(data => data ? data : Promise.reject(new Error('empty direct incidents')))
+                ]).catch(() => null);
+                if (firstUseful) return firstUseful;
+                const serverData = await serverPromise;
                 if (Array.isArray(serverData?.incidents) && serverData.incidents.length) {
                     return serverData;
-                }
-                if (!isMackolik && allowDirectFallback) {
-                    const directData = await withTimeout(
-                        fetchDirectSofaJson(`/event/${id}/incidents`),
-                        4200
-                    ).catch(() => null);
-                    const normalizedDirect = directData?.incidents ? directData : (directData?.data?.incidents ? directData.data : null);
-                    if (Array.isArray(normalizedDirect?.incidents) && normalizedDirect.incidents.length) {
-                        return normalizedDirect;
-                    }
                 }
                 return serverData?.incidents ? serverData : (serverData || { incidents: [] });
             }
@@ -8824,20 +8829,27 @@
                 const serverUrl = isMackolik
                     ? `/api/match/${id}/details?source=mackolik&slug=${encodeURIComponent(match?.slug || '')}`
                     : `/api/match/${id}/details${freshParam ? `?${freshParam}` : ''}`;
-                const serverData = await withTimeout(
+                const serverPromise = withTimeout(
                     fetchServerJson(serverUrl, "Matç detalları xətası"),
                     options.timeout || 6500
                 ).catch(() => null);
+                const directPromise = (!isMackolik && allowDirectFallback)
+                    ? withTimeout(fetchDirectSofaJson(`/event/${id}/incidents`), Math.min(options.timeout || 4200, 4200))
+                        .then(directData => {
+                            const normalizedDirect = directData?.incidents ? directData : (directData?.data?.incidents ? directData.data : null);
+                            return Array.isArray(normalizedDirect?.incidents) && normalizedDirect.incidents.length ? normalizedDirect : null;
+                        })
+                        .catch(() => null)
+                    : Promise.resolve(null);
+                const firstUseful = await Promise.any([
+                    serverPromise.then(data => Array.isArray(data?.incidents?.incidents) && data.incidents.incidents.length ? { source: 'server', data } : Promise.reject(new Error('empty server details'))),
+                    directPromise.then(data => data ? { source: 'direct', data } : Promise.reject(new Error('empty direct details')))
+                ]).catch(() => null);
+                const serverData = firstUseful?.source === 'server' ? firstUseful.data : await serverPromise;
                 let incidents = serverData?.incidents || { incidents: [] };
                 let stats = serverData?.stats || { statistics: [] };
-                if (!isMackolik && allowDirectFallback && (!Array.isArray(incidents?.incidents) || incidents.incidents.length === 0)) {
-                    const directIncidents = await withTimeout(
-                        fetchDirectSofaJson(`/event/${id}/incidents`),
-                        4200
-                    ).catch(() => null);
-                    if (Array.isArray(directIncidents?.incidents) && directIncidents.incidents.length) {
-                        incidents = directIncidents;
-                    }
+                if (firstUseful?.source === 'direct') {
+                    incidents = firstUseful.data;
                 }
                 return {
                     incidents,
