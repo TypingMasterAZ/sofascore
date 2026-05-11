@@ -44,7 +44,7 @@ services:
   - type: cron
     name: proscore-live-keepalive
     runtime: node
-    schedule: "*/5 * * * *"
+    schedule: "*/2 * * * *"
     buildCommand: npm install
     startCommand: npm run keepalive
     envVars:

@@ -34,13 +34,15 @@ function requestUrl(url) {
 async function main() {
   const baseUrl = targetUrl.replace(/\/$/, "");
   const stamp = Date.now();
+  const minute = new Date().getUTCMinutes();
   const endpoints = [
-    `${baseUrl}/api/keepalive?force=1&t=${stamp}`,
-    `${baseUrl}/api/matches/live?fast=1&t=${stamp}`,
-    `${baseUrl}/api/top-leagues?t=${stamp}`,
-    `${baseUrl}/api/categories?t=${stamp}`,
+    `${baseUrl}/api/ping?t=${stamp}`,
+    `${baseUrl}/api/keepalive?light=1&t=${stamp}`,
     `${baseUrl}/api/health?t=${stamp}`
   ];
+  if (minute % 10 === 0) {
+    endpoints.push(`${baseUrl}/api/warmup?force=1&t=${stamp}`);
+  }
 
   const results = await Promise.allSettled(endpoints.map(requestUrl));
   const failed = results.filter(item => item.status === "rejected");

@@ -5260,16 +5260,20 @@ async function warmOneLeagueTopPlayers() {
 
 app.get("/api/keepalive", async (req, res) => {
     const force = req.query.force === "1";
+    const light = req.query.light === "1";
     res.json({
         status: "alive",
         warmed: false,
-        warmingInBackground: true,
+        warmingInBackground: !light,
+        light,
         keepaliveEnabled: KEEPALIVE_ENABLED,
         liveEvents: globalLiveEvents?.events?.length || 0,
         liveTimestamp: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null,
         lastWarmup: lastRuntimeWarmupResult,
         timestamp: new Date().toISOString()
     });
+
+    if (light) return;
 
     warmRuntimeCaches({ force }).catch(e => {
         console.warn("[Keep-Alive] Background warmup failed:", e.message);
@@ -5367,8 +5371,8 @@ app.listen(PORT, "0.0.0.0", () => {
 
         try {
             const results = await Promise.allSettled([
-                axios.get(`${baseUrl}/api/keepalive?t=${timestamp}`, { timeout: 10000 }),
-                axios.get(`${baseUrl}/api/health?t=${timestamp}`, { timeout: 10000 })
+                axios.get(`${baseUrl}/api/ping?t=${timestamp}`, { timeout: 7000 }),
+                axios.get(`${baseUrl}/api/keepalive?light=1&t=${timestamp}`, { timeout: 7000 })
             ]);
             if (results.every(item => item.status === "rejected")) {
                 throw results[0].reason;
