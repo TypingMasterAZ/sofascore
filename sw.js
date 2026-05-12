@@ -133,7 +133,6 @@ self.addEventListener('push', (event) => {
     icon: notificationData.icon || customData.icon || 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
     badge: notificationData.badge || customData.badge || 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
     vibrate: notificationData.vibrate || customData.vibrate || [200, 100, 200],
-    requireInteraction: true,
     tag: notificationData.tag || customData.tag || (matchId ? `goal-${matchId}` : 'general'),
     data: customData
   };

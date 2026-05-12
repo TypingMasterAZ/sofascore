@@ -1,4 +1,4 @@
-ï»¿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="az">
 
 <head>
@@ -34,12 +34,12 @@
         // Initialize Firebase before any other calls
         firebase.initializeApp(firebaseConfig);
         
-        // Ilkin yÃ¼klÉ™nmÉ™dÉ™ Ã§aÄŸÄ±rÄ±lsa belÉ™, É™sas push sync helperi hazÄ±r olan kimi ona yÃ¶nlÉ™ndiririk.
+        // Ilkin yükl?nm?d? çağırılsa bel?, ?sas push sync helperi hazır olan kimi ona yönl?ndiririk.
         window.registerFCMToken = function() {
             if (typeof window.syncPushRegistration === 'function') {
                 return window.syncPushRegistration();
             }
-            console.log('[Push] Sync helper hÉ™lÉ™ hazÄ±r deyil.');
+            console.log('[Push] Sync helper h?l? hazır deyil.');
             return Promise.resolve();
         };
 
@@ -58,7 +58,7 @@
                 })
             }).then(res => res.json())
               .then(data => console.log('[FCM] Token servere qeyd olundu:', data))
-            .catch(err => console.error('[FCM] ServerÉ™ qeydiyyat xÉ™tasÄ±:', err));
+            .catch(err => console.error('[FCM] Server? qeydiyyat x?tası:', err));
         }
 
         // Set Firebase language to Azerbaijani
@@ -2809,7 +2809,7 @@
             right: -2px;
             min-width: 16px;
             height: 16px;
-            background: #ef4444; /* QÄ±rmÄ±zÄ± r?ng */
+            background: #ef4444; /* Qırmızı r?ng */
             color: white;
             border-radius: 50%;
             border: 1.5px solid var(--bg);
@@ -3337,7 +3337,7 @@
         }
 
         .clear-all-btn {
-            color: #ef4444; /* QÄ±rmÄ±zÄ± r?ng daha yax?? olar */
+            color: #ef4444; /* Qırmızı r?ng daha yax?? olar */
             font-weight: 700;
             font-size: 13px;
             cursor: pointer;
@@ -4334,7 +4334,7 @@
                 letter-spacing: 0;
             }
 
-            .league-detail-tabs .tab-btn[aria-label="BombardirlÉ™r"] .league-tab-label {
+            .league-detail-tabs .tab-btn[aria-label="Bombardirl?r"] .league-tab-label {
                 font-size: clamp(8px, 2.35vw, 10px);
             }
 
@@ -4432,7 +4432,7 @@
     <div class="auth-overlay" id="authOverlay">
         <div class="auth-overlay-icon">&#127942;</div>
         <div class="auth-overlay-title">Xos Gelmisiniz!</div>
-        <div class="auth-overlay-text">ProScore ailÉ™sinÉ™ qoÅŸulun vÉ™ bÃ¼tÃ¼n imkanlardan yararlanÄ±n.</div>
+        <div class="auth-overlay-text">ProScore ail?sin? qoşulun v? bütün imkanlardan yararlanın.</div>
     </div>
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
     <div class="sidebar" id="sidebar">
@@ -4442,13 +4442,13 @@
             </div>
             <div>
                 <div style="font-weight:900; font-size:18px;">Rabona Media</div>
-                <div style="font-size:12px; color:var(--text-muted);">CanlÄ± NÉ™ticÉ™lÉ™r</div>
+                <div style="font-size:12px; color:var(--text-muted);">Canlı N?tic?l?r</div>
             </div>
         </div>
         <div class="sidebar-nav">
-            <div class="side-item" onclick="switchMainView('profile'); toggleSidebar()"><i>&#9881;</i> TÉ™nzimlÉ™mÉ™lÉ™r</div>
-            <div class="side-item" onclick="switchMainView('support'); toggleSidebar()"><i>&#128172;</i> DÉ™stÉ™k</div>
-            <div class="side-item" onclick="showAboutApp(); toggleSidebar()"><i>&#8505;</i> HaqqÄ±mÄ±zda</div>
+            <div class="side-item" onclick="switchMainView('profile'); toggleSidebar()"><i>&#9881;</i> T?nziml?m?l?r</div>
+            <div class="side-item" onclick="switchMainView('support'); toggleSidebar()"><i>&#128172;</i> D?st?k</div>
+            <div class="side-item" onclick="showAboutApp(); toggleSidebar()"><i>&#8505;</i> Haqqımızda</div>
         </div>
     </div>
 
@@ -4543,23 +4543,23 @@
             <!-- 5. Notifications View -->
             <div class="container" id="notificationsView">
                 <div id="notificationsContent" style="padding: 16px;">
-                    <!-- SÉ™sli BildiriÅŸ TÉ™limatÄ± -->
+                    <!-- S?sli Bildiriş T?limatı -->
                     <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 16px; padding: 18px; margin-bottom: 24px; position: relative; overflow: hidden;">
                         <div style="position: absolute; top: -10px; right: -10px; font-size: 60px; opacity: 0.1; transform: rotate(15deg);">&#128276;</div>
                         <h4 style="margin: 0 0 10px; font-size: 16px; display: flex; align-items: center; gap: 8px;">
-                            <span>&#128266;</span> SÉ™sli BildiriÅŸ GÉ™lmir?
+                            <span>&#128266;</span> S?sli Bildiriş G?lmir?
                         </h4>
                         <ul style="margin: 0; padding: 0 0 0 20px; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
-                            <li><b>Android:</b> Proqramlar > Chrome > BildiriÅŸlÉ™r > <b>"GÉ™lÉ™n qollar"</b> bÃ¶lmÉ™sindÉ™ sÉ™sin aktiv olduÄŸundan É™min olun.</li>
-                            <li><b>Batareya:</b> Chrome Ã¼Ã§Ã¼n "Batareya QÉ™naÉ™ti" rejimini <b>"MÉ™hdudiyyÉ™tsiz"</b> edin.</li>
-                            <li><b>iOS:</b> SaytÄ± mÃ¼tlÉ™q "Ana Ekrana ÆlavÉ™ Et" dÃ¼ymÉ™si ilÉ™ telefona quraÅŸdÄ±rÄ±n.</li>
+                            <li><b>Android:</b> Proqramlar > Chrome > Bildirişl?r > <b>"G?l?n qollar"</b> bölm?sind? s?sin aktiv olduğundan ?min olun.</li>
+                            <li><b>Batareya:</b> Chrome üçün "Batareya Q?na?ti" rejimini <b>"M?hdudiyy?tsiz"</b> edin.</li>
+                            <li><b>iOS:</b> Saytı mütl?q "Ana Ekrana ?lav? Et" düym?si il? telefona quraşdırın.</li>
                         </ul>
                     </div>
 
                     <div class="empty-state">
                         <div class="empty-state-icon">&#128276;</div>
-                        <div class="empty-state-title">BildiriÅŸ yoxdur</div>
-                        <div class="empty-state-text">Qollar vÉ™ digÉ™r Ã¶nÉ™mli hadisÉ™lÉ™r burada gÃ¶rÃ¼nÉ™cÉ™k.</div>
+                        <div class="empty-state-title">Bildiriş yoxdur</div>
+                        <div class="empty-state-text">Qollar v? dig?r ön?mli hadis?l?r burada görün?c?k.</div>
                     </div>
                 </div>
             </div>
@@ -4569,55 +4569,55 @@
                 <div class="support-page">
                     <div class="support-hero">
                         <div class="support-hero-icon">&#128172;</div>
-                        <h2 class="support-title">DÉ™stÉ™k</h2>
-                        <p class="support-subtitle">Proqramda gÃ¶rdÃ¼yÃ¼nÃ¼z sÉ™hvlÉ™ri, gecikmÉ™lÉ™ri vÉ™ yeni ideyalarÄ±nÄ±zÄ± buradan gÃ¶ndÉ™rÉ™ bilÉ™rsiniz.</p>
+                        <h2 class="support-title">D?st?k</h2>
+                        <p class="support-subtitle">Proqramda gördüyünüz s?hvl?ri, gecikm?l?ri v? yeni ideyalarınızı buradan gönd?r? bil?rsiniz.</p>
                     </div>
                 </div>
                 <form class="support-form" onsubmit="submitSupportRequest(event)">
                     <div class="support-field">
-                        <label class="support-label" for="supportType">MÃ¶vzu</label>
+                        <label class="support-label" for="supportType">Mövzu</label>
                         <select class="support-select" id="supportType">
-                            <option value="bug">SÉ™hv bildirmÉ™k</option>
-                            <option value="idea">TÉ™klif gÃ¶ndÉ™rmÉ™k</option>
-                            <option value="notification">BildiriÅŸ problemi</option>
-                            <option value="other">DigÉ™r</option>
+                            <option value="bug">S?hv bildirm?k</option>
+                            <option value="idea">T?klif gönd?rm?k</option>
+                            <option value="notification">Bildiriş problemi</option>
+                            <option value="other">Dig?r</option>
                         </select>
                     </div>
                     <div class="support-field">
-                        <label class="support-label" for="supportTitle">BaÅŸlÄ±q</label>
-                        <input class="support-input" id="supportTitle" maxlength="120" placeholder="MÉ™sÉ™lÉ™n: BildiriÅŸ gec gÉ™lir">
+                        <label class="support-label" for="supportTitle">Başlıq</label>
+                        <input class="support-input" id="supportTitle" maxlength="120" placeholder="M?s?l?n: Bildiriş gec g?lir">
                     </div>
                     <div class="support-field">
                         <label class="support-label" for="supportMessage">Mesaj</label>
-                        <textarea class="support-textarea" id="supportMessage" maxlength="1200" placeholder="Problemi vÉ™ ya tÉ™klifinizi qÄ±sa izah edin"></textarea>
+                        <textarea class="support-textarea" id="supportMessage" maxlength="1200" placeholder="Problemi v? ya t?klifinizi qısa izah edin"></textarea>
                     </div>
                     <div class="support-field">
-                        <label class="support-label" for="supportContact">ÆlaqÉ™ (istÉ™yÉ™ baÄŸlÄ±)</label>
-                        <input class="support-input" id="supportContact" maxlength="120" placeholder="Email vÉ™ ya istifadÉ™Ã§i adÄ±nÄ±z">
+                        <label class="support-label" for="supportContact">?laq? (ist?y? bağlı)</label>
+                        <input class="support-input" id="supportContact" maxlength="120" placeholder="Email v? ya istifad?çi adınız">
                     </div>
                     <div class="support-actions">
-                        <button class="support-submit" id="supportSubmitBtn" type="submit">GÃ¶ndÉ™r</button>
+                        <button class="support-submit" id="supportSubmitBtn" type="submit">Gönd?r</button>
                     </div>
                 </form>
-                <div class="support-note">GÃ¶ndÉ™rdiyiniz mÉ™lumatlar tÉ™tbiqi yaxÅŸÄ±laÅŸdÄ±rmaq Ã¼Ã§Ã¼n saxlanÄ±lÄ±r. ÅifrÉ™ vÉ™ ya gizli kod yazmayÄ±n.</div>
+                <div class="support-note">Gönd?rdiyiniz m?lumatlar t?tbiqi yaxşılaşdırmaq üçün saxlanılır. Şifr? v? ya gizli kod yazmayın.</div>
             </div>
 
             <!-- 7. Auth View -->
             <div class="container" id="authView">
                 <div class="auth-container">
                     <div class="auth-tabs">
-                        <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">GiriÅŸ</div>
+                        <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Giriş</div>
                         <div class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">Qeydiyyat</div>
                     </div>
 
-                    <h2 id="authTitle" style="margin-bottom:8px;">XoÅŸ GÉ™lmisiniz</h2>
+                    <h2 id="authTitle" style="margin-bottom:8px;">Xoş G?lmisiniz</h2>
                     <p id="authSubtitle" style="color:var(--text-muted); font-size:14px; margin-bottom:20px;">Davam
-                        etmÉ™k Ã¼Ã§Ã¼n daxil olun</p>
+                        etm?k üçün daxil olun</p>
 
                     <div style="text-align:left; margin-bottom:12px;">
                         <label
-                            style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Ä°stifadÉ™Ã§i
-                            AdÄ±</label>
+                            style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">İstifad?çi
+                            Adı</label>
                         <input type="text" id="authUsername" class="profile-input" placeholder="Azad123">
                     </div>
                     <div id="emailField" style="text-align:left; margin-bottom:12px; display:none;">
@@ -4627,14 +4627,14 @@
                     </div>
                     <div style="text-align:left; margin-bottom:12px;">
                         <label
-                            style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">ÅifrÉ™</label>
+                            style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Şifr?</label>
                         <div class="password-wrapper">
                             <input type="password" id="authPassword" class="profile-input" placeholder="********">
                             <span class="toggle-password" onclick="togglePasswordVisibility('authPassword', this)">&#128065;</span>
                         </div>
                     </div>
                     <div id="forgotPassLink" style="text-align:right; margin-bottom:15px;">
-                        <span style="color:var(--primary); font-size:13px; cursor:pointer; font-weight:600;" onclick="toggleForgotView(true)">ÅifrÉ™ni unutmusunuz?</span>
+                        <span style="color:var(--primary); font-size:13px; cursor:pointer; font-weight:600;" onclick="toggleForgotView(true)">Şifr?ni unutmusunuz?</span>
                     </div>
 
                     <div id="authError" class="auth-error"></div>
@@ -4642,32 +4642,32 @@
                     <button class="save-btn" id="authSubmitBtn" onclick="handleAuthSubmit()" style="margin-top:5px;">Daxil Ol</button>
 
                     <div id="alreadyHaveAccount" style="text-align:center; margin-top:15px; display:none;">
-                        <span style="color:var(--text-muted); font-size:14px;">HesabÄ±nÄ±z var? </span>
+                        <span style="color:var(--text-muted); font-size:14px;">Hesabınız var? </span>
                         <span style="color:var(--primary); font-size:14px; cursor:pointer; font-weight:700;" onclick="switchAuthTab('login')">Daxil Olun</span>
                     </div>
 
                          <!-- Forgot Password Flow (Hidden by default) -->
                     <div id="forgotView" style="display:none;">
                         <div class="forgot-card" style="padding: 40px 30px;">
-                            <h3 style="margin-bottom:20px; font-size: 26px; font-weight: 900; letter-spacing: -0.5px;">ÅifrÉ™ SÄ±fÄ±rlama</h3>
+                            <h3 style="margin-bottom:20px; font-size: 26px; font-weight: 900; letter-spacing: -0.5px;">Şifr? Sıfırlama</h3>
                             
                             <div id="forgotStep1" style="display:flex; flex-direction:column; align-items:center; padding: 10px 0;">
                                 <div style="margin-bottom: 25px; display:inline-flex; justify-content:center; align-items:center; width:64px; height:64px; border-radius:50%; background:rgba(59, 130, 246, 0.1); color:var(--primary); font-size:28px;">
                                     &#128231;
                                 </div>
-                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">HesabÄ±nÄ±zÄ±n email Ã¼nvanÄ±nÄ± daxil edin, biz sizÉ™ 4 rÉ™qÉ™mli tÉ™sdiq kodu gÃ¶ndÉ™rÉ™cÉ™yik.</p>
+                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">Hesabınızın email ünvanını daxil edin, biz siz? 4 r?q?mli t?sdiq kodu gönd?r?c?yik.</p>
                                 <div style="text-align:left; margin-bottom:25px; width:100%;">
-                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-left: 4px;">Email Ã¼nvanÄ±</label>
+                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-left: 4px;">Email ünvanı</label>
                                     <input type="email" id="resetEmail" class="profile-input" placeholder="misal@mail.com" style="margin-top:10px; height: 52px; font-size: 16px; border-radius: 14px;">
                                 </div>
-                                <button class="save-btn" onclick="handleSendResetOTP()" style="height: 54px; font-size: 16px; border-radius: 14px; margin-top: 10px;">Kod GÃ¶ndÉ™r</button>
+                                <button class="save-btn" onclick="handleSendResetOTP()" style="height: 54px; font-size: 16px; border-radius: 14px; margin-top: 10px;">Kod Gönd?r</button>
                             </div>
 
                             <div id="forgotStep2" style="display:none; flex-direction:column; align-items:center; padding: 10px 0;">
                                 <div style="margin-bottom: 25px; display:inline-flex; justify-content:center; align-items:center; width:64px; height:64px; border-radius:50%; background:rgba(59, 130, 246, 0.1); color:var(--primary); font-size:28px;">
                                     &#128272;
                                 </div>
-                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">GÃ¶ndÉ™rilÉ™n 4 rÉ™qÉ™mli tÉ™sdiq kodunu daxil edin.</p>
+                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">Gönd?ril?n 4 r?q?mli t?sdiq kodunu daxil edin.</p>
                                 
                                 <div class="otp-container" style="display:flex; gap:16px; justify-content:center; margin-bottom:30px; width:100%;">
                                     <input type="text" class="otp-input" inputmode="numeric" pattern="[0-9]*" maxlength="1" oninput="handleOTPInput(this, 0)" onkeydown="handleOTPBack(event, 0)" style="width: 55px; height: 65px; border-radius: 14px; font-size: 32px;">
@@ -4681,10 +4681,10 @@
                                     <span id="otpCountdown" style="font-weight:900; color:var(--live); font-variant-numeric: tabular-nums; font-size: 16px;">03:00</span>
                                 </div>
 
-                                <button class="save-btn" id="verifyBtn" onclick="handleCheckOTP()" style="height: 54px; font-size: 16px; border-radius: 14px; width: 100%; margin-top: 5px;">Kodu TÉ™sdiqlÉ™</button>
+                                <button class="save-btn" id="verifyBtn" onclick="handleCheckOTP()" style="height: 54px; font-size: 16px; border-radius: 14px; width: 100%; margin-top: 5px;">Kodu T?sdiql?</button>
                                 
                                 <div id="resendBox" style="display:none; text-align:center; margin-top:25px; width: 100%;">
-                                    <span style="color:var(--primary); font-size:15px; cursor:pointer; font-weight:700; text-decoration:none;" onclick="handleSendResetOTP(true)">Kodu YenidÉ™n GÃ¶ndÉ™r</span>
+                                    <span style="color:var(--primary); font-size:15px; cursor:pointer; font-weight:700; text-decoration:none;" onclick="handleSendResetOTP(true)">Kodu Yenid?n Gönd?r</span>
                                 </div>
                             </div>
 
@@ -4692,27 +4692,27 @@
                                 <div style="margin-bottom: 25px; display:inline-flex; justify-content:center; align-items:center; width:64px; height:64px; border-radius:50%; background:rgba(59, 130, 246, 0.1); color:var(--primary); font-size:28px;">
                                     &#128273;
                                 </div>
-                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">TÉ™hlÃ¼kÉ™sizliyiniz Ã¼Ã§Ã¼n yeni v? gÃ¼clÃ¼ ÅifrÉ™ tÉ™yin edin.</p>
+                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">T?hlük?sizliyiniz üçün yeni v? güclü Şifr? t?yin edin.</p>
                                 <div style="text-align:left; margin-bottom:20px; width: 100%;">
-                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-left:4px;">Yeni ÅifrÉ™</label>
+                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-left:4px;">Yeni Şifr?</label>
                                     <div class="password-wrapper">
                                         <input type="password" id="newPassword" class="profile-input" placeholder="********" style="margin-top:10px; height: 52px; font-size: 16px; border-radius: 14px;">
                                         <span class="toggle-password" onclick="togglePasswordVisibility('newPassword', this)">&#128065;</span>
                                     </div>
                                 </div>
                                 <div style="text-align:left; margin-bottom:30px; width: 100%;">
-                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-left:4px;">ÅifrÉ™nin TÉ™krarÄ±</label>
+                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-left:4px;">Şifr?nin T?krarı</label>
                                     <div class="password-wrapper">
                                         <input type="password" id="confirmPassword" class="profile-input" placeholder="********" style="margin-top:10px; height: 52px; font-size: 16px; border-radius: 14px;">
                                         <span class="toggle-password" onclick="togglePasswordVisibility('confirmPassword', this)">&#128065;</span>
                                     </div>
                                 </div>
-                                <button class="save-btn" onclick="handleFinalReset()" style="height: 54px; font-size: 16px; border-radius: 14px; width: 100%; margin-top: 5px;">ÅifrÉ™ni YenilÉ™</button>
+                                <button class="save-btn" onclick="handleFinalReset()" style="height: 54px; font-size: 16px; border-radius: 14px; width: 100%; margin-top: 5px;">Şifr?ni Yenil?</button>
                             </div>
 
                             <div style="margin-top:25px; border-top: 1px solid var(--border); padding-top: 20px;">
                                 <span style="color:var(--text-muted); font-size:14px; cursor:pointer; font-weight:600; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="toggleForgotView(false)">
-                                    <i style="font-style: normal; font-size: 18px;">&#8592;</i> Geri qayÄ±t
+                                    <i style="font-style: normal; font-size: 18px;">&#8592;</i> Geri qayıt
                                 </span>
                             </div>
                         </div>
@@ -4733,13 +4733,13 @@
                             </div>
                         </div>
                         <div class="avatar-edit-label" onclick="triggerPicUpload()">
-                            <i class="fas fa-image"></i> ÅÉ™kli DÉ™yiÅŸ
+                            <i class="fas fa-image"></i> Ş?kli D?yiş
                         </div>
                     </div>
                     
                     <div class="profile-info-box">
-                        <div id="profileDisplayName" style="font-size:24px; font-weight:900; letter-spacing: -0.8px; color:#fff;">Ä°stifadÉ™Ã§i</div>
-                        <div id="profileUserStatus" style="color:var(--text-muted); font-size:14px; font-weight: 600; opacity:0.8;">Rabona Media istifadÉ™Ã§isi</div>
+                        <div id="profileDisplayName" style="font-size:24px; font-weight:900; letter-spacing: -0.8px; color:#fff;">İstifad?çi</div>
+                        <div id="profileUserStatus" style="color:var(--text-muted); font-size:14px; font-weight: 600; opacity:0.8;">Rabona Media istifad?çisi</div>
                         
                         <div class="profile-actions-row">
                             <div class="profile-badge" style="margin: 0; display: none;">
@@ -4748,35 +4748,35 @@
                             </div>
 
                             <div class="profile-action-btn btn-logout-header" onclick="logoutUser()">
-                                <i class="fas fa-sign-out-alt"></i> Ã‡Ä±xÄ±ÅŸ Et
+                                <i class="fas fa-sign-out-alt"></i> Çıxış Et
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="profile-section-head">
-                    <span class="profile-section-title">Hesab MÉ™lumatlarÄ±</span>
-                    <button type="button" id="profileEditBtn" class="profile-edit-btn" onclick="enableProfileEdit()">RedaktÉ™ et</button>
+                    <span class="profile-section-title">Hesab M?lumatları</span>
+                    <button type="button" id="profileEditBtn" class="profile-edit-btn" onclick="enableProfileEdit()">Redakt? et</button>
                 </div>
                 <div style="margin-bottom: 20px;">
                     <div class="profile-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                        <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Ä°stifadÉ™Ã§i AdÄ±</label>
-                        <input type="text" id="usernameInput" class="profile-input" style="margin-top:0; border:none; background:rgba(255,255,255,0.03); padding:14px;" placeholder="AdÄ±nÄ±zÄ± daxil edin" value="Ä°stifadÉ™Ã§i" readonly oninput="handleProfileNameTyping(this.value)">
+                        <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">İstifad?çi Adı</label>
+                        <input type="text" id="usernameInput" class="profile-input" style="margin-top:0; border:none; background:rgba(255,255,255,0.03); padding:14px;" placeholder="Adınızı daxil edin" value="İstifad?çi" readonly oninput="handleProfileNameTyping(this.value)">
                     </div>
                     <div class="profile-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
                         <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Status</label>
-                        <input type="text" id="statusInput" class="profile-input" style="margin-top:0; border:none; background:rgba(255,255,255,0.03); padding:14px; opacity:.75;" value="Rabona Media istifadÉ™Ã§isi" readonly>
+                        <input type="text" id="statusInput" class="profile-input" style="margin-top:0; border:none; background:rgba(255,255,255,0.03); padding:14px; opacity:.75;" value="Rabona Media istifad?çisi" readonly>
                     </div>
                     <div style="padding: 15px 16px;">
-                        <button class="save-btn" onclick="saveProfile()" style="margin-top:0; height:52px; border-radius: 14px; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);">MÉ™lumatlar Saxla</button>
+                        <button class="save-btn" onclick="saveProfile()" style="margin-top:0; height:52px; border-radius: 14px; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);">M?lumatlar Saxla</button>
                     </div>
                 </div>
 
 
-                <span class="profile-section-title">TÆNZÄ°MLÆMÆLÆR</span>
+                <span class="profile-section-title">T?NZİML?M?L?R</span>
                 <div style="background: transparent;">
                     <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">BaÅŸlanÄŸÄ±c SÉ™hifÉ™</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Başlanğıc S?hif?</span>
                         <select id="defaultViewSelect" class="profile-input"
                             style="width:auto; margin-top:0; padding:8px 16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);"
                             onchange="updateSetting('defaultView', this.value)">
@@ -4785,7 +4785,7 @@
                         </select>
                     </div>
                     <div class="profile-row" style="flex-direction: column; align-items: flex-start;">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9); margin-bottom: 5px;">Qol BildiriÅŸ SÉ™si</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9); margin-bottom: 5px;">Qol Bildiriş S?si</span>
                         <div class="sound-grid">
                             <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" onclick="selectSound(this.dataset.url, this)">
                                 <i>&#9917;</i>
@@ -4805,21 +4805,21 @@
                         </div>
                     </div>
                     <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">YalnÄ±z FavoritlÉ™r</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Yalnız Favoritl?r</span>
                         <label class="toggle-switch">
                             <input type="checkbox" id="onlyFavNotifToggle" onchange="updateSetting('onlyFavNotif', this.checked)">
                             <span class="slider"></span>
                         </label>
                     </div>
                     <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Brauzer BildiriÅŸlÉ™ri</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Brauzer Bildirişl?ri</span>
                         <label class="toggle-switch">
                             <input type="checkbox" id="browserNotifToggle" onchange="toggleBrowserNotifications(this.checked)">
                             <span class="slider"></span>
                         </label>
                     </div>
                     <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">SÉ™sli BildiriÅŸ</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">S?sli Bildiriş</span>
                         <label class="toggle-switch">
                             <input type="checkbox" id="soundNotifToggle" onchange="updateSetting('soundEnabled', this.checked)">
                             <span class="slider"></span>
@@ -4827,19 +4827,19 @@
                     </div>
 
                     <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Avtomatik YenilÉ™nmÉ™</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Avtomatik Yenil?nm?</span>
                         <select id="refreshIntervalSelect" class="profile-input"
                             style="width:auto; margin-top:0; padding:8px 16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);"
                             onchange="updateRefreshInterval(this.value)">
-                            <option value="5">5 saniyÉ™</option>
-                            <option value="8">8 saniyÉ™</option>
-                            <option value="15">15 saniyÉ™</option>
-                            <option value="30">30 saniyÉ™</option>
+                            <option value="5">5 saniy?</option>
+                            <option value="8">8 saniy?</option>
+                            <option value="15">15 saniy?</option>
+                            <option value="30">30 saniy?</option>
                         </select>
                     </div>
 
                     <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Ä°ÅŸÄ±qlÄ± Tema</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">İşıqlı Tema</span>
                         <label class="toggle-switch">
                             <input type="checkbox" id="themeToggle" onchange="toggleThemeSetting(this.checked)">
                             <span class="slider"></span>
@@ -4847,25 +4847,25 @@
                     </div>
 
                     <div class="profile-row" style="cursor:pointer;" onclick="refreshNowFromSettings()">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">MÉ™lumatlarÄ± YenilÉ™</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">M?lumatları Yenil?</span>
                         <span style="font-size:18px;">&#10227;</span>
                     </div>
 
                     <div class="profile-row" style="cursor:pointer;" onclick="clearAppCache()">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">KeÅŸi TÉ™mizlÉ™</span>
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Keşi T?mizl?</span>
                         <span style="font-size:18px;">&#128260;</span>
                     </div>
 
                     <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
                         onclick="clearAllData()">
-                        <span style="font-size:15px; font-weight:600; color:#ef4444;">BÃ¼tÃ¼n MÉ™lumatlar Sil</span>
+                        <span style="font-size:15px; font-weight:600; color:#ef4444;">Bütün M?lumatlar Sil</span>
                             <span>&#128465;</span>
                         </div>
                         <div id="logoutBtnBox" class="profile-row"
                             style="margin-top:20px; border-top:1px solid rgba(255,255,255,0.05); cursor:pointer;"
                             onclick="logoutUser()">
-                            <span style="font-size:15px; font-weight:700; color:#ef4444;">Hesabdan Ã‡Ä±x</span>
-                            <span style="font-size:18px;">ğŸšª</span>
+                            <span style="font-size:15px; font-weight:700; color:#ef4444;">Hesabdan Çıx</span>
+                            <span style="font-size:18px;">??</span>
                         </div>
 
                     </div>
@@ -4922,7 +4922,7 @@
             </div>
             <div class="nav-item" id="navFavorites" onclick="switchMainView('favorites')">
                 <div class="nav-icon">&#11088;</div>
-                <span>FavoritlÉ™r</span>
+                <span>Favoritl?r</span>
             </div>
             <div class="nav-item" id="navProfile" onclick="switchMainView('profile')">
                 <div class="nav-icon">&#128100;</div>
@@ -4937,8 +4937,8 @@
                 <div id="dialogTitle" class="dialog-title"></div>
                 <div id="dialogMessage" class="dialog-message"></div>
                 <div class="dialog-btns">
-                    <button id="dialogCancelBtn" class="dialog-btn dialog-btn-cancel">LÉ™ÄŸv Et</button>
-                    <button id="dialogConfirmBtn" class="dialog-btn dialog-btn-confirm">BÉ™li</button>
+                    <button id="dialogCancelBtn" class="dialog-btn dialog-btn-cancel">L?ğv Et</button>
+                    <button id="dialogConfirmBtn" class="dialog-btn dialog-btn-confirm">B?li</button>
                 </div>
             </div>
         </div>
@@ -4953,11 +4953,11 @@
             const auth = firebase.auth();
 
             try {
-            // API Ã¼nvanÄ±nÄ±n tÉ™yin edilm?si (Lokal v? ya Render)
+            // API ünvanının t?yin edilm?si (Lokal v? ya Render)
             const isFileProtocol = window.location.protocol === 'file:';
             const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             const isRender = window.location.hostname.includes('onrender.com');
-            // DÄ°QQÆT: Render-d?n aldÃ¼Ã§Ã¼n?z Ã¼nvanÄ± aÅŸaÄŸÄ±dakÄ± DEPLOYED_URL hissÉ™sin? yazÄ±n
+            // DİQQ?T: Render-d?n aldüçün?z ünvanı aşağıdakı DEPLOYED_URL hiss?sin? yazın
             const DEPLOYED_URL = 'https://sofascore-xoyr.onrender.com';
             const API_BASE_URL = (isLocalhost || isRender || !DEPLOYED_URL) ? '' : DEPLOYED_URL;
             const SOFA_IMAGE_BASE_URL = 'https://img.sofascore.com/api/v1';
@@ -5116,10 +5116,10 @@
 
             disableAppZoom();
 
-            const mojibakePattern = /(?:[ÃƒÃ…Ã„Ã‰Ã†Ã‚Ã¢][^<\n\r\t]{0,3}|ÄŸÅ¸|ï¿½)/;
+            const mojibakePattern = /(?:[ÃÅÄÉÆÂâ][^<\n\r\t]{0,3}|ğŸ|?)/;
 
             function suspiciousScore(str) {
-                return (str.match(/[ÃƒÃ…Ã„Ã‰Ã†Ã‚Ã¢ï¿½]/g) || []).length + ((str.match(/ÄŸÅ¸/g) || []).length * 2);
+                return (str.match(/[ÃÅÄÉÆÂâ?]/g) || []).length + ((str.match(/ğŸ/g) || []).length * 2);
             }
 
             function decodeMojibake(text) {
@@ -5131,7 +5131,7 @@
 
                     const before = suspiciousScore(text);
                     const after = suspiciousScore(decoded);
-                    if (after < before || /[É™ÄŸÄ±Ã¶Ã¼ÅŸÃ§ÆÄÄ°Ã–ÃœÅÃ‡]/.test(decoded)) {
+                    if (after < before || /[?ğıöüşç?ĞİÖÜŞÇ]/.test(decoded)) {
                         return decoded;
                     }
                 } catch (e) {}
@@ -5139,265 +5139,265 @@
             }
 
             const azTextFixes = [
-                ['Profil Ã¼Ã§Ã¼n daxil olun', 'Profil Ã¼Ã§Ã¼n daxil olun'],
-                ['etmÉ™k Ã¼Ã§Ã¼n daxil olun', 'etmÉ™k Ã¼Ã§Ã¼n daxil olun'],
-                ['Qollar vÉ™ digÉ™r Ã¶nÉ™mli hadisÉ™lÉ™r burada gÃ¶rÃ¼nÉ™cÉ™k.', 'Qollar vÉ™ digÉ™r Ã¶nÉ™mli hadisÉ™lÉ™r burada gÃ¶rÃ¼nÉ™cÉ™k.'],
-                ['CanlÄ± idman nÉ™ticÉ™lÉ™ri vÉ™ statistikalar.', 'CanlÄ± idman nÉ™ticÉ™lÉ™ri vÉ™ statistikalar.'],
-                ['XoÅŸ GÉ™lmisiniz', 'XoÅŸ GÉ™lmisiniz'],
-                ['BildiriÅŸ yoxdur', 'BildiriÅŸ yoxdur'],
-                ['BÃ¼tÃ¼n Liqalar', 'BÃ¼tÃ¼n Liqalar'],
-                ['GÃ¼nÃ¼n OyunlarÄ±', 'GÃ¼nÃ¼n OyunlarÄ±'],
-                ['CanlÄ± Hesablar', 'CanlÄ± Hesablar'],
-                ['FavoritlÉ™r', 'FavoritlÉ™r'],
-                ['FavoritlÉ™riniz', 'FavoritlÉ™riniz'],
-                ['TÉ™nzimlÉ™mÉ™lÉ™r', 'TÉ™nzimlÉ™mÉ™lÉ™r'],
-                ['TÆNZÄ°MLÆMÆLÆR', 'TÆNZÄ°MLÆMÆLÆR'],
-                ['CÉ™dvÉ™l', 'CÉ™dvÉ™l'],
-                ['MÉ™lumat', 'MÉ™lumat'],
-                ['Bombardir mÉ™lumatÄ±', 'Bombardir mÉ™lumatÄ±'],
-                ['GiriÅŸ', 'GiriÅŸ'],
-                ['ÅifrÉ™', 'ÅifrÉ™'],
-                ['ÅifrÉ™ni', 'ÅifrÉ™ni'],
-                ['ÅifrÉ™nin', 'ÅifrÉ™nin'],
-                ['ÅifrÉ™lÉ™r', 'ÅifrÉ™lÉ™r'],
-                ['Ä°stifadÉ™Ã§i', 'Ä°stifadÉ™Ã§i'],
-                ['Ä°cazÉ™', 'Ä°cazÉ™'],
-                ['ÆlavÉ™', 'ÆlavÉ™'],
-                ['Ã–lkÉ™', 'Ã–lkÉ™'],
-                ['Ã–lkÉ™lÉ™r', 'Ã–lkÉ™lÉ™r'],
-                ['Æminsiniz?', 'Æminsiniz?'],
-                ['Æmin', 'Æmin'],
-                ['Ã¶nÉ™mli', 'Ã¶nÉ™mli'],
-                ['Ä°ndi', 'Ä°ndi'],
-                ['Ä°nternet', 'Ä°nternet'],
-                ['Ã¼nvanÄ±nÄ±n', 'Ã¼nvanÄ±nÄ±n'],
-                ['Ã¼nvanÄ±nÄ±', 'Ã¼nvanÄ±nÄ±'],
-                ['Ã¼nvanÄ±', 'Ã¼nvanÄ±'],
-                ['Ã¼Ã§Ã¼n', 'Ã¼Ã§Ã¼n'],
-                ['Ã¼stÉ™', 'Ã¼stÉ™'],
-                ['Ã¼st', 'Ã¼st'],
-                ['ÆvÉ™zetmÉ™', 'ÆvÉ™zetmÉ™'],
-                ['aÅŸaÄŸÄ±dakÄ±', 'aÅŸaÄŸÄ±dakÄ±'],
-                ['aÃ§Ä±ldÄ±', 'aÃ§Ä±ldÄ±'],
-                ['aÃ§Ä±b', 'aÃ§Ä±b'],
-                ['AzÉ™rbaycan', 'AzÉ™rbaycan'],
-                ['BaÅŸlanÄŸÄ±c', 'BaÅŸlanÄŸÄ±c'],
-                ['baÅŸladÄ±lÄ±r', 'baÅŸladÄ±lÄ±r'],
-                ['baÅŸladÄ±', 'baÅŸladÄ±'],
-                ['BaÄŸlantÄ±', 'BaÄŸlantÄ±'],
-                ['bildiriÅŸlÉ™ri', 'bildiriÅŸlÉ™ri'],
-                ['BildiriÅŸlÉ™ri', 'BildiriÅŸlÉ™ri'],
-                ['bildiriÅŸlÉ™r', 'bildiriÅŸlÉ™r'],
-                ['BildiriÅŸlÉ™r', 'BildiriÅŸlÉ™r'],
-                ['bildiriÅŸ', 'bildiriÅŸ'],
-                ['BildiriÅŸ', 'BildiriÅŸ'],
-                ['bÃ¼tÃ¼n', 'bÃ¼tÃ¼n'],
-                ['BÃ¼tÃ¼n', 'BÃ¼tÃ¼n'],
-                ['canlÄ±', 'canlÄ±'],
-                ['CanlÄ±', 'CanlÄ±'],
-                ['dÉ™qiqÉ™', 'dÉ™qiqÉ™'],
-                ['dÉ™fÉ™', 'dÉ™fÉ™'],
-                ['dÃ¼nya', 'dÃ¼nya'],
-                ['DÄ°QQÆT', 'DÄ°QQÆT'],
-                ['dÉ™stÉ™klÉ™mir', 'dÉ™stÉ™klÉ™mir'],
-                ['DÉ™stÉ™klÉ™nmir', 'DÉ™stÉ™klÉ™nmir'],
-                ['DÉ™yiÅŸ', 'DÉ™yiÅŸ'],
-                ['etmÉ™k', 'etmÉ™k'],
-                ['fÉ™rqli', 'fÉ™rqli'],
-                ['gÃ¼clÃ¼', 'gÃ¼clÃ¼'],
-                ['gÉ™ldiniz', 'gÉ™ldiniz'],
-                ['gÉ™ldin', 'gÉ™ldin'],
-                ['GÉ™lmisiniz', 'GÉ™lmisiniz'],
-                ['GÉ™lmir?', 'GÉ™lmir?'],
-                ['gÃ¶ndÉ™rilir', 'gÃ¶ndÉ™rilir'],
-                ['gÃ¶ndÉ™rildi', 'gÃ¶ndÉ™rildi'],
-                ['GÃ¶ndÉ™rilÉ™n', 'GÃ¶ndÉ™rilÉ™n'],
-                ['gÃ¶ndÉ™rÉ™cÉ™yik', 'gÃ¶ndÉ™rÉ™cÉ™yik'],
-                ['gÃ¶ndÉ™rin', 'gÃ¶ndÉ™rin'],
-                ['gÃ¶ndÉ™r', 'gÃ¶ndÉ™r'],
-                ['GÃ¶ndÉ™r', 'GÃ¶ndÉ™r'],
-                ['gÃ¶rÃ¼nÉ™cÉ™k', 'gÃ¶rÃ¼nÉ™cÉ™k'],
-                ['gÉ™rÉ™kirsÉ™', 'gÉ™rÉ™kirsÉ™'],
-                ['gÃ¶rÉ™', 'gÃ¶rÉ™'],
-                ['gÃ¶zlÉ™nilir', 'gÃ¶zlÉ™nilir'],
-                ['GÃ¶zlÉ™yin', 'GÃ¶zlÉ™yin'],
-                ['gÃ¶zlÉ™', 'gÃ¶zlÉ™'],
-                ['gÃ¼n', 'gÃ¼n'],
-                ['gizlÉ™dilib', 'gizlÉ™dilib'],
-                ['hÉ™miÅŸÉ™lik', 'hÉ™miÅŸÉ™lik'],
-                ['hÉ™miÅŸÉ™', 'hÉ™miÅŸÉ™'],
-                ['hÉ™rÉ™kÉ™ti', 'hÉ™rÉ™kÉ™ti'],
-                ['hÉ™min', 'hÉ™min'],
-                ['hÉ™r', 'hÉ™r'],
-                ['HÉ™r', 'HÉ™r'],
-                ['HadisÉ™', 'HadisÉ™'],
-                ['hadisÉ™lÉ™r', 'hadisÉ™lÉ™r'],
-                ['HeÃ§', 'HeÃ§'],
-                ['HesabÄ±nÄ±zdan', 'HesabÄ±nÄ±zdan'],
-                ['HesabÄ±nÄ±zÄ±n', 'HesabÄ±nÄ±zÄ±n'],
-                ['HesabÄ±nÄ±z', 'HesabÄ±nÄ±z'],
-                ['icazÉ™ni', 'icazÉ™ni'],
-                ['icazÉ™si', 'icazÉ™si'],
-                ['icazÉ™', 'icazÉ™'],
-                ['ilÉ™', 'ilÉ™'],
-                ['istÉ™yirsiniz?', 'istÉ™yirsiniz?'],
-                ['istÉ™diyiniz?', 'istÉ™diyiniz?'],
-                ['istÉ™', 'istÉ™'],
-                ['istifadÉ™Ã§isi', 'istifadÉ™Ã§isi'],
-                ['istifadÉ™', 'istifadÉ™'],
-                ['kiÃ§ik', 'kiÃ§ik'],
-                ['kliklÉ™yin', 'kliklÉ™yin'],
-                ['LÃ¼tfÉ™n', 'LÃ¼tfÉ™n'],
-                ['lazÄ±mdÄ±rsa', 'lazÄ±mdÄ±rsa'],
-                ['mÉ™hdudiyyÉ™t', 'mÉ™hdudiyyÉ™t'],
-                ['mÉ™lumatlarÄ±nÄ±z', 'mÉ™lumatlarÄ±nÄ±z'],
-                ['mÉ™lumatlar', 'mÉ™lumatlar'],
-                ['MÉ™lumatlar', 'MÉ™lumatlar'],
-                ['MÉ™lumatlar', 'MÉ™lumatlar'],
-                ['mÉ™lumatlar', 'mÉ™lumatlar'],
-                ['mÉ™lumatÄ±', 'mÉ™lumatÄ±'],
-                ['mÉ™lumat', 'mÉ™lumat'],
-                ['MÉ™lumat', 'MÉ™lumat'],
-                ['mÃ¼mkÃ¼n', 'mÃ¼mkÃ¼n'],
-                ['mÃ¼tlÉ™q', 'mÃ¼tlÉ™q'],
-                ['mÃ¼vÉ™qqÉ™ti', 'mÃ¼vÉ™qqÉ™ti'],
-                ['mÃ¶vcud', 'mÃ¶vcud'],
-                ['MÃ¶vsÃ¼m', 'MÃ¶vsÃ¼m'],
-                ['NÉ™ticÉ™lÉ™ri', 'NÉ™ticÉ™lÉ™ri'],
-                ['NÉ™ticÉ™lÉ™r', 'NÉ™ticÉ™lÉ™r'],
-                ['NÉ™ticÉ™', 'NÉ™ticÉ™'],
-                ['OyunÃ§u', 'OyunÃ§u'],
-                ['QÉ™naÉ™ti', 'QÉ™naÉ™ti'],
-                ['QÄ±rmÄ±zÄ±', 'QÄ±rmÄ±zÄ±'],
-                ['qayÄ±t', 'qayÄ±t'],
-                ['qeydiyyatÄ±', 'qeydiyyatÄ±'],
-                ['qoÅŸulun', 'qoÅŸulun'],
-                ['quraÅŸdÄ±rÄ±n', 'quraÅŸdÄ±rÄ±n'],
-                ['rÉ™qÉ™mli', 'rÉ™qÉ™mli'],
-                ['SÄ±fÄ±rlama', 'SÄ±fÄ±rlama'],
-                ['sÄ±fÄ±rlayÄ±b', 'sÄ±fÄ±rlayÄ±b'],
-                ['SÉ™hifÉ™', 'SÉ™hifÉ™'],
-                ['sÉ™hifÉ™sindÉ™n', 'sÉ™hifÉ™sindÉ™n'],
-                ['SÃ¼per', 'SÃ¼per'],
-                ['SÉ™sli', 'SÉ™sli'],
-                ['SÉ™si', 'SÉ™si'],
-                ['sÉ™sin', 'sÉ™sin'],
-                ['SarÄ±', 'SarÄ±'],
-                ['saxlanÄ±lÄ±r', 'saxlanÄ±lÄ±r'],
-                ['saxlanÄ±ldÄ±', 'saxlanÄ±ldÄ±'],
-                ['SaytÄ±', 'SaytÄ±'],
-                ['seÃ§in', 'seÃ§in'],
+                ['Profil üçün daxil olun', 'Profil üçün daxil olun'],
+                ['etm?k üçün daxil olun', 'etm?k üçün daxil olun'],
+                ['Qollar v? dig?r ön?mli hadis?l?r burada görün?c?k.', 'Qollar v? dig?r ön?mli hadis?l?r burada görün?c?k.'],
+                ['Canlı idman n?tic?l?ri v? statistikalar.', 'Canlı idman n?tic?l?ri v? statistikalar.'],
+                ['Xoş G?lmisiniz', 'Xoş G?lmisiniz'],
+                ['Bildiriş yoxdur', 'Bildiriş yoxdur'],
+                ['Bütün Liqalar', 'Bütün Liqalar'],
+                ['Günün Oyunları', 'Günün Oyunları'],
+                ['Canlı Hesablar', 'Canlı Hesablar'],
+                ['Favoritl?r', 'Favoritl?r'],
+                ['Favoritl?riniz', 'Favoritl?riniz'],
+                ['T?nziml?m?l?r', 'T?nziml?m?l?r'],
+                ['T?NZİML?M?L?R', 'T?NZİML?M?L?R'],
+                ['C?dv?l', 'C?dv?l'],
+                ['M?lumat', 'M?lumat'],
+                ['Bombardir m?lumatı', 'Bombardir m?lumatı'],
+                ['Giriş', 'Giriş'],
+                ['Şifr?', 'Şifr?'],
+                ['Şifr?ni', 'Şifr?ni'],
+                ['Şifr?nin', 'Şifr?nin'],
+                ['Şifr?l?r', 'Şifr?l?r'],
+                ['İstifad?çi', 'İstifad?çi'],
+                ['İcaz?', 'İcaz?'],
+                ['?lav?', '?lav?'],
+                ['Ölk?', 'Ölk?'],
+                ['Ölk?l?r', 'Ölk?l?r'],
+                ['?minsiniz?', '?minsiniz?'],
+                ['?min', '?min'],
+                ['ön?mli', 'ön?mli'],
+                ['İndi', 'İndi'],
+                ['İnternet', 'İnternet'],
+                ['ünvanının', 'ünvanının'],
+                ['ünvanını', 'ünvanını'],
+                ['ünvanı', 'ünvanı'],
+                ['üçün', 'üçün'],
+                ['üst?', 'üst?'],
+                ['üst', 'üst'],
+                ['?v?zetm?', '?v?zetm?'],
+                ['aşağıdakı', 'aşağıdakı'],
+                ['açıldı', 'açıldı'],
+                ['açıb', 'açıb'],
+                ['Az?rbaycan', 'Az?rbaycan'],
+                ['Başlanğıc', 'Başlanğıc'],
+                ['başladılır', 'başladılır'],
+                ['başladı', 'başladı'],
+                ['Bağlantı', 'Bağlantı'],
+                ['bildirişl?ri', 'bildirişl?ri'],
+                ['Bildirişl?ri', 'Bildirişl?ri'],
+                ['bildirişl?r', 'bildirişl?r'],
+                ['Bildirişl?r', 'Bildirişl?r'],
+                ['bildiriş', 'bildiriş'],
+                ['Bildiriş', 'Bildiriş'],
+                ['bütün', 'bütün'],
+                ['Bütün', 'Bütün'],
+                ['canlı', 'canlı'],
+                ['Canlı', 'Canlı'],
+                ['d?qiq?', 'd?qiq?'],
+                ['d?f?', 'd?f?'],
+                ['dünya', 'dünya'],
+                ['DİQQ?T', 'DİQQ?T'],
+                ['d?st?kl?mir', 'd?st?kl?mir'],
+                ['D?st?kl?nmir', 'D?st?kl?nmir'],
+                ['D?yiş', 'D?yiş'],
+                ['etm?k', 'etm?k'],
+                ['f?rqli', 'f?rqli'],
+                ['güclü', 'güclü'],
+                ['g?ldiniz', 'g?ldiniz'],
+                ['g?ldin', 'g?ldin'],
+                ['G?lmisiniz', 'G?lmisiniz'],
+                ['G?lmir?', 'G?lmir?'],
+                ['gönd?rilir', 'gönd?rilir'],
+                ['gönd?rildi', 'gönd?rildi'],
+                ['Gönd?ril?n', 'Gönd?ril?n'],
+                ['gönd?r?c?yik', 'gönd?r?c?yik'],
+                ['gönd?rin', 'gönd?rin'],
+                ['gönd?r', 'gönd?r'],
+                ['Gönd?r', 'Gönd?r'],
+                ['görün?c?k', 'görün?c?k'],
+                ['g?r?kirs?', 'g?r?kirs?'],
+                ['gör?', 'gör?'],
+                ['gözl?nilir', 'gözl?nilir'],
+                ['Gözl?yin', 'Gözl?yin'],
+                ['gözl?', 'gözl?'],
+                ['gün', 'gün'],
+                ['gizl?dilib', 'gizl?dilib'],
+                ['h?miş?lik', 'h?miş?lik'],
+                ['h?miş?', 'h?miş?'],
+                ['h?r?k?ti', 'h?r?k?ti'],
+                ['h?min', 'h?min'],
+                ['h?r', 'h?r'],
+                ['H?r', 'H?r'],
+                ['Hadis?', 'Hadis?'],
+                ['hadis?l?r', 'hadis?l?r'],
+                ['Heç', 'Heç'],
+                ['Hesabınızdan', 'Hesabınızdan'],
+                ['Hesabınızın', 'Hesabınızın'],
+                ['Hesabınız', 'Hesabınız'],
+                ['icaz?ni', 'icaz?ni'],
+                ['icaz?si', 'icaz?si'],
+                ['icaz?', 'icaz?'],
+                ['il?', 'il?'],
+                ['ist?yirsiniz?', 'ist?yirsiniz?'],
+                ['ist?diyiniz?', 'ist?diyiniz?'],
+                ['ist?', 'ist?'],
+                ['istifad?çisi', 'istifad?çisi'],
+                ['istifad?', 'istifad?'],
+                ['kiçik', 'kiçik'],
+                ['klikl?yin', 'klikl?yin'],
+                ['Lütf?n', 'Lütf?n'],
+                ['lazımdırsa', 'lazımdırsa'],
+                ['m?hdudiyy?t', 'm?hdudiyy?t'],
+                ['m?lumatlarınız', 'm?lumatlarınız'],
+                ['m?lumatlar', 'm?lumatlar'],
+                ['M?lumatlar', 'M?lumatlar'],
+                ['M?lumatlar', 'M?lumatlar'],
+                ['m?lumatlar', 'm?lumatlar'],
+                ['m?lumatı', 'm?lumatı'],
+                ['m?lumat', 'm?lumat'],
+                ['M?lumat', 'M?lumat'],
+                ['mümkün', 'mümkün'],
+                ['mütl?q', 'mütl?q'],
+                ['müv?qq?ti', 'müv?qq?ti'],
+                ['mövcud', 'mövcud'],
+                ['Mövsüm', 'Mövsüm'],
+                ['N?tic?l?ri', 'N?tic?l?ri'],
+                ['N?tic?l?r', 'N?tic?l?r'],
+                ['N?tic?', 'N?tic?'],
+                ['Oyunçu', 'Oyunçu'],
+                ['Q?na?ti', 'Q?na?ti'],
+                ['Qırmızı', 'Qırmızı'],
+                ['qayıt', 'qayıt'],
+                ['qeydiyyatı', 'qeydiyyatı'],
+                ['qoşulun', 'qoşulun'],
+                ['quraşdırın', 'quraşdırın'],
+                ['r?q?mli', 'r?q?mli'],
+                ['Sıfırlama', 'Sıfırlama'],
+                ['sıfırlayıb', 'sıfırlayıb'],
+                ['S?hif?', 'S?hif?'],
+                ['s?hif?sind?n', 's?hif?sind?n'],
+                ['Süper', 'Süper'],
+                ['S?sli', 'S?sli'],
+                ['S?si', 'S?si'],
+                ['s?sin', 's?sin'],
+                ['Sarı', 'Sarı'],
+                ['saxlanılır', 'saxlanılır'],
+                ['saxlanıldı', 'saxlanıldı'],
+                ['Saytı', 'Saytı'],
+                ['seçin', 'seçin'],
                 ['Sil', 'Sil'],
-                ['silinÉ™cÉ™k', 'silinÉ™cÉ™k'],
-                ['silmÉ™k', 'silmÉ™k'],
-                ['sizÉ™', 'sizÉ™'],
-                ['sorÄŸu', 'sorÄŸu'],
-                ['TÉ™hlÃ¼kÉ™sizliyiniz', 'TÉ™hlÃ¼kÉ™sizliyiniz'],
-                ['TÉ™krarÄ±', 'TÉ™krarÄ±'],
-                ['tÉ™nzimlÉ™mÉ™lÉ™rindÉ™n', 'tÉ™nzimlÉ™mÉ™lÉ™rindÉ™n'],
-                ['tÉ™nzimlÉ™mÉ™', 'tÉ™nzimlÉ™mÉ™'],
-                ['TÉ™nzimlÉ™mÉ™', 'TÉ™nzimlÉ™mÉ™'],
-                ['tÉ™sdiq', 'tÉ™sdiq'],
-                ['TÉ™sdiqlÉ™', 'TÉ™sdiqlÉ™'],
-                ['tÉ™yin', 'tÉ™yin'],
-                ['tapÄ±lmadÄ±', 'tapÄ±lmadÄ±'],
-                ['tarixÃ§É™sini', 'tarixÃ§É™sini'],
-                ['TurnirlÉ™r', 'TurnirlÉ™r'],
-                ['uÄŸurludur', 'uÄŸurludur'],
-                ['uÄŸursuz', 'uÄŸursuz'],
+                ['silin?c?k', 'silin?c?k'],
+                ['silm?k', 'silm?k'],
+                ['siz?', 'siz?'],
+                ['sorğu', 'sorğu'],
+                ['T?hlük?sizliyiniz', 'T?hlük?sizliyiniz'],
+                ['T?krarı', 'T?krarı'],
+                ['t?nziml?m?l?rind?n', 't?nziml?m?l?rind?n'],
+                ['t?nziml?m?', 't?nziml?m?'],
+                ['T?nziml?m?', 'T?nziml?m?'],
+                ['t?sdiq', 't?sdiq'],
+                ['T?sdiql?', 'T?sdiql?'],
+                ['t?yin', 't?yin'],
+                ['tapılmadı', 'tapılmadı'],
+                ['tarixç?sini', 'tarixç?sini'],
+                ['Turnirl?r', 'Turnirl?r'],
+                ['uğurludur', 'uğurludur'],
+                ['uğursuz', 'uğursuz'],
                 ['unutmusunuz?', 'unutmusunuz?'],
-                ['uyÄŸun', 'uyÄŸun'],
-                ['vÉ™ziyyÉ™t', 'vÉ™ziyyÉ™t'],
-                ['vasitÉ™silÉ™', 'vasitÉ™silÉ™'],
-                ['vaxtÄ±', 'vaxtÄ±'],
-                ['VerilmÉ™di', 'VerilmÉ™di'],
-                ['vermÉ™di', 'vermÉ™di'],
-                ['xÉ™bÉ™r', 'xÉ™bÉ™r'],
-                ['xÉ™tasÄ±', 'xÉ™tasÄ±'],
-                ['xÉ™tanÄ±', 'xÉ™tanÄ±'],
-                ['xÉ™ta', 'xÉ™ta'],
-                ['XÉ™ta', 'XÉ™ta'],
-                ['xanalarÄ±', 'xanalarÄ±'],
-                ['XoÅŸ', 'XoÅŸ'],
-                ['YÃ¼klÉ™mÉ™', 'YÃ¼klÉ™mÉ™'],
-                ['yÃ¼klÉ™nir', 'yÃ¼klÉ™nir'],
-                ['YÃ¼klÉ™nir', 'YÃ¼klÉ™nir'],
-                ['YaddaÅŸa', 'YaddaÅŸa'],
-                ['YaddaÅŸdakÄ±', 'YaddaÅŸdakÄ±'],
-                ['YalnÄ±z', 'YalnÄ±z'],
-                ['YanlÄ±ÅŸ', 'YanlÄ±ÅŸ'],
-                ['yazÄ±n', 'yazÄ±n'],
-                ['yenidÉ™n', 'yenidÉ™n'],
-                ['YenidÉ™n', 'YenidÉ™n'],
-                ['yenilÉ™nÉ™rkÉ™n', 'yenilÉ™nÉ™rkÉ™n'],
-                ['yenilÉ™nmÉ™lidir', 'yenilÉ™nmÉ™lidir'],
-                ['yenilÉ™ndi', 'yenilÉ™ndi'],
-                ['yenilÉ™', 'yenilÉ™'],
-                ['YenilÉ™', 'YenilÉ™'],
-                ['yerinÉ™', 'yerinÉ™'],
-                ['yoxlanÄ±lÄ±r', 'yoxlanÄ±lÄ±r'],
-                ['yoxlayÄ±n', 'yoxlayÄ±n'],
-                ['yoxlayÄ±rÄ±q', 'yoxlayÄ±rÄ±q'],
-                ['ZÉ™hmÉ™t', 'ZÉ™hmÉ™t']
-                ,['r?ng', 'rÉ™ng']
-                ,['yax??', 'yaxÅŸÄ±']
-                ,['T?limat?', 'TÉ™limatÄ±']
-                ,['v? ya G?l?n qollar', 'vÉ™ ya gÉ™lÉ™n qollar']
-                ,['b?lm?sind?', 'bÃ¶lmÉ™sindÉ™']
-                ,['oldu?undan', 'olduÄŸundan']
-                ,['M?hdudiyy?tsiz', 'MÉ™hdudiyyÉ™tsiz']
-                ,['d?ym?si', 'dÃ¼ymÉ™si']
-                ,['d?ym?sin?', 'dÃ¼ymÉ™sinÉ™']
-                ,['v?', 'vÉ™']
-                ,['?zv?', 'Ã¼zvÃ¼']
-                ,['q?bul', 'qÉ™bul']
-                ,['D?AQNOST?KA', 'DÄ°AQNOSTÄ°KA']
-                ,['ba? verdi', 'baÅŸ verdi']
-                ,['??b?k?', 'ÅŸÉ™bÉ™kÉ™']
-                ,['ba?lant?s?', 'baÄŸlantÄ±sÄ±']
-                ,['b?rpas?n?', 'bÉ™rpasÄ±nÄ±']
-                ,['fetch-l?rin', 'fetch-lÉ™rin']
-                ,['qar??s?n?', 'qarÅŸÄ±sÄ±nÄ±']
-                ,['qal?b', 'qalÄ±b']
-                ,['Axtar??', 'AxtarÄ±ÅŸ']
-                ,['s?zg?ci', 'sÃ¼zgÉ™ci']
-                ,['?n yeni', 'Æn yeni']
-                ,['Bilinm?y?n', 'BilinmÉ™yÉ™n']
-                ,['?ox sayda', 'Ã§ox sayda']
-                ,['ne??', 'neÃ§É™']
-                ,['c?hd', 'cÉ™hd']
-                ,['axtar??', 'axtarÄ±ÅŸ']
-                ,['ed?', 'edÉ™']
-                ,['Liqas?', 'LiqasÄ±']
-                ,['Beyn?lxalq', 'BeynÉ™lxalq']
-                ,['G?r?kirs?', 'GÉ™rÉ™kirsÉ™']
-                ,['Oyun?u', 'OyunÃ§u']
-                ,['datas?', 'datasÄ±']
-                ,['favoritl?r?', 'favoritlÉ™rÉ™']
-                ,['favoritl?rd?n', 'favoritlÉ™rdÉ™n']
-                ,['??xar?ld?', 'Ã§Ä±xarÄ±ldÄ±']
-                ,['Serverl?', 'ServerlÉ™']
-                ,['Oyunlar?', 'OyunlarÄ±']
-                ,['liqalar?', 'liqalarÄ±']
-                ,['favoritl?riniz?', 'favoritlÉ™rinizÉ™']
-                ,['bo?', 'boÅŸ']
-                ,['Payla?', 'PaylaÅŸ']
-                ,['ailÉ™sin?', 'ailÉ™sinÉ™']
-                ,['Ke?', 'KeÃ§']
-                ,['yanl??d?r', 'yanlÄ±ÅŸdÄ±r']
-                ,['art?q', 'artÄ±q']
-                ,['format?d?r', 'formatÄ±dÄ±r']
-                ,['?ox z?ifdir', 'Ã§ox zÉ™ifdir']
-                ,['ver? bilm?di', 'verÉ™ bilmÉ™di']
-                ,['d??m?r', 'dÃ¼ÅŸmÃ¼r']
-                ,['??x?? Et?', 'Ã‡Ä±xÄ±ÅŸ Et?']
-                ,['??xmaq', 'Ã§Ä±xmaq']
-                ,['??x?ld?.', 'Ã§Ä±xÄ±ldÄ±.']
-                ,['olunmay?b', 'olunmayÄ±b']
-                ,['saniy?d?n', 'saniyÉ™dÉ™n']
-                ,['d?yi?diyi', 'dÉ™yiÅŸdiyi']
-                ,['d?yi?ir', 'dÉ™yiÅŸir']
-                ,['y?klindiyind?', 'yÃ¼klÉ™ndiyindÉ™']
+                ['uyğun', 'uyğun'],
+                ['v?ziyy?t', 'v?ziyy?t'],
+                ['vasit?sil?', 'vasit?sil?'],
+                ['vaxtı', 'vaxtı'],
+                ['Verilm?di', 'Verilm?di'],
+                ['verm?di', 'verm?di'],
+                ['x?b?r', 'x?b?r'],
+                ['x?tası', 'x?tası'],
+                ['x?tanı', 'x?tanı'],
+                ['x?ta', 'x?ta'],
+                ['X?ta', 'X?ta'],
+                ['xanaları', 'xanaları'],
+                ['Xoş', 'Xoş'],
+                ['Yükl?m?', 'Yükl?m?'],
+                ['yükl?nir', 'yükl?nir'],
+                ['Yükl?nir', 'Yükl?nir'],
+                ['Yaddaşa', 'Yaddaşa'],
+                ['Yaddaşdakı', 'Yaddaşdakı'],
+                ['Yalnız', 'Yalnız'],
+                ['Yanlış', 'Yanlış'],
+                ['yazın', 'yazın'],
+                ['yenid?n', 'yenid?n'],
+                ['Yenid?n', 'Yenid?n'],
+                ['yenil?n?rk?n', 'yenil?n?rk?n'],
+                ['yenil?nm?lidir', 'yenil?nm?lidir'],
+                ['yenil?ndi', 'yenil?ndi'],
+                ['yenil?', 'yenil?'],
+                ['Yenil?', 'Yenil?'],
+                ['yerin?', 'yerin?'],
+                ['yoxlanılır', 'yoxlanılır'],
+                ['yoxlayın', 'yoxlayın'],
+                ['yoxlayırıq', 'yoxlayırıq'],
+                ['Z?hm?t', 'Z?hm?t']
+                ,['r?ng', 'r?ng']
+                ,['yax??', 'yaxşı']
+                ,['T?limat?', 'T?limatı']
+                ,['v? ya G?l?n qollar', 'v? ya g?l?n qollar']
+                ,['b?lm?sind?', 'bölm?sind?']
+                ,['oldu?undan', 'olduğundan']
+                ,['M?hdudiyy?tsiz', 'M?hdudiyy?tsiz']
+                ,['d?ym?si', 'düym?si']
+                ,['d?ym?sin?', 'düym?sin?']
+                ,['v?', 'v?']
+                ,['?zv?', 'üzvü']
+                ,['q?bul', 'q?bul']
+                ,['D?AQNOST?KA', 'DİAQNOSTİKA']
+                ,['ba? verdi', 'baş verdi']
+                ,['??b?k?', 'ş?b?k?']
+                ,['ba?lant?s?', 'bağlantısı']
+                ,['b?rpas?n?', 'b?rpasını']
+                ,['fetch-l?rin', 'fetch-l?rin']
+                ,['qar??s?n?', 'qarşısını']
+                ,['qal?b', 'qalıb']
+                ,['Axtar??', 'Axtarış']
+                ,['s?zg?ci', 'süzg?ci']
+                ,['?n yeni', '?n yeni']
+                ,['Bilinm?y?n', 'Bilinm?y?n']
+                ,['?ox sayda', 'çox sayda']
+                ,['ne??', 'neç?']
+                ,['c?hd', 'c?hd']
+                ,['axtar??', 'axtarış']
+                ,['ed?', 'ed?']
+                ,['Liqas?', 'Liqası']
+                ,['Beyn?lxalq', 'Beyn?lxalq']
+                ,['G?r?kirs?', 'G?r?kirs?']
+                ,['Oyun?u', 'Oyunçu']
+                ,['datas?', 'datası']
+                ,['favoritl?r?', 'favoritl?r?']
+                ,['favoritl?rd?n', 'favoritl?rd?n']
+                ,['??xar?ld?', 'çıxarıldı']
+                ,['Serverl?', 'Serverl?']
+                ,['Oyunlar?', 'Oyunları']
+                ,['liqalar?', 'liqaları']
+                ,['favoritl?riniz?', 'favoritl?riniz?']
+                ,['bo?', 'boş']
+                ,['Payla?', 'Paylaş']
+                ,['ail?sin?', 'ail?sin?']
+                ,['Ke?', 'Keç']
+                ,['yanl??d?r', 'yanlışdır']
+                ,['art?q', 'artıq']
+                ,['format?d?r', 'formatıdır']
+                ,['?ox z?ifdir', 'çox z?ifdir']
+                ,['ver? bilm?di', 'ver? bilm?di']
+                ,['d??m?r', 'düşmür']
+                ,['??x?? Et?', 'Çıxış Et?']
+                ,['??xmaq', 'çıxmaq']
+                ,['??x?ld?.', 'çıxıldı.']
+                ,['olunmay?b', 'olunmayıb']
+                ,['saniy?d?n', 'saniy?d?n']
+                ,['d?yi?diyi', 'd?yişdiyi']
+                ,['d?yi?ir', 'd?yişir']
+                ,['y?klindiyind?', 'yükl?ndiyind?']
             ];
 
             function applyAzPlaceholderFixes(text) {
@@ -5618,17 +5618,17 @@
                 const items = document.querySelectorAll('.sidebar .side-item');
                 items.forEach(item => {
                     const text = item.innerText.toLowerCase();
-                    if (view === 'matches' && (text.includes('oyun') || text.includes('canlÄ±'))) {
+                    if (view === 'matches' && (text.includes('oyun') || text.includes('canlı'))) {
                          // We'll handle this more specifically if needed
                     } else if (view === 'leagues' && text.includes('liqa')) {
                         item.classList.add('active');
                     } else if (view === 'favorites' && text.includes('favorit')) {
                         item.classList.add('active');
-                    } else if (view === 'profile' && text.includes('tÉ™nzimlÉ™mÉ™')) {
+                    } else if (view === 'profile' && text.includes('t?nziml?m?')) {
                         item.classList.add('active');
-                    } else if (view === 'notifications' && text.includes('bildiriÅŸ')) {
+                    } else if (view === 'notifications' && text.includes('bildiriş')) {
                         item.classList.add('active');
-                    } else if (view === 'support' && text.includes('dÉ™stÉ™k')) {
+                    } else if (view === 'support' && text.includes('d?st?k')) {
                         item.classList.add('active');
                     }
                 });
@@ -5639,8 +5639,8 @@
                 const container = document.getElementById('dateTabsContainer');
                 if (!container) return;
                 const today = new Date();
-                const days = ['Bazar', 'B.ErtÉ™si', 'Ã‡.AxÅŸam', 'Ã‡É™rÅŸÉ™nbÉ™', 'C.AxÅŸam', 'CÃ¼mÉ™', 'ÅÉ™nbÉ™'];
-                const months = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Ä°yun', 'Ä°yul', 'Avq', 'Sen', 'Okt', 'Noy', 'Dek'];
+                const days = ['Bazar', 'B.Ert?si', 'Ç.Axşam', 'Ç?rş?nb?', 'C.Axşam', 'Cüm?', 'Ş?nb?'];
+                const months = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'İyun', 'İyul', 'Avq', 'Sen', 'Okt', 'Noy', 'Dek'];
                 
                 let html = '';
                 for (let i = -7; i <= 30; i++) {
@@ -5652,7 +5652,7 @@
                     
                     html += `
                         <div class="date-tab ${activeClass}" onclick="selectDate('${dateStr}', this)">
-                            <span class="day-name">${isToday ? 'BU GÃœN' : days[d.getDay()].toUpperCase()}</span>
+                            <span class="day-name">${isToday ? 'BU GÜN' : days[d.getDay()].toUpperCase()}</span>
                             <span class="date-num">${d.getDate()} ${months[d.getMonth()]}</span>
                         </div>
                     `;
@@ -5820,7 +5820,7 @@
                             }
                             // Check for Match Start
                             else if (prev.status === 'notstarted' && ev.status.type === 'inprogress') {
-                                this.addNotification('start', 'Oyun BaÅŸladÄ±', `${ev.homeTeam.name} - ${ev.awayTeam.name} oyunu baÅŸladÄ±!`, ev.id);
+                                this.addNotification('start', 'Oyun Başladı', `${ev.homeTeam.name} - ${ev.awayTeam.name} oyunu başladı!`, ev.id);
                             }
                         }
                         this.lastEventState.set(ev.id, { h: ev.homeScore.current, a: ev.awayScore.current, status: ev.status.type });
@@ -5894,8 +5894,8 @@
                         container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">&#128276;</div>
-                        <div class="empty-state-title">BildiriÅŸ yoxdur</div>
-                        <div class="empty-state-text">Qollar vÉ™ digÉ™r Ã¶nÉ™mli hadisÉ™lÉ™r burada gÃ¶rÃ¼nÉ™cÉ™k.</div>
+                        <div class="empty-state-title">Bildiriş yoxdur</div>
+                        <div class="empty-state-text">Qollar v? dig?r ön?mli hadis?l?r burada görün?c?k.</div>
                     </div>`;
                         return;
                     }
@@ -5936,7 +5936,7 @@
                 }
 
                 deleteNotification(id) {
-                    // ID simvol dizisi ola bilÉ™r, ona gÃ¶rÉ™ == istifadÉ™ edirik
+                    // ID simvol dizisi ola bil?r, ona gör? == istifad? edirik
                     this.history = this.history.filter(n => n.id.toString() !== id.toString());
                     localStorage.setItem('notifHistory', JSON.stringify(this.history));
                     this.unreadCount = this.history.filter(n => n.unread).length;
@@ -5945,7 +5945,7 @@
                 }
 
                 clearAllHistory() {
-                    if (confirm('BÃ¼tÃ¼n bildiriÅŸ tarixÃ§É™sini silmÉ™k istÉ™yirsiniz?')) {
+                    if (confirm('Bütün bildiriş tarixç?sini silm?k ist?yirsiniz?')) {
                         this.history = [];
                         this.unreadCount = 0;
                         localStorage.setItem('notifHistory', JSON.stringify(this.history));
@@ -6014,7 +6014,7 @@
                 return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, ' ');
             }
 
-            function renderLoadingState(message = 'MÉ™lumat yÃ¼klÉ™nir...') {
+            function renderLoadingState(message = 'M?lumat yükl?nir...') {
                 return `
                     <div class="loading-state">
                         <div class="loading-gif" aria-hidden="true"></div>
@@ -6027,13 +6027,13 @@
             }
 
             function getLeagueSeasonLabel(group) {
-                return group.seasonName || group.seasonYear || (group.seasonId ? 'Aktiv mÃ¶vsÃ¼m' : 'MÃ¶vsÃ¼m tapÄ±lmadÄ±');
+                return group.seasonName || group.seasonYear || (group.seasonId ? 'Aktiv mövsüm' : 'Mövsüm tapılmadı');
             }
 
             function withTimeout(promise, ms = 4500) {
                 return Promise.race([
                     promise,
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('MÉ™lumat gecikir')), ms))
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('M?lumat gecikir')), ms))
                 ]);
             }
 
@@ -6066,7 +6066,7 @@
                     localStorage.setItem(key, value);
                     return true;
                 } catch (e) {
-                    console.warn(`[Storage] ${key} yazÄ±lmadÄ±:`, e.message);
+                    console.warn(`[Storage] ${key} yazılmadı:`, e.message);
                     return false;
                 }
             }
@@ -6224,7 +6224,7 @@
 
                 source.forEach((id, index) => {
                     setTimeout(() => {
-                        fetchServerJson(`/api/standings-fast/${id}`, "Standings prefetch xÉ™tasÄ±")
+                        fetchServerJson(`/api/standings-fast/${id}`, "Standings prefetch x?tası")
                             .then(data => {
                                 if (!data?.standings?.length && !data?.teamsFallback?.length) return;
                                 const key = `standings_${id}_${data.seasonId || 'auto'}`;
@@ -6247,7 +6247,7 @@
                 ids.forEach((id, index) => {
                     prefetchedCountryStandings.add(String(id));
                     setTimeout(() => {
-                        fetchServerJson(`/api/standings-fast/${id}?fast=1`, "Country standings prefetch xÉ™tasÄ±", 9500)
+                        fetchServerJson(`/api/standings-fast/${id}?fast=1`, "Country standings prefetch x?tası", 9500)
                             .then(data => {
                                 if (!data?.standings?.length && !data?.teamsFallback?.length) return;
                                 const key = `standings_${id}_${data.seasonId || 'auto'}`;
@@ -6272,7 +6272,7 @@
                 const btn = document.getElementById('supportSubmitBtn');
 
                 if (!title || !message) {
-                    showToast('BaÅŸlÄ±q vÉ™ mesaj yazÄ±n', 'error');
+                    showToast('Başlıq v? mesaj yazın', 'error');
                     return;
                 }
 
@@ -6293,7 +6293,7 @@
 
                 if (btn) {
                     btn.disabled = true;
-                    btn.innerText = 'GÃ¶ndÉ™rilir...';
+                    btn.innerText = 'Gönd?rilir...';
                 }
 
                 try {
@@ -6307,11 +6307,11 @@
                     });
                     clearTimeout(supportTimeout);
                     const data = await res.json().catch(() => null);
-                    if (!res.ok || !data?.success) throw new Error(data?.message || 'GÃ¶ndÉ™rilmÉ™di');
+                    if (!res.ok || !data?.success) throw new Error(data?.message || 'Gönd?rilm?di');
                     document.getElementById('supportTitle').value = '';
                     document.getElementById('supportMessage').value = '';
                     document.getElementById('supportContact').value = '';
-                    showToast('MesajÄ±nÄ±z gÃ¶ndÉ™rildi', 'success');
+                    showToast('Mesajınız gönd?rildi', 'success');
                 } catch (error) {
                     try {
                         const saved = JSON.parse(localStorage.getItem('supportDrafts') || '[]');
@@ -6319,13 +6319,13 @@
                         localStorage.setItem('supportDrafts', JSON.stringify(saved.slice(0, 20)));
                     } catch (_) {}
                     const msg = error?.name === 'AbortError'
-                        ? 'Server gec cavab verdi, mesaj cihazda saxlandÄ±'
-                        : 'ServerÉ™ gÃ¶ndÉ™rilmÉ™di, cihazda saxlandÄ±';
+                        ? 'Server gec cavab verdi, mesaj cihazda saxlandı'
+                        : 'Server? gönd?rilm?di, cihazda saxlandı';
                     showToast(msg, 'error');
                 } finally {
                     if (btn) {
                         btn.disabled = false;
-                        btn.innerText = 'GÃ¶ndÉ™r';
+                        btn.innerText = 'Gönd?r';
                     }
                 }
             }
@@ -6344,7 +6344,7 @@
                     document.getElementById('profileView').classList.add('active');
                     document.getElementById('navProfile').classList.add('active');
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'PROFÄ°L';
+                    document.getElementById('logoTitle').innerText = 'PROFİL';
                     hideBackBtn();
                     mc.style.paddingTop = '80px';
                     loadProfile();
@@ -6363,7 +6363,7 @@
                     document.getElementById('leaguesView').classList.add('active');
                     document.getElementById('navLeagues').classList.add('active');
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'LÄ°QALAR';
+                    document.getElementById('logoTitle').innerText = 'LİQALAR';
                     hideBackBtn();
                     mc.style.paddingTop = '80px';
                     renderLeaguesView();
@@ -6373,7 +6373,7 @@
                     document.getElementById('favoritesView').classList.add('active');
                     document.getElementById('navFavorites').classList.add('active');
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'FAVORÄ°TLÆR';
+                    document.getElementById('logoTitle').innerText = 'FAVORİTL?R';
                     hideBackBtn();
                     mc.style.paddingTop = '80px';
                     renderFavoritesView();
@@ -6383,7 +6383,7 @@
                     if (!auth.currentUser) {
                         setTimeout(() => {
                             if (!auth.currentUser) {
-                                showToast('Profil Ã¼Ã§Ã¼n daxil olun');
+                                showToast('Profil üçün daxil olun');
                                 switchMainView('auth');
                             } else {
                                 // Now we have user, proceed to show profile
@@ -6401,7 +6401,7 @@
                     document.getElementById('authView').classList.add('active');
                     document.getElementById('navProfile').classList.add('active');
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'QEYDÄ°YYAT';
+                    document.getElementById('logoTitle').innerText = 'QEYDİYYAT';
                     hideBackBtn();
                     mc.style.paddingTop = '65px'; // Reduced padding to remove gap
                     switchAuthTab('login'); // Always default to login and reset button
@@ -6410,7 +6410,7 @@
                     document.getElementById('notificationsView').classList.add('active');
                     document.getElementById('navLeagues').classList.remove('active'); // Reset other navs
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'BÄ°LDÄ°RÄ°ÅLÆR';
+                    document.getElementById('logoTitle').innerText = 'BİLDİRİŞL?R';
                     showBackBtn();
                     notificationMgr.renderHistory();
                     notificationMgr.markAllAsRead();
@@ -6419,7 +6419,7 @@
                 else if (viewType === 'support') {
                     document.getElementById('supportView').classList.add('active');
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'DÆSTÆK';
+                    document.getElementById('logoTitle').innerText = 'D?ST?K';
                     showBackBtn();
                     mc.style.paddingTop = '70px';
                 }
@@ -6455,7 +6455,7 @@
                     group = {
                         id: tourId,
                         name: knownLeague?.name || "Liqa",
-                        country: knownLeague?.category?.name || knownLeague?.country || "YÃ¼klÉ™nir...",
+                        country: knownLeague?.category?.name || knownLeague?.country || "Yükl?nir...",
                         catId: knownLeague?.category?.id || knownLeague?.catId || 1,
                         isUnique: isUnique,
                         matches: [],
@@ -6485,7 +6485,7 @@
                         <div class="skeleton" style="width:70px; height:70px; border-radius:18px; margin:0 auto 16px;"></div>
                         <div class="skeleton" style="width:210px; height:24px; border-radius:10px; margin:0 auto 10px;"></div>
                         <div class="skeleton" style="width:140px; height:16px; border-radius:8px; margin:0 auto 24px;"></div>
-                        <div style="color:var(--text-muted); font-weight:700;">Liqa mÉ™lumatlarÄ± yÃ¼klÉ™nir...</div>
+                        <div style="color:var(--text-muted); font-weight:700;">Liqa m?lumatları yükl?nir...</div>
                     </div>`;
 
                 if (!group.seasonId) {
@@ -6514,28 +6514,28 @@
                 const hasMatches = group.matches && group.matches.length > 0;
                 const matchesHtml = hasMatches
                     ? group.matches.map(m => createMatchRow(m, group)).join("")
-                    : `<div style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600;">Bu gÃ¼n Ã¼Ã§Ã¼n oyun tapÄ±lmadÄ±. <br><span style="font-size:12px; font-weight:400; opacity:0.7;">CÉ™dvÉ™lÉ™ keÃ§id edÉ™rÉ™k xal durumuna baxa bilÉ™rsiniz.</span></div>`;
+                    : `<div style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600;">Bu gün üçün oyun tapılmadı. <br><span style="font-size:12px; font-weight:400; opacity:0.7;">C?dv?l? keçid ed?r?k xal durumuna baxa bil?rsiniz.</span></div>`;
 
                 const leagueInfo = group.info || {};
                 const leagueCategory = leagueInfo.category || {};
                 const leagueSeasonLabel = getLeagueSeasonLabel(group);
-                const leagueTypeLabel = group.isUnique === false ? 'Turnir' : 'Æsas liqa';
+                const leagueTypeLabel = group.isUnique === false ? 'Turnir' : '?sas liqa';
                 const leagueInfoHtml = `
                     <div class="league-info-grid">
                         <div class="league-info-card">
-                            <span class="league-info-label">Liqa adÄ±</span>
+                            <span class="league-info-label">Liqa adı</span>
                             <span class="league-info-value">${escapeHtml(group.name)}</span>
                         </div>
                         <div class="league-info-card">
-                            <span class="league-info-label">Ã–lkÉ™ / Region</span>
+                            <span class="league-info-label">Ölk? / Region</span>
                             <span class="league-info-value">${escapeHtml(group.country || leagueCategory.name || 'Bilinmir')}</span>
                         </div>
                         <div class="league-info-card">
-                            <span class="league-info-label">MÃ¶vsÃ¼m</span>
+                            <span class="league-info-label">Mövsüm</span>
                             <span class="league-info-value">${escapeHtml(leagueSeasonLabel)}</span>
                         </div>
                         <div class="league-info-card">
-                            <span class="league-info-label">NÃ¶v</span>
+                            <span class="league-info-label">Növ</span>
                             <span class="league-info-value">${escapeHtml(leagueTypeLabel)}</span>
                         </div>
                         <div class="league-info-card">
@@ -6544,11 +6544,11 @@
                         </div>
                         <div class="league-info-card">
                             <span class="league-info-label">Komandalar</span>
-                            <span class="league-info-value">CÉ™dvÉ™ldÉ™ klub adÄ±na basÄ±n</span>
+                            <span class="league-info-value">C?dv?ld? klub adına basın</span>
                         </div>
                     </div>
                     <div style="margin-top:14px; color:var(--text-muted); font-size:13px; line-height:1.6;">
-                        Bu bÃ¶lmÉ™dÉ™ liqanÄ±n oyunlarÄ±, puan durumu, bombardirlÉ™ri vÉ™ klublarÄ±n heyÉ™ti bir yerdÉ™ gÃ¶stÉ™rilir.
+                        Bu bölm?d? liqanın oyunları, puan durumu, bombardirl?ri v? klubların hey?ti bir yerd? göst?rilir.
                     </div>`;
 
                 const html = `
@@ -6563,14 +6563,14 @@
                     <button class="tab-btn ${hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueMatches', this)" aria-label="Oyunlar">
                         <span class="league-tab-label">Oyunlar</span>
                     </button>
-                    <button class="tab-btn ${!hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueStandings', this)" aria-label="CÉ™dvÉ™l">
-                        <span class="league-tab-label">CÉ™dvÉ™l</span>
+                    <button class="tab-btn ${!hasMatches ? 'active' : ''}" onclick="switchLeagueTab('leagueStandings', this)" aria-label="C?dv?l">
+                        <span class="league-tab-label">C?dv?l</span>
                     </button>
-                    <button class="tab-btn" onclick="switchLeagueTab('leagueTopPlayers', this)" aria-label="BombardirlÉ™r">
-                        <span class="league-tab-label">BombardirlÉ™r</span>
+                    <button class="tab-btn" onclick="switchLeagueTab('leagueTopPlayers', this)" aria-label="Bombardirl?r">
+                        <span class="league-tab-label">Bombardirl?r</span>
                     </button>
-                    <button class="tab-btn" onclick="switchLeagueTab('leagueInfo', this)" aria-label="MÉ™lumat">
-                        <span class="league-tab-label">MÉ™lumat</span>
+                    <button class="tab-btn" onclick="switchLeagueTab('leagueInfo', this)" aria-label="M?lumat">
+                        <span class="league-tab-label">M?lumat</span>
                     </button>
                 </div>
                 
@@ -6578,10 +6578,10 @@
                     ${matchesHtml}
                 </div>
                 <div class="league-tab-content ${!hasMatches ? 'active' : ''}" id="leagueStandings" style="${hasMatches ? 'display:none;' : ''} padding:16px 0;">
-                    ${renderLoadingState('CÉ™dvÉ™l mÉ™lumatÄ± yÃ¼klÉ™nir...')}
+                    ${renderLoadingState('C?dv?l m?lumatı yükl?nir...')}
                 </div>
                 <div class="league-tab-content" id="leagueTopPlayers" style="display:none; padding:16px 0;">
-                    ${renderLoadingState('BombardirlÉ™r cÉ™dvÉ™li yÃ¼klÉ™nir...')}
+                    ${renderLoadingState('Bombardirl?r c?dv?li yükl?nir...')}
                 </div>
                 <div class="league-tab-content" id="leagueInfo" style="display:none; padding:24px; color:var(--text-main); font-size:14px; line-height:1.6;">
                     ${leagueInfoHtml}
@@ -6722,7 +6722,7 @@
                     return !p?.synthetic && !playerId.startsWith('team-');
                 });
                 if (!playerRows.length) {
-                    return "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Bombardir mÉ™lumatÄ± tapÄ±lmadÄ±.</div>";
+                    return "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Bombardir m?lumatı tapılmadı.</div>";
                 }
 
                 let html = '<div class="top-players-list">';
@@ -6741,7 +6741,7 @@
                                 <span class="player-rank">${index + 1}</span>
                                 <img class="player-img" loading="lazy" decoding="async" src="${playerImg}" onerror="this.onerror=null; this.src='${IMAGE_PLACEHOLDER}'">
                                 <div class="player-info">
-                                    <span class="player-name">${p.player?.name || 'OyunÃ§u'}</span>
+                                    <span class="player-name">${p.player?.name || 'Oyunçu'}</span>
                                     <span class="player-team">${p.team ? p.team.name : 'Komanda yoxdur'}</span>
                                 </div>
                                 <span class="player-goals">${goals} Qol</span>
@@ -6812,7 +6812,7 @@
                 }
 
                 if (!isNumericId(seasonId)) {
-                    box.innerHTML = renderLoadingState('MÃ¶vsÃ¼m mÉ™lumatÄ± axtarÄ±lÄ±r...');
+                    box.innerHTML = renderLoadingState('Mövsüm m?lumatı axtarılır...');
                     try {
                         seasonId = await resolveLeagueSeasonId(tourId);
                     } catch (e) {
@@ -6837,7 +6837,7 @@
                         .catch(() => {});
                     return;
                 } else {
-                    box.innerHTML = renderLoadingState('BombardirlÉ™r cÉ™dvÉ™li yÃ¼klÉ™nir...');
+                    box.innerHTML = renderLoadingState('Bombardirl?r c?dv?li yükl?nir...');
                 }
 
                 try {
@@ -6847,7 +6847,7 @@
                 } catch (e) {
                     console.warn("Top players load warning", e.message || e);
                     if (!persistedTopPlayers.length) {
-                        box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Bu liqa Ã¼Ã§Ã¼n bombardir mÉ™lumatÄ± hazÄ±rda tapÄ±lmadÄ±. Sistem rÉ™smi statistikanÄ± vÉ™ son oyunlardakÄ± qollarÄ± yoxladÄ±.</div>";
+                        box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Bu liqa üçün bombardir m?lumatı hazırda tapılmadı. Sistem r?smi statistikanı v? son oyunlardakı qolları yoxladı.</div>";
                     }
                 }
             }
@@ -6908,9 +6908,9 @@
             };
 
             async function fetchWithRetry(url, options = {}, retries = 4, backoff = 3000) {
-                // iOS PWA-larda ÅŸÉ™bÉ™kÉ™ baÄŸlantÄ±sÄ±nÄ±n bÉ™rpasÄ±nÄ± gÃ¶zlÉ™
+                // iOS PWA-larda ş?b?k? bağlantısının b?rpasını gözl?
                 if (!navigator.onLine) {
-                    console.log("[RETRY] Offline - ÅŸÉ™bÉ™kÉ™ gÃ¶zlÉ™nilir...");
+                    console.log("[RETRY] Offline - ş?b?k? gözl?nilir...");
                     await new Promise(resolve => {
                         const onlineCb = () => { window.removeEventListener('online', onlineCb); resolve(); };
                         window.addEventListener('online', onlineCb);
@@ -6928,7 +6928,7 @@
                 delete cleanOptions.retryBackoff;
                 delete cleanOptions.quiet;
 
-                // AbortController ilÉ™ timeout - iOS-da donuq fetch-lÉ™rin qarÅŸÄ±sÄ±nÄ± alÄ±r
+                // AbortController il? timeout - iOS-da donuq fetch-l?rin qarşısını alır
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -6936,7 +6936,7 @@
                     const res = await fetch(url, { ...cleanOptions, signal: controller.signal });
                     clearTimeout(timeoutId);
                     if (!res.ok && retryCount > 0 && (res.status >= 502 && res.status <= 504)) {
-                        if (!quiet) console.log(`[RETRY] Server cavab vermir (${res.status}). ${retryBackoff}ms sonra yenidÉ™n...`);
+                        if (!quiet) console.log(`[RETRY] Server cavab vermir (${res.status}). ${retryBackoff}ms sonra yenid?n...`);
                         await new Promise(r => setTimeout(r, retryBackoff));
                         return fetchWithRetry(url, { ...options, retryCount: retryCount - 1, retryBackoff: retryBackoff + 2000 }, retries, backoff);
                     }
@@ -6945,7 +6945,7 @@
                     clearTimeout(timeoutId);
                     if (retryCount > 0) {
                         const reason = err.name === 'AbortError' ? `Timeout (${Math.round(timeoutMs / 1000)}s)` : err.message;
-                        if (!quiet) console.log(`[RETRY] XÉ™ta: ${reason}. ${retryBackoff}ms sonra yenidÉ™n (${retryCount} qalÄ±b)...`);
+                        if (!quiet) console.log(`[RETRY] X?ta: ${reason}. ${retryBackoff}ms sonra yenid?n (${retryCount} qalıb)...`);
                         await new Promise(r => setTimeout(r, retryBackoff));
                         return fetchWithRetry(url, { ...options, retryCount: retryCount - 1, retryBackoff: retryBackoff + 2000 }, retries, backoff);
                     }
@@ -7172,7 +7172,7 @@
                 return false;
             }
 
-            async function fetchJsonOrThrow(targetUrl, options = {}, errorPrefix = 'SorÄŸu xÉ™tasÄ±') {
+            async function fetchJsonOrThrow(targetUrl, options = {}, errorPrefix = 'Sorğu x?tası') {
                 const response = await fetchWithRetry(targetUrl, options);
                 if (!response.ok) {
                     const error = new Error(`${errorPrefix}: ${response.status}`);
@@ -7181,7 +7181,7 @@
                 }
                 const data = await response.json();
                 if (data && data.error) {
-                    throw new Error(`${errorPrefix}: ${data.message || data.reason || 'API xÉ™tasÄ±'}`);
+                    throw new Error(`${errorPrefix}: ${data.message || data.reason || 'API x?tası'}`);
                 }
                 return data;
             }
@@ -7201,7 +7201,7 @@
                         && events.length === 0
                         && (data?.stale || data?.source === 'none' || data?.warning);
                     if (isEmptyLiveFallback) {
-                        throw new Error(data?.warning || 'Server canlÄ± oyunlarÄ± boÅŸ qaytardÄ±');
+                        throw new Error(data?.warning || 'Server canlı oyunları boş qaytardı');
                     }
                     return data;
                 };
@@ -7210,13 +7210,13 @@
                     timeoutMs: sourceOptions.directTimeoutMs || options.timeoutMs || 6000,
                     retryCount: 0,
                     quiet: true
-                }, 'SofaScore direct xÉ™tasÄ±');
+                }, 'SofaScore direct x?tası');
                 const serverFetch = () => fetchJsonOrThrow(localUrl, {
                     ...options,
                     timeoutMs: sourceOptions.serverTimeoutMs || options.timeoutMs || 6500,
                     retryCount: sourceOptions.serverRetryCount ?? options.retryCount ?? 0,
                     quiet: true
-                }, 'Server xÉ™tasÄ±').then(validateLiveResponse);
+                }, 'Server x?tası').then(validateLiveResponse);
 
                 if (canUseDirect() && sourceOptions.raceDirect) {
                     try {
@@ -7301,7 +7301,7 @@
                             <div class="loader-wrapper">
                                 <div style="text-align:center; padding:50px;">
                                     <i class="fas fa-circle-notch fa-spin" style="font-size:32px; color:var(--primary); margin-bottom:15px;"></i>
-                                    <div style="font-weight:600; color:var(--text-muted);">Æn yeni mÉ™lumatlar yÃ¼klÉ™nir...</div>
+                                    <div style="font-weight:600; color:var(--text-muted);">?n yeni m?lumatlar yükl?nir...</div>
                                 </div>
                             </div>`;
                     }
@@ -7322,9 +7322,9 @@
                         } catch (e) {}
                     }
 
-                    // Backend xÉ™tanÄ± 200 ilÉ™ qaytarsa bel?, onu tutmaq Ã¼Ã§Ã¼n:
+                    // Backend x?tanı 200 il? qaytarsa bel?, onu tutmaq üçün:
                     if (dataEvents && dataEvents.error) {
-                        throw new Error(`API Proxy Error: ${dataEvents.error.code || 'BilinmÉ™yÉ™n'} - ${dataEvents.error.reason || 'XÉ™ta'}`);
+                        throw new Error(`API Proxy Error: ${dataEvents.error.code || 'Bilinm?y?n'} - ${dataEvents.error.reason || 'X?ta'}`);
                     }
 
                     if (dataEvents && dataEvents.events) {
@@ -7552,9 +7552,9 @@
 
                 if (keys.length === 0) {
                     if (window._lastFetchError) {
-                        list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600; color:var(--live);'>CanlÄ± oyun mÉ™lumatÄ± hazÄ±rda yenilÉ™nÉ™ bilmir. ÆgÉ™r son canlÄ± mÉ™lumat varsa, nÃ¶vbÉ™ti yenilÉ™mÉ™dÉ™ gÃ¶rÃ¼nÉ™cÉ™k. Bir az sonra yenidÉ™n cÉ™hd edin.</div>";
+                        list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600; color:var(--live);'>Canlı oyun m?lumatı hazırda yenil?n? bilmir. ?g?r son canlı m?lumat varsa, növb?ti yenil?m?d? görün?c?k. Bir az sonra yenid?n c?hd edin.</div>";
                     } else {
-                        list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600;'>HeÃ§ bir oyun tapÄ±lmadÄ±.</div>";
+                        list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600;'>Heç bir oyun tapılmadı.</div>";
                     }
                     return;
                 }
@@ -7570,7 +7570,7 @@
 
                 function finishRender() {
                     if (keys.length > maxLeaguesToRender) {
-                        htmlParts.push(`<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">Qalan ${keys.length - maxLeaguesToRender} liqa gizlÉ™dilib (performans Ã¼Ã§Ã¼n). CÉ™dvÉ™l sÉ™hifÉ™sindÉ™n axtarÄ±ÅŸ edÉ™ bilÉ™rsiniz.</div>`);
+                        htmlParts.push(`<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px;">Qalan ${keys.length - maxLeaguesToRender} liqa gizl?dilib (performans üçün). C?dv?l s?hif?sind?n axtarış ed? bil?rsiniz.</div>`);
                     }
                     if (scrollRestore?.listHeight) {
                         list.style.minHeight = `${scrollRestore.listHeight}px`;
@@ -7662,7 +7662,7 @@
 
             async function fetchCategoryLeaguesSnapshot(catId) {
                 try {
-                    const snapshot = await fetchServerJson('/football_category_tournaments_snapshot.json', 'Ã–lkÉ™ snapshot xÉ™tasÄ±', 5000);
+                    const snapshot = await fetchServerJson('/football_category_tournaments_snapshot.json', 'Ölk? snapshot x?tası', 5000);
                     const item = snapshot?.items?.[String(catId)];
                     return normalizeCategoryLeaguesPayload(item?.data || item || {});
                 } catch (error) {
@@ -7728,7 +7728,7 @@
             function normalizeCountryFavorite(cat) {
                 return {
                     id: cat.id,
-                    name: cat.name || 'Ã–lkÉ™',
+                    name: cat.name || 'Ölk?',
                     slug: cat.slug || '',
                     alpha2: cat.alpha2 || '',
                     flag: cat.flag || ''
@@ -7743,7 +7743,7 @@
                 if (idx === -1) {
                     const cat = getCategoryById(key);
                     if (!cat) {
-                        showToast('Ã–lkÉ™ mÉ™lumatÄ± tapÄ±lmadÄ±', 'error');
+                        showToast('Ölk? m?lumatı tapılmadı', 'error');
                         return;
                     }
                     favCountries.push(normalizeCountryFavorite(cat));
@@ -7751,7 +7751,7 @@
                         btn.innerHTML = '&#9733;';
                         btn.classList.add('active');
                     }
-                    showToast(`${cat.name} yuxarÄ± siyahÄ±ya É™lavÉ™ edildi`, 'success');
+                    showToast(`${cat.name} yuxarı siyahıya ?lav? edildi`, 'success');
                     prefetchCategoryLeagues(key);
                 } else {
                     const removed = favCountries[idx];
@@ -7760,7 +7760,7 @@
                         btn.innerHTML = '&#9734;';
                         btn.classList.remove('active');
                     }
-                    showToast(`${removed.name || 'Ã–lkÉ™'} yuxarÄ± siyahÄ±dan Ã§Ä±xarÄ±ldÄ±`);
+                    showToast(`${removed.name || 'Ölk?'} yuxarı siyahıdan çıxarıldı`);
                 }
 
                 localStorage.setItem('favCountries', JSON.stringify(favCountries));
@@ -7776,7 +7776,7 @@
                 const persisted = getPersistedLeagueData(cacheKey, 7 * 24 * 60 * 60 * 1000);
                 if (Array.isArray(persisted) && persisted.length) {
                     categoryLeaguesCache[key] = persisted;
-                    fetchServerJson(`/api/category/${key}/tournaments?fast=1`, "Ã–lkÉ™ liqalarÄ± server xÉ™tasÄ±")
+                    fetchServerJson(`/api/category/${key}/tournaments?fast=1`, "Ölk? liqaları server x?tası")
                         .then(data => {
                             const fresh = normalizeCategoryLeaguesPayload(data);
                             if (fresh.length) {
@@ -7796,7 +7796,7 @@
                     snapshotLeagues.forEach(league => rememberLeagueMeta(league, category));
                     categoryLeaguesCache[key] = snapshotLeagues;
                     setPersistedLeagueData(cacheKey, snapshotLeagues);
-                    fetchServerJson(`/api/category/${key}/tournaments?fast=1`, "Ã–lkÉ™ liqalarÄ± server xÉ™tasÄ±")
+                    fetchServerJson(`/api/category/${key}/tournaments?fast=1`, "Ölk? liqaları server x?tası")
                         .then(data => {
                             const fresh = normalizeCategoryLeaguesPayload(data);
                             if (fresh.length) {
@@ -7804,7 +7804,7 @@
                                 categoryLeaguesCache[key] = fresh;
                                 setPersistedLeagueData(cacheKey, fresh);
                                 if (window.currentCountryContext?.id === key) {
-                                    renderCountryLeaguesPage(category || { id: key, name: 'Ã–lkÉ™' }, fresh);
+                                    renderCountryLeaguesPage(category || { id: key, name: 'Ölk?' }, fresh);
                                 }
                             }
                         })
@@ -7813,7 +7813,7 @@
                 }
 
                 let data = await withTimeout(
-                    fetchServerJson(`/api/category/${key}/tournaments?fast=1`, "Ã–lkÉ™ liqalarÄ± server xÉ™tasÄ±"),
+                    fetchServerJson(`/api/category/${key}/tournaments?fast=1`, "Ölk? liqaları server x?tası"),
                     6500
                 ).catch(() => null);
                 let leagues = normalizeCategoryLeaguesPayload(data);
@@ -7823,7 +7823,7 @@
                 };
                 if (!leagues.length && categoryLeaguesMeta[key].pending) {
                     const slowerData = await withTimeout(
-                        fetchServerJson(`/api/category/${key}/tournaments`, "Ã–lkÉ™ liqalarÄ± server xÉ™tasÄ±"),
+                        fetchServerJson(`/api/category/${key}/tournaments`, "Ölk? liqaları server x?tası"),
                         12000
                     ).catch(() => null);
                     const slowerLeagues = normalizeCategoryLeaguesPayload(slowerData);
@@ -7883,24 +7883,24 @@
             }
 
             function renderCountryLeaguesPage(cat, leagues, options = {}) {
-                const safeCountry = escapeJsString(cat?.name || 'Ã–lkÉ™');
-                const displayName = escapeHtml(cat?.name || 'Ã–lkÉ™');
+                const safeCountry = escapeJsString(cat?.name || 'Ölk?');
+                const displayName = escapeHtml(cat?.name || 'Ölk?');
                 const flagUrl = getCountryFlagUrl(cat || {});
                 const fallbackFlag = sofaImageUrl(`/category/${cat?.id || 1}/image`);
                 const isLoading = !!options.loading && !leagues.length;
                 const isWaiting = !!options.delayed && !leagues.length;
                 const statusText = isLoading
-                    ? 'Liqalar yÃ¼klÉ™nir...'
+                    ? 'Liqalar yükl?nir...'
                     : options.delayed
-                        ? 'MÉ™lumat yÃ¼klÉ™nir, arxa planda yenilÉ™nir'
-                    : `${leagues.length} liqa tapÄ±ldÄ±`;
+                        ? 'M?lumat yükl?nir, arxa planda yenil?nir'
+                    : `${leagues.length} liqa tapıldı`;
 
                 const leagueRows = leagues.length ? leagues.map(l => {
                     rememberLeagueMeta(l, cat);
                     const isFav = favLeagues.some(f => f.id.toString() === String(l.id));
                     const safeName = escapeJsString(l.name || 'Liqa');
                     const leagueName = escapeHtml(l.name || 'Liqa');
-                    const leagueCategory = escapeHtml(l.category?.name || cat?.name || 'Ã–lkÉ™');
+                    const leagueCategory = escapeHtml(l.category?.name || cat?.name || 'Ölk?');
                     const logoFallback = getLeagueFallbackLogo(l);
                     return `
                         <div class="league-card" onclick="openSingleLeague('${l.id}')">
@@ -7915,12 +7915,12 @@
                         </div>`;
                 }).join("") : isWaiting ? `
                     <div class="league-group" style="border-radius:18px; padding:18px; margin-top:14px;">
-                        ${renderLoadingState('Liqalar hazÄ±rlanÄ±r...')}
+                        ${renderLoadingState('Liqalar hazırlanır...')}
                     </div>` : `
                     <div class="empty-state" style="padding:48px 18px;">
                         <div style="font-size:42px; margin-bottom:14px;">&#127937;</div>
-                        <div style="font-weight:800; font-size:18px; margin-bottom:8px;">Liqa tapÄ±lmadÄ±</div>
-                        <div style="color:var(--text-muted); font-size:14px;">Bu Ã¶lkÉ™ Ã¼Ã§Ã¼n aktiv liqa mÉ™lumatÄ± hazÄ±rda yoxdur.</div>
+                        <div style="font-weight:800; font-size:18px; margin-bottom:8px;">Liqa tapılmadı</div>
+                        <div style="color:var(--text-muted); font-size:14px;">Bu ölk? üçün aktiv liqa m?lumatı hazırda yoxdur.</div>
                     </div>`;
 
                 document.getElementById('singleLeagueContent').innerHTML = `
@@ -7928,7 +7928,7 @@
                         <div class="league-header" style="padding:24px; gap:16px; background:linear-gradient(135deg, rgba(59,130,246,0.16), rgba(255,255,255,0.03)); pointer-events:none;">
                             <img src="${flagUrl}" style="width:58px; height:58px; border-radius:18px; object-fit:cover; background:rgba(255,255,255,0.08); box-shadow:0 10px 25px rgba(0,0,0,0.28);" onerror="this.onerror=null; this.src='${fallbackFlag}'">
                             <div style="min-width:0;">
-                                <div style="color:var(--text-muted); font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:1.2px;">Ã–lkÉ™ liqalarÄ±</div>
+                                <div style="color:var(--text-muted); font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:1.2px;">Ölk? liqaları</div>
                                 <div style="font-size:24px; font-weight:950; line-height:1.15; margin-top:4px;">${displayName}</div>
                                 <div style="color:var(--text-muted); font-size:13px; font-weight:700; margin-top:6px;">${statusText}</div>
                             </div>
@@ -7936,7 +7936,7 @@
                     </div>
                     ${isLoading ? `
                         <div class="league-group" style="border-radius:18px; padding:18px; margin-top:14px;">
-                            ${renderLoadingState('Liqalar yÃ¼klÉ™nir...')}
+                            ${renderLoadingState('Liqalar yükl?nir...')}
                         </div>` : `
                         <div class="category-header"><span>Liqalar</span><span>${isWaiting ? '...' : leagues.length}</span></div>
                         <div>${leagueRows}</div>`}
@@ -7946,13 +7946,13 @@
 
             window.openCountryLeaguesPage = async function(catId) {
                 const key = String(catId);
-                const cat = getCategoryById(key) || { id: key, name: 'Ã–lkÉ™' };
+                const cat = getCategoryById(key) || { id: key, name: 'Ölk?' };
 
                 document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
                 document.getElementById('dateTabsContainer').style.display = 'none';
                 document.getElementById('singleLeagueView').classList.add('active');
                 document.querySelector('.main-content').style.paddingTop = '70px';
-                document.getElementById('logoTitle').innerText = (cat.name || 'Ã–LKÆ').toUpperCase();
+                document.getElementById('logoTitle').innerText = (cat.name || 'ÖLK?').toUpperCase();
                 showBackBtn();
                 window.currentLeagueContext = null;
                 currentStandingsTourId = null;
@@ -7961,7 +7961,7 @@
                 const countryLoadingGuard = setTimeout(() => {
                     if (window.currentCountryContext?.id !== key) return;
                     const content = document.getElementById('singleLeagueContent');
-                    if (content && content.innerHTML.includes('MÉ™lumat hazÄ±rlanÄ±r')) {
+                    if (content && content.innerHTML.includes('M?lumat hazırlanır')) {
                         renderCountryLeaguesPage(cat, categoryLeaguesCache[key] || [], { delayed: true });
                     }
                 }, 4500);
@@ -8001,7 +8001,7 @@
                     const leagues = await fetchCategoryLeaguesData(key);
 
                     if (leagues.length === 0) {
-                        leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">Bu Ã¶lkÉ™ Ã¼Ã§Ã¼n aktiv liqa tapÄ±lmadÄ±.</div>`;
+                        leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">Bu ölk? üçün aktiv liqa tapılmadı.</div>`;
                         return;
                     }
 
@@ -8010,7 +8010,7 @@
                     prefetchCountryLeagueStandings(leagues);
                 } catch (e) {
                     console.warn("Category leagues load failed:", key, e.message);
-                    leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">Liqa mÉ™lumatÄ± hazÄ±rda gecikir.</div>`;
+                    leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">Liqa m?lumatı hazırda gecikir.</div>`;
                 }
             }
 
@@ -8062,15 +8062,15 @@
                     { id: 23, name: "Serie A", country: "Italy" },
                     { id: 35, name: "Bundesliga", country: "Germany" },
                     { id: 34, name: "Ligue 1", country: "France" },
-                    { id: 52, name: "SÃ¼per Lig", country: "Turkey" },
-                    { id: 709, name: "AzÉ™rbaycan Premyer LiqasÄ±", country: "Azerbaijan" },
+                    { id: 52, name: "Süper Lig", country: "Turkey" },
+                    { id: 709, name: "Az?rbaycan Premyer Liqası", country: "Azerbaijan" },
                     { id: 10783, name: "UEFA Nations League", country: "Eurasia" },
                     { id: 16, name: "FIFA World Cup", country: "World" },
                     { id: 1, name: "European Championship", country: "Eurasia" }
                 ];
 
                 if (!searchTerm) {
-                    html += `<div class="category-header"><span>Populyar TurnirlÉ™r</span></div>`;
+                    html += `<div class="category-header"><span>Populyar Turnirl?r</span></div>`;
                     
                     // Priority: If topLeaguesRaw is empty, use a fallback set to ensure UI is never empty
                     let displayPopular = topLeaguesRaw && topLeaguesRaw.length > 0 ? topLeaguesRaw : [
@@ -8079,11 +8079,11 @@
                         { id: 8, name: "La Liga", category: { name: "Spain", id: 32 } },
                         { id: 23, name: "Serie A", category: { name: "Italy", id: 31 } },
                         { id: 35, name: "Bundesliga", category: { name: "Germany", id: 30 } },
-                        { id: 52, name: "SÃ¼per Lig", category: { name: "Turkey", id: 46, slug: "turkey", alpha2: "TR" } },
+                        { id: 52, name: "Süper Lig", category: { name: "Turkey", id: 46, slug: "turkey", alpha2: "TR" } },
                         { id: 709, name: "Premyer Liqa", category: { name: "Azerbaijan", id: 297, slug: "azerbaijan", alpha2: "AZ" } }
                     ];
                     const mustHavePopular = [
-                        { id: 709, name: "AzÉ™rbaycan Premyer LiqasÄ±", category: { name: "Azerbaijan", id: 297, slug: "azerbaijan", alpha2: "AZ" }, season: { id: 78700 } }
+                        { id: 709, name: "Az?rbaycan Premyer Liqası", category: { name: "Azerbaijan", id: 297, slug: "azerbaijan", alpha2: "AZ" }, season: { id: 78700 } }
                     ];
                     mustHavePopular.forEach(item => {
                         if (!displayPopular.some(l => String(l.id) === String(item.id))) {
@@ -8105,18 +8105,18 @@
                     if (favoriteCountryCards.length > 0 || pinnedCountryCards.length > 0) {
                         favoriteCountryCards.concat(pinnedCountryCards).forEach(cat => {
                             const flagUrl = getCountryFlagUrl(cat);
-                            const safeName = escapeHtml(cat.name || 'Ã–lkÉ™');
+                            const safeName = escapeHtml(cat.name || 'Ölk?');
                             const isPinned = pinnedCountryCards.some(pinned => String(pinned.id) === String(cat.id));
                             html += `
                             <div class="league-card" onclick="openCountryLeaguesPage('${cat.id}')">
                                 <div style="display:flex; align-items:center; gap:16px; flex:1; min-width:0;">
                                     <img class="league-card-logo" loading="eager" decoding="async" fetchpriority="high" src="${flagUrl}" onerror="this.onerror=null; this.src='${sofaImageUrl(`/category/${cat.id}/image`)}'">
                                     <div class="league-card-info">
-                                        <span class="league-card-country">${isPinned ? 'Ã–lkÉ™ liqalarÄ±' : 'SeÃ§ilmiÅŸ Ã¶lkÉ™'}</span>
-                                        <span class="league-card-name">${escapeHtml(cat.name || 'Ã–lkÉ™')}</span>
+                                        <span class="league-card-country">${isPinned ? 'Ölk? liqaları' : 'Seçilmiş ölk?'}</span>
+                                        <span class="league-card-name">${escapeHtml(cat.name || 'Ölk?')}</span>
                                     </div>
                                 </div>
-                                <button class="country-star ${isPinned ? '' : 'active'}" onclick="toggleFavoriteCountry('${cat.id}', this, event)" aria-label="${safeName} yuxarÄ± siyahÄ±ya É™lavÉ™ et">${isPinned ? '&#9734;' : '&#9733;'}</button>
+                                <button class="country-star ${isPinned ? '' : 'active'}" onclick="toggleFavoriteCountry('${cat.id}', this, event)" aria-label="${safeName} yuxarı siyahıya ?lav? et">${isPinned ? '&#9734;' : '&#9733;'}</button>
                             </div>`;
                         });
                     }
@@ -8124,7 +8124,7 @@
                     displayPopular.forEach(l => {
                         rememberLeagueMeta(l, l.category);
                         const isFav = favLeagues.some(f => f.id.toString() === l.id.toString());
-                        const countryName = l.category ? l.category.name : (l.country || "BeynÉ™lxalq");
+                        const countryName = l.category ? l.category.name : (l.country || "Beyn?lxalq");
                         const safeName = l.name.replace(/'/g, "\\'");
                         const safeCountry = countryName.replace(/'/g, "\\'");
                         const logoFallback = getLeagueFallbackLogo(l);
@@ -8153,7 +8153,7 @@
                         });
 
                     if (countryCategories.length > 0) {
-                        html += `<div class="category-header"><span>BÃ¼tÃ¼n Ã–lkÉ™lÉ™r (${countryCategories.length})</span></div>`;
+                        html += `<div class="category-header"><span>Bütün Ölk?l?r (${countryCategories.length})</span></div>`;
                         countryCategories.forEach(cat => {
                             const flagUrl = getCountryFlagUrl(cat);
                             const catKey = String(cat.id);
@@ -8161,8 +8161,8 @@
                             html += `
                             <div class="category-row" onclick="openCountryLeaguesPage('${catKey}')">
                                 <img class="category-flag" loading="lazy" decoding="async" src="${flagUrl}" onerror="this.onerror=null; this.src='${sofaImageUrl(`/category/${cat.id}/image`)}'">
-                                <span class="category-name">${cat.name || 'Ã–lkÉ™'}</span>
-                                <button class="country-star ${isCountryFav ? 'active' : ''}" onclick="toggleFavoriteCountry('${catKey}', this, event)" aria-label="${escapeHtml(cat.name || 'Ã–lkÉ™')} yuxarÄ± siyahÄ±ya É™lavÉ™ et">${isCountryFav ? '&#9733;' : '&#9734;'}</button>
+                                <span class="category-name">${cat.name || 'Ölk?'}</span>
+                                <button class="country-star ${isCountryFav ? 'active' : ''}" onclick="toggleFavoriteCountry('${catKey}', this, event)" aria-label="${escapeHtml(cat.name || 'Ölk?')} yuxarı siyahıya ?lav? et">${isCountryFav ? '&#9733;' : '&#9734;'}</button>
                                 <span class="chevron" style="opacity:0.45; font-size:18px;">&#8250;</span>
                             </div>`;
                         });
@@ -8186,7 +8186,7 @@
                             results = data.results.filter(r => r.type === "uniqueTournament").map(r => r.entity);
                         }
 
-                        html += `<div class="category-header"><span>AxtarÄ±ÅŸ NÉ™ticÉ™lÉ™ri: ${results.length} Liqa</span></div>`;
+                        html += `<div class="category-header"><span>Axtarış N?tic?l?ri: ${results.length} Liqa</span></div>`;
                         
                         if (results.length > 0) {
                             results.forEach(l => {
@@ -8211,14 +8211,14 @@
                             html += `
                             <div class="empty-state" style="padding:60px 20px;">
                                 <div style="font-size:40px; margin-bottom:20px;">&#128269;</div>
-                                <div style="font-weight:700; font-size:18px; margin-bottom:10px;">NÉ™ticÉ™ tapÄ±lmadÄ±</div>
-                                <div style="color:var(--text-muted); font-size:14px;">"${searchTerm}" Ã¼Ã§Ã¼n uyÄŸun liqa tapÄ±lmadÄ±. GÉ™rÉ™kirsÉ™, fÉ™rqli adlar yoxlayÄ±n.</div>
+                                <div style="font-weight:700; font-size:18px; margin-bottom:10px;">N?tic? tapılmadı</div>
+                                <div style="color:var(--text-muted); font-size:14px;">"${searchTerm}" üçün uyğun liqa tapılmadı. G?r?kirs?, f?rqli adlar yoxlayın.</div>
                             </div>`;
                         }
 
                         list.innerHTML = html;
                     } catch (e) {
-                        list.innerHTML = `<div class="empty-state" style="padding:60px 20px;">AxtarÄ±ÅŸda xÉ™ta baÅŸ verdi. ZÉ™hmÉ™t olmasa yenidÉ™n yoxlayÄ±n.</div>`;
+                        list.innerHTML = `<div class="empty-state" style="padding:60px 20px;">Axtarışda x?ta baş verdi. Z?hm?t olmasa yenid?n yoxlayın.</div>`;
                     }
                 }, 500);
             }
@@ -8270,7 +8270,7 @@
             }
 
             function getIncidentPlayerName(incident) {
-                return incident.playerName || incident.player?.name || incident.player?.shortName || incident.playerIn?.name || "OyunÃ§u";
+                return incident.playerName || incident.player?.name || incident.player?.shortName || incident.playerIn?.name || "Oyunçu";
             }
 
             function getAssistText(incident) {
@@ -8287,11 +8287,11 @@
                     retryCount: 0,
                     quiet: true
                 });
-                if (!res.ok) throw new Error(`SofaScore direct xÉ™tasÄ±: ${res.status}`);
+                if (!res.ok) throw new Error(`SofaScore direct x?tası: ${res.status}`);
                 return res.json();
             }
 
-            async function fetchServerJson(path, errorLabel = "Server xÃƒâ€°Ã¢â€Â¢tasÃƒâ€Ã‚Â±", timeoutMs = 12000) {
+            async function fetchServerJson(path, errorLabel = "Server xÃ‰â„¢tasÃ„Â±", timeoutMs = 12000) {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
                 try {
@@ -8306,7 +8306,7 @@
             async function fetchLeagueInfoData(tourId, isUnique = true) {
                 let data = null;
                 try {
-                    data = await fetchServerJson(`/api/tournament/${tourId}?isUnique=${isUnique}`, "League info server xÉ™tasÄ±");
+                    data = await fetchServerJson(`/api/tournament/${tourId}?isUnique=${isUnique}`, "League info server x?tası");
                 } catch (serverErr) {
                     data = null;
                 }
@@ -8322,7 +8322,7 @@
             async function fetchLeagueSeasonsData(tourId, isUnique = true) {
                 let data = null;
                 try {
-                    data = await fetchServerJson(`/api/tournament/${tourId}/seasons?isUnique=${isUnique}`, "League seasons server xÉ™tasÄ±");
+                    data = await fetchServerJson(`/api/tournament/${tourId}/seasons?isUnique=${isUnique}`, "League seasons server x?tası");
                 } catch (serverErr) {
                     data = null;
                 }
@@ -8356,7 +8356,7 @@
                         if (seasonId) params.set('seasonId', seasonId);
                         const fastPath = `/api/standings-fast/${tourId}?${params.toString()}`;
                         data = await withTimeout(
-                            fetchServerJson(fastPath, "Standings fast server xÉ™tasÄ±", 9500),
+                            fetchServerJson(fastPath, "Standings fast server x?tası", 9500),
                             9800
                         );
                     } catch (serverErr) {}
@@ -8402,7 +8402,7 @@
                         seasonId: seasonId || 'auto',
                         unavailable: true,
                         fast: true,
-                        message: 'CÉ™dvÉ™l mÉ™lumatÄ± hazÄ±rda provayderdÉ™n gÉ™lmÉ™di'
+                        message: 'C?dv?l m?lumatı hazırda provayderd?n g?lm?di'
                     };
                 })().finally(() => {
                     delete leagueStandingsInFlight[cacheKey];
@@ -8436,13 +8436,13 @@
                     let data = null;
                     try {
                         data = await withTimeout(
-                            fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players?fast=1`, "Top players server xÉ™tasÄ±", 7200),
+                            fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players?fast=1`, "Top players server x?tası", 7200),
                             7000
                         );
                     } catch (serverErr) {}
 
                     if (extractTopPlayersList(data).length) {
-                        fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players server xÉ™tasÄ±", 9000)
+                        fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players server x?tası", 9000)
                             .then(fresh => {
                                 if (extractTopPlayersList(fresh).length) {
                                     const resolvedSeasonId = fresh?.seasonId || seasonId;
@@ -8459,7 +8459,7 @@
                         return data;
                     }
 
-                    fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players fallback xÉ™tasÄ±", 8500)
+                    fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players`, "Top players fallback x?tası", 8500)
                         .then(fresh => {
                             if (!extractTopPlayersList(fresh).length) return;
                             const resolvedSeasonId = fresh?.seasonId || seasonId;
@@ -8490,7 +8490,7 @@
                 let data = null;
                 try {
                     data = await withTimeout(
-                        fetchServerJson(`/api/team/${teamId}?fast=1`, "Klub server xÉ™tasÄ±"),
+                        fetchServerJson(`/api/team/${teamId}?fast=1`, "Klub server x?tası"),
                         11000
                     );
                 } catch (serverErr) {
@@ -8531,9 +8531,9 @@
                         const player = item.player || item;
                         return {
                             id: player.id,
-                            name: player.name || player.shortName || "OyunÃ§u",
-                            shortName: player.shortName || player.name || "OyunÃ§u",
-                            position: item.position || player.position || player.proposedMarketValueRaw?.position || "OyunÃ§u",
+                            name: player.name || player.shortName || "Oyunçu",
+                            shortName: player.shortName || player.name || "Oyunçu",
+                            position: item.position || player.position || player.proposedMarketValueRaw?.position || "Oyunçu",
                             shirtNumber: item.jerseyNumber || item.shirtNumber || player.jerseyNumber || "",
                             value: player.proposedMarketValue || player.proposedMarketValueRaw?.value || "",
                             country: player.country?.name || item.country?.name || "",
@@ -8552,11 +8552,11 @@
 
             function translatePosition(position) {
                 const key = String(position || '').toLowerCase();
-                if (key.includes('goalkeeper') || key === 'g') return 'QapÄ±Ã§Ä±';
-                if (key.includes('defender') || key === 'd') return 'MÃ¼dafiÉ™Ã§i';
-                if (key.includes('midfielder') || key === 'm') return 'YarÄ±mmÃ¼dafiÉ™Ã§i';
-                if (key.includes('forward') || key === 'f') return 'HÃ¼cumÃ§u';
-                return position || 'OyunÃ§u';
+                if (key.includes('goalkeeper') || key === 'g') return 'Qapıçı';
+                if (key.includes('defender') || key === 'd') return 'Müdafi?çi';
+                if (key.includes('midfielder') || key === 'm') return 'Yarımmüdafi?çi';
+                if (key.includes('forward') || key === 'f') return 'Hücumçu';
+                return position || 'Oyunçu';
             }
 
             function getTeamCoachName(team = {}, data = {}) {
@@ -8569,7 +8569,7 @@
                     data.coach
                 ];
                 const found = candidates.find(item => item && (item.name || item.shortName));
-                return found?.name || found?.shortName || 'MÉ™lumat yoxdur';
+                return found?.name || found?.shortName || 'M?lumat yoxdur';
             }
 
             function ensureTeamDetailsModal() {
@@ -8588,9 +8588,9 @@
                             <img id="teamDetailsLogo" class="team-details-logo" src="" alt="">
                             <div class="team-details-title">
                                 <strong id="teamDetailsName">Klub</strong>
-                                <span id="teamDetailsMeta">MÉ™lumat yÃ¼klÉ™nir...</span>
+                                <span id="teamDetailsMeta">M?lumat yükl?nir...</span>
                             </div>
-                            <button class="team-details-close" onclick="closeTeamDetails()">Ã—</button>
+                            <button class="team-details-close" onclick="closeTeamDetails()">×</button>
                         </div>
                         <div id="teamDetailsBody">
                             <div class="loader-wrapper" style="padding:34px;"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:100%;"></div></div></div></div>
@@ -8636,12 +8636,12 @@
             async function resolveTeamIdByName(teamName) {
                 const target = normalizeTeamSearchName(teamName);
                 if (!target) return null;
-                const resolvedData = await fetchServerJson(`/api/team/resolve?q=${encodeURIComponent(teamName)}`, "Klub axtarÄ±ÅŸÄ± xÉ™tasÄ±", 7000).catch(() => null);
+                const resolvedData = await fetchServerJson(`/api/team/resolve?q=${encodeURIComponent(teamName)}`, "Klub axtarışı x?tası", 7000).catch(() => null);
                 if (resolvedData?.team?.id && isNumericId(resolvedData.team.id)) {
                     rememberTeamMeta(resolvedData.team);
                     return resolvedData.team.id;
                 }
-                const searchData = await fetchServerJson(`/api/search?q=${encodeURIComponent(teamName)}`, "Klub axtarÄ±ÅŸÄ± xÉ™tasÄ±", 7000);
+                const searchData = await fetchServerJson(`/api/search?q=${encodeURIComponent(teamName)}`, "Klub axtarışı x?tası", 7000);
                 const teams = extractTeamSearchResults(searchData);
                 const exact = teams.find(team => {
                     const name = normalizeTeamSearchName(team.name || team.shortName);
@@ -8658,7 +8658,7 @@
                 modal.style.display = 'flex';
                 requestAnimationFrame(() => modal.classList.add('show'));
                 document.getElementById('teamDetailsName').textContent = teamName || 'Klub';
-                document.getElementById('teamDetailsMeta').textContent = 'Klub tapÄ±lÄ±r...';
+                document.getElementById('teamDetailsMeta').textContent = 'Klub tapılır...';
                 document.getElementById('teamDetailsLogo').src = IMAGE_PLACEHOLDER;
                 document.getElementById('teamDetailsBody').innerHTML = `<div class="loader-wrapper" style="padding:34px;"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:100%;"></div></div></div><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:75%;"></div></div></div></div>`;
                 try {
@@ -8669,10 +8669,10 @@
                     throw new Error('Team id not resolved');
                 } catch (error) {
                     console.warn("Team resolve failed", sourceId, error.message);
-                    document.getElementById('teamDetailsMeta').textContent = 'MÉ™lumat tapÄ±lmadÄ±';
+                    document.getElementById('teamDetailsMeta').textContent = 'M?lumat tapılmadı';
                     document.getElementById('teamDetailsBody').innerHTML = `
                         <div style="padding:24px 20px 30px; text-align:center; color:var(--text-muted); font-weight:750; line-height:1.55;">
-                            ${escapeHtml(teamName || 'Klub')} Ã¼Ã§Ã¼n SofaScore klub profili tapÄ±lmadÄ±. CÉ™dvÉ™l mÉ™lumatÄ± gÃ¶stÉ™rilir, tam profil hazÄ±rda É™lÃ§atan deyil.
+                            ${escapeHtml(teamName || 'Klub')} üçün SofaScore klub profili tapılmadı. C?dv?l m?lumatı göst?rilir, tam profil hazırda ?lçatan deyil.
                         </div>`;
                 }
             };
@@ -8685,7 +8685,7 @@
 
                 document.getElementById('teamDetailsLogo').src = getTeamLogoUrl(teamId);
                 document.getElementById('teamDetailsName').textContent = fallbackName || 'Klub';
-                document.getElementById('teamDetailsMeta').textContent = 'MÉ™lumat yÃ¼klÉ™nir...';
+                document.getElementById('teamDetailsMeta').textContent = 'M?lumat yükl?nir...';
                 document.getElementById('teamDetailsBody').innerHTML = `<div class="loader-wrapper" style="padding:34px;"><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:100%;"></div></div></div><div class="skel-row"><div class="skel-teams"><div class="skel-team skeleton" style="width:75%;"></div></div></div></div>`;
 
                 try {
@@ -8693,15 +8693,15 @@
                     const team = data?.info?.team || data?.team || {};
                     const players = normalizeTeamPlayers(data?.players || {});
                     const name = team.name || fallbackName || 'Klub';
-                    const country = team.country?.name || team.category?.name || 'Ã–lkÉ™ mÉ™lum deyil';
-                    const venue = team.venue?.stadium?.name || team.venue?.name || team.stadium?.name || 'MÉ™lumat yoxdur';
+                    const country = team.country?.name || team.category?.name || 'Ölk? m?lum deyil';
+                    const venue = team.venue?.stadium?.name || team.venue?.name || team.stadium?.name || 'M?lumat yoxdur';
                     const manager = getTeamCoachName(team, data);
                     const founded = team.foundationDateTimestamp
                         ? new Date(team.foundationDateTimestamp * 1000).getFullYear()
-                        : (team.foundationDate || 'MÉ™lumat yoxdur');
+                        : (team.foundationDate || 'M?lumat yoxdur');
                     const logo = normalizeSofaImageUrl(team.logoUrl, getTeamImageOptions(team, true)) || getTeamLogoUrl(teamId, true, team);
                     const fallbackLogo = getTeamFallbackLogo(team);
-                    const playerCount = players.length ? `${players.length} oyunÃ§u` : 'HeyÉ™t gÃ¶zlÉ™nilir';
+                    const playerCount = players.length ? `${players.length} oyunçu` : 'Hey?t gözl?nilir';
 
                     document.getElementById('teamDetailsName').textContent = name;
                     document.getElementById('teamDetailsMeta').textContent = country;
@@ -8718,7 +8718,7 @@
                                 <span class="squad-num">${escapeHtml(player.shirtNumber || '-')}</span>
                                 <span class="squad-pos">${escapeHtml(player.value || translatePosition(player.position))}</span>
                             </div>`).join('')
-                        : `<div style="padding:20px; text-align:center; color:var(--text-muted); font-weight:700;">HeyÉ™t mÉ™lumatÄ± tapÄ±lmadÄ±.</div>`;
+                        : `<div style="padding:20px; text-align:center; color:var(--text-muted); font-weight:700;">Hey?t m?lumatı tapılmadı.</div>`;
 
                     document.getElementById('teamDetailsBody').innerHTML = `
                         <div class="team-profile-hero">
@@ -8737,25 +8737,25 @@
                         <div class="coach-card">
                             <div class="coach-avatar">&#127944;</div>
                             <div style="min-width:0;">
-                                <span>BaÅŸ mÉ™ÅŸqÃ§i</span>
+                                <span>Baş m?şqçi</span>
                                 <strong>${escapeHtml(manager)}</strong>
                             </div>
                         </div>
                         <div class="team-info-grid">
-                            <div class="team-info-card"><span>Klub adÄ±</span><strong>${escapeHtml(name)}</strong></div>
-                            <div class="team-info-card"><span>Ã–lkÉ™</span><strong>${escapeHtml(country)}</strong></div>
+                            <div class="team-info-card"><span>Klub adı</span><strong>${escapeHtml(name)}</strong></div>
+                            <div class="team-info-card"><span>Ölk?</span><strong>${escapeHtml(country)}</strong></div>
                             <div class="team-info-card"><span>Stadion</span><strong>${escapeHtml(venue)}</strong></div>
-                            <div class="team-info-card"><span>BaÅŸ mÉ™ÅŸqÃ§i</span><strong>${escapeHtml(manager)}</strong></div>
+                            <div class="team-info-card"><span>Baş m?şqçi</span><strong>${escapeHtml(manager)}</strong></div>
                             <div class="team-info-card"><span>Yaranma ili</span><strong>${escapeHtml(founded)}</strong></div>
                             <div class="team-info-card"><span>Komanda ID</span><strong>${escapeHtml(teamId)}</strong></div>
                         </div>
-                        <div class="squad-title">HeyÉ™t</div>
+                        <div class="squad-title">Hey?t</div>
                         <div class="squad-list">${squadHtml}</div>`;
                 } catch (error) {
                     console.error("Team details load error", error);
                     const knownTeam = knownTeamsById[String(teamId)] || { id: teamId, name: fallbackName || 'Klub' };
                     const name = knownTeam.name || knownTeam.shortName || fallbackName || 'Klub';
-                    const country = knownTeam.country?.name || 'Ã–lkÉ™ mÉ™lumatÄ± gÃ¶zlÉ™nilir';
+                    const country = knownTeam.country?.name || 'Ölk? m?lumatı gözl?nilir';
                     const logo = normalizeSofaImageUrl(knownTeam.logoUrl, getTeamImageOptions(knownTeam, true)) || getTeamLogoUrl(teamId, true, knownTeam);
                     const fallbackLogo = getTeamFallbackLogo(knownTeam);
                     document.getElementById('teamDetailsName').textContent = name;
@@ -8777,12 +8777,12 @@
                         <div class="coach-card">
                             <div class="coach-avatar">&#127944;</div>
                             <div style="min-width:0;">
-                                <span>BaÅŸ mÉ™ÅŸqÃ§i</span>
-                                <strong>MÉ™lumat yenilÉ™nir</strong>
+                                <span>Baş m?şqçi</span>
+                                <strong>M?lumat yenil?nir</strong>
                             </div>
                         </div>
                         <div style="padding:22px 20px 28px; text-align:center; color:var(--text-muted); font-weight:750; line-height:1.55;">
-                            Tam heyÉ™t mÉ™lumatÄ± hazÄ±rda Sofascore-dÉ™n gecikir. Klub profili aÃ§Ä±ldÄ±, mÉ™lumat gÉ™lÉ™ndÉ™ yenilÉ™nÉ™cÉ™k.
+                            Tam hey?t m?lumatı hazırda Sofascore-d?n gecikir. Klub profili açıldı, m?lumat g?l?nd? yenil?n?c?k.
                         </div>`;
                 }
             };
@@ -8795,7 +8795,7 @@
                     ? `/api/match/${id}/details?stats=0&source=mackolik&slug=${encodeURIComponent(match?.slug || '')}`
                     : `/api/match/${id}/incidents${freshParam}`;
                 const serverPromise = withTimeout(
-                    fetchServerJson(serverUrl, "HadisÉ™lÉ™r xÉ™tasÄ±"),
+                    fetchServerJson(serverUrl, "Hadis?l?r x?tası"),
                     options.timeout || 3800
                 ).catch(() => null);
                 const directPromise = (!isMackolik && allowDirectFallback)
@@ -8827,7 +8827,7 @@
                     ? `/api/match/${id}/details?source=mackolik&slug=${encodeURIComponent(match?.slug || '')}`
                     : `/api/match/${id}/statistics${freshParam}`;
                 const serverPromise = withTimeout(
-                    fetchServerJson(serverUrl, "Statistika xÉ™tasÄ±"),
+                    fetchServerJson(serverUrl, "Statistika x?tası"),
                     options.timeout || 5500
                 ).catch(() => null);
                 const directPromise = (!isMackolik && allowDirectFallback)
@@ -8863,7 +8863,7 @@
                     ? `/api/match/${id}/details?source=mackolik&slug=${encodeURIComponent(match?.slug || '')}`
                     : `/api/match/${id}/details${freshParam ? `?${freshParam}` : ''}`;
                 const serverPromise = withTimeout(
-                    fetchServerJson(serverUrl, "MatÃ§ detallarÄ± xÉ™tasÄ±"),
+                    fetchServerJson(serverUrl, "Matç detalları x?tası"),
                     options.timeout || 4200
                 ).catch(() => null);
                 const directPromise = (!isMackolik && allowDirectFallback)
@@ -8931,14 +8931,14 @@
                         let detailClass = g.incidentType;
 
                         if (g.incidentType === "substitution") {
-                            player = g.playerIn ? g.playerIn.name : "OyunÃ§u";
+                            player = g.playerIn ? g.playerIn.name : "Oyunçu";
                             subText = `<div class="timeline-sub-player">&#128317; ${g.playerOut ? g.playerOut.name : ''}</div>`;
-                            detail = "ÆvÉ™zetmÉ™";
+                            detail = "?v?zetm?";
                         } else if (g.incidentType === "goal") {
                             detail = g.incidentClass === "ownGoal" ? "Avtoqol" : (g.incidentClass === "penalty" ? "Penalti" : "Qol");
                             subText = getAssistText(g);
                         } else if (g.incidentType === "card") {
-                            detail = g.incidentClass === "yellow" ? "SarÄ± Kart" : "QÄ±rmÄ±zÄ± Kart";
+                            detail = g.incidentClass === "yellow" ? "Sarı Kart" : "Qırmızı Kart";
                         }
 
                         return `
@@ -8958,8 +8958,8 @@
                     document.getElementById("goalsBox").innerHTML = `
                         <div class="details-empty-state">
                             <div class="empty-icon">&#128221;</div>
-                            <div style="font-weight:800; color:var(--text-main);">HadisÉ™ tapÄ±lmadÄ±</div>
-                            <div style="max-width:240px; line-height:1.5;">Bu matÃ§ Ã¼Ã§Ã¼n hazÄ±rda gÃ¶stÉ™rilÉ™cÉ™k detal hadisÉ™si yoxdur.</div>
+                            <div style="font-weight:800; color:var(--text-main);">Hadis? tapılmadı</div>
+                            <div style="max-width:240px; line-height:1.5;">Bu matç üçün hazırda göst?ril?c?k detal hadis?si yoxdur.</div>
                         </div>`;
                 }
             }
@@ -8969,7 +8969,7 @@
                 const stats = periods.find(s => s.period === "ALL") || periods[0] || null;
                 const groups = Array.isArray(stats?.groups)
                     ? stats.groups
-                    : (Array.isArray(stats?.statisticsItems) ? [{ groupName: stats.groupName || "Ãœmumi", statisticsItems: stats.statisticsItems }] : []);
+                    : (Array.isArray(stats?.statisticsItems) ? [{ groupName: stats.groupName || "Ümumi", statisticsItems: stats.statisticsItems }] : []);
                 const groupsWithItems = groups.filter(group => Array.isArray(group.statisticsItems) && group.statisticsItems.length);
                 if (groupsWithItems.length) {
                     let sHtml = "";
@@ -9004,7 +9004,7 @@
                     if (statsBox?.dataset.loading === "1") {
                         statsBox.innerHTML = renderModalStatsLoadingState();
                     } else {
-                        statsBox.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Statistika tapÄ±lmadÄ±</div>";
+                        statsBox.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Statistika tapılmadı</div>";
                     }
                 }
             }
@@ -9048,7 +9048,7 @@
                     const statsBox = document.getElementById("statsBox");
                     if (statsBox && !hasUsefulStatsPayload(cachedBefore?.stats)) {
                         statsBox.dataset.loading = "1";
-                        if (!statsBox.innerHTML.trim() || statsBox.innerHTML.includes("Statistika tapÄ±lmadÄ±")) {
+                        if (!statsBox.innerHTML.trim() || statsBox.innerHTML.includes("Statistika tapılmadı")) {
                             statsBox.innerHTML = renderModalStatsLoadingState();
                         }
                     }
@@ -9211,7 +9211,7 @@
                     const safeGroupName = match.tournament.name.replace(/'/g, "\\'");
                     openMatch(match.id, match.homeTeam.id, match.awayTeam.id, safeHomeName, safeAwayName, match.homeScore.current, match.awayScore.current, timeRaw, safeGroupName);
                 } else {
-                    showToast("Oyun datasÄ± yenilÉ™nÉ™rkÉ™n tapÄ±lmadÄ±.");
+                    showToast("Oyun datası yenil?n?rk?n tapılmadı.");
                 }
             }
 
@@ -9267,14 +9267,14 @@
                         if (currentKey && !favMatchKeys.includes(currentKey)) favMatchKeys.push(currentKey);
                         btn.innerHTML = '&#9733;';
                         btn.classList.add('active');
-                        showToast('Oyun favoritlÉ™rÉ™ É™lavÉ™ edildi');
+                        showToast('Oyun favoritl?r? ?lav? edildi');
                     }
                 } else {
                     if (idx !== -1) favMatches.splice(idx, 1);
                     if (keyIdx !== -1) favMatchKeys.splice(keyIdx, 1);
                     btn.innerHTML = '&#9734;';
                     btn.classList.remove('active');
-                    showToast('Oyun favoritlÉ™rdÉ™n Ã§Ä±xarÄ±ldÄ±');
+                    showToast('Oyun favoritl?rd?n çıxarıldı');
                 }
                 persistFavoriteMatches();
                 refreshPushAfterFavoriteChange(favoriteAdded).catch(() => syncRegisteredPushState());
@@ -9397,7 +9397,7 @@
                 messaging.onMessage((payload) => {
                     console.log('[FCM] Foreground message received:', payload);
                     const notificationTitle = payload.notification?.title || payload.data?.title || "Rabona Media";
-                    const notificationBody = payload.notification?.body || payload.data?.body || "Yeni xÉ™bÉ™r var.";
+                    const notificationBody = payload.notification?.body || payload.data?.body || "Yeni x?b?r var.";
 
                     if (window.notificationMgr) {
                         window.notificationMgr.history.unshift({
@@ -9438,7 +9438,7 @@
                 const keyRes = await fetch(API_BASE_URL + '/api/push/public-key');
                 const keyData = await keyRes.json();
                 if (!keyData.success || !keyData.publicKey) {
-                    throw new Error('Web Push aÃ§arÄ± tapÄ±lmadÄ±');
+                    throw new Error('Web Push açarı tapılmadı');
                 }
 
                 let subscription = await swReg.pushManager.getSubscription();
@@ -9470,17 +9470,18 @@
 
                 const res = await fetch(API_BASE_URL + '/api/push/subscribe', {
                     method: 'POST',
+                    keepalive: true,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
 
                 if (!res.ok) {
-                    throw new Error('Web Push qeydiyyatÄ± alÄ±nmadÄ±');
+                    throw new Error('Web Push qeydiyyatı alınmadı');
                 }
 
                 safeLocalStorageSet('webPushReady', '1');
                 if (document.getElementById('debugTokenBox')) {
-                    document.getElementById('debugTokenBox').innerText = 'Web Push hazÄ±rdÄ±r';
+                    document.getElementById('debugTokenBox').innerText = 'Web Push hazırdır';
                 }
                 if (document.getElementById('testPushRow')) {
                     document.getElementById('testPushRow').style.display = 'flex';
@@ -9513,7 +9514,7 @@
                     firebase.messaging.isSupported();
 
                 if (!messagingSupported) {
-                    throw new Error('Firebase Messaging dÉ™stÉ™klÉ™nmir');
+                    throw new Error('Firebase Messaging d?st?kl?nmir');
                 }
 
                 const messaging = firebase.messaging();
@@ -9527,7 +9528,7 @@
                 });
 
                 if (!token) {
-                    throw new Error('FCM token alÄ±nmadÄ±');
+                    throw new Error('FCM token alınmadı');
                 }
 
                 safeLocalStorageSet('fcmToken', token);
@@ -9547,7 +9548,7 @@
                 });
 
                 if (!res.ok) {
-                    throw new Error('FCM token serverÉ™ yazÄ±lmadÄ±');
+                    throw new Error('FCM token server? yazılmadı');
                 }
 
                 safeLocalStorageSet('fcmReady', '1');
@@ -9556,7 +9557,7 @@
             async function syncPushRegistration() {
                 const status = Notification.permission;
                 if (document.getElementById('debugPermBox')) {
-                    document.getElementById('debugPermBox').innerText = 'Ä°cazÉ™: ' + status;
+                    document.getElementById('debugPermBox').innerText = 'İcaz?: ' + status;
                 }
 
                 if (status !== 'granted') {
@@ -9581,7 +9582,7 @@
                 const results = await Promise.all(tasks);
                 const successful = results.filter(Boolean);
                 if (successful.length === 0) {
-                    showToast('BildiriÅŸ qeydiyyatÄ± alÄ±nmadÄ±', 'error');
+                    showToast('Bildiriş qeydiyyatı alınmadı', 'error');
                     return false;
                 }
 
@@ -9605,16 +9606,16 @@
                     const toggle = document.getElementById('browserNotifToggle');
                     if (toggle) toggle.checked = true;
                     const ok = await syncPushRegistration();
-                    if (ok && shouldAskPermission) showToast('Qol bildiriÅŸlÉ™ri aktivdir', 'success');
+                    if (ok && shouldAskPermission) showToast('Qol bildirişl?ri aktivdir', 'success');
                     return ok;
                 }
 
                 if (shouldAskPermission) {
                     showDialog({
-                        title: 'BildiriÅŸ icazÉ™si lazÄ±mdÄ±r',
+                        title: 'Bildiriş icaz?si lazımdır',
                         message: isIosStandalonePwa()
-                            ? 'Favorit oyuna qol bildiriÅŸi gÉ™lmÉ™si Ã¼Ã§Ã¼n iPhone bu tÉ™tbiqÉ™ bildiriÅŸ icazÉ™si vermÉ™lidir.'
-                            : 'Favorit oyuna qol bildiriÅŸi gÉ™lmÉ™si Ã¼Ã§Ã¼n brauzer bildiriÅŸlÉ™rinÉ™ icazÉ™ verin.',
+                            ? 'Favorit oyuna qol bildirişi g?lm?si üçün iPhone bu t?tbiq? bildiriş icaz?si verm?lidir.'
+                            : 'Favorit oyuna qol bildirişi g?lm?si üçün brauzer bildirişl?rin? icaz? verin.',
                         icon: '&#128276;'
                     });
                 }
@@ -9635,12 +9636,12 @@
                 const fcmReady = localStorage.getItem('fcmReady') === '1';
 
                 if (!token && !deviceId) {
-                    showToast('BildiriÅŸ qeydiyyatÄ± tapÄ±lmadÄ±. BildiriÅŸlÉ™ri yenidÉ™n aktiv edin.', 'error');
+                    showToast('Bildiriş qeydiyyatı tapılmadı. Bildirişl?ri yenid?n aktiv edin.', 'error');
                     return;
                 }
 
                 try {
-                    showToast('Test bildiriÅŸi gÃ¶ndÉ™rilir...');
+                    showToast('Test bildirişi gönd?rilir...');
                     const calls = [];
                     if (webPushReady && deviceId) {
                         calls.push(fetch(API_BASE_URL + '/api/push/test', {
@@ -9659,13 +9660,13 @@
 
                     const responses = await Promise.all(calls);
                     if (responses.some(r => r.success)) {
-                        showToast('Test bildiriÅŸi gÃ¶ndÉ™rildi!', 'success');
+                        showToast('Test bildirişi gönd?rildi!', 'success');
                     } else {
                         const firstError = responses.find(r => !r.success);
-                        showToast('XÉ™ta: ' + (firstError?.message || 'bildiriÅŸ gÃ¶ndÉ™rilmÉ™di'), 'error');
+                        showToast('X?ta: ' + (firstError?.message || 'bildiriş gönd?rilm?di'), 'error');
                     }
                 } catch (e) {
-                    showToast('ServerlÉ™ É™laqÉ™ xÉ™tasÄ±', 'error');
+                    showToast('Serverl? ?laq? x?tası', 'error');
                 }
                 syncPushRegistration();
             }
@@ -9678,12 +9679,12 @@
                     favLeagues.push({ id, name, country });
                     btn.innerHTML = '&#9733;';
                     btn.classList.add('active');
-                    showToast('Liqa favoritlÉ™rÉ™ É™lavÉ™ edildi');
+                    showToast('Liqa favoritl?r? ?lav? edildi');
                 } else {
                     favLeagues.splice(idx, 1);
                     btn.innerHTML = '&#9734;';
                     btn.classList.remove('active');
-                    showToast('Liqa favoritlÉ™rdÉ™n Ã§Ä±xarÄ±ldÄ±');
+                    showToast('Liqa favoritl?rd?n çıxarıldı');
                 }
                 localStorage.setItem('favLeagues', JSON.stringify(favLeagues));
                 refreshPushAfterFavoriteChange(favoriteAdded).catch(() => syncRegisteredPushState());
@@ -9696,8 +9697,8 @@
                     container.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-state-icon">&#11088;</div>
-                    <div class="empty-state-title">FavoritlÉ™riniz yoxdur</div>
-                    <div class="empty-state-text">OyunlarÄ± vÉ™ ya liqalarÄ± favoritlÉ™rinizÉ™ É™lavÉ™ edÉ™rÉ™k burada gÃ¶rÉ™ bilÉ™rsiniz.</div>
+                    <div class="empty-state-title">Favoritl?riniz yoxdur</div>
+                    <div class="empty-state-text">Oyunları v? ya liqaları favoritl?riniz? ?lav? ed?r?k burada gör? bil?rsiniz.</div>
                 </div>`;
                     return;
                 }
@@ -9710,7 +9711,7 @@
                         const groupKey = Object.keys(groupedDataGlobal).find(k => k.startsWith(l.name));
                         html += `
                     <div class="league-card">
-                        <div style="display:flex; align-items:center; gap:16px; flex:1;" onclick="${groupKey ? `openSingleLeague('${groupKey.replace(/'/g, "\\'")}')` : `showToast('Liqa mÉ™lumatÄ± tapÄ±lmadÄ±')`}">
+                        <div style="display:flex; align-items:center; gap:16px; flex:1;" onclick="${groupKey ? `openSingleLeague('${groupKey.replace(/'/g, "\\'")}')` : `showToast('Liqa m?lumatı tapılmadı')`}">
                             <img class="league-card-logo" loading="eager" decoding="async" fetchpriority="high" src="${sofaImageUrl(`/tournament/${l.id}/image`)}" onerror="this.onerror=null; this.src='${IMAGE_PLACEHOLDER}'">
                             <div class="league-card-info">
                                 <span class="league-card-country">${l.country}</span>
@@ -9737,8 +9738,8 @@
                     if (favMatches.length === 0 && favMatchKeys.length > 0) {
                         html += `<div class="empty-state" style="padding:32px 18px;">
                             <div class="empty-state-icon">&#8987;</div>
-                            <div class="empty-state-title">Favorit oyun gÃ¶zlÉ™nilir</div>
-                            <div class="empty-state-text">Oyun canlÄ± siyahÄ±ya qayÄ±dan kimi burada avtomatik gÃ¶rÃ¼nÉ™cÉ™k.</div>
+                            <div class="empty-state-title">Favorit oyun gözl?nilir</div>
+                            <div class="empty-state-text">Oyun canlı siyahıya qayıdan kimi burada avtomatik görün?c?k.</div>
                         </div>`;
                     }
                     html += `</div>`;
@@ -9748,7 +9749,7 @@
             }
 
             /* Profile Logic */
-            const DEFAULT_PROFILE_STATUS = 'Rabona Media istifadÉ™Ã§isi';
+            const DEFAULT_PROFILE_STATUS = 'Rabona Media istifad?çisi';
             let profileSaveInFlight = false;
             let profileLocalSavedAt = 0;
             let profileEditMode = false;
@@ -9756,7 +9757,7 @@
 
             function cleanProfileText(value, fallback) {
                 const text = (value ?? '').toString().trim();
-                if (!text || text.toLowerCase() === 'undefined' || text.toLowerCase() === 'null' || /[ï¿½ÃƒÃ…Ã„Ã‰Ã†Ã‚Ã¢]/.test(text)) {
+                if (!text || text.toLowerCase() === 'undefined' || text.toLowerCase() === 'null' || /[?ÃÅÄÉÆÂâ]/.test(text)) {
                     return fallback;
                 }
                 return text;
@@ -9869,7 +9870,7 @@
                     input.focus();
                     input.setSelectionRange(input.value.length, input.value.length);
                 }
-                if (editBtn) editBtn.innerText = 'RedaktÉ™ edilir';
+                if (editBtn) editBtn.innerText = 'Redakt? edilir';
             }
 
             window.handleProfileNameTyping = function(value) {
@@ -9877,9 +9878,9 @@
                 const nextName = cleanProfileText(value, '');
                 const nameEl = document.getElementById('profileDisplayName');
                 const avatarEl = document.getElementById('profileAvatar');
-                if (nameEl) nameEl.innerText = nextName || 'Ä°stifadÉ™Ã§i';
+                if (nameEl) nameEl.innerText = nextName || 'İstifad?çi';
                 if (avatarEl && !getLocalProfileImage()) {
-                    avatarEl.innerText = (nextName || 'Ä°').charAt(0).toUpperCase();
+                    avatarEl.innerText = (nextName || 'İ').charAt(0).toUpperCase();
                 }
             }
 
@@ -9888,15 +9889,15 @@
                 const input = document.getElementById('usernameInput');
                 const editBtn = document.getElementById('profileEditBtn');
                 if (input) input.readOnly = true;
-                if (editBtn) editBtn.innerText = 'RedaktÉ™ et';
+                if (editBtn) editBtn.innerText = 'Redakt? et';
                 if (auth.currentUser) startProfileRealtimeSync(auth.currentUser);
             }
 
             function getDefaultProfileName(user = auth.currentUser) {
-                if (!user) return 'Ä°stifadÉ™Ã§i';
+                if (!user) return 'İstifad?çi';
                 return cleanProfileText(
                     user.displayName || (user.email ? user.email.split('@')[0] : ''),
-                    'Ä°stifadÉ™Ã§i'
+                    'İstifad?çi'
                 );
             }
 
@@ -10003,9 +10004,9 @@
             }
 
             async function persistProfileToServer(profile, user = auth.currentUser) {
-                if (!user?.email) throw new Error('Hesaba daxil olunmayÄ±b');
+                if (!user?.email) throw new Error('Hesaba daxil olunmayıb');
                 const cleanName = cleanProfileText(profile.name || profile.displayName, '');
-                if (!cleanName) throw new Error('Ad boÅŸ ola bilmÉ™z');
+                if (!cleanName) throw new Error('Ad boş ola bilm?z');
                 const idToken = user.getIdToken ? await user.getIdToken().catch(() => '') : '';
 
                 const payload = {
@@ -10085,16 +10086,16 @@
                 const uInput = document.getElementById('usernameInput');
                 const saveBtn = document.querySelector('.container#profileView .save-btn');
                 
-                let newName = uInput ? uInput.value.trim() : 'Ä°stifadÉ™Ã§i';
+                let newName = uInput ? uInput.value.trim() : 'İstifad?çi';
                 let newStatus = DEFAULT_PROFILE_STATUS;
 
                 if (!newName) {
-                    showToast('Ad boÅŸ ola bilmÉ™z!');
+                    showToast('Ad boş ola bilm?z!');
                     return;
                 }
 
                 if (saveBtn) {
-                    saveBtn.innerText = 'Yadda saxlanÄ±lÄ±r...';
+                    saveBtn.innerText = 'Yadda saxlanılır...';
                     saveBtn.disabled = true;
                 }
 
@@ -10114,7 +10115,7 @@
                 applyProfileToUI(localProfile, auth.currentUser, { forceInputs: true });
 
                 try {
-                    if (!auth.currentUser) throw new Error('Hesaba daxil olunmayÄ±b');
+                    if (!auth.currentUser) throw new Error('Hesaba daxil olunmayıb');
                     const serverProfile = await persistProfileToServer({
                         name: newName,
                         status: newStatus,
@@ -10135,15 +10136,15 @@
                     }, auth.currentUser);
                     profilePendingSave = null;
                     applyProfileToUI(savedProfile, auth.currentUser, { forceInputs: true });
-                    showToast('MÉ™lumatlar yadda saxlanÄ±ldÄ±', 'success');
+                    showToast('M?lumatlar yadda saxlanıldı', 'success');
                 } catch (e) {
                     console.error("Save profile error:", e);
-                    showToast('Ad serverÉ™ yazÄ±lmadÄ±. YenidÉ™n cÉ™hd edin.', 'error');
+                    showToast('Ad server? yazılmadı. Yenid?n c?hd edin.', 'error');
                 } finally {
                     profileSaveInFlight = false;
                     lockProfileEdit();
                     if (saveBtn) {
-                        saveBtn.innerText = 'MÉ™lumatlar Saxla';
+                        saveBtn.innerText = 'M?lumatlar Saxla';
                         saveBtn.disabled = false;
                     }
                 }
@@ -10159,7 +10160,7 @@
                 if (!file) return;
 
                 if (file.size > 12 * 1024 * 1024) {
-                    showToast('ÅÉ™kil 12MB-dan kiÃ§ik olmalÄ±dÄ±r!', 'error');
+                    showToast('Ş?kil 12MB-dan kiçik olmalıdır!', 'error');
                     return;
                 }
 
@@ -10189,14 +10190,14 @@
                             else setLocalProfileImage('');
                             updateAuthUI();
                             console.warn('Profile image server sync failed:', e.message);
-                            showToast('ÅÉ™kil serverÉ™ yazÄ±lmadÄ±. Bir az sonra yenidÉ™n cÉ™hd edin.', 'error');
+                            showToast('Ş?kil server? yazılmadı. Bir az sonra yenid?n c?hd edin.', 'error');
                             return;
                         }
                     }
-                    showToast('Profil ÅŸÉ™kli yenilÉ™ndi', 'success');
+                    showToast('Profil ş?kli yenil?ndi', 'success');
                 }).catch((e) => {
                     console.warn('Profile image read failed:', e.message);
-                    showToast('ÅÉ™kil oxunmadÄ±. JPG/PNG/WebP ÅŸÉ™kil seÃ§in.', 'error');
+                    showToast('Ş?kil oxunmadı. JPG/PNG/WebP ş?kil seçin.', 'error');
                 }).finally(() => {
                     event.target.value = '';
                 });
@@ -10237,7 +10238,7 @@
                     if (themeToggle) themeToggle.checked = (localStorage.getItem('theme') || 'dark') === 'light';
                     
                     const dbg = document.getElementById('debugSettings');
-                    if(dbg) dbg.innerText = "YaddaÅŸdakÄ± vÉ™ziyyÉ™t: " + JSON.stringify(userSettings);
+                    if(dbg) dbg.innerText = "Yaddaşdakı v?ziyy?t: " + JSON.stringify(userSettings);
                 }, 100);
                 applyTheme(localStorage.getItem('theme') || 'dark', false);
             }
@@ -10246,9 +10247,9 @@
                 try {
                     userSettings[key] = val;
                     localStorage.setItem('userSettings', JSON.stringify(userSettings));
-                    showToast('TÉ™nzimlÉ™mÉ™ yadda saxlanÄ±ldÄ±');
+                    showToast('T?nziml?m? yadda saxlanıldı');
                 } catch (e) {
-                    showToast('YaddaÅŸa yazmaq mÃ¼mkÃ¼n olmadÄ±: ' + e.message, 'error');
+                    showToast('Yaddaşa yazmaq mümkün olmadı: ' + e.message, 'error');
                 }
             }
 
@@ -10277,15 +10278,15 @@
                     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
                     if (!("Notification" in window)) {
-                        let msg = 'Sizin brauzeriniz bildiriÅŸlÉ™ri dÉ™stÉ™klÉ™mir.';
+                        let msg = 'Sizin brauzeriniz bildirişl?ri d?st?kl?mir.';
                         let icon = '&#9888;';
                         
                         if (isIOS && !isStandalone) {
-                            msg = 'iPhone-da bildiriÅŸlÉ™r Ã¼Ã§Ã¼n: \n1. PaylaÅŸ (Share) dÃ¼ymÉ™sinÉ™ kliklÉ™yin.\n2. "Ana ekrana ÆlavÉ™ et" (Add to Home Screen) seÃ§in.\n3. ProqramÄ± hÉ™min ekrandan aÃ§Ä±b yenidÉ™n yoxlayÄ±n.';
+                            msg = 'iPhone-da bildirişl?r üçün: \n1. Paylaş (Share) düym?sin? klikl?yin.\n2. "Ana ekrana ?lav? et" (Add to Home Screen) seçin.\n3. Proqramı h?min ekrandan açıb yenid?n yoxlayın.';
                             icon = '&#128241;';
                         }
 
-                        showDialog({ title: 'DÉ™stÉ™klÉ™nmir', message: msg, icon: icon });
+                        showDialog({ title: 'D?st?kl?nmir', message: msg, icon: icon });
                         document.getElementById('browserNotifToggle').checked = false;
                         return;
                     }
@@ -10294,12 +10295,12 @@
                         if (permission === "granted") {
                             updateSetting('browserNotifEnabled', true);
                             syncPushRegistration();
-                            showToast('BildiriÅŸlÉ™r aktiv edildi', 'success');
+                            showToast('Bildirişl?r aktiv edildi', 'success');
                         } else {
                             if (permission !== 'unsupported') {
                                 showDialog({
-                                    title: 'Ä°cazÉ™ VerilmÉ™di',
-                                    message: 'Brauzer bildiriÅŸlÉ™rÉ™ icazÉ™ vermÉ™di. LÃ¼tfÉ™n brauzer tÉ™nzimlÉ™mÉ™lÉ™rindÉ™n icazÉ™ni sÄ±fÄ±rlayÄ±b yenidÉ™n cÉ™hd edin.',
+                                    title: 'İcaz? Verilm?di',
+                                    message: 'Brauzer bildirişl?r? icaz? verm?di. Lütf?n brauzer t?nziml?m?l?rind?n icaz?ni sıfırlayıb yenid?n c?hd edin.',
                                     icon: '&#128683;'
                                 });
                             }
@@ -10320,8 +10321,8 @@
 
             function clearAllData() {
                 showDialog({
-                    title: 'BÃ¼tÃ¼n MÉ™lumatlar Sil',
-                    message: 'BÃ¼tÃ¼n favoritlÉ™riniz vÉ™ profil mÉ™lumatlarÄ±nÄ±z hÉ™miÅŸÉ™lik silinÉ™cÉ™k. Bu hÉ™rÉ™kÉ™ti geri qaytarmaq mÃ¼mkÃ¼n deyil.',
+                    title: 'Bütün M?lumatlar Sil',
+                    message: 'Bütün favoritl?riniz v? profil m?lumatlarınız h?miş?lik silin?c?k. Bu h?r?k?ti geri qaytarmaq mümkün deyil.',
                     icon: '&#128465;',
                     type: 'confirm',
                     isDanger: true,
@@ -10351,7 +10352,7 @@
                 if (themeStatus) themeStatus.innerText = theme === 'light' ? 'Deaktiv' : 'Aktiv';
                 const themeToggle = document.getElementById('themeToggle');
                 if (themeToggle) themeToggle.checked = theme === 'light';
-                if (showMessage) showToast(theme === 'light' ? 'Ä°ÅŸÄ±qlÄ± tema aktivdir' : 'QaranlÄ±q tema aktivdir');
+                if (showMessage) showToast(theme === 'light' ? 'İşıqlı tema aktivdir' : 'Qaranlıq tema aktivdir');
             }
 
             function toggleTheme() {
@@ -10377,7 +10378,7 @@
                 pingServer();
                 fetchData(null, true);
                 syncFavoritesLive();
-                showToast('MÉ™lumatlar yenilÉ™nir...');
+                showToast('M?lumatlar yenil?nir...');
             };
 
             window.clearAppCache = function() {
@@ -10392,7 +10393,7 @@
                         localStorage.removeItem(key);
                     }
                 });
-                showToast('KeÅŸ tÉ™mizlÉ™ndi', 'success');
+                showToast('Keş t?mizl?ndi', 'success');
             }
 
             /* Auth Logic */
@@ -10412,8 +10413,8 @@
 
                 if (tab === 'login') {
                     tabL.classList.add('active');
-                    document.getElementById('authTitle').innerText = 'XoÅŸ GÉ™lmisiniz';
-                    document.getElementById('authSubtitle').innerText = 'Davam etmÉ™k Ã¼Ã§Ã¼n daxil olun';
+                    document.getElementById('authTitle').innerText = 'Xoş G?lmisiniz';
+                    document.getElementById('authSubtitle').innerText = 'Davam etm?k üçün daxil olun';
                     if (btn) btn.innerText = 'Daxil Ol';
                     if (emailField) emailField.style.display = 'block'; // Firebase login requires email
                     if (forgotLink) forgotLink.style.display = 'block';
@@ -10423,8 +10424,8 @@
                 } else {
                     tabR.classList.add('active');
                     document.getElementById('authTitle').innerText = 'Yeni Hesab';
-                    document.getElementById('authSubtitle').innerText = 'ProScore ailÉ™sinÉ™ qoÅŸulun';
-                    if (btn) btn.innerText = 'Qeydiyyatdan KeÃ§';
+                    document.getElementById('authSubtitle').innerText = 'ProScore ail?sin? qoşulun';
+                    if (btn) btn.innerText = 'Qeydiyyatdan Keç';
                     if (emailField) emailField.style.display = 'block';
                     if (forgotLink) forgotLink.style.display = 'none';
                     // Show username field for registration to use as displayName
@@ -10464,13 +10465,13 @@
                 const btn = document.getElementById('authSubmitBtn');
 
                 if (!email || !password || (!isLogin && !username)) {
-                    if (errorDiv) errorDiv.innerText = 'ZÉ™hmÉ™t olmasa bÃ¼tÃ¼n xanalarÄ± doldurun.';
+                    if (errorDiv) errorDiv.innerText = 'Z?hm?t olmasa bütün xanaları doldurun.';
                     return;
                 }
 
                 if (errorDiv) errorDiv.innerText = '';
                 if (btn) {
-                    btn.innerText = 'GÃ¶zlÉ™yin...';
+                    btn.innerText = 'Gözl?yin...';
                     btn.disabled = true;
                     btn.style.opacity = '0.7';
                 }
@@ -10494,7 +10495,7 @@
                             }
                         } catch(e) { console.warn("Could not sync profile from server."); }
 
-                        showToast(`XoÅŸ gÉ™ldin, ${welcomeName}!`);
+                        showToast(`Xoş g?ldin, ${welcomeName}!`);
                         switchMainView('profile');
                     } else {
                         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
@@ -10512,7 +10513,7 @@
                             status: DEFAULT_PROFILE_STATUS
                         }, userCredential.user);
 
-                        showToast('Qeydiyyat uÄŸurludur! XoÅŸ gÉ™ldiniz.');
+                        showToast('Qeydiyyat uğurludur! Xoş g?ldiniz.');
                         switchMainView('profile');
                     }
                     
@@ -10523,14 +10524,14 @@
 
                 } catch (error) {
                     console.error("Firebase auth error:", error);
-                    let errMsg = "Bir xÉ™ta baÅŸ verdi.";
+                    let errMsg = "Bir x?ta baş verdi.";
                     switch (error.code) {
-                        case 'auth/user-not-found': errMsg = "Ä°stifadÉ™Ã§i tapÄ±lmadÄ±."; break;
-                        case 'auth/wrong-password': errMsg = "ÅifrÉ™ yanlÄ±ÅŸdÄ±r. YenidÉ™n cÉ™hd edin."; break; // User specifically asked for this check
-                        case 'auth/invalid-credential': errMsg = "Email vÉ™ ya ÅŸifrÉ™ yanlÄ±ÅŸdÄ±r."; break;
-                        case 'auth/email-already-in-use': errMsg = "Bu email art?q istifadÉ™ olunub."; break;
-                        case 'auth/invalid-email': errMsg = "YanlÄ±ÅŸ email format?d?r."; break;
-                        case 'auth/weak-password': errMsg = "ÅifrÉ™ ?ox z?ifdir (?n az 6 simvol)."; break;
+                        case 'auth/user-not-found': errMsg = "İstifad?çi tapılmadı."; break;
+                        case 'auth/wrong-password': errMsg = "Şifr? yanlışdır. Yenid?n c?hd edin."; break; // User specifically asked for this check
+                        case 'auth/invalid-credential': errMsg = "Email v? ya şifr? yanlışdır."; break;
+                        case 'auth/email-already-in-use': errMsg = "Bu email art?q istifad? olunub."; break;
+                        case 'auth/invalid-email': errMsg = "Yanlış email format?d?r."; break;
+                        case 'auth/weak-password': errMsg = "Şifr? ?ox z?ifdir (?n az 6 simvol)."; break;
                         default: errMsg = error.message;
                     }
                     if (errorDiv) {
@@ -10540,7 +10541,7 @@
                     showToast(errMsg, 'error');
                 } finally {
                     if (btn) {
-                        btn.innerText = isLogin ? 'Daxil Ol' : 'Qeydiyyatdan KeÃ§';
+                        btn.innerText = isLogin ? 'Daxil Ol' : 'Qeydiyyatdan Keç';
                         btn.disabled = false;
                         btn.style.opacity = '1';
                     }
@@ -10639,7 +10640,7 @@
                     if (seconds <= 0) {
                         clearInterval(otpInterval);
                         display.innerText = "00:00";
-                        showToast("Vaxt bitdi. Kodu yenidÉ™n gÃ¶ndÉ™rin.");
+                        showToast("Vaxt bitdi. Kodu yenid?n gönd?rin.");
                         inputs.forEach(i => i.classList.add('expired'));
                         verifyBtn.disabled = true;
                         resendBox.style.display = 'block';
@@ -10668,11 +10669,11 @@
                         document.getElementById('forgotStep2').style.display = 'flex';
                         startOTPCountdown();
                     } else {
-                        showToast(data.message || 'XÉ™ta baÅŸ verdi');
+                        showToast(data.message || 'X?ta baş verdi');
                     }
                 } catch (e) {
                     console.error("Reset OTP error:", e);
-                    showToast('XÉ™ta baÅŸ verdi. ServerlÉ™ É™laqÉ™ kÉ™sildi.');
+                    showToast('X?ta baş verdi. Serverl? ?laq? k?sildi.');
                 }
             }
 
@@ -10682,7 +10683,7 @@
                 const otp = Array.from(inputs).map(i => i.value).join('');
 
                 if (otp.length < 4) {
-                    showToast('4 rÉ™qÉ™mli kodu daxil edin!');
+                    showToast('4 r?q?mli kodu daxil edin!');
                     return;
                 }
 
@@ -10699,9 +10700,9 @@
                         console.error(`[AUTH] Check OTP status error: ${res.status}`, errorText);
                         try {
                             const errorData = JSON.parse(errorText);
-                            showToast(errorData.message || 'Server xÉ™tasÄ± baÅŸ verdi.');
+                            showToast(errorData.message || 'Server x?tası baş verdi.');
                         } catch(e) {
-                            showToast('Server cavab verÉ™ bilmÉ™di (XÉ™ta: ' + res.status + ')');
+                            showToast('Server cavab ver? bilm?di (X?ta: ' + res.status + ')');
                         }
                         return;
                     }
@@ -10712,11 +10713,11 @@
                         document.getElementById('forgotStep2').style.display = 'none';
                         document.getElementById('forgotStep3').style.display = 'flex';
                     } else {
-                        showToast(data.message || 'Kod yanlÄ±ÅŸdÄ±r.');
+                        showToast(data.message || 'Kod yanlışdır.');
                     }
                 } catch (e) {
                     console.error("[AUTH] Check OTP Exception:", e);
-                    showToast('BaÄŸlantÄ± xÉ™tasÄ±. Ä°nternet baÄŸlantÄ±nÄ±zÄ± yoxlayÄ±n.');
+                    showToast('Bağlantı x?tası. İnternet bağlantınızı yoxlayın.');
                 }
             }
 
@@ -10728,11 +10729,11 @@
                 const confirmPassword = document.getElementById('confirmPassword').value.trim();
 
                 if (!newPassword || !confirmPassword) {
-                    showToast('BÃ¼tÃ¼n xanalarÄ± doldurun!');
+                    showToast('Bütün xanaları doldurun!');
                     return;
                 }
                 if (newPassword !== confirmPassword) {
-                    showToast('ÅifrÉ™lÉ™r Ã¼st-Ã¼stÉ™ dÃ¼ÅŸmÃ¼r!');
+                    showToast('Şifr?l?r üst-üst? düşmür!');
                     return;
                 }
 
@@ -10748,9 +10749,9 @@
                         console.error(`[AUTH] Verify OTP error: ${res.status}`, errorText);
                         try {
                             const errorData = JSON.parse(errorText);
-                            showToast(errorData.message || 'XÉ™ta baÅŸ verdi.');
+                            showToast(errorData.message || 'X?ta baş verdi.');
                         } catch(e) {
-                            showToast('Server xÉ™tasÄ± (' + res.status + ')');
+                            showToast('Server x?tası (' + res.status + ')');
                         }
                         return;
                     }
@@ -10761,19 +10762,19 @@
                         clearInterval(otpInterval);
                         toggleForgotView(false);
                     } else {
-                        showToast(data.message || 'XÉ™ta baÅŸ verdi');
+                        showToast(data.message || 'X?ta baş verdi');
                     }
                 } catch (e) {
                     console.error("[AUTH] Verify OTP Exception:", e);
-                    showToast('XÉ™ta baÅŸ verdi.');
+                    showToast('X?ta baş verdi.');
                 }
             }
 
             window.logoutUser = function() {
                 showDialog({
-                    title: 'Ã‡Ä±xÄ±ÅŸ Et?',
-                    message: 'HesabÄ±nÄ±zdan Ã§Ä±xmaq istÉ™diyinizÉ™ É™minsiniz?',
-                    icon: 'ğŸšª',
+                    title: 'Çıxış Et?',
+                    message: 'Hesabınızdan çıxmaq ist?diyiniz? ?minsiniz?',
+                    icon: '??',
                     type: 'confirm',
                     onConfirm: () => {
                         const profileKey = getProfileStorageKey();
@@ -10786,7 +10787,7 @@
                             localStorage.removeItem(profileKey);
                             localStorage.removeItem(nameLockKey);
                             localStorage.removeItem(imageKey);
-                            showToast('Hesabdan Ã§Ä±xÄ±ldÄ±.', 'success');
+                            showToast('Hesabdan çıxıldı.', 'success');
                             switchMainView('matches');
                         });
 
@@ -10841,8 +10842,8 @@
                     const statusEl = document.getElementById('profileUserStatus');
                     const avatarEl = document.getElementById('profileAvatar');
                     
-                    if (nameEl) nameEl.innerText = "Ä°stifadÉ™Ã§i";
-                    if (statusEl) statusEl.innerText = "Daxil olunmayÄ±b";
+                    if (nameEl) nameEl.innerText = "İstifad?çi";
+                    if (statusEl) statusEl.innerText = "Daxil olunmayıb";
                     
                     if (avatarEl) {
                         avatarEl.style.backgroundImage = "none";
@@ -10932,8 +10933,8 @@
                 type = 'alert', 
                 onConfirm, 
                 onCancel, 
-                confirmTxt = 'BÉ™li', 
-                cancelTxt = 'LÉ™ÄŸv Et',
+                confirmTxt = 'B?li', 
+                cancelTxt = 'L?ğv Et',
                 isDanger = false
             }) {
                 const overlay = document.getElementById('customDialog');
@@ -10979,9 +10980,9 @@
 
             window.showAboutApp = function() {
                 showDialog({
-                    title: 'HaqqÄ±mÄ±zda',
-                    message: 'Rabona Media canlÄ± oyunlar, liqalar, favoritlÉ™r vÉ™ É™sas futbol mÉ™lumatlarÄ±nÄ± bir yerdÉ™ tÉ™qdim edÉ™n mÃ¼asir idman tÉ™tbiqidir. MÉ™qsÉ™dimiz nÉ™ticÉ™lÉ™ri vÉ™ vacib hadisÉ™lÉ™ri sizÉ™ rahat, sÃ¼rÉ™tli vÉ™ sÉ™liqÉ™li ÅŸÉ™kildÉ™ Ã§atdÄ±rmaqdÄ±r.',
-                    icon: 'â„¹ï¸',
+                    title: 'Haqqımızda',
+                    message: 'Rabona Media canlı oyunlar, liqalar, favoritl?r v? ?sas futbol m?lumatlarını bir yerd? t?qdim ed?n müasir idman t?tbiqidir. M?qs?dimiz n?tic?l?ri v? vacib hadis?l?ri siz? rahat, sür?tli v? s?liq?li ş?kild? çatdırmaqdır.',
+                    icon: '??',
                     type: 'alert'
                 });
                 const iconEl = document.getElementById('dialogIcon');
@@ -10993,7 +10994,7 @@
                     msgEl.innerHTML = `
                         <div style="text-align:center;">
                             <div style="line-height:1.7; color:var(--text-muted); margin-bottom:18px;">
-                                Rabona Media canlÄ± oyunlar, liqalar, favoritlÉ™r vÉ™ É™sas futbol mÉ™lumatlarÄ±nÄ± bir yerdÉ™ tÉ™qdim edÉ™n mÃ¼asir idman tÉ™tbiqidir. MÉ™qsÉ™dimiz nÉ™ticÉ™lÉ™ri vÉ™ vacib hadisÉ™lÉ™ri sizÉ™ rahat, sÃ¼rÉ™tli vÉ™ sÉ™liqÉ™li ÅŸÉ™kildÉ™ Ã§atdÄ±rmaqdÄ±r.
+                                Rabona Media canlı oyunlar, liqalar, favoritl?r v? ?sas futbol m?lumatlarını bir yerd? t?qdim ed?n müasir idman t?tbiqidir. M?qs?dimiz n?tic?l?ri v? vacib hadis?l?ri siz? rahat, sür?tli v? s?liq?li ş?kild? çatdırmaqdır.
                             </div>
                             <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
                                 <a href="https://www.instagram.com/rabonamedia/" target="_blank" style="display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:14px; background:rgba(255,255,255,0.06); color:#fff; text-decoration:none; font-weight:700;">
@@ -11021,7 +11022,7 @@
                     <div class="loader-wrapper">
                         <div style="text-align:center; padding:50px;">
                             <i class="fas fa-circle-notch fa-spin" style="font-size:32px; color:var(--primary); margin-bottom:15px;"></i>
-                            <div style="font-weight:600; color:var(--text-muted);">MÉ™lumatlar yÃ¼klÉ™nir...</div>
+                            <div style="font-weight:600; color:var(--text-muted);">M?lumatlar yükl?nir...</div>
                         </div>
                     </div>`;
             }
@@ -11114,7 +11115,7 @@
             // Single visibilitychange handler: sync data + ping when app resumes
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') {
-                    console.log("[App] Resumed Ã¢â‚¬â€ refreshing data and pinging server...");
+                    console.log("[App] Resumed â€” refreshing data and pinging server...");
                     pingServer();
                     fetchData(null, true);
                     syncFavoritesLive();
@@ -11143,7 +11144,7 @@
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
                     }).catch(err => {
-                        console.warn('SW qeydiyyatÄ± uÄŸursuz:', err);
+                        console.warn('SW qeydiyyatı uğursuz:', err);
                     });
                 });
             }
@@ -11169,3 +11170,5 @@
 </body>
 
 </html>
+
+
