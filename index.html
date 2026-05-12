@@ -9259,7 +9259,8 @@
                     (currentKey && (f.favoriteKey || getMatchFavoriteKey(f)) === currentKey)
                 );
                 const keyIdx = currentKey ? favMatchKeys.indexOf(currentKey) : -1;
-                if (idx === -1 && keyIdx === -1) {
+                const favoriteAdded = idx === -1 && keyIdx === -1;
+                if (favoriteAdded) {
                     const match = currentMatch;
                     if (match) {
                         favMatches.push(normalizeFavoriteMatch(match));
@@ -9276,8 +9277,7 @@
                     showToast('Oyun favoritlərdən çıxarıldı');
                 }
                 persistFavoriteMatches();
-                syncRegisteredPushState();
-                registerFCMToken();
+                refreshPushAfterFavoriteChange(favoriteAdded).catch(() => syncRegisteredPushState());
             }
 
             let firebaseForegroundBound = false;
@@ -9293,6 +9293,15 @@
 
             function getFavoriteIds() {
                 return (typeof favMatches !== 'undefined' ? favMatches : []).map(m => m.id ? m.id.toString() : null).filter(Boolean);
+            }
+
+            function getFavoriteKeys() {
+                return Array.from(new Set([
+                    ...((typeof favMatchKeys !== 'undefined' ? favMatchKeys : []) || []),
+                    ...((typeof favMatches !== 'undefined' ? favMatches : []) || [])
+                        .map(m => m.favoriteKey || getMatchFavoriteKey(m))
+                        .filter(Boolean)
+                ]));
             }
 
             function getFavoriteLeagueIds() {
@@ -9340,6 +9349,7 @@
             function syncRegisteredPushState() {
                 const favorites = getFavoriteIds();
                 const leagues = getFavoriteLeagueIds();
+                const favoriteKeys = getFavoriteKeys();
                 const requests = [];
 
                 const cachedWebPushPayload = loadCachedWebPushPayload();
@@ -9350,7 +9360,8 @@
                         body: JSON.stringify({
                             ...cachedWebPushPayload,
                             favorites,
-                            leagues
+                            leagues,
+                            favoriteKeys
                         }),
                         keepalive: true,
                         cache: 'no-store'
@@ -9362,7 +9373,7 @@
                     requests.push(fetch(API_BASE_URL + '/api/fcm/register', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ token, favorites, leagues }),
+                        body: JSON.stringify({ token, favorites, leagues, favoriteKeys }),
                         keepalive: true,
                         cache: 'no-store'
                     }).catch(() => null));
@@ -9435,6 +9446,7 @@
                     subscription,
                     favorites: getFavoriteIds(),
                     leagues: getFavoriteLeagueIds(),
+                    favoriteKeys: getFavoriteKeys(),
                     platform: isIosStandalonePwa() ? 'ios-pwa' : 'webpush',
                     userAgent: navigator.userAgent
                 };
@@ -9515,7 +9527,7 @@
                 const res = await fetch(API_BASE_URL + '/api/fcm/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token, favorites: getFavoriteIds(), leagues: getFavoriteLeagueIds() })
+                    body: JSON.stringify({ token, favorites: getFavoriteIds(), leagues: getFavoriteLeagueIds(), favoriteKeys: getFavoriteKeys() })
                 });
 
                 if (!res.ok) {
@@ -9559,6 +9571,38 @@
 
                 safeLocalStorageSet('pushMode', successful.includes('webpush') ? 'webpush' : successful[0]);
                 return true;
+            }
+
+            async function refreshPushAfterFavoriteChange(shouldAskPermission = false) {
+                syncRegisteredPushState();
+
+                if (!("Notification" in window)) return false;
+                if (!supportsWebPush() && !supportsFirebaseMessaging()) return false;
+
+                let permission = Notification.permission;
+                if (shouldAskPermission && permission === 'default') {
+                    permission = await notificationMgr.requestPermission();
+                }
+
+                if (permission === 'granted') {
+                    updateSetting('browserNotifEnabled', true);
+                    const toggle = document.getElementById('browserNotifToggle');
+                    if (toggle) toggle.checked = true;
+                    const ok = await syncPushRegistration();
+                    if (ok && shouldAskPermission) showToast('Qol bildirişləri aktivdir', 'success');
+                    return ok;
+                }
+
+                if (shouldAskPermission) {
+                    showDialog({
+                        title: 'Bildiriş icazəsi lazımdır',
+                        message: isIosStandalonePwa()
+                            ? 'Favorit oyuna qol bildirişi gəlməsi üçün iPhone bu tətbiqə bildiriş icazəsi verməlidir.'
+                            : 'Favorit oyuna qol bildirişi gəlməsi üçün brauzer bildirişlərinə icazə verin.',
+                        icon: '&#128276;'
+                    });
+                }
+                return false;
             }
 
             async function registerFCMToken() {
@@ -9613,7 +9657,8 @@
             function toggleFavoriteLeague(id, name, country, btn) {
                 event.stopPropagation();
                 const idx = favLeagues.findIndex(f => f.id.toString() === id.toString());
-                if (idx === -1) {
+                const favoriteAdded = idx === -1;
+                if (favoriteAdded) {
                     favLeagues.push({ id, name, country });
                     btn.innerHTML = '&#9733;';
                     btn.classList.add('active');
@@ -9625,8 +9670,7 @@
                     showToast('Liqa favoritlərdən çıxarıldı');
                 }
                 localStorage.setItem('favLeagues', JSON.stringify(favLeagues));
-                syncRegisteredPushState();
-                registerFCMToken();
+                refreshPushAfterFavoriteChange(favoriteAdded).catch(() => syncRegisteredPushState());
             }
 
             function renderFavoritesView() {
@@ -11078,7 +11122,7 @@
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js?v=27').then(reg => {
+                    navigator.serviceWorker.register('/sw.js?v=28').then(reg => {
                         console.log('SW registered:', reg.scope);
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });

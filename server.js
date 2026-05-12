@@ -4408,33 +4408,52 @@ function normalizeIdList(list) {
         : [];
 }
 
+function normalizeFavoriteText(value) {
+    return String(value || "").toLowerCase().trim().replace(/\s+/g, " ");
+}
+
+function buildServerFavoriteKey(event) {
+    if (!event) return "";
+    const home = normalizeFavoriteText(event.homeTeam?.name || event.homeTeam?.shortName);
+    const away = normalizeFavoriteText(event.awayTeam?.name || event.awayTeam?.shortName);
+    const tournament = normalizeFavoriteText(event.tournament?.name);
+    const start = event.startTimestamp ? String(event.startTimestamp) : "";
+    return [home, away, tournament, start].filter(Boolean).join("|");
+}
+
 function getFavoritePayloadFromReg(reg) {
     return {
         favorites: normalizeIdList(reg?.favorites),
-        leagues: normalizeIdList(reg?.leagues)
+        leagues: normalizeIdList(reg?.leagues),
+        favoriteKeys: normalizeIdList(reg?.favoriteKeys)
     };
 }
 
-function collectFavoriteRecipients(matchId, leagueId) {
+function collectFavoriteRecipients(matchId, leagueId, favoriteKey = "") {
     const matchKey = matchId?.toString();
     const leagueKey = leagueId?.toString();
+    const eventKey = favoriteKey?.toString();
     const recipients = [];
 
     Object.entries(fcmRegistrations).forEach(([token, reg]) => {
-        const { favorites, leagues } = getFavoritePayloadFromReg(reg);
-        if (favorites.includes(matchKey) || leagues.includes(leagueKey)) {
+        const { favorites, leagues, favoriteKeys } = getFavoritePayloadFromReg(reg);
+        if (favorites.includes(matchKey) || leagues.includes(leagueKey) || (eventKey && favoriteKeys.includes(eventKey))) {
             recipients.push({ channel: "fcm", id: token, reg });
         }
     });
 
     Object.entries(webPushRegistrations).forEach(([deviceId, reg]) => {
-        const { favorites, leagues } = getFavoritePayloadFromReg(reg);
-        if (favorites.includes(matchKey) || leagues.includes(leagueKey)) {
+        const { favorites, leagues, favoriteKeys } = getFavoritePayloadFromReg(reg);
+        if (favorites.includes(matchKey) || leagues.includes(leagueKey) || (eventKey && favoriteKeys.includes(eventKey))) {
             recipients.push({ channel: "webpush", id: deviceId, reg });
         }
     });
 
     return recipients;
+}
+
+function collectFavoriteRecipientsForEvent(event, matchId, leagueId) {
+    return collectFavoriteRecipients(matchId || event?.id, leagueId, buildServerFavoriteKey(event));
 }
 
 function removeInvalidWebPushRegistration(deviceId) {
@@ -4484,11 +4503,12 @@ function createPushPayload({ title, body, matchId, type, tag, requireInteraction
 }
 
 app.post("/api/fcm/register", (req, res) => {
-    const { token, favorites, leagues } = req.body;
+    const { token, favorites, leagues, favoriteKeys } = req.body;
     if (token) {
         fcmRegistrations[token] = { 
             favorites: normalizeIdList(favorites), 
             leagues: normalizeIdList(leagues),
+            favoriteKeys: normalizeIdList(favoriteKeys),
             lastUpdated: Date.now() 
         };
         saveRegistrations();
@@ -4504,7 +4524,7 @@ app.get("/api/push/public-key", (req, res) => {
 });
 
 app.post("/api/push/subscribe", (req, res) => {
-    const { deviceId, subscription, favorites, leagues, platform, userAgent } = req.body || {};
+    const { deviceId, subscription, favorites, leagues, favoriteKeys, platform, userAgent } = req.body || {};
     if (!deviceId || !subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
         return res.status(400).json({ success: false, message: "deviceId and valid subscription are required" });
     }
@@ -4513,6 +4533,7 @@ app.post("/api/push/subscribe", (req, res) => {
         subscription,
         favorites: normalizeIdList(favorites),
         leagues: normalizeIdList(leagues),
+        favoriteKeys: normalizeIdList(favoriteKeys),
         platform: platform || "webpush",
         userAgent: userAgent || "",
         lastUpdated: Date.now()
@@ -4827,7 +4848,7 @@ setInterval(async () => {
                         leagueId
                     });
 
-                    const recipients = collectFavoriteRecipients(matchId, leagueId);
+                    const recipients = collectFavoriteRecipientsForEvent(ev, matchId, leagueId);
                     if (recipients.length > 0) {
                         sendGoalPushToRecipients(recipients, {
                             title,
@@ -4926,7 +4947,7 @@ setInterval(async () => {
             }
             if (incidentsToNotify.length === 0) continue;
 
-            const recipients = collectFavoriteRecipients(matchId, leagueId);
+            const recipients = collectFavoriteRecipientsForEvent(ev, matchId, leagueId);
             if (recipients.length === 0) continue;
 
             for (const incident of incidentsToNotify) {
