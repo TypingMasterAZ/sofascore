@@ -5,14 +5,12 @@ const ASSETS_TO_CACHE = [
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css'
 ];
 
-// Import Firebase Messaging SW logic
-importScripts('/firebase-messaging-sw.js');
+// No external SW imports needed, sw.js handles all pushes natively
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[SW] Pre-caching offline shell v29');
-      // addAll uğursuz olarsa install bloklanmasın
       return Promise.allSettled(
         ASSETS_TO_CACHE.map(url => cache.add(url).catch(e => console.warn('[SW] Cache miss:', url, e.message)))
       );
@@ -110,15 +108,34 @@ self.addEventListener('push', (event) => {
     payload = { title: 'Rabona Media', body: event.data.text() };
   }
 
-  const title = payload.title || 'Rabona Media';
+  // Handle both WebPush (VAPID) and FCM payload structures
+  const notificationData = payload.notification || payload;
+  const customData = payload.data || notificationData.data || {};
+
+  const title = notificationData.title || customData.title || 'Rabona Media';
+  const body = notificationData.body || customData.body || 'Yeni bildiriş var.';
+  const matchId = customData.matchId || "";
+
+  // Broadcast to main thread if the app is open
+  const bc = new BroadcastChannel('goal_notifications');
+  bc.postMessage({
+      type: 'GOAL_NOTIFICATION',
+      payload: {
+          title: title,
+          body: body,
+          matchId: matchId,
+          time: new Date().toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' })
+      }
+  });
+
   const options = {
-    body: payload.body || 'Yeni bildiriş var.',
-    icon: payload.icon || 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
-    badge: payload.badge || 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
-    vibrate: payload.vibrate || [200, 100, 200],
-    requireInteraction: !!payload.requireInteraction,
-    tag: payload.tag || 'general',
-    data: payload.data || {}
+    body: body,
+    icon: notificationData.icon || customData.icon || 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
+    badge: notificationData.badge || customData.badge || 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
+    vibrate: notificationData.vibrate || customData.vibrate || [200, 100, 200],
+    requireInteraction: true,
+    tag: notificationData.tag || customData.tag || (matchId ? `goal-${matchId}` : 'general'),
+    data: customData
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
