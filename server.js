@@ -4650,7 +4650,10 @@ app.post("/api/push/test", async (req, res) => {
             tag: `test-${deviceId}`,
             requireInteraction: true
         });
-        await sendWebPushMessage(deviceId, payload);
+        const sent = await sendWebPushMessage(deviceId, payload);
+        if (!sent) {
+            return res.status(502).json({ success: false, message: "Web Push göndərilmədi. Abunəliyi yenidən aktiv edin." });
+        }
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ success: false, message: e.message });
@@ -4889,23 +4892,36 @@ setInterval(async () => {
 setInterval(async () => {
     try {
         const favoriteMatchIds = new Set();
+        const favoriteMatchKeys = new Set();
+        const favoriteLeagueIds = new Set();
 
         Object.values(fcmRegistrations).forEach(reg => {
-            normalizeIdList(reg?.favorites).forEach(id => favoriteMatchIds.add(id.toString()));
+            const payload = getFavoritePayloadFromReg(reg);
+            payload.favorites.forEach(id => favoriteMatchIds.add(id.toString()));
+            payload.favoriteKeys.forEach(key => favoriteMatchKeys.add(key.toString()));
+            payload.leagues.forEach(id => favoriteLeagueIds.add(id.toString()));
         });
         Object.values(webPushRegistrations).forEach(reg => {
-            normalizeIdList(reg?.favorites).forEach(id => favoriteMatchIds.add(id.toString()));
+            const payload = getFavoritePayloadFromReg(reg);
+            payload.favorites.forEach(id => favoriteMatchIds.add(id.toString()));
+            payload.favoriteKeys.forEach(key => favoriteMatchKeys.add(key.toString()));
+            payload.leagues.forEach(id => favoriteLeagueIds.add(id.toString()));
         });
 
-        if (favoriteMatchIds.size === 0) return;
+        if (favoriteMatchIds.size === 0 && favoriteMatchKeys.size === 0 && favoriteLeagueIds.size === 0) return;
 
         const liveData = await getLiveEventsData(true);
         if (!liveData?.events?.length) return;
 
-        const favoriteLiveMatches = liveData.events.filter(ev =>
-            favoriteMatchIds.has(ev.id?.toString()) &&
-            (ev.status?.type === "inprogress" || ["HT", "HALFTIME", "EXTRA TIME", "ET"].includes((ev.status?.description || "").toUpperCase()))
-        );
+        const favoriteLiveMatches = liveData.events.filter(ev => {
+            const leagueId = (ev.tournament?.uniqueTournament?.id || ev.tournament?.id || "").toString();
+            const isFavorite =
+                favoriteMatchIds.has(ev.id?.toString()) ||
+                favoriteLeagueIds.has(leagueId) ||
+                favoriteMatchKeys.has(buildServerFavoriteKey(ev));
+            return isFavorite &&
+                (ev.status?.type === "inprogress" || ["HT", "HALFTIME", "EXTRA TIME", "ET"].includes((ev.status?.description || "").toUpperCase()));
+        });
 
         for (const ev of favoriteLiveMatches) {
             const matchId = ev.id.toString();
@@ -5070,11 +5086,16 @@ setInterval(async () => {
         ];
 
         for (const recipient of recipients) {
-            const favorites = normalizeIdList(recipient.reg?.favorites);
-            if (favorites.length === 0) continue;
+            const { favorites, favoriteKeys } = getFavoritePayloadFromReg(recipient.reg);
+            if (favorites.length === 0 && favoriteKeys.length === 0) continue;
 
-            for (const favId of favorites) {
-                const match = allUpcomingEvents.find(ev => ev.id.toString() === favId.toString());
+            const favoriteMatches = allUpcomingEvents.filter(ev =>
+                favorites.includes(ev.id?.toString()) ||
+                favoriteKeys.includes(buildServerFavoriteKey(ev))
+            );
+
+            for (const match of favoriteMatches) {
+                const favId = match.id?.toString();
                 if (!match?.startTimestamp) continue;
 
                 const timeUntilStart = match.startTimestamp - nowSec;

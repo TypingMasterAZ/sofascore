@@ -9346,6 +9346,14 @@
                 return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
             }
 
+            function arrayBufferToBase64Url(buffer) {
+                if (!buffer) return '';
+                const bytes = new Uint8Array(buffer);
+                let binary = '';
+                bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+                return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            }
+
             function syncRegisteredPushState() {
                 const favorites = getFavoriteIds();
                 const leagues = getFavoriteLeagueIds();
@@ -9434,6 +9442,14 @@
                 }
 
                 let subscription = await swReg.pushManager.getSubscription();
+                const currentKey = keyData.publicKey.replace(/=+$/, '');
+                const subscriptionKey = subscription?.options?.applicationServerKey
+                    ? arrayBufferToBase64Url(subscription.options.applicationServerKey)
+                    : currentKey;
+                if (subscription && subscriptionKey && subscriptionKey !== currentKey) {
+                    await subscription.unsubscribe().catch(() => {});
+                    subscription = null;
+                }
                 if (!subscription) {
                     subscription = await swReg.pushManager.subscribe({
                         userVisibleOnly: true,
@@ -11122,7 +11138,7 @@
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js?v=28').then(reg => {
+                    navigator.serviceWorker.register('/sw.js?v=29').then(reg => {
                         console.log('SW registered:', reg.scope);
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });

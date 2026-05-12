@@ -1,4 +1,4 @@
-const CACHE_NAME = 'proscore-shell-v28';
+const CACHE_NAME = 'proscore-shell-v29';
 const ASSETS_TO_CACHE = [
   '/manifest.json?v=2',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap',
@@ -11,7 +11,7 @@ importScripts('/firebase-messaging-sw.js');
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Pre-caching offline shell v28');
+      console.log('[SW] Pre-caching offline shell v29');
       // addAll uğursuz olarsa install bloklanmasın
       return Promise.allSettled(
         ASSETS_TO_CACHE.map(url => cache.add(url).catch(e => console.warn('[SW] Cache miss:', url, e.message)))
@@ -35,6 +35,12 @@ self.addEventListener('activate', (event) => {
     })
   );
   self.clients.claim();
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', (event) => {
