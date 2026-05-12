@@ -9,13 +9,13 @@
   "theme_color": "#0a101f",
   "icons": [
     {
-      "src": "https://www.sofascore.com/favicon.ico",
+      "src": "",
       "sizes": "192x192",
       "type": "image/x-icon",
       "purpose": "maskable"
     },
     {
-      "src": "https://www.sofascore.com/favicon.ico",
+      "src": "",
       "sizes": "512x512",
       "type": "image/x-icon"
     }
