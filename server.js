@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 // Version: 2.0.0 - Keep-Alive Fix + Render Sleep Prevention
 console.log("-----------------------------------------");
 console.log(`[STARTUP] Server booting at ${new Date().toISOString()}`);
@@ -2683,16 +2683,26 @@ function buildFcmGoalMessage({ title, body, matchId, type, tag, score = "", ttl 
                 tag
             }
         },
-        apns: { payload: { aps: { sound: "default", badge: 1, contentAvailable: true } } },
+        apns: { 
+            payload: { 
+                aps: { 
+                    sound: "default", 
+                    badge: 1, 
+                    "mutable-content": 1,
+                    alert: { title, body }
+                } 
+            } 
+        },
         webpush: {
             headers: { Urgency: "high", TTL: ttl },
             notification: {
+                title,
+                body,
                 vibrate: [500, 110, 500],
                 icon: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
                 badge: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
                 tag,
-                renotify: true,
-                requireInteraction: true
+                renotify: true
             },
             fcm_options: { link: "/" }
         }
