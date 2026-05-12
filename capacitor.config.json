@@ -1,0 +1,14 @@
+{
+  "appId": "com.rabonamedia.live",
+  "appName": "Rabona Media LIVE",
+  "webDir": "www",
+  "server": {
+    "url": "https://sofascore-xoyr.onrender.com",
+    "cleartext": false
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "allowsLinkPreview": false,
+    "scrollEnabled": true
+  }
+}
