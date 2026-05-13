@@ -1108,11 +1108,47 @@ async function fetchSofaImageCached(imagePath) {
 
 let lastScores = {};
 let liveGoalIncidentState = {};
+const SCORES_FILE = "./last_scores.json";
+const INCIDENT_STATE_FILE = "./incident_state.json";
+
+function loadPersistentState() {
+    try {
+        if (fs.existsSync(SCORES_FILE)) {
+            lastScores = JSON.parse(fs.readFileSync(SCORES_FILE, "utf-8"));
+            console.log(`[STATE] Loaded ${Object.keys(lastScores).length} match scores from disk.`);
+        }
+        if (fs.existsSync(INCIDENT_STATE_FILE)) {
+            const raw = JSON.parse(fs.readFileSync(INCIDENT_STATE_FILE, "utf-8"));
+            // Convert arrays back to Sets
+            liveGoalIncidentState = {};
+            for (const id in raw) {
+                liveGoalIncidentState[id] = new Set(raw[id]);
+            }
+            console.log(`[STATE] Loaded incident state for ${Object.keys(liveGoalIncidentState).length} matches.`);
+        }
+    } catch (e) { console.error("[STATE] Load error:", e.message); }
+}
+
+function savePersistentState() {
+    try {
+        fs.writeFileSync(SCORES_FILE, JSON.stringify(lastScores, null, 2));
+        // Convert Sets to arrays for JSON
+        const toSave = {};
+        for (const id in liveGoalIncidentState) {
+            toSave[id] = Array.from(liveGoalIncidentState[id]);
+        }
+        fs.writeFileSync(INCIDENT_STATE_FILE, JSON.stringify(toSave, null, 2));
+    } catch (e) { console.error("[STATE] Save error:", e.message); }
+}
+
+loadPersistentState();
+
 let goalNotificationState = {};
 let pendingGoalDetailNotifications = {};
 let globalLiveEvents = null;
 let lastLiveFetchTime = 0;
 let lastLiveFetchAttemptTime = 0;
+
 let liveFetchPromise = null;
 let liveSnapshotLoadPromise = null;
 let liveDetailsWarmupPromise = null;
@@ -2942,45 +2978,7 @@ function refreshMatchStatisticsInBackground(matchId, label = "STATS BACKGROUND R
     fetchMatchStatisticsFresh(matchId)
         .then(data => {
             if (!data) return;
-            // -------------------------------------------------------------------
-// Periodic live data refresh (every 5 seconds)
-// -------------------------------------------------------------------
-async function refreshLiveData() {
-  try {
-    // Load the latest snapshot from disk (updated by other parts of the app)
-    const raw = fs.readFileSync(LIVE_SNAPSHOT_FILE, 'utf8');
-    const data = JSON.parse(raw);
-    if (!data || !Array.isArray(data.events)) return;
-    // Assume data.events is an array of match objects with `id` field
-    for (const match of data.events) {
-      const prev = matchCache[match.id];
-      matchCache[match.id] = match; // update cache
-      // Detect new goal incidents (simple example: compare scores)
-      if (prev && (prev.homeScore?.current !== match.homeScore?.current || prev.awayScore?.current !== match.awayScore?.current)) {
-        // New goal detected – send push notification if needed
-        if (global.sendPushNotification) {
-          // Prepare minimal payload for notification
-          const payload = {
-            title: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
-            body: `Goal! ${match.homeScore.current} - ${match.awayScore.current}`,
-            matchId: match.id
-          };
-          try { await global.sendPushNotification(payload); } catch (e) { console.warn('[NOTIFY] Push error:', e.message); }
-        }
-        // Notify SSE listeners
-        notifySseListeners(match);
-      }
-    }
-  } catch (e) {
-    console.warn('[REFRESH] Live data refresh failed:', e.message);
-  }
-}
-
-// Start the interval after the server begins listening
-function startLiveRefreshLoop() {
-  setInterval(refreshLiveData, Math.max(3000, BACKGROUND_REFRESH_INTERVAL_MS));
-}
-            const existing = cache[`stats_${matchId}`]?.data;
+                        const existing = cache[`stats_${matchId}`]?.data;
             if (hasUsefulStatsData(data) || !hasUsefulStatsData(existing)) {
                 cache[`stats_${matchId}`] = { data, timestamp: Date.now() };
             }
@@ -4999,7 +4997,8 @@ app.get("/api/fcm/broadcast-test", async (req, res) => {
 });
 
 // Background Worker for Live Matches Push Notifications
-setInterval(async () => {
+async function runBackgroundGoalTracker() {
+
     if (liveScoreWorkerInFlight) return;
     liveScoreWorkerInFlight = true;
     try {
@@ -5075,9 +5074,11 @@ setInterval(async () => {
     } finally {
         liveScoreWorkerInFlight = false;
     }
-}, LIVE_SCORE_POLL_INTERVAL_MS);
+}
 
-setInterval(async () => {
+
+async function runIncidentScorerWorker() {
+
     try {
         const favoriteMatchIds = new Set();
         const favoriteMatchKeys = new Set();
@@ -5194,7 +5195,8 @@ setInterval(async () => {
     } catch (e) {
         console.error("[Goal Incident Worker] Error:", e.message);
     }
-}, 4000);
+}
+
 
 async function sendReminderToRecipient(recipient, payload) {
     if (recipient.channel === "fcm") {
@@ -5246,7 +5248,9 @@ async function sendReminderToRecipient(recipient, payload) {
 }
 
 // --- Reminder Worker for Upcoming Favorited Matches ---
-setInterval(async () => {
+// --- Reminder Worker for Upcoming Favorited Matches ---
+async function runReminderWorker() {
+
     if (Object.keys(fcmRegistrations).length === 0 && Object.keys(webPushRegistrations).length === 0) return;
 
     try {
@@ -5329,7 +5333,8 @@ setInterval(async () => {
     } catch (e) {
         console.error("[Reminder Worker] Error:", e.name, e.message);
     }
-}, 60 * 1000);
+}
+
 
 async function warmRuntimeCaches(options = {}) {
     const now = Date.now();
@@ -5526,38 +5531,8 @@ app.get("/api/warmup", async (req, res) => {
     });
 });
 
-app.get("/api/health", (req, res) => {
-    res.json({
-        status: "alive",
-        version: "v7",
-        uptimeSec: Math.round(process.uptime()),
-        keepaliveEnabled: KEEPALIVE_ENABLED,
-        runtimeWarmupIntervalMs: RUNTIME_WARMUP_INTERVAL_MS,
-        selfPingIntervalMs: SELF_PING_INTERVAL_MS,
-        liveSource: LIVE_PRIMARY_SOURCE,
-        mackolikEnabled: ENABLE_MACKOLIK_MATCHES,
-        mackolikFallback: ALLOW_MACKOLIK_FALLBACK,
-        rapidApiConfigured: !!process.env.RAPIDAPI_KEY,
-        rapidApiCoolingDown: Date.now() < rapidApiDisabledUntil,
-        rapidApiDisabledUntil: rapidApiDisabledUntil ? new Date(rapidApiDisabledUntil).toISOString() : null,
-        proxyCount: GAS_PROXIES.length,
-        liveEvents: globalLiveEvents?.events?.length || 0,
-        liveTimestamp: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null,
-        liveDetailsWarmupRunning: !!liveDetailsWarmupPromise,
-        runtimeWarmupRunning: runtimeWarmupInFlight,
-        lastWarmup: lastRuntimeWarmupResult,
-        cacheKeys: Object.keys(cache).length,
-        timestamp: new Date().toISOString()
-    });
-});
 
-app.get("/api/ping", (req, res) => {
-    res.json({ status: "alive", version: "v7", timestamp: new Date().toISOString() });
-});
-
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "index.html"));
-});
+// â€”â€”â€” API ENDPOINTS FOR KEEPALIVE & SSE â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
 
 // ——— API ENDPOINTS FOR KEEPALIVE & SSE ———————————————
 app.get("/api/ping", (req, res) => {
@@ -5571,7 +5546,10 @@ app.get("/api/health", (req, res) => {
         memory: process.memoryUsage(),
         cacheSize: Object.keys(cache).length,
         matchCacheSize: Object.keys(matchCache).length,
-        sseListeners: sseListeners.length
+        globalLiveEvents: globalLiveEvents?.events?.length || 0,
+        lastLiveFetch: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null,
+        sseListeners: sseListeners.length,
+        version: "v7-stable"
     });
 });
 
@@ -5621,7 +5599,13 @@ app.get("/api/match/stream/:id", (req, res) => {
 
 async function fetchLiveScoresForNotifications() {
     try {
-        return await fetchFromSofaFastRace("/sport/football/events/live");
+        console.log("[FETCH-LIVE] Polling SofaScore for live events...");
+        const result = await fetchFromSofa("/sport/football/events/live");
+        if (!result || !result.data) {
+            console.warn("[FETCH-LIVE] No data returned from SofaScore");
+            return { events: [] };
+        }
+        return normalizeSofaLiveEventsData(result.data);
     } catch (e) {
         console.error("[FETCH-LIVE] Error:", e.message);
         return { events: [] };
@@ -5657,6 +5641,7 @@ async function refreshLiveData() {
                 }
             }
         }
+        console.log(`[REFRESH] Background update success. Live matches: ${liveEvents.length}`);
     } catch (e) {
         console.error("[REFRESH] Error:", e.message);
     }
@@ -5676,20 +5661,7 @@ async function refreshLiveDetailsLoop() {
     lastDetailIndex = (lastDetailIndex + count) % ids.length;
 }
 
-const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server ${PORT} portunda aktivdir.`);
-    console.log(`[ALWAYS-ON] Background refresh aktivdir.`);
-
-    // Hər 5 saniyədən bir canlı məlumatları yenilə
-    setInterval(refreshLiveData, 5000);
-    // Hər 15 saniyədən bir canlı detalları (incidents/stats) yenilə
-    setInterval(refreshLiveDetailsLoop, 15000);
-
-    // Initial refresh
-    refreshLiveData();
-
-    // ——— SELF-PING LOGIC ———————————————
+async function runEnhancedSelfPing() {
     const getSelfUrl = () => {
         if (process.env.KEEPALIVE_URL) return process.env.KEEPALIVE_URL;
         if (process.env.RENDER_EXTERNAL_URL) return process.env.RENDER_EXTERNAL_URL;
@@ -5697,18 +5669,77 @@ const server = app.listen(PORT, "0.0.0.0", () => {
         return `http://localhost:${PORT}`;
     };
 
-    setInterval(async () => {
-        const targetUrl = getSelfUrl();
-        if (!targetUrl) return;
-        const baseUrl = targetUrl.replace(/\/+$/, "");
+    const targetUrl = getSelfUrl();
+    if (!targetUrl) return;
+    const baseUrl = targetUrl.replace(/\/+$/, "");
+    
+    const endpoints = [
+        `${baseUrl}/api/ping`,
+        `${baseUrl}/api/health`,
+        `${baseUrl}/api/warmup?force=0`
+    ];
+
+    console.log(`[Keep-Alive] Pinging ${baseUrl} to stay awake...`);
+    
+    for (const url of endpoints) {
         try {
-            await axios.get(`${baseUrl}/api/ping?t=${Date.now()}`, { timeout: 7000 });
-            // console.log(`[Keep-Alive] Self-ping OK`);
+            await axios.get(`${url}?t=${Date.now()}`, { timeout: 10000 });
         } catch (e) {
-            console.warn("[Keep-Alive] Self-ping failed:", e.message);
+            console.warn(`[Keep-Alive] Ping to ${url.split('/').pop()} failed: ${e.message}`);
         }
+    }
+}
+
+async function startAlwaysOnWorkers() {
+    console.log("-----------------------------------------");
+    console.log("[Always-On] Starting background services...");
+    console.log("-----------------------------------------");
+    
+    // 1. Live Score & Goal Detection (Tight Loop: 3-5s)
+    setInterval(async () => {
+        await refreshLiveData(); 
+        await runBackgroundGoalTracker(); 
+    }, LIVE_SCORE_POLL_INTERVAL_MS);
+
+    // 2. Incident Scorer Detection (4s)
+    setInterval(async () => {
+        await runIncidentScorerWorker();
+    }, 4000);
+
+    // 3. Reminders & State Persistence (1 min)
+    setInterval(async () => {
+        await runReminderWorker();
+        savePersistentState(); // Periodically save scores to disk
+    }, 60000);
+
+    // 4. Cache Warmup (20s)
+    setInterval(async () => {
+        await refreshLiveDetailsLoop();
+        await warmRuntimeCaches({ light: true });
+    }, 20000);
+
+    // 5. Aggressive Self-Ping (25s)
+    setInterval(async () => {
+        await runEnhancedSelfPing();
     }, 25000);
+}
+
+const PORT = process.env.PORT || 3000;
+const server = app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server ${PORT} portunda aktivdir.`);
+    console.log(`[ALWAYS-ON] Background orchestration initialized.`);
+
+    // Start consolidated workers
+    startAlwaysOnWorkers();
+
+    // Initial refresh
+    ensureLiveSnapshotLoaded().then(() => {
+        console.log(`[BOOT] Live snapshot loaded. Events: ${globalLiveEvents?.events?.length || 0}`);
+        refreshLiveData();
+        runBackgroundGoalTracker().catch(() => {});
+    });
 });
+
 
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));

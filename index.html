@@ -11183,15 +11183,17 @@
                     const shouldRefresh = isLiveFiltered || isToday;
 
                     if (shouldRefresh) {
-                        fetchData();
+                        fetchData(null, false); // Don't force overlay on auto-refresh
                     }
+                    syncFavoritesLive();
+                }, Math.max(10000, seconds * 1000));
 
+                // Date tabs only need to be refreshed once per minute (to update relative day names if near midnight)
+                setInterval(() => {
                     if (document.visibilityState === 'visible') {
                         generateDateTabs();
                     }
-
-                    syncFavoritesLive();
-                }, seconds * 1000);
+                }, 60000);
             }
             setupAutoRefreshLoop();
 
@@ -11206,8 +11208,9 @@
             // Initial ping on load
             pingServer();
 
-            // Periodic ping every 10 minutes (keeps Render from sleeping)
-            setInterval(() => pingServer(), 10 * 60 * 1000);
+            // Periodic ping every 2 minutes (keeps Render from sleeping)
+            setInterval(() => pingServer(), 2 * 60 * 1000);
+
 
             // Single visibilitychange handler: sync data + ping when app resumes
             document.addEventListener('visibilitychange', () => {
