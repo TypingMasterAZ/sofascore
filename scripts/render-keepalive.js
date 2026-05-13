@@ -11,12 +11,20 @@ if (!targetUrl) {
 function requestUrl(url) {
   return new Promise((resolve, reject) => {
     const client = url.startsWith("http://") ? http : https;
-    const req = client.get(url, { timeout: 20000 }, (res) => {
+    const req = client.get(url, { timeout: 15000 }, (res) => {
       let body = "";
       res.on("data", chunk => { body += chunk; });
       res.on("end", () => {
         console.log(`[KeepAlive Cron] ${res.statusCode} ${url}`);
-        if (body) console.log(body.slice(0, 1000));
+        if (body) {
+          try {
+            const parsed = JSON.parse(body);
+            // Log key health info
+            if (parsed.liveEvents !== undefined) {
+              console.log(`  -> liveEvents: ${parsed.liveEvents}, uptime: ${parsed.uptimeSec}s`);
+            }
+          } catch (_) {}
+        }
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve();
         } else {
@@ -34,15 +42,14 @@ function requestUrl(url) {
 async function main() {
   const baseUrl = targetUrl.replace(/\/$/, "");
   const stamp = Date.now();
-  const minute = new Date().getUTCMinutes();
+
+  // Daima bu 4 endpoint-i vur - server hecvaxt yatmasin
   const endpoints = [
     `${baseUrl}/api/ping?t=${stamp}`,
+    `${baseUrl}/api/health?t=${stamp}`,
     `${baseUrl}/api/keepalive?light=1&t=${stamp}`,
-    `${baseUrl}/api/health?t=${stamp}`
+    `${baseUrl}/api/warmup?t=${stamp}`   // Her deqiqe warmup tetikle
   ];
-  if (minute % 10 === 0) {
-    endpoints.push(`${baseUrl}/api/warmup?force=1&t=${stamp}`);
-  }
 
   const results = await Promise.allSettled(endpoints.map(requestUrl));
   const failed = results.filter(item => item.status === "rejected");
@@ -52,6 +59,8 @@ async function main() {
   if (failed.length) {
     console.warn(`[KeepAlive Cron] ${failed.length} endpoint(s) failed, but server responded.`);
     failed.forEach(item => console.warn(`[KeepAlive Cron] ${item.reason.message}`));
+  } else {
+    console.log(`[KeepAlive Cron] All endpoints OK - server is alive and refreshing`);
   }
 }
 
