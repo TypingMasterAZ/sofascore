@@ -33,9 +33,9 @@ services:
         value: "25000"
       - key: CATEGORY_WARMUP_INTERVAL_MS
         value: "120000"
-      # Canli neticeler her 3 saniyede bir (qol bildirisleri ucun)
+      # Canli neticeler her 12 saniyede bir (IP bloklanmamasi ucun)
       - key: LIVE_SCORE_POLL_INTERVAL_MS
-        value: "3000"
+        value: "12000"
       # Arxa fonda canli oyun hadiselerini her 5 saniyede yenile
       - key: BACKGROUND_REFRESH_INTERVAL_MS
         value: "5000"

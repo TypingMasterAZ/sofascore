@@ -1164,7 +1164,7 @@ const LIVE_SNAPSHOT_FILE = "./live_snapshot.json";
 const LIVE_SNAPSHOT_MAX_AGE = 2500;
 const LIVE_DISK_SNAPSHOT_MAX_AGE = 2 * 60 * 1000;
 const LIVE_STALE_RETURN_MAX_AGE = 2 * 60 * 1000;
-const LIVE_SCORE_POLL_INTERVAL_MS = Math.max(2500, Number(process.env.LIVE_SCORE_POLL_INTERVAL_MS) || 3000);
+const LIVE_SCORE_POLL_INTERVAL_MS = Math.max(8000, Number(process.env.LIVE_SCORE_POLL_INTERVAL_MS) || 12000);
 const LIVE_PRIMARY_SOURCE = String(process.env.LIVE_PRIMARY_SOURCE || "sofascore").toLowerCase();
 const ENABLE_MACKOLIK_MATCHES = String(process.env.ENABLE_MACKOLIK_MATCHES || "false").toLowerCase() === "true";
 const ALLOW_MACKOLIK_FALLBACK = String(process.env.ALLOW_MACKOLIK_FALLBACK || "false").toLowerCase() === "true";
@@ -1520,7 +1520,10 @@ async function fetchLiveWithFallback() {
             errors.push(`${name}: empty`);
         } catch (error) {
             errors.push(`${name}: ${error.message}`);
-            console.warn(`[LIVE SOURCE] ${name} failed: ${error.message}`);
+            // Sadece ciddi xetaları logla (403/timeout cox olanda logu doldurmasın)
+            if (!error.message.includes("403") && !error.message.includes("timeout")) {
+                console.warn(`[LIVE SOURCE] ${name} failed: ${error.message}`);
+            }
         }
         return null;
     };
@@ -5193,7 +5196,9 @@ async function runIncidentScorerWorker() {
 
         pruneGoalNotificationState();
     } catch (e) {
-        console.error("[Goal Incident Worker] Error:", e.message);
+        // Log noise-u azaltmaq üçün daha qısa mesaj
+        const shortMsg = e.message.length > 100 ? e.message.substring(0, 100) + "..." : e.message;
+        console.warn("[Goal Incident Worker] Warning:", shortMsg);
     }
 }
 
@@ -5736,10 +5741,10 @@ async function startAlwaysOnWorkers() {
         await runBackgroundGoalTracker(); 
     }, LIVE_SCORE_POLL_INTERVAL_MS);
 
-    // 2. Incident Scorer Detection (4s)
+    // 2. Incident Scorer Detection (15s - was 4s, too aggressive for SofaScore)
     setInterval(async () => {
         await runIncidentScorerWorker();
-    }, 4000);
+    }, 15000);
 
     // 3. Reminders & State Persistence (1 min)
     setInterval(async () => {
