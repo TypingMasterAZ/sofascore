@@ -12,7 +12,9 @@ const app = express();
 // -------------------------------------------------------------------
 // Real‑time cache and SSE infrastructure
 // -------------------------------------------------------------------
+let matchCache = {};
 let matchDetailsCache = {};
+let sseListeners = [];
 
 // Helper to notify SSE listeners about an updated match
 function notifySseListeners(updatedMatch) {
@@ -43,6 +45,7 @@ async function refreshMatchDetails(id) {
     const details = await fetchMatchDetailsFromServer(id);
     if (details) {
         matchDetailsCache[id] = { ...details, updatedAt: Date.now() };
+        console.log(`[DETAILS-CACHE] Updated for match ${id}`);
         const match = matchCache[id];
         if (match) {
             notifySseListeners({ ...match, details: matchDetailsCache[id] });
@@ -3178,6 +3181,11 @@ app.get("/api/match/:id/incidents", async (req, res) => {
             }, 12000);
             return res.json(data);
         }
+        const id = req.params.id;
+        const cachedFromLoop = matchDetailsCache[id];
+        if (req.query.fresh !== "1" && cachedFromLoop?.incidents) {
+            return res.json({ incidents: cachedFromLoop.incidents, cached: true, instant: true, source: 'background_cache' });
+        }
         const cached = cache[`incidents_${id}`];
         if (req.query.fresh !== "1" && cached?.data) {
             if (Date.now() - cached.timestamp > INCIDENTS_STALE_REFRESH_MS) {
@@ -3212,6 +3220,15 @@ app.get("/api/match/:id/incidents", async (req, res) => {
 app.get("/api/match/:id/statistics", async (req, res) => {
     const id = req.params.id;
     try {
+        const cachedFromLoop = matchDetailsCache[id];
+        if (req.query.fresh !== "1" && cachedFromLoop?.stats) {
+            return res.json({
+                ...normalizeStatisticsData(cachedFromLoop.stats),
+                cached: true,
+                instant: true,
+                source: 'background_cache'
+            });
+        }
         const cached = cache[`stats_${id}`];
         const cachedUseful = hasUsefulStatsData(cached?.data);
         const cachedAge = cached ? Date.now() - cached.timestamp : Infinity;
@@ -3271,6 +3288,18 @@ app.get("/api/match/:id/details", async (req, res) => {
 
         const statsDisabled = req.query.stats === "0";
         const forceFresh = req.query.fresh === "1";
+
+        const cachedFromLoop = matchDetailsCache[id];
+        if (!forceFresh && cachedFromLoop) {
+            return res.json({
+                incidents: cachedFromLoop.incidents,
+                stats: statsDisabled ? null : (cachedFromLoop.stats ? normalizeStatisticsData(cachedFromLoop.stats) : null),
+                cached: true,
+                instant: true,
+                source: 'background_cache'
+            });
+        }
+
         const cachedIncidents = cache[`incidents_${id}`];
         const cachedStats = cache[`stats_${id}`];
         if (!forceFresh && cachedIncidents?.data) {

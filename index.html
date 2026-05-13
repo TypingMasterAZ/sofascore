@@ -93,6 +93,18 @@
             --gradient-card: linear-gradient(145deg, #0f172a, #020617);
         }
 
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #94a3b8;
+            margin-left: 6px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+            vertical-align: middle;
+            transition: background 0.5s;
+        }
+
         * {
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
@@ -4461,7 +4473,7 @@
                     <span class="menu-icon" id="menuBtn" onclick="toggleSidebar()">&#9776;</span>
                 </div>
 
-                <div class="logo" id="logoTitle">RABONA MEDIA</div>
+                <div class="logo" id="logoTitle">RABONA MEDIA <span id="serverStatus" class="status-dot"></span></div>
 
                 <div class="header-right">
                     <div class="notification-bell" id="notifBell" onclick="switchMainView('notifications')">
@@ -9218,6 +9230,24 @@
                     }
                 };
             }
+
+            function checkServerStatus() {
+                const dot = document.getElementById('serverStatus');
+                if (!dot) return;
+                const baseUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:3000' : '';
+                fetch(baseUrl + '/api/ping')
+                    .then(res => res.ok ? res.json() : Promise.reject())
+                    .then(() => {
+                        dot.style.background = '#10b981'; // Green
+                        dot.title = 'Server Oyaqdır';
+                    })
+                    .catch(() => {
+                        dot.style.background = '#ef4444'; // Red
+                        dot.title = 'Server Yuxudadır (və ya xəta)';
+                    });
+            }
+            setInterval(checkServerStatus, 30000);
+            setTimeout(checkServerStatus, 2000);
 
             window.openMatch = async function(id, idH, idA, nameH, nameA, sH, sA, timeRaw, league) {
                 currentOpenMatchId = id;
