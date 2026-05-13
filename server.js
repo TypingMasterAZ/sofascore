@@ -9,6 +9,47 @@ const axios = require("axios");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const app = express();
+// -------------------------------------------------------------------
+// Real‑time cache and SSE infrastructure
+// -------------------------------------------------------------------
+let matchDetailsCache = {};
+
+// Helper to notify SSE listeners about an updated match
+function notifySseListeners(updatedMatch) {
+  const matchId = String(updatedMatch.id);
+  const fullPayload = {
+      ...updatedMatch,
+      details: matchDetailsCache[matchId] || null
+  };
+  sseListeners
+    .filter(l => String(l.id) === matchId)
+    .forEach(l => l.fn(fullPayload));
+}
+
+async function fetchMatchDetailsFromServer(id) {
+    try {
+        const [incidents, stats] = await Promise.all([
+            fetchFromSofaFastRace(`/event/${id}/incidents`).catch(() => ({ incidents: [] })),
+            fetchFromSofaFastRace(`/event/${id}/statistics`).catch(() => ({ statistics: [] }))
+        ]);
+        return { incidents, stats };
+    } catch (e) {
+        console.error(`[DETAILS-FETCH] Error for ${id}:`, e.message);
+        return null;
+    }
+}
+
+async function refreshMatchDetails(id) {
+    const details = await fetchMatchDetailsFromServer(id);
+    if (details) {
+        matchDetailsCache[id] = { ...details, updatedAt: Date.now() };
+        const match = matchCache[id];
+        if (match) {
+            notifySseListeners({ ...match, details: matchDetailsCache[id] });
+        }
+    }
+}
+
 const fs = require("fs");
 const nodemailer = require("nodemailer");
 const admin = require("firebase-admin");
@@ -800,6 +841,41 @@ async function fetchEspnStandings(tourId) {
 }
 
 // Diagnostic Endpoint Enhanced
+
+// -------------------------------------------------------------------
+// SSE stream for live match updates
+// -------------------------------------------------------------------
+app.get('/api/match/stream/:id', (req, res) => {
+  const matchId = req.params.id;
+  // Set headers for SSE
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+  });
+
+  const send = data => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+  // Send initial cached data if available
+  if (matchCache[matchId]) {
+    send({ type: 'init', payload: matchCache[matchId] });
+  }
+
+  const listener = updated => {
+    if (updated.id === matchId) {
+      send({ type: 'update', payload: updated });
+    }
+  };
+
+  sseListeners.push({ id: matchId, fn: listener });
+
+  // Cleanup on client disconnect
+  req.on('close', () => {
+    sseListeners = sseListeners.filter(l => l !== listener);
+    res.end();
+  });
+});
+
 app.get("/api/debug/proxy", async (req, res) => {
     const diagnostic = {
         timestamp: new Date().toISOString(),
@@ -859,6 +935,40 @@ app.get("/api/debug/proxy", async (req, res) => {
 });
 
 // Caching System
+
+// -------------------------------------------------------------------
+// Keep‑alive and health endpoints
+// -------------------------------------------------------------------
+app.get('/api/ping', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({
+    uptime: process.uptime(),
+    matchCacheSize: Object.keys(matchCache).length,
+    firebaseInitialized,
+    firebaseReady: admin.apps.length > 0,
+    env: {
+      KEEPALIVE_ENABLED,
+      RUNTIME_WARMUP_INTERVAL_MS,
+      SELF_PING_INTERVAL_MS,
+      BACKGROUND_REFRESH_INTERVAL_MS
+    }
+  });
+});
+
+// Endpoint to force a cache refresh (used by keepalive script)
+app.get('/api/keepalive', async (req, res) => {
+  try {
+    await refreshLiveData();
+    res.json({ status: 'refreshed', timestamp: new Date().toISOString() });
+  } catch (e) {
+    console.error('[KEEPALIVE] Refresh error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 const cache = {};
 const CACHE_TIMES = {
     LIVE: 1500,        // canlı qol bildirişləri üçün qısa cache
@@ -2829,6 +2939,44 @@ function refreshMatchStatisticsInBackground(matchId, label = "STATS BACKGROUND R
     fetchMatchStatisticsFresh(matchId)
         .then(data => {
             if (!data) return;
+            // -------------------------------------------------------------------
+// Periodic live data refresh (every 5 seconds)
+// -------------------------------------------------------------------
+async function refreshLiveData() {
+  try {
+    // Load the latest snapshot from disk (updated by other parts of the app)
+    const raw = fs.readFileSync(LIVE_SNAPSHOT_FILE, 'utf8');
+    const data = JSON.parse(raw);
+    if (!data || !Array.isArray(data.events)) return;
+    // Assume data.events is an array of match objects with `id` field
+    for (const match of data.events) {
+      const prev = matchCache[match.id];
+      matchCache[match.id] = match; // update cache
+      // Detect new goal incidents (simple example: compare scores)
+      if (prev && (prev.homeScore?.current !== match.homeScore?.current || prev.awayScore?.current !== match.awayScore?.current)) {
+        // New goal detected – send push notification if needed
+        if (global.sendPushNotification) {
+          // Prepare minimal payload for notification
+          const payload = {
+            title: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
+            body: `Goal! ${match.homeScore.current} - ${match.awayScore.current}`,
+            matchId: match.id
+          };
+          try { await global.sendPushNotification(payload); } catch (e) { console.warn('[NOTIFY] Push error:', e.message); }
+        }
+        // Notify SSE listeners
+        notifySseListeners(match);
+      }
+    }
+  } catch (e) {
+    console.warn('[REFRESH] Live data refresh failed:', e.message);
+  }
+}
+
+// Start the interval after the server begins listening
+function startLiveRefreshLoop() {
+  setInterval(refreshLiveData, Math.max(3000, BACKGROUND_REFRESH_INTERVAL_MS));
+}
             const existing = cache[`stats_${matchId}`]?.data;
             if (hasUsefulStatsData(data) || !hasUsefulStatsData(existing)) {
                 cache[`stats_${matchId}`] = { data, timestamp: Date.now() };
@@ -3895,7 +4043,7 @@ app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
         res.json({ topPlayers: { goals: [] }, error: true, message: error.message });
     }
 });
-// Yeni API: ÅifrÉ™ SÄ±fÄ±rlama Kodu GÃ¶ndÉ™r (OTP)
+// Yeni API: ÅžifrÉ™ SÄ±fÄ±rlama Kodu GÃ¶ndÉ™r (OTP)
 app.post("/api/auth/send-otp", async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ success: false, message: "Email lazÄ±mdÄ±r." });
@@ -3927,17 +4075,17 @@ app.post("/api/auth/send-otp", async (req, res) => {
         const mailOptions = {
             from: '"Rabona Media" <typingmaster.az@gmail.com>',
             to: email,
-            subject: 'ÅifrÉ™ SÄ±fÄ±rlama Kodunuz - Rabona Media',
+            subject: 'ÅžifrÉ™ SÄ±fÄ±rlama Kodunuz - Rabona Media',
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
                     <h2 style="color: #3b82f6;">Rabona Media LIVE</h2>
                     <p>Salam,</p>
-                    <p>ÅifrÉ™nizi sÄ±fÄ±rlamaq Ã¼Ã§Ã¼n tÉ™lÉ™b gÃ¶ndÉ™rdiniz. Sizin birdÉ™fÉ™lik tÉ™sdiq kodunuz (OTP):</p>
+                    <p>ÅžifrÉ™nizi sÄ±fÄ±rlamaq Ã¼Ã§Ã¼n tÉ™lÉ™b gÃ¶ndÉ™rdiniz. Sizin birdÉ™fÉ™lik tÉ™sdiq kodunuz (OTP):</p>
                     <div style="font-size: 32px; font-weight: bold; color: #ef4444; padding: 15px 30px; background: #f1f5f9; border-radius: 8px; display: inline-block; margin: 10px 0; letter-spacing: 5px;">
                         ${otp}
                     </div>
                     <p>Bu kod <b>3 dÉ™qiqÉ™</b> É™rzindÉ™ etibarlÄ±dÄ±r.</p>
-                    <p>ÆgÉ™r bunu siz etmÉ™misinizsÉ™, zÉ™hmÉ™t olmasa bu emaili nÉ™zÉ™rÉ™ almayÄ±n.</p>
+                    <p>Æ gÉ™r bunu siz etmÉ™misinizsÉ™, zÉ™hmÉ™t olmasa bu emaili nÉ™zÉ™rÉ™ almayÄ±n.</p>
                     <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
                     <p style="font-size: 12px; color: #94a3b8;">Bu avtomatik gÃ¶ndÉ™rilÉ™n bir mesajdÄ±r, cavab yazmayÄ±n.</p>
                 </div>
@@ -3976,7 +4124,7 @@ app.post("/api/auth/check-otp", async (req, res) => {
     }
 });
 
-// Yeni API: ÅifrÉ™ni Final Olaraq DÉ™yiÅŸ
+// Yeni API: ÅžifrÉ™ni Final Olaraq DÉ™yiÅŸ
 app.post("/api/auth/verify-otp", async (req, res) => {
     const { email, otp, newPassword } = req.body;
     
@@ -3991,7 +4139,7 @@ app.post("/api/auth/verify-otp", async (req, res) => {
             return res.status(400).json({ success: false, message: "Kodun vaxtÄ± bitib." });
         }
 
-        // ===== FIREBASE ÅÄ°FRÆ DEYÄ°ÅÄ°KLÄ°YÄ° ======
+        // ===== FIREBASE ÅžÄ°FRÆ  DEYÄ°ÅžÄ°KLÄ°YÄ° ======
         if (firebaseInitialized) {
             try {
                 const firebaseUser = await admin.auth().getUserByEmail(email);
@@ -4001,7 +4149,7 @@ app.post("/api/auth/verify-otp", async (req, res) => {
                 console.log(`[AUTH] Firebase password successfully updated for UID: ${firebaseUser.uid}`);
             } catch (fbError) {
                 console.error("[AUTH] Firebase update password error:", fbError);
-                return res.status(500).json({ success: false, message: "Firebase hesabÄ±nÄ±zla É™laqÉ™ yaradÄ±la bilmÉ™di. ÅifrÉ™ yenilÉ™nmÉ™di." });
+                return res.status(500).json({ success: false, message: "Firebase hesabÄ±nÄ±zla É™laqÉ™ yaradÄ±la bilmÉ™di. ÅžifrÉ™ yenilÉ™nmÉ™di." });
             }
         } else {
             console.warn("[AUTH] Firebase not initialized, skipping Firebase Auth password update.");
@@ -4013,7 +4161,7 @@ app.post("/api/auth/verify-otp", async (req, res) => {
         delete user.otp;
         delete user.otpExpiry;
         await saveUser(user);
-        res.json({ success: true, message: "ÅifrÉ™ uÄŸurla dÉ™yiÅŸdirildi." });
+        res.json({ success: true, message: "ÅžifrÉ™ uÄŸurla dÉ™yiÅŸdirildi." });
 
     } catch (e) {
         res.status(500).json({ success: false });
@@ -4775,7 +4923,7 @@ app.get("/api/push/broadcast-test", async (req, res) => {
     }
 });
 
-// YENI YOXLANIS UCUN (KÆNAR VASÄ°TÆ)
+// YENI YOXLANIS UCUN (KÆ NAR VASÄ°TÆ )
 // Bu linkÉ™ kompÃ¼terdÉ™n girdiyinizdÉ™ BÃœTÃœN qeydiyyatdan keÃ§miÅŸ cihazlara (o cÃ¼mlÉ™dÉ™n baÄŸlÄ± olan iPhone-a) bildiriÅŸ gÃ¶ndÉ™rÉ™cÉ™k
 app.get("/api/fcm/broadcast-test", async (req, res) => {
     if (!firebaseInitialized) return res.status(500).send("Firebase qoşulmayıb");
@@ -5382,162 +5530,158 @@ app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server ${PORT} portunda aktivdir.`);
-    console.log(`[ALWAYS-ON] Background refresh: ${BACKGROUND_REFRESH_INTERVAL_MS}ms | Self-ping: ${SELF_PING_INTERVAL_MS}ms | Warmup: ${RUNTIME_WARMUP_INTERVAL_MS}ms`);
-    warmLeagueImages(30).catch(e => {
-        console.warn("[Warmup] Initial league image prefetch failed:", e.message);
+// ——— API ENDPOINTS FOR KEEPALIVE & SSE ———————————————
+app.get("/api/ping", (req, res) => {
+    res.json({ status: "ok", uptime: Math.round(process.uptime()), timestamp: Date.now() });
+});
+
+app.get("/api/health", (req, res) => {
+    res.json({
+        status: "healthy",
+        uptime: Math.round(process.uptime()),
+        memory: process.memoryUsage(),
+        cacheSize: Object.keys(cache).length,
+        matchCacheSize: Object.keys(matchCache).length,
+        sseListeners: sseListeners.length
     });
-    setTimeout(() => {
-        warmRuntimeCaches({ force: true }).catch(e => {
-            console.warn("[Warmup] Initial delayed warmup failed:", e.message);
+});
+
+app.get("/api/match/stream/:id", (req, res) => {
+    const matchId = String(req.params.id);
+    res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive"
+    });
+
+    const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+    // İlk məlumatı keşdən göndər
+    if (matchCache[matchId]) {
+        send({ 
+            type: "init", 
+            payload: { 
+                ...matchCache[matchId], 
+                details: matchDetailsCache[matchId] 
+            } 
         });
-    }, 3000);
-    processSupportEmailQueue();
-    setInterval(processSupportEmailQueue, 60 * 1000);
-    setInterval(() => warmRuntimeCaches().catch(e => {
-        console.warn("[Warmup] Runtime interval failed:", e.message);
-    }), RUNTIME_WARMUP_INTERVAL_MS);
-    setInterval(() => warmLeagueImages(8).catch(e => {
-        console.warn("[Warmup] League image interval failed:", e.message);
-    }), 2 * 60 * 1000);
+    } else {
+        // Əgər keşdə yoxdursa, anında çəkməyə çalış
+        refreshMatchDetails(matchId);
+    }
 
-    // ——— AGGRESSIVE BACKGROUND REFRESH (HER 5 SANIYE) ———————————————
-    // Server HECVAXT yatmir. Sayt bagli olsa bele her 5 saniyede:
-    //   1) Canli oyun melumatlarini yenileyir
-    //   2) Butun canli oyunlarin hadiselerini (incidents) ve statistikalarini evvelceden yukleyir
-    //   3) Qol askarlanmasi HEMISE aktiv qalir - bildiris aninda gonderilir
-    //   4) Istifadeci oyuna basdiqda hadiseler DERHAL gosterilir (artiq cache-dedir)
-    let bgRefreshInFlight = false;
-    let bgRefreshCycle = 0;
-    let lastBgRefreshLog = 0;
-
-    setInterval(async () => {
-        if (bgRefreshInFlight) return;
-        bgRefreshInFlight = true;
-        bgRefreshCycle++;
-
-        try {
-            // === 1. HEMISE canli neticeleri yenile (sayt bagli olsa bele) ===
-            const liveData = await fetchLiveScoresForNotifications();
-            const liveEvents = liveData?.events || [];
-            const liveCount = liveEvents.length;
-
-            // Her 30 saniyede bir log yaz (spam olmasin)
-            if (Date.now() - lastBgRefreshLog > 30000) {
-                console.log(`[BG-REFRESH #${bgRefreshCycle}] ${liveCount} canli oyun | Cache keys: ${Object.keys(cache).length} | Uptime: ${Math.round(process.uptime())}s`);
-                lastBgRefreshLog = Date.now();
-            }
-
-            // === 2. Canli oyunlarin hadise/statistikalarini evvelceden yukle ===
-            // Istifadeci oyuna basdiqda DERHAL hazir olsun
-            const liveInProgress = liveEvents.filter(ev =>
-                ev?.id &&
-                String(ev.source || "sofascore").toLowerCase() !== "mackolik" &&
-                (ev.status?.type === "inprogress" ||
-                 ["HT", "HALFTIME", "1ST_HALF", "2ND_HALF", "EXTRA_TIME", "ET"].includes(
-                     (ev.status?.description || "").toUpperCase()
-                 ))
-            );
-
-            // Her dongude 15 oyunun hadiselerini yenile (rotation ile)
-            const batchSize = 15;
-            const startIdx = ((bgRefreshCycle - 1) * batchSize) % Math.max(liveInProgress.length, 1);
-            const batchEvents = liveInProgress.slice(startIdx, startIdx + batchSize);
-            if (batchEvents.length < batchSize && startIdx > 0) {
-                const remaining = batchSize - batchEvents.length;
-                batchEvents.push(...liveInProgress.slice(0, remaining));
-            }
-
-            if (batchEvents.length > 0) {
-                await Promise.allSettled(batchEvents.flatMap(event => {
-                    const id = event.id.toString();
-                    const tasks = [];
-
-                    // Hadiseleri (incidents) yenile - qol bildirisleri ucun vacib
-                    const incidentsCached = cache[`incidents_${id}`];
-                    const incidentsAge = incidentsCached ? Date.now() - incidentsCached.timestamp : Infinity;
-                    if (incidentsAge > INCIDENTS_STALE_REFRESH_MS) {
-                        tasks.push(getMatchIncidentsData(id).catch(() => {}));
-                    }
-
-                    // Statistikalari yenile
-                    const statsCached = cache[`stats_${id}`];
-                    const statsAge = statsCached ? Date.now() - statsCached.timestamp : Infinity;
-                    if (!statsCached || statsAge > STATS_STALE_REFRESH_MS || !hasUsefulStatsData(statsCached.data)) {
-                        tasks.push(getMatchStatisticsData(id, STATS_CACHE_TTL).catch(() => {}));
-                    }
-
-                    return tasks;
-                }));
-            }
-
-            // === 3. Her 6-ci dongude (30 san) bugunku planlanan oyunlari da yenile ===
-            if (bgRefreshCycle % 6 === 0) {
-                const todayStr = new Date().toISOString().split('T')[0];
-                getCachedData(`matches_sofascore_${todayStr}`, async () => {
-                    return await fetchScheduledFromSofaScore(todayStr);
-                }, 30 * 1000).catch(() => {});
-            }
-
-        } catch (e) {
-            console.error(`[BG-REFRESH] Error: ${e.message}`);
-        } finally {
-            bgRefreshInFlight = false;
+    const listener = (updated) => {
+        if (String(updated.id) === matchId) {
+            send({ 
+                type: "update", 
+                payload: { 
+                    ...updated, 
+                    details: matchDetailsCache[matchId] 
+                } 
+            });
         }
-    }, BACKGROUND_REFRESH_INTERVAL_MS);
-    // —————————————————————————————————————————————————————————————————
+    };
 
-    // ——— RENDER KEEP-ALIVE (HER 30 SANIYE) ——————————————————————————
-    // Render free plan serveri 15 deqiqelik hereketsizlikden sonra yuxuya gonderir.
-    // Bu interval her 30 saniyede bir ozune sorgu vurur - serveri HEC VAXT yatdirmir.
+    sseListeners.push({ id: matchId, fn: listener });
+
+    req.on("close", () => {
+        sseListeners = sseListeners.filter(l => l.fn !== listener);
+        res.end();
+    });
+});
+
+async function fetchLiveScoresForNotifications() {
+    try {
+        return await fetchFromSofaFastRace("/sport/football/events/live");
+    } catch (e) {
+        console.error("[FETCH-LIVE] Error:", e.message);
+        return { events: [] };
+    }
+}
+
+// ——— BACKGROUND REFRESH LOGIC ———————————————
+async function refreshLiveData() {
+    try {
+        const data = await fetchLiveScoresForNotifications();
+        const liveEvents = data?.events || [];
+        
+        for (const match of liveEvents) {
+            const id = String(match.id);
+            const prev = matchCache[id];
+            matchCache[id] = match;
+
+            // Qol və ya vəziyyət dəyişikliyi yoxla
+            if (!prev || (
+                prev.homeScore?.current !== match.homeScore?.current || 
+                prev.awayScore?.current !== match.awayScore?.current ||
+                prev.status?.type !== match.status?.type
+            )) {
+                // Detalları yenilə (xüsusilə qol olanda)
+                refreshMatchDetails(id);
+                
+                // SSE dinləyicilərinə xəbər ver
+                notifySseListeners(match);
+                
+                // Qol bildirişi (əgər qol olubsa)
+                if (prev && (prev.homeScore?.current !== match.homeScore?.current || prev.awayScore?.current !== match.awayScore?.current)) {
+                    console.log(`[GOAL] ${match.homeTeam.name} ${match.homeScore.current} - ${match.awayScore.current} ${match.awayTeam.name}`);
+                }
+            }
+        }
+    } catch (e) {
+        console.error("[REFRESH] Error:", e.message);
+    }
+}
+
+let lastDetailIndex = 0;
+async function refreshLiveDetailsLoop() {
+    const ids = Object.keys(matchCache);
+    if (ids.length === 0) return;
+
+    const count = 3; // Hər dövrdə 3 oyunun detallarını yenilə
+    for (let i = 0; i < count; i++) {
+        const idx = (lastDetailIndex + i) % ids.length;
+        const id = ids[idx];
+        await refreshMatchDetails(id);
+    }
+    lastDetailIndex = (lastDetailIndex + count) % ids.length;
+}
+
+const PORT = process.env.PORT || 3000;
+const server = app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server ${PORT} portunda aktivdir.`);
+    console.log(`[ALWAYS-ON] Background refresh aktivdir.`);
+
+    // Hər 5 saniyədən bir canlı məlumatları yenilə
+    setInterval(refreshLiveData, 5000);
+    // Hər 15 saniyədən bir canlı detalları (incidents/stats) yenilə
+    setInterval(refreshLiveDetailsLoop, 15000);
+
+    // Initial refresh
+    refreshLiveData();
+
+    // ——— SELF-PING LOGIC ———————————————
     const getSelfUrl = () => {
         if (process.env.KEEPALIVE_URL) return process.env.KEEPALIVE_URL;
         if (process.env.RENDER_EXTERNAL_URL) return process.env.RENDER_EXTERNAL_URL;
         if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL;
-        if (process.env.RENDER_SERVICE_NAME) return `https://${process.env.RENDER_SERVICE_NAME}.onrender.com`;
-        return detectedHostUrl;
+        return `http://localhost:${PORT}`;
     };
 
-    // Ilk ping derhal - server ayaga qalxan kimi
-    setTimeout(async () => {
-        const targetUrl = getSelfUrl();
-        if (targetUrl && targetUrl.startsWith('http')) {
-            try {
-                await axios.get(`${targetUrl.replace(/\/$/, "")}/api/ping?t=${Date.now()}`, { timeout: 7000 });
-                console.log(`[Keep-Alive] Initial self-ping OK: ${targetUrl}`);
-            } catch (e) {
-                console.warn("[Keep-Alive] Initial self-ping failed:", e.message);
-            }
-        }
-    }, 8000);
-
     setInterval(async () => {
-        if (!KEEPALIVE_ENABLED || selfPingInFlight) return;
         const targetUrl = getSelfUrl();
-        if (!targetUrl || !targetUrl.startsWith('http')) return;
-        selfPingInFlight = true;
-        const baseUrl = targetUrl.replace(/\/$/, "");
-        const timestamp = Date.now();
-
+        if (!targetUrl) return;
+        const baseUrl = targetUrl.replace(/\/+$/, "");
         try {
-            const results = await Promise.allSettled([
-                axios.get(`${baseUrl}/api/ping?t=${timestamp}`, { timeout: 7000 }),
-                axios.get(`${baseUrl}/api/keepalive?light=1&t=${timestamp}`, { timeout: 7000 })
-            ]);
-            if (results.every(item => item.status === "rejected")) {
-                throw results[0].reason;
-            }
-            // Her 2 deqiqede bir log (spam olmasin)
-            if (timestamp % (2 * 60 * 1000) < SELF_PING_INTERVAL_MS) {
-                console.log(`[Keep-Alive] Self ping OK: ${baseUrl}`);
-            }
-        } catch(e) {
-            console.warn("[Keep-Alive] Self ping failed:", e.message);
-        } finally {
-            selfPingInFlight = false;
+            await axios.get(`${baseUrl}/api/ping?t=${Date.now()}`, { timeout: 7000 });
+            // console.log(`[Keep-Alive] Self-ping OK`);
+        } catch (e) {
+            console.warn("[Keep-Alive] Self-ping failed:", e.message);
         }
-    }, SELF_PING_INTERVAL_MS);
-    // —————————————————————————————————————————————————————————————————
+    }, 25000);
 });
+
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "index.html"));
+});
+

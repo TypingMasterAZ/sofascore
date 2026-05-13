@@ -9160,12 +9160,74 @@
                 }
             }
 
+            let currentMatchEventSource = null;
+            function initMatchSSE(id) {
+                if (currentMatchEventSource) {
+                    currentMatchEventSource.close();
+                    currentMatchEventSource = null;
+                }
+                const baseUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:3000' : '';
+                currentMatchEventSource = new EventSource(`${baseUrl}/api/match/stream/${id}`);
+                
+                currentMatchEventSource.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'init' || data.type === 'update') {
+                            const m = data.payload;
+                            if (currentOpenMatchId?.toString() === m.id.toString()) {
+                                // Ana skor ve vaxtı yenilə
+                                const scoreEl = document.getElementById("scoreM");
+                                if (scoreEl) scoreEl.innerText = `${m.homeScore?.current || 0} - ${m.awayScore?.current || 0}`;
+                                
+                                const timeRaw = typeof getMatchTime === 'function' ? getMatchTime(m) : '';
+                                const tb = document.getElementById("timeM");
+                                if (tb) {
+                                    tb.innerHTML = timeRaw;
+                                    if (timeRaw.includes("'") || timeRaw === 'HT' || timeRaw === 'LIVE' || timeRaw === 'ET') {
+                                        tb.classList.add("is-live");
+                                    } else {
+                                        tb.classList.remove("is-live");
+                                    }
+                                }
+                                
+                                // Detalları (hadisələr və statistika) yenilə
+                                if (m.details) {
+                                    if (m.details.incidents && hasUsefulIncidentsPayload(m.details.incidents)) {
+                                        const goalsBox = document.getElementById("goalsBox");
+                                        if (goalsBox) goalsBox.dataset.loading = "0";
+                                        renderMatchIncidents(m.details.incidents);
+                                    }
+                                    if (m.details.stats && hasUsefulStatsPayload(m.details.stats)) {
+                                        const statsBox = document.getElementById("statsBox");
+                                        if (statsBox) statsBox.dataset.loading = "0";
+                                        renderMatchStats(m.details.stats);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.error("[SSE] Error processing message:", e);
+                    }
+                };
+
+                currentMatchEventSource.onerror = (e) => {
+                    console.warn("[SSE] Connection lost, falling back to polling");
+                    if (currentMatchEventSource) {
+                        currentMatchEventSource.close();
+                        currentMatchEventSource = null;
+                    }
+                };
+            }
+
             window.openMatch = async function(id, idH, idA, nameH, nameA, sH, sA, timeRaw, league) {
                 currentOpenMatchId = id;
                 document.body.classList.add('modal-open');
                 const modal = document.getElementById("detailsModal");
                 modal.style.display = "flex";
                 setTimeout(() => modal.classList.add("show"), 10);
+
+                // Real-time SSE qoşulması
+                initMatchSSE(id);
 
                 const currentMatch = allEvents.find(m => m.id.toString() === id.toString());
                 document.getElementById("logoH").src = normalizeSofaImageUrl(currentMatch?.homeTeam?.logoUrl, getTeamImageOptions(currentMatch?.homeTeam, false)) || getTeamLogoUrl(idH, false, currentMatch?.homeTeam);
@@ -9230,6 +9292,10 @@
             }
 
             function closeModal() {
+                if (currentMatchEventSource) {
+                    currentMatchEventSource.close();
+                    currentMatchEventSource = null;
+                }
                 currentOpenMatchId = null;
                 const modal = document.getElementById("detailsModal");
                 if (modal) {
