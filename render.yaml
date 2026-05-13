@@ -2,7 +2,7 @@ services:
   - type: web
     name: proscore-live
     runtime: node
-    plan: free # Change if needed
+    plan: free
     buildCommand: npm install
     startCommand: npm start
     envVars:
@@ -24,14 +24,19 @@ services:
         value: "true"
       - key: KEEPALIVE_URL
         value: https://sofascore-xoyr.onrender.com
+      - key: RENDER_EXTERNAL_URL
+        value: https://sofascore-xoyr.onrender.com
+      # Server hec vaxt yatmasin - aggressiv intervallar
       - key: RUNTIME_WARMUP_INTERVAL_MS
         value: "15000"
       - key: SELF_PING_INTERVAL_MS
-        value: "30000"
+        value: "25000"
       - key: CATEGORY_WARMUP_INTERVAL_MS
         value: "120000"
+      # Canli neticeler her 3 saniyede bir (qol bildirisleri ucun)
       - key: LIVE_SCORE_POLL_INTERVAL_MS
         value: "3000"
+      # Arxa fonda canli oyun hadiselerini her 5 saniyede yenile
       - key: BACKGROUND_REFRESH_INTERVAL_MS
         value: "5000"
       - key: RAPIDAPI_KEY
@@ -43,10 +48,12 @@ services:
       - key: WEB_PUSH_SUBJECT
         sync: false
 
+  # Render free plan: server 15 deq hereketsizden sonra yatir.
+  # Bu cron job her deqiqe servere ping vurur - server HECH VAXT yatmir.
   - type: cron
     name: proscore-live-keepalive
     runtime: node
-    schedule: "* * * * *"
+    schedule: "* * * * *"   # Her deqiqe - Render-in minimum limiti
     buildCommand: npm install
     startCommand: npm run keepalive
     envVars:
