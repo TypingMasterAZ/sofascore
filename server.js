@@ -942,24 +942,7 @@ app.get("/api/debug/proxy", async (req, res) => {
 // -------------------------------------------------------------------
 // Keep‑alive and health endpoints
 // -------------------------------------------------------------------
-app.get('/api/ping', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-app.get('/api/health', (req, res) => {
-  res.json({
-    uptime: process.uptime(),
-    matchCacheSize: Object.keys(matchCache).length,
-    firebaseInitialized,
-    firebaseReady: admin.apps.length > 0,
-    env: {
-      KEEPALIVE_ENABLED,
-      RUNTIME_WARMUP_INTERVAL_MS,
-      SELF_PING_INTERVAL_MS,
-      BACKGROUND_REFRESH_INTERVAL_MS
-    }
-  });
-});
+// Consolidated Ping and Health endpoints moved to the end of file or kept here
 
 // Endpoint to force a cache refresh (used by keepalive script)
 app.get('/api/keepalive', async (req, res) => {
