@@ -5534,22 +5534,57 @@ app.get("/api/warmup", async (req, res) => {
 
 // â€”â€”â€” API ENDPOINTS FOR KEEPALIVE & SSE â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
 
-// ——— API ENDPOINTS FOR KEEPALIVE & SSE ———————————————
 app.get("/api/ping", (req, res) => {
-    res.json({ status: "ok", uptime: Math.round(process.uptime()), timestamp: Date.now() });
+    const source = req.query.source || "unknown";
+    console.log(`[PING] Received from: ${source} at ${new Date().toISOString()}`);
+    res.json({ 
+        status: "ok", 
+        source,
+        uptime: Math.round(process.uptime()), 
+        timestamp: Date.now(),
+        serverTime: new Date().toISOString()
+    });
 });
 
 app.get("/api/health", (req, res) => {
+    const source = req.query.source || "unknown";
+    console.log(`[HEALTH] Check from: ${source}`);
     res.json({
         status: "healthy",
+        source,
         uptime: Math.round(process.uptime()),
-        memory: process.memoryUsage(),
-        cacheSize: Object.keys(cache).length,
-        matchCacheSize: Object.keys(matchCache).length,
-        globalLiveEvents: globalLiveEvents?.events?.length || 0,
+        uptimeHours: (process.uptime() / 3600).toFixed(2),
+        memory: {
+            rss: (process.memoryUsage().rss / 1024 / 1024).toFixed(2) + " MB",
+            heapTotal: (process.memoryUsage().heapTotal / 1024 / 1024).toFixed(2) + " MB",
+            heapUsed: (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2) + " MB"
+        },
+        cache: {
+            general: Object.keys(cache).length,
+            matches: Object.keys(matchCache).length,
+            details: Object.keys(matchDetailsCache).length
+        },
+        liveEvents: globalLiveEvents?.events?.length || 0,
         lastLiveFetch: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null,
         sseListeners: sseListeners.length,
-        version: "v7-stable"
+        version: "v7-stable-keepalive"
+    });
+});
+
+// Aqressiv keep-alive endpoint - həm də yüngül warmup edir
+app.get("/api/keepalive-v2", async (req, res) => {
+    const source = req.query.source || "external";
+    console.log(`[KEEPALIVE-V2] Aggressive ping from: ${source}`);
+    
+    // Yüngül warmup - serverin aktiv olduğunu platformaya göstərmək üçün
+    const warmupResult = await warmRuntimeCaches({ light: true }).catch(() => ({ error: "failed" }));
+    
+    res.json({
+        status: "active",
+        source,
+        warmup: !!warmupResult,
+        liveMatches: globalLiveEvents?.events?.length || 0,
+        timestamp: new Date().toISOString()
     });
 });
 

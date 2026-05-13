@@ -12,6 +12,7 @@ const http = require("http");
 const https = require("https");
 
 const targetUrl = process.env.KEEPALIVE_URL || process.env.RENDER_EXTERNAL_URL || process.env.PUBLIC_URL;
+const pingSource = process.env.KEEPALIVE_SOURCE || "render-cron";
 
 if (!targetUrl) {
   console.error("[KeepAlive] KEEPALIVE_URL, RENDER_EXTERNAL_URL or PUBLIC_URL is required");
@@ -60,10 +61,11 @@ async function main() {
   // /api/keepalive → arxa fon warmup-u tetikleyir (cache-leri isiq saxlayir)
   // /api/warmup    → canli oyun melumatlarini yenileyir
   const endpoints = [
-    { url: `${base}/api/ping?t=${t}`,            timeout: 12000 },
-    { url: `${base}/api/health?t=${t}`,           timeout: 15000 },
-    { url: `${base}/api/keepalive?light=0&t=${t}`, timeout: 20000 },  // light=0: full warmup
-    { url: `${base}/api/warmup?force=0&t=${t}`,   timeout: 20000 },
+    { url: `${base}/api/ping?source=${pingSource}&t=${t}`,            timeout: 12000 },
+    { url: `${base}/api/health?source=${pingSource}&t=${t}`,           timeout: 15000 },
+    { url: `${base}/api/keepalive?light=0&source=${pingSource}&t=${t}`, timeout: 20000 },
+    { url: `${base}/api/keepalive-v2?source=${pingSource}&t=${t}`,     timeout: 20000 },
+    { url: `${base}/api/warmup?force=0&source=${pingSource}&t=${t}`,   timeout: 20000 },
   ];
 
   const results = await Promise.allSettled(
