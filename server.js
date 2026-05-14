@@ -1682,12 +1682,22 @@ function loadLiveSnapshot() {
                 console.log("[LIVE SNAPSHOT] Ignoring disk cache with Mackolik events.");
                 return;
             }
-            if (!Number.isFinite(snapshotAge) || snapshotAge > LIVE_DISK_SNAPSHOT_MAX_AGE) {
-                console.log("[LIVE SNAPSHOT] Ignoring stale disk cache.");
+            // Snapshot age yoxlanışını yumşaldırıq - 12 saata qədər icazə veririk
+            // çünki heç olmasa köhnə məlumatın olması sıfır məlumatdan yaxşıdır.
+            if (!Number.isFinite(snapshotAge) || snapshotAge > 12 * 60 * 60 * 1000) {
+                console.log("[LIVE SNAPSHOT] Ignoring very stale disk cache (>12h).");
                 return;
             }
             globalLiveEvents = snapshot.data;
             lastLiveFetchTime = snapshot.timestamp || 0;
+            
+            // matchCache-i də snapshot-dan doldururuq ki, ilk saniyələrdə sayt boş olmasın
+            if (Array.isArray(globalLiveEvents.events)) {
+                globalLiveEvents.events.forEach(match => {
+                    if (match.id) matchCache[String(match.id)] = match;
+                });
+                console.log(`[LIVE SNAPSHOT] Seeded matchCache with ${globalLiveEvents.events.length} events.`);
+            }
             console.log(`[LIVE SNAPSHOT] Loaded ${snapshot.data.events.length} events from disk cache.`);
         }
     } catch (e) {
@@ -4640,9 +4650,11 @@ async function sendWebPushMessage(deviceId, payload) {
     if (!reg?.subscription?.endpoint) return false;
 
     try {
+        const topic = payload.tag ? payload.tag.substring(0, 32) : "general-push";
         await webpush.sendNotification(reg.subscription, JSON.stringify(payload), {
             TTL: payload.ttl || 4 * 60 * 60,
-            urgency: payload.urgency || "high"
+            urgency: payload.urgency || "high",
+            topic: topic
         });
         return true;
     } catch (err) {

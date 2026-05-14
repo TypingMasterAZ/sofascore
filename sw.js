@@ -116,18 +116,6 @@ self.addEventListener('push', (event) => {
   const body = notificationData.body || customData.body || 'Yeni bildiriş var.';
   const matchId = customData.matchId || "";
 
-  // Broadcast to main thread if the app is open
-  const bc = new BroadcastChannel('goal_notifications');
-  bc.postMessage({
-      type: 'GOAL_NOTIFICATION',
-      payload: {
-          title: title,
-          body: body,
-          matchId: matchId,
-          time: new Date().toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' })
-      }
-  });
-
   const options = {
     body: body,
     icon: notificationData.icon || customData.icon || 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
@@ -137,7 +125,25 @@ self.addEventListener('push', (event) => {
     data: customData
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    self.registration.showNotification(title, options).then(() => {
+      try {
+        // Broadcast to main thread if the app is open
+        const bc = new BroadcastChannel('goal_notifications');
+        bc.postMessage({
+            type: 'GOAL_NOTIFICATION',
+            payload: {
+                title: title,
+                body: body,
+                matchId: matchId,
+                time: new Date().toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' })
+            }
+        });
+      } catch (e) {
+        console.warn('[SW] BroadcastChannel disabled in background:', e);
+      }
+    })
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
