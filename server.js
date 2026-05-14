@@ -944,17 +944,6 @@ app.get("/api/debug/proxy", async (req, res) => {
 // -------------------------------------------------------------------
 // Consolidated Ping and Health endpoints moved to the end of file or kept here
 
-// Endpoint to force a cache refresh (used by keepalive script)
-app.get('/api/keepalive', async (req, res) => {
-  try {
-    await refreshLiveData();
-    res.json({ status: 'refreshed', timestamp: new Date().toISOString() });
-  } catch (e) {
-    console.error('[KEEPALIVE] Refresh error:', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
 const cache = {};
 const CACHE_TIMES = {
     LIVE: 1500,        // canlı qol bildirişləri üçün qısa cache
