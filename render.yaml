@@ -35,7 +35,7 @@ services:
         value: "120000"
       # Canli neticeler her 12 saniyede bir (IP bloklanmamasi ucun)
       - key: LIVE_SCORE_POLL_INTERVAL_MS
-        value: "12000"
+        value: "4000"
       # Arxa fonda canli oyun hadiselerini her 5 saniyede yenile
       - key: BACKGROUND_REFRESH_INTERVAL_MS
         value: "5000"

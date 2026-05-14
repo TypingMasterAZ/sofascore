@@ -4959,7 +4959,7 @@
         <div id="toast" class="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
 
         <script>
-            console.log("SCRIPT START: index.html VERSION 1.2.11 running");
+            console.log("SCRIPT START: index.html VERSION 1.2.12 running");
 
             const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"defaultView": "matches"}');
             const auth = firebase.auth();
@@ -9383,6 +9383,7 @@
                     showToast('Oyun favoritlərdən çıxarıldı');
                 }
                 persistFavoriteMatches();
+                syncFavoritesLight();
                 refreshPushAfterFavoriteChange(favoriteAdded).catch(() => syncRegisteredPushState());
             }
 
@@ -9528,6 +9529,39 @@
                 }
 
                 return Promise.allSettled(requests);
+            }
+
+            function buildFavoriteSyncPayload() {
+                return {
+                    token: localStorage.getItem('fcmToken') || '',
+                    deviceId: localStorage.getItem('pushDeviceId') || '',
+                    favorites: getFavoriteIds(),
+                    leagues: getFavoriteLeagueIds(),
+                    favoriteKeys: getFavoriteKeys(),
+                    favoriteMatches: getFavoriteMatchPayloads()
+                };
+            }
+
+            function syncFavoritesLight(options = {}) {
+                const payload = buildFavoriteSyncPayload();
+                if (!payload.token && !payload.deviceId) return Promise.resolve(false);
+
+                const body = JSON.stringify(payload);
+                const url = API_BASE_URL + '/api/push/favorites-sync';
+                if (options.beacon && navigator.sendBeacon) {
+                    try {
+                        const blob = new Blob([body], { type: 'application/json' });
+                        if (navigator.sendBeacon(url, blob)) return Promise.resolve(true);
+                    } catch (e) {}
+                }
+
+                return fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body,
+                    keepalive: true,
+                    cache: 'no-store'
+                }).then(() => true).catch(() => false);
             }
 
             function bindFirebaseForegroundMessages(messaging) {
@@ -9832,6 +9866,7 @@
                     showToast('Liqa favoritlərdən çıxarıldı');
                 }
                 localStorage.setItem('favLeagues', JSON.stringify(favLeagues));
+                syncFavoritesLight();
                 refreshPushAfterFavoriteChange(favoriteAdded).catch(() => syncRegisteredPushState());
             }
 
@@ -11207,6 +11242,7 @@
                             favMatches = updatedFavs;
                             persistFavoriteMatches();
                             if (beforeIds !== getFavoriteIds().join(',')) {
+                                syncFavoritesLight();
                                 syncRegisteredPushState();
                             }
 
@@ -11268,12 +11304,22 @@
                     fetchData(null, true);
                     syncFavoritesLive();
                 } else {
+                    syncFavoritesLight();
                     syncRegisteredPushState();
                 }
             });
 
             window.addEventListener('pagehide', () => {
+                syncFavoritesLight({ beacon: true });
                 syncRegisteredPushState();
+            });
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') {
+                    syncFavoritesLight({ beacon: true });
+                } else {
+                    syncFavoritesLight();
+                }
             });
 
             notificationMgr.init();
@@ -11287,7 +11333,7 @@
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js?v=31').then(reg => {
+                    navigator.serviceWorker.register('/sw.js?v=32').then(reg => {
                         console.log('SW registered:', reg.scope);
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -11303,6 +11349,7 @@
                     setTimeout(() => { registerFCMToken(); }, 1000);
                     setTimeout(() => { registerFCMToken(); }, 8000);
                     setTimeout(() => { syncRegisteredPushState(); }, 12000);
+                    setInterval(() => { syncFavoritesLight(); }, 30000);
                 }
             } catch(e) {
                 console.warn("Notification permission check failed", e);

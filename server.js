@@ -1136,7 +1136,7 @@ const LIVE_SNAPSHOT_FILE = "./live_snapshot.json";
 const LIVE_SNAPSHOT_MAX_AGE = 2500;
 const LIVE_DISK_SNAPSHOT_MAX_AGE = 2 * 60 * 1000;
 const LIVE_STALE_RETURN_MAX_AGE = 2 * 60 * 1000;
-const LIVE_SCORE_POLL_INTERVAL_MS = Math.max(8000, Number(process.env.LIVE_SCORE_POLL_INTERVAL_MS) || 12000);
+const LIVE_SCORE_POLL_INTERVAL_MS = Math.max(3000, Number(process.env.LIVE_SCORE_POLL_INTERVAL_MS) || 4000);
 const LIVE_PRIMARY_SOURCE = String(process.env.LIVE_PRIMARY_SOURCE || "sofascore").toLowerCase();
 const ENABLE_MACKOLIK_MATCHES = String(process.env.ENABLE_MACKOLIK_MATCHES || "false").toLowerCase() === "true";
 const ALLOW_MACKOLIK_FALLBACK = String(process.env.ALLOW_MACKOLIK_FALLBACK || "false").toLowerCase() === "true";
@@ -4531,7 +4531,7 @@ async function loadRegistrations() {
         }
     } catch (e) { console.error("[FCM] File load error:", e.message); }
 }
-loadRegistrations();
+const registrationsReadyPromise = loadRegistrations();
 
 async function loadWebPushRegistrations() {
     if (db) {
@@ -4551,7 +4551,7 @@ async function loadWebPushRegistrations() {
         }
     } catch (e) { console.error("[WebPush] File load error:", e.message); }
 }
-loadWebPushRegistrations();
+const webPushRegistrationsReadyPromise = loadWebPushRegistrations();
 
 function saveRegistrations() {
     // Save to Firestore (non-blocking)
@@ -4758,16 +4758,22 @@ function buildRegistrationFavoriteKeys(favorites = [], favoriteKeys = [], favori
     return Array.from(keySet);
 }
 
+function buildRegistrationFavoriteState({ favorites, leagues, favoriteKeys, favoriteMatches }) {
+    const refs = normalizeFavoriteMatchRefs(favoriteMatches);
+    return {
+        favorites: normalizeIdList(favorites),
+        leagues: normalizeIdList(leagues),
+        favoriteKeys: buildRegistrationFavoriteKeys(favorites, favoriteKeys, refs),
+        favoriteMatches: refs,
+        lastUpdated: Date.now()
+    };
+}
+
 app.post("/api/fcm/register", (req, res) => {
     const { token, favorites, leagues, favoriteKeys, favoriteMatches } = req.body;
     if (token) {
-        const refs = normalizeFavoriteMatchRefs(favoriteMatches);
         fcmRegistrations[token] = { 
-            favorites: normalizeIdList(favorites), 
-            leagues: normalizeIdList(leagues),
-            favoriteKeys: buildRegistrationFavoriteKeys(favorites, favoriteKeys, refs),
-            favoriteMatches: refs,
-            lastUpdated: Date.now() 
+            ...buildRegistrationFavoriteState({ favorites, leagues, favoriteKeys, favoriteMatches })
         };
         saveRegistrations();
         console.log(`[FCM] Token updated. Matches: ${(favorites||[]).length}, Keys: ${fcmRegistrations[token].favoriteKeys.length}, Leagues: ${(leagues||[]).length}`);
@@ -4787,20 +4793,50 @@ app.post("/api/push/subscribe", (req, res) => {
         return res.status(400).json({ success: false, message: "deviceId and valid subscription are required" });
     }
 
-    const refs = normalizeFavoriteMatchRefs(favoriteMatches);
     webPushRegistrations[deviceId] = {
         subscription,
-        favorites: normalizeIdList(favorites),
-        leagues: normalizeIdList(leagues),
-        favoriteKeys: buildRegistrationFavoriteKeys(favorites, favoriteKeys, refs),
-        favoriteMatches: refs,
+        ...buildRegistrationFavoriteState({ favorites, leagues, favoriteKeys, favoriteMatches }),
         platform: platform || "webpush",
-        userAgent: userAgent || "",
-        lastUpdated: Date.now()
+        userAgent: userAgent || ""
     };
     saveWebPushRegistrations();
     console.log(`[WebPush] Device updated. Device: ${deviceId}, Matches: ${(favorites || []).length}, Keys: ${webPushRegistrations[deviceId].favoriteKeys.length}, Leagues: ${(leagues || []).length}`);
     res.json({ success: true });
+});
+
+app.post("/api/push/favorites-sync", (req, res) => {
+    const { token, deviceId, favorites, leagues, favoriteKeys, favoriteMatches } = req.body || {};
+    const favoriteState = buildRegistrationFavoriteState({ favorites, leagues, favoriteKeys, favoriteMatches });
+    let updated = 0;
+
+    if (token && fcmRegistrations[token]) {
+        fcmRegistrations[token] = {
+            ...fcmRegistrations[token],
+            ...favoriteState
+        };
+        updated++;
+    }
+
+    if (deviceId && webPushRegistrations[deviceId]) {
+        webPushRegistrations[deviceId] = {
+            ...webPushRegistrations[deviceId],
+            ...favoriteState
+        };
+        updated++;
+    }
+
+    if (updated > 0) {
+        saveRegistrations();
+        saveWebPushRegistrations();
+    }
+
+    res.json({
+        success: true,
+        updated,
+        favoriteCount: favoriteState.favorites.length,
+        favoriteKeyCount: favoriteState.favoriteKeys.length,
+        leagueCount: favoriteState.leagues.length
+    });
 });
 
 app.post("/api/push/unsubscribe", (req, res) => {
@@ -5802,15 +5838,21 @@ async function startAlwaysOnWorkers() {
     console.log("[Always-On] Starting background services...");
     console.log("-----------------------------------------");
     
-    // 1. Live Score & Goal Detection (Tight Loop: 3-5s)
-    setInterval(async () => {
+    const runLivePulse = async () => {
         await refreshLiveData(); 
         await runBackgroundGoalTracker(); 
+    };
+
+    // 1. Live Score & Goal Detection (Tight Loop: 3-5s)
+    runLivePulse().catch(e => console.error("[Always-On] Initial live pulse failed:", e.message));
+    setInterval(() => {
+        runLivePulse().catch(e => console.error("[Always-On] Live pulse failed:", e.message));
     }, LIVE_SCORE_POLL_INTERVAL_MS);
 
     // 2. Incident Scorer Detection (15s - was 4s, too aggressive for SofaScore)
-    setInterval(async () => {
-        await runIncidentScorerWorker();
+    runIncidentScorerWorker().catch(e => console.error("[Always-On] Initial incident worker failed:", e.message));
+    setInterval(() => {
+        runIncidentScorerWorker().catch(e => console.error("[Always-On] Incident worker failed:", e.message));
     }, 15000);
 
     // 3. Reminders & State Persistence (1 min)
@@ -5832,9 +5874,12 @@ async function startAlwaysOnWorkers() {
 }
 
 const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, "0.0.0.0", () => {
+const server = app.listen(PORT, "0.0.0.0", async () => {
     console.log(`Server ${PORT} portunda aktivdir.`);
     console.log(`[ALWAYS-ON] Background orchestration initialized.`);
+
+    await Promise.allSettled([registrationsReadyPromise, webPushRegistrationsReadyPromise]);
+    console.log(`[BOOT] Push registrations ready. FCM: ${Object.keys(fcmRegistrations).length}, WebPush: ${Object.keys(webPushRegistrations).length}`);
 
     // Start consolidated workers
     startAlwaysOnWorkers();
