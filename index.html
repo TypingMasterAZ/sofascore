@@ -4959,7 +4959,7 @@
         <div id="toast" class="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
 
         <script>
-            console.log("SCRIPT START: index.html VERSION 1.2.9 running");
+            console.log("SCRIPT START: index.html VERSION 1.2.10 running");
 
             const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"defaultView": "matches"}');
             const auth = firebase.auth();
@@ -5504,12 +5504,12 @@
                 return String(value || '').toLowerCase().trim().replace(/\s+/g, ' ');
             }
 
-            function getMatchFavoriteKey(match) {
+            function getMatchFavoriteKey(match, options = {}) {
                 if (!match) return '';
                 const home = normalizeFavText(match.homeTeam?.name || match.homeTeam?.shortName);
                 const away = normalizeFavText(match.awayTeam?.name || match.awayTeam?.shortName);
                 const tournament = normalizeFavText(match.tournament?.name);
-                const start = match.startTimestamp ? String(match.startTimestamp) : '';
+                const start = options.includeStart === false ? '' : (match.startTimestamp ? String(match.startTimestamp) : '');
                 return [home, away, tournament, start].filter(Boolean).join('|');
             }
 
@@ -9396,8 +9396,40 @@
                     ...((typeof favMatchKeys !== 'undefined' ? favMatchKeys : []) || []),
                     ...((typeof favMatches !== 'undefined' ? favMatches : []) || [])
                         .map(m => m.favoriteKey || getMatchFavoriteKey(m))
+                        .filter(Boolean),
+                    ...((typeof favMatches !== 'undefined' ? favMatches : []) || [])
+                        .map(m => getMatchFavoriteKey(m, { includeStart: false }))
                         .filter(Boolean)
                 ]));
+            }
+
+            function getFavoriteMatchPayloads() {
+                return ((typeof favMatches !== 'undefined' ? favMatches : []) || [])
+                    .filter(m => m && (m.id || m.favoriteKey || m.homeTeam || m.awayTeam))
+                    .map(m => ({
+                        id: m.id ? m.id.toString() : '',
+                        favoriteKey: m.favoriteKey || getMatchFavoriteKey(m),
+                        favoriteKeyNoStart: getMatchFavoriteKey(m, { includeStart: false }),
+                        startTimestamp: m.startTimestamp || null,
+                        homeTeam: m.homeTeam ? {
+                            id: m.homeTeam.id,
+                            name: m.homeTeam.name,
+                            shortName: m.homeTeam.shortName
+                        } : null,
+                        awayTeam: m.awayTeam ? {
+                            id: m.awayTeam.id,
+                            name: m.awayTeam.name,
+                            shortName: m.awayTeam.shortName
+                        } : null,
+                        tournament: m.tournament ? {
+                            id: m.tournament.id,
+                            name: m.tournament.name,
+                            uniqueTournament: m.tournament.uniqueTournament ? {
+                                id: m.tournament.uniqueTournament.id,
+                                name: m.tournament.uniqueTournament.name
+                            } : null
+                        } : null
+                    }));
             }
 
             function getFavoriteLeagueIds() {
@@ -9454,6 +9486,7 @@
                 const favorites = getFavoriteIds();
                 const leagues = getFavoriteLeagueIds();
                 const favoriteKeys = getFavoriteKeys();
+                const favoriteMatches = getFavoriteMatchPayloads();
                 const requests = [];
 
                 const cachedWebPushPayload = loadCachedWebPushPayload();
@@ -9465,7 +9498,8 @@
                             ...cachedWebPushPayload,
                             favorites,
                             leagues,
-                            favoriteKeys
+                            favoriteKeys,
+                            favoriteMatches
                         }),
                         keepalive: true,
                         cache: 'no-store'
@@ -9477,7 +9511,7 @@
                     requests.push(fetch(API_BASE_URL + '/api/fcm/register', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ token, favorites, leagues, favoriteKeys }),
+                        body: JSON.stringify({ token, favorites, leagues, favoriteKeys, favoriteMatches }),
                         keepalive: true,
                         cache: 'no-store'
                     }).catch(() => null));
@@ -9559,6 +9593,7 @@
                     favorites: getFavoriteIds(),
                     leagues: getFavoriteLeagueIds(),
                     favoriteKeys: getFavoriteKeys(),
+                    favoriteMatches: getFavoriteMatchPayloads(),
                     platform: isIosStandalonePwa() ? 'ios-pwa' : 'webpush',
                     userAgent: navigator.userAgent
                 };
@@ -9641,7 +9676,7 @@
                     method: 'POST',
                     keepalive: true,
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token, favorites: getFavoriteIds(), leagues: getFavoriteLeagueIds(), favoriteKeys: getFavoriteKeys() })
+                    body: JSON.stringify({ token, favorites: getFavoriteIds(), leagues: getFavoriteLeagueIds(), favoriteKeys: getFavoriteKeys(), favoriteMatches: getFavoriteMatchPayloads() })
                 });
 
                 if (!res.ok) {
@@ -11239,7 +11274,7 @@
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js?v=29').then(reg => {
+                    navigator.serviceWorker.register('/sw.js?v=30').then(reg => {
                         console.log('SW registered:', reg.scope);
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });

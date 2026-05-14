@@ -4583,39 +4583,105 @@ function normalizeFavoriteText(value) {
     return String(value || "").toLowerCase().trim().replace(/\s+/g, " ");
 }
 
-function buildServerFavoriteKey(event) {
+function getEventTournamentName(event) {
+    return event?.tournament?.name || event?.tournament?.uniqueTournament?.name || event?.uniqueTournament?.name || "";
+}
+
+function buildServerFavoriteKey(event, options = {}) {
     if (!event) return "";
     const home = normalizeFavoriteText(event.homeTeam?.name || event.homeTeam?.shortName);
     const away = normalizeFavoriteText(event.awayTeam?.name || event.awayTeam?.shortName);
-    const tournament = normalizeFavoriteText(event.tournament?.name);
-    const start = event.startTimestamp ? String(event.startTimestamp) : "";
+    const tournament = normalizeFavoriteText(getEventTournamentName(event));
+    const start = options.includeStart === false ? "" : (event.startTimestamp ? String(event.startTimestamp) : "");
     return [home, away, tournament, start].filter(Boolean).join("|");
 }
 
+function buildServerFavoriteKeyVariants(event) {
+    const keys = new Set();
+    const exact = buildServerFavoriteKey(event);
+    const noStart = buildServerFavoriteKey(event, { includeStart: false });
+    if (exact) keys.add(exact);
+    if (noStart) keys.add(noStart);
+    return Array.from(keys);
+}
+
+function normalizeFavoriteMatchRefs(list) {
+    if (!Array.isArray(list)) return [];
+    return list
+        .map(item => {
+            if (!item || typeof item !== "object") return null;
+            const ref = {
+                id: item.id ? String(item.id) : "",
+                favoriteKey: item.favoriteKey || buildServerFavoriteKey(item),
+                favoriteKeyNoStart: item.favoriteKeyNoStart || buildServerFavoriteKey(item, { includeStart: false }),
+                home: normalizeFavoriteText(item.homeTeam?.name || item.homeTeam?.shortName || item.home || item.homeName),
+                away: normalizeFavoriteText(item.awayTeam?.name || item.awayTeam?.shortName || item.away || item.awayName),
+                tournament: normalizeFavoriteText(item.tournament?.name || item.tournamentName || item.leagueName),
+                startTimestamp: item.startTimestamp ? String(item.startTimestamp) : ""
+            };
+            return (ref.id || ref.favoriteKey || ref.favoriteKeyNoStart || (ref.home && ref.away)) ? ref : null;
+        })
+        .filter(Boolean)
+        .slice(0, 200);
+}
+
+function favoriteRefMatchesEvent(ref, event, matchKey, eventKeySet) {
+    if (!ref || !event) return false;
+    if (ref.id && ref.id === matchKey) return true;
+    if (ref.favoriteKey && eventKeySet.has(ref.favoriteKey)) return true;
+    if (ref.favoriteKeyNoStart && eventKeySet.has(ref.favoriteKeyNoStart)) return true;
+
+    const home = normalizeFavoriteText(event.homeTeam?.name || event.homeTeam?.shortName);
+    const away = normalizeFavoriteText(event.awayTeam?.name || event.awayTeam?.shortName);
+    const tournament = normalizeFavoriteText(getEventTournamentName(event));
+    if (!ref.home || !ref.away) return false;
+    const sameOrder = ref.home === home && ref.away === away;
+    const reverseOrder = ref.home === away && ref.away === home;
+    const sameTournament = !ref.tournament || !tournament || ref.tournament === tournament;
+    return (sameOrder || reverseOrder) && sameTournament;
+}
+
 function getFavoritePayloadFromReg(reg) {
+    const favoriteMatches = normalizeFavoriteMatchRefs(reg?.favoriteMatches || reg?.matches || []);
+    const favoriteKeySet = new Set(normalizeIdList(reg?.favoriteKeys));
+    favoriteMatches.forEach(ref => {
+        if (ref.favoriteKey) favoriteKeySet.add(ref.favoriteKey);
+        if (ref.favoriteKeyNoStart) favoriteKeySet.add(ref.favoriteKeyNoStart);
+    });
     return {
         favorites: normalizeIdList(reg?.favorites),
         leagues: normalizeIdList(reg?.leagues),
-        favoriteKeys: normalizeIdList(reg?.favoriteKeys)
+        favoriteKeys: Array.from(favoriteKeySet),
+        favoriteMatches
     };
 }
 
-function collectFavoriteRecipients(matchId, leagueId, favoriteKey = "") {
+function collectFavoriteRecipients(matchId, leagueId, favoriteKey = "", event = null) {
     const matchKey = matchId?.toString();
     const leagueKey = leagueId?.toString();
-    const eventKey = favoriteKey?.toString();
+    const eventKeys = new Set([favoriteKey?.toString(), ...(event ? buildServerFavoriteKeyVariants(event) : [])].filter(Boolean));
     const recipients = [];
 
     Object.entries(fcmRegistrations).forEach(([token, reg]) => {
-        const { favorites, leagues, favoriteKeys } = getFavoritePayloadFromReg(reg);
-        if (favorites.includes(matchKey) || leagues.includes(leagueKey) || (eventKey && favoriteKeys.includes(eventKey))) {
+        const { favorites, leagues, favoriteKeys, favoriteMatches } = getFavoritePayloadFromReg(reg);
+        if (
+            favorites.includes(matchKey) ||
+            leagues.includes(leagueKey) ||
+            favoriteKeys.some(key => eventKeys.has(key)) ||
+            favoriteMatches.some(ref => favoriteRefMatchesEvent(ref, event, matchKey, eventKeys))
+        ) {
             recipients.push({ channel: "fcm", id: token, reg });
         }
     });
 
     Object.entries(webPushRegistrations).forEach(([deviceId, reg]) => {
-        const { favorites, leagues, favoriteKeys } = getFavoritePayloadFromReg(reg);
-        if (favorites.includes(matchKey) || leagues.includes(leagueKey) || (eventKey && favoriteKeys.includes(eventKey))) {
+        const { favorites, leagues, favoriteKeys, favoriteMatches } = getFavoritePayloadFromReg(reg);
+        if (
+            favorites.includes(matchKey) ||
+            leagues.includes(leagueKey) ||
+            favoriteKeys.some(key => eventKeys.has(key)) ||
+            favoriteMatches.some(ref => favoriteRefMatchesEvent(ref, event, matchKey, eventKeys))
+        ) {
             recipients.push({ channel: "webpush", id: deviceId, reg });
         }
     });
@@ -4624,7 +4690,7 @@ function collectFavoriteRecipients(matchId, leagueId, favoriteKey = "") {
 }
 
 function collectFavoriteRecipientsForEvent(event, matchId, leagueId) {
-    return collectFavoriteRecipients(matchId || event?.id, leagueId, buildServerFavoriteKey(event));
+    return collectFavoriteRecipients(matchId || event?.id, leagueId, buildServerFavoriteKey(event), event);
 }
 
 function removeInvalidWebPushRegistration(deviceId) {
@@ -4675,17 +4741,33 @@ function createPushPayload({ title, body, matchId, type, tag, requireInteraction
     };
 }
 
+function buildRegistrationFavoriteKeys(favorites = [], favoriteKeys = [], favoriteMatches = []) {
+    const keySet = new Set(normalizeIdList(favoriteKeys));
+    const refs = normalizeFavoriteMatchRefs(favoriteMatches);
+    refs.forEach(ref => {
+        if (ref.favoriteKey) keySet.add(ref.favoriteKey);
+        if (ref.favoriteKeyNoStart) keySet.add(ref.favoriteKeyNoStart);
+    });
+    normalizeIdList(favorites).forEach(id => {
+        const liveMatch = globalLiveEvents?.events?.find(event => event?.id?.toString() === id);
+        buildServerFavoriteKeyVariants(liveMatch).forEach(key => keySet.add(key));
+    });
+    return Array.from(keySet);
+}
+
 app.post("/api/fcm/register", (req, res) => {
-    const { token, favorites, leagues, favoriteKeys } = req.body;
+    const { token, favorites, leagues, favoriteKeys, favoriteMatches } = req.body;
     if (token) {
+        const refs = normalizeFavoriteMatchRefs(favoriteMatches);
         fcmRegistrations[token] = { 
             favorites: normalizeIdList(favorites), 
             leagues: normalizeIdList(leagues),
-            favoriteKeys: normalizeIdList(favoriteKeys),
+            favoriteKeys: buildRegistrationFavoriteKeys(favorites, favoriteKeys, refs),
+            favoriteMatches: refs,
             lastUpdated: Date.now() 
         };
         saveRegistrations();
-        console.log(`[FCM] Token updated. Matches: ${(favorites||[]).length}, Leagues: ${(leagues||[]).length}`);
+        console.log(`[FCM] Token updated. Matches: ${(favorites||[]).length}, Keys: ${fcmRegistrations[token].favoriteKeys.length}, Leagues: ${(leagues||[]).length}`);
         res.json({ success: true });
     } else {
         res.status(400).json({ success: false, message: "Token is required" });
@@ -4697,22 +4779,24 @@ app.get("/api/push/public-key", (req, res) => {
 });
 
 app.post("/api/push/subscribe", (req, res) => {
-    const { deviceId, subscription, favorites, leagues, favoriteKeys, platform, userAgent } = req.body || {};
+    const { deviceId, subscription, favorites, leagues, favoriteKeys, favoriteMatches, platform, userAgent } = req.body || {};
     if (!deviceId || !subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
         return res.status(400).json({ success: false, message: "deviceId and valid subscription are required" });
     }
 
+    const refs = normalizeFavoriteMatchRefs(favoriteMatches);
     webPushRegistrations[deviceId] = {
         subscription,
         favorites: normalizeIdList(favorites),
         leagues: normalizeIdList(leagues),
-        favoriteKeys: normalizeIdList(favoriteKeys),
+        favoriteKeys: buildRegistrationFavoriteKeys(favorites, favoriteKeys, refs),
+        favoriteMatches: refs,
         platform: platform || "webpush",
         userAgent: userAgent || "",
         lastUpdated: Date.now()
     };
     saveWebPushRegistrations();
-    console.log(`[WebPush] Device updated. Device: ${deviceId}, Matches: ${(favorites || []).length}, Leagues: ${(leagues || []).length}`);
+    console.log(`[WebPush] Device updated. Device: ${deviceId}, Matches: ${(favorites || []).length}, Keys: ${webPushRegistrations[deviceId].favoriteKeys.length}, Leagues: ${(leagues || []).length}`);
     res.json({ success: true });
 });
 
@@ -5070,31 +5154,36 @@ async function runIncidentScorerWorker() {
         const favoriteMatchIds = new Set();
         const favoriteMatchKeys = new Set();
         const favoriteLeagueIds = new Set();
+        const favoriteMatchRefs = [];
 
         Object.values(fcmRegistrations).forEach(reg => {
             const payload = getFavoritePayloadFromReg(reg);
             payload.favorites.forEach(id => favoriteMatchIds.add(id.toString()));
             payload.favoriteKeys.forEach(key => favoriteMatchKeys.add(key.toString()));
             payload.leagues.forEach(id => favoriteLeagueIds.add(id.toString()));
+            favoriteMatchRefs.push(...payload.favoriteMatches);
         });
         Object.values(webPushRegistrations).forEach(reg => {
             const payload = getFavoritePayloadFromReg(reg);
             payload.favorites.forEach(id => favoriteMatchIds.add(id.toString()));
             payload.favoriteKeys.forEach(key => favoriteMatchKeys.add(key.toString()));
             payload.leagues.forEach(id => favoriteLeagueIds.add(id.toString()));
+            favoriteMatchRefs.push(...payload.favoriteMatches);
         });
 
-        if (favoriteMatchIds.size === 0 && favoriteMatchKeys.size === 0 && favoriteLeagueIds.size === 0) return;
+        if (favoriteMatchIds.size === 0 && favoriteMatchKeys.size === 0 && favoriteLeagueIds.size === 0 && favoriteMatchRefs.length === 0) return;
 
         const liveData = await getLiveEventsData(true);
         if (!liveData?.events?.length) return;
 
         const favoriteLiveMatches = liveData.events.filter(ev => {
             const leagueId = (ev.tournament?.uniqueTournament?.id || ev.tournament?.id || "").toString();
+            const eventKeys = new Set(buildServerFavoriteKeyVariants(ev));
             const isFavorite =
                 favoriteMatchIds.has(ev.id?.toString()) ||
                 favoriteLeagueIds.has(leagueId) ||
-                favoriteMatchKeys.has(buildServerFavoriteKey(ev));
+                Array.from(eventKeys).some(key => favoriteMatchKeys.has(key)) ||
+                favoriteMatchRefs.some(ref => favoriteRefMatchesEvent(ref, ev, ev.id?.toString(), eventKeys));
             return isFavorite &&
                 (ev.status?.type === "inprogress" || ["HT", "HALFTIME", "EXTRA TIME", "ET"].includes((ev.status?.description || "").toUpperCase()));
         });
@@ -5272,7 +5361,10 @@ async function runReminderWorker() {
 
             const favoriteMatches = allUpcomingEvents.filter(ev =>
                 favorites.includes(ev.id?.toString()) ||
-                favoriteKeys.includes(buildServerFavoriteKey(ev))
+                buildServerFavoriteKeyVariants(ev).some(key => favoriteKeys.includes(key)) ||
+                (getFavoritePayloadFromReg(recipient.reg).favoriteMatches || []).some(ref =>
+                    favoriteRefMatchesEvent(ref, ev, ev.id?.toString(), new Set(buildServerFavoriteKeyVariants(ev)))
+                )
             );
 
             for (const match of favoriteMatches) {
