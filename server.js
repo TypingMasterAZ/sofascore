@@ -2800,11 +2800,12 @@ function addServerNotification({ type, title, body, matchId, leagueId }) {
     saveNotifHistory();
 }
 
-function buildFcmGoalMessage({ title, body, matchId, type, tag, score = "", ttl = "120" }) {
+function buildFcmGoalMessage({ title, body, matchId, leagueId, type, tag, score = "", ttl = "120" }) {
     return {
         notification: { title, body },
         data: {
             matchId: matchId?.toString() || "",
+            leagueId: leagueId?.toString() || "",
             type,
             score: score?.toString() || "",
             sentAt: Date.now().toString()
@@ -2866,6 +2867,7 @@ function sendGoalPushToRecipients(recipients, payload) {
             title: payload.title,
             body: payload.body,
             matchId: payload.matchId,
+            leagueId: payload.leagueId,
             type: payload.type,
             tag: payload.tag,
             requireInteraction: true,
@@ -4721,7 +4723,7 @@ async function sendWebPushMessage(deviceId, payload) {
     }
 }
 
-function createPushPayload({ title, body, matchId, type, tag, requireInteraction = false, ttl = 4 * 60 * 60, urgency = "high" }) {
+function createPushPayload({ title, body, matchId, leagueId, type, tag, requireInteraction = false, ttl = 4 * 60 * 60, urgency = "high" }) {
     return {
         title,
         body,
@@ -4734,6 +4736,7 @@ function createPushPayload({ title, body, matchId, type, tag, requireInteraction
         urgency,
         data: {
             matchId: matchId?.toString() || "",
+            leagueId: leagueId?.toString() || "",
             type: type || "general",
             sentAt: Date.now().toString(),
             url: "/"
@@ -5115,6 +5118,7 @@ async function runBackgroundGoalTracker() {
                             title,
                             body,
                             matchId,
+                            leagueId,
                             type: "goal_score",
                             score: `${hs}-${as}`,
                             tag: `goal-score-${matchId}-${hs}-${as}`,
@@ -5254,6 +5258,7 @@ async function runIncidentScorerWorker() {
                     title,
                     body,
                     matchId,
+                    leagueId,
                     type: "goal_scorer",
                     score: `${ev.homeScore?.current || 0}-${ev.awayScore?.current || 0}`,
                     tag: `goal-scorer-${matchId}-${incidentKey}`,
@@ -5713,20 +5718,6 @@ app.get("/api/match/stream/:id", (req, res) => {
     });
 });
 
-async function fetchLiveScoresForNotifications() {
-    try {
-        console.log("[FETCH-LIVE] Polling SofaScore for live events...");
-        const result = await fetchFromSofa("/sport/football/events/live");
-        if (!result || !result.data) {
-            console.warn("[FETCH-LIVE] No data returned from SofaScore");
-            return { events: [] };
-        }
-        return normalizeSofaLiveEventsData(result.data);
-    } catch (e) {
-        console.error("[FETCH-LIVE] Error:", e.message);
-        return { events: [] };
-    }
-}
 
 // ——— BACKGROUND REFRESH LOGIC ———————————————
 async function refreshLiveData() {

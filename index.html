@@ -4959,7 +4959,7 @@
         <div id="toast" class="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
 
         <script>
-            console.log("SCRIPT START: index.html VERSION 1.2.10 running");
+            console.log("SCRIPT START: index.html VERSION 1.2.11 running");
 
             const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"defaultView": "matches"}');
             const auth = firebase.auth();
@@ -5518,6 +5518,7 @@
                 return {
                     ...match,
                     favoriteKey: match.favoriteKey || getMatchFavoriteKey(match),
+                    favoriteKeyNoStart: match.favoriteKeyNoStart || getMatchFavoriteKey(match, { includeStart: false }),
                     favoritedAt: match.favoritedAt || Date.now()
                 };
             }
@@ -5536,9 +5537,22 @@
             function isFavoriteMatch(match) {
                 if (!match) return false;
                 const key = getMatchFavoriteKey(match);
+                const keyNoStart = getMatchFavoriteKey(match, { includeStart: false });
                 return favMatches.some(f => match.id && f.id?.toString() === match.id?.toString()) ||
                     (!!key && favMatchKeys.includes(key)) ||
-                    (!!key && favMatches.some(f => (f.favoriteKey || getMatchFavoriteKey(f)) === key));
+                    (!!keyNoStart && favMatchKeys.includes(keyNoStart)) ||
+                    (!!key && favMatches.some(f => (f.favoriteKey || getMatchFavoriteKey(f)) === key)) ||
+                    (!!keyNoStart && favMatches.some(f => (f.favoriteKeyNoStart || getMatchFavoriteKey(f, { includeStart: false })) === keyNoStart));
+            }
+
+            function isFavoriteNotificationTarget(matchId, leagueId = '') {
+                const matchKey = matchId?.toString();
+                const leagueKey = leagueId?.toString();
+                if (leagueKey && favLeagues.some(f => f.id?.toString() === leagueKey)) return true;
+                if (!matchKey) return true;
+                const liveMatch = allEvents.find(ev => ev.id?.toString() === matchKey);
+                if (liveMatch && isFavoriteMatch(liveMatch)) return true;
+                return favMatches.some(f => f.id?.toString() === matchKey);
             }
 
             function rebuildFavoritesFromEvents(events = allEvents) {
@@ -5728,12 +5742,14 @@
                     bc.onmessage = (event) => {
                         if (event.data.type === 'GOAL_NOTIFICATION') {
                             const p = event.data.payload;
+                            if (!isFavoriteNotificationTarget(p.matchId, p.leagueId)) return;
                             this.history.unshift({
                                 id: Date.now(),
                                 type: 'goal',
                                 title: p.title,
                                 body: p.body,
                                 matchId: p.matchId,
+                                leagueId: p.leagueId,
                                 time: p.time,
                                 unread: true
                             });
@@ -5762,11 +5778,7 @@
                         if (data.success && data.history) {
                             // Merge with local history avoiding duplicates AND filter by favorites
                             data.history.forEach(rem => {
-                                // Filter by favorites on client side
-                                const isMatchFav = favMatches.some(f => f.id?.toString() === rem.matchId?.toString());
-                                const isLeagueFav = rem.leagueId && favLeagues.some(f => f.id.toString() === rem.leagueId.toString());
-                                
-                                if (isMatchFav || isLeagueFav) {
+                                if (isFavoriteNotificationTarget(rem.matchId, rem.leagueId)) {
                                     const exists = this.history.some(loc => loc.body === rem.body && loc.time === rem.time);
                                     if (!exists) {
                                         this.history.push({ ...rem, unread: false });
@@ -5808,8 +5820,6 @@
                         this.lastEventState.clear();
                     }
 
-                    const favoritesOnly = userSettings.onlyFavNotif;
-
                     newEvents.forEach(ev => {
                         const prev = this.lastEventState.get(ev.id);
                         if (prev) {
@@ -5817,7 +5827,7 @@
                             const isMatchFav = isFavoriteMatch(ev);
                             const isLeagueFav = favLeagues.some(f => f.id.toString() === (ev.tournament.uniqueTournament?.id || ev.tournament.id).toString());
 
-                            if (favoritesOnly && !isMatchFav && !isLeagueFav) {
+                            if (!isMatchFav && !isLeagueFav) {
                                 this.lastEventState.set(ev.id, { h: ev.homeScore.current, a: ev.awayScore.current, status: ev.status.type });
                                 return;
                             }
@@ -9529,6 +9539,8 @@
                     const notificationTitle = payload.notification?.title || payload.data?.title || "Rabona Media";
                     const notificationBody = payload.notification?.body || payload.data?.body || "Yeni xəbər var.";
 
+                    if (!isFavoriteNotificationTarget(payload.data?.matchId, payload.data?.leagueId)) return;
+
                     if (window.notificationMgr) {
                         window.notificationMgr.history.unshift({
                             id: Date.now(),
@@ -9536,6 +9548,7 @@
                             title: notificationTitle,
                             body: notificationBody,
                             matchId: payload.data?.matchId,
+                            leagueId: payload.data?.leagueId,
                             time: new Date().toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' }),
                             unread: true
                         });
@@ -11274,7 +11287,7 @@
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js?v=30').then(reg => {
+                    navigator.serviceWorker.register('/sw.js?v=31').then(reg => {
                         console.log('SW registered:', reg.scope);
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
