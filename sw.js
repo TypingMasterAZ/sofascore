@@ -1,6 +1,8 @@
-const CACHE_NAME = 'proscore-shell-v32';
+const CACHE_NAME = 'proscore-shell-v33';
 const ASSETS_TO_CACHE = [
-  '/manifest.json?v=2',
+  '/manifest.json?v=3',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css'
 ];
@@ -10,7 +12,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Pre-caching offline shell v32');
+      console.log('[SW] Pre-caching offline shell v33');
       return Promise.allSettled(
         ASSETS_TO_CACHE.map(url => cache.add(url).catch(e => console.warn('[SW] Cache miss:', url, e.message)))
       );
@@ -115,6 +117,7 @@ self.addEventListener('push', (event) => {
   const title = notificationData.title || customData.title || 'Rabona Media';
   const body = notificationData.body || customData.body || 'Yeni bildiriş var.';
   const matchId = customData.matchId || "";
+  const targetUrl = customData.url || '/';
 
   const options = {
     body: body,
@@ -122,7 +125,10 @@ self.addEventListener('push', (event) => {
     badge: notificationData.badge || customData.badge || 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
     vibrate: notificationData.vibrate || customData.vibrate || [200, 100, 200],
     tag: notificationData.tag || customData.tag || (matchId ? `goal-${matchId}` : 'general'),
-    data: customData
+    renotify: true,
+    requireInteraction: notificationData.requireInteraction || customData.requireInteraction || false,
+    timestamp: Date.now(),
+    data: { ...customData, url: targetUrl }
   };
 
   event.waitUntil(
@@ -161,7 +167,8 @@ self.addEventListener('notificationclick', (event) => {
           }
         });
       }
-      return clients.openWindow('/').then(c => {
+      const targetUrl = event.notification.data?.url || '/';
+      return clients.openWindow(targetUrl).then(c => {
         if (event.notification.data && event.notification.data.matchId) {
           setTimeout(() => {
             c.postMessage({ type: 'openMatch', matchId: event.notification.data.matchId });

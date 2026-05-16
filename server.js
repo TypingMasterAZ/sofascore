@@ -131,7 +131,7 @@ if (firebaseInitialized) {
     console.error("[Firestore] Connection error:", e.message);
   }
 } else {
-  console.warn("[WARNING] Firebase Admin SDK not initialized. Push notifications will not work.");
+  console.warn("[WARNING] Firebase Admin SDK not initialized. FCM push disabled; Web Push remains available.");
 }
 
 const DEFAULT_VAPID_KEYS = {
@@ -2845,21 +2845,37 @@ function buildFcmGoalMessage({ title, body, matchId, leagueId, type, tag, score 
     };
 }
 
-function sendGoalPushToRecipients(recipients, payload) {
+async function sendGoalPushToRecipients(recipients, payload) {
     const fcmRecipients = recipients.filter(r => r.channel === "fcm");
     const webPushRecipients = recipients.filter(r => r.channel === "webpush");
+    const result = {
+        attempted: recipients.length,
+        sent: 0,
+        failed: 0,
+        skipped: 0
+    };
 
     if (fcmRecipients.length > 0 && firebaseInitialized) {
         const message = buildFcmGoalMessage(payload);
-        fcmRecipients.forEach(({ id: token }) => {
-            admin.messaging().send({ ...message, token })
-                .catch(err => {
-                    if (err.code === "messaging/registration-token-not-registered") {
-                        delete fcmRegistrations[token];
-                        saveRegistrations();
-                    }
-                });
+        const fcmResults = await Promise.allSettled(fcmRecipients.map(async ({ id: token }) => {
+            try {
+                await admin.messaging().send({ ...message, token });
+                return true;
+            } catch (err) {
+                if (err.code === "messaging/registration-token-not-registered") {
+                    delete fcmRegistrations[token];
+                    saveRegistrations();
+                }
+                console.error("[Push][FCM] Goal send error:", err.message || err.code || err);
+                return false;
+            }
+        }));
+        fcmResults.forEach(item => {
+            if (item.status === "fulfilled" && item.value) result.sent++;
+            else result.failed++;
         });
+    } else if (fcmRecipients.length > 0) {
+        result.skipped += fcmRecipients.length;
     }
 
     if (webPushRecipients.length > 0) {
@@ -2874,10 +2890,17 @@ function sendGoalPushToRecipients(recipients, payload) {
             ttl: Number(payload.ttl || 120),
             urgency: "high"
         });
-        webPushRecipients.forEach(({ id: deviceId }) => {
-            sendWebPushMessage(deviceId, webPayload);
+        const webResults = await Promise.allSettled(webPushRecipients.map(({ id: deviceId }) => {
+            return sendWebPushMessage(deviceId, webPayload);
+        }));
+        webResults.forEach(item => {
+            if (item.status === "fulfilled" && item.value) result.sent++;
+            else result.failed++;
         });
     }
+
+    console.log(`[Push][Goal] attempted=${result.attempted} sent=${result.sent} failed=${result.failed} skipped=${result.skipped} type=${payload.type || "goal"}`);
+    return result;
 }
 
 function normalizeStatisticsData(data) {
@@ -4581,8 +4604,84 @@ function normalizeIdList(list) {
         : [];
 }
 
+function repairFavoriteText(value) {
+    const text = String(value || "");
+    if (!/[ÃÂÄÅÆ]/.test(text)) return text;
+    try {
+        const repaired = Buffer.from(text, "latin1").toString("utf8");
+        return repaired && !repaired.includes("�") ? repaired : text;
+    } catch (e) {
+        return text;
+    }
+}
+
 function normalizeFavoriteText(value) {
-    return String(value || "").toLowerCase().trim().replace(/\s+/g, " ");
+    return repairFavoriteText(value)
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[Əə]/g, "e")
+        .replace(/[İIı]/g, "i")
+        .replace(/[Ğğ]/g, "g")
+        .replace(/[Üü]/g, "u")
+        .replace(/[Şş]/g, "s")
+        .replace(/[Öö]/g, "o")
+        .replace(/[Çç]/g, "c")
+        .toLowerCase()
+        .replace(/&/g, " and ")
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim()
+        .replace(/\s+/g, " ");
+}
+
+function normalizeFavoriteKey(value) {
+    return String(value || "")
+        .split("|")
+        .map(part => {
+            const trimmed = part.trim();
+            return /^\d+$/.test(trimmed) ? trimmed : normalizeFavoriteText(trimmed);
+        })
+        .filter(Boolean)
+        .join("|");
+}
+
+function normalizeFavoriteKeyList(list) {
+    return Array.isArray(list)
+        ? [...new Set(list.map(normalizeFavoriteKey).filter(Boolean))]
+        : [];
+}
+
+function stripTeamNoise(value) {
+    return normalizeFavoriteText(value)
+        .replace(/\b(football club|futbol klubu|club de football|club|fc|cf|sc|afc|fk|sk|wfc)\b/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function favoriteTextsMatch(a, b) {
+    const left = normalizeFavoriteText(a);
+    const right = normalizeFavoriteText(b);
+    if (!left || !right) return false;
+    if (left === right) return true;
+
+    const leftTeam = stripTeamNoise(left);
+    const rightTeam = stripTeamNoise(right);
+    if (leftTeam && rightTeam && leftTeam === rightTeam) return true;
+
+    return left.length >= 6 && right.length >= 6 && (left.includes(right) || right.includes(left));
+}
+
+function favoriteTournamentMatches(a, b) {
+    const left = normalizeFavoriteText(a);
+    const right = normalizeFavoriteText(b);
+    if (!left || !right) return true;
+    return left === right || (left.length >= 6 && right.length >= 6 && (left.includes(right) || right.includes(left)));
+}
+
+function favoriteStartMatches(refStart, eventStart) {
+    if (!refStart || !eventStart) return false;
+    const left = Number(refStart);
+    const right = Number(eventStart);
+    return Number.isFinite(left) && Number.isFinite(right) && Math.abs(left - right) <= 6 * 60 * 60;
 }
 
 function getEventTournamentName(event) {
@@ -4614,8 +4713,8 @@ function normalizeFavoriteMatchRefs(list) {
             if (!item || typeof item !== "object") return null;
             const ref = {
                 id: item.id ? String(item.id) : "",
-                favoriteKey: item.favoriteKey || buildServerFavoriteKey(item),
-                favoriteKeyNoStart: item.favoriteKeyNoStart || buildServerFavoriteKey(item, { includeStart: false }),
+                favoriteKey: normalizeFavoriteKey(item.favoriteKey || buildServerFavoriteKey(item)),
+                favoriteKeyNoStart: normalizeFavoriteKey(item.favoriteKeyNoStart || buildServerFavoriteKey(item, { includeStart: false })),
                 home: normalizeFavoriteText(item.homeTeam?.name || item.homeTeam?.shortName || item.home || item.homeName),
                 away: normalizeFavoriteText(item.awayTeam?.name || item.awayTeam?.shortName || item.away || item.awayName),
                 tournament: normalizeFavoriteText(item.tournament?.name || item.tournamentName || item.leagueName),
@@ -4637,15 +4736,16 @@ function favoriteRefMatchesEvent(ref, event, matchKey, eventKeySet) {
     const away = normalizeFavoriteText(event.awayTeam?.name || event.awayTeam?.shortName);
     const tournament = normalizeFavoriteText(getEventTournamentName(event));
     if (!ref.home || !ref.away) return false;
-    const sameOrder = ref.home === home && ref.away === away;
-    const reverseOrder = ref.home === away && ref.away === home;
-    const sameTournament = !ref.tournament || !tournament || ref.tournament === tournament;
-    return (sameOrder || reverseOrder) && sameTournament;
+    const sameOrder = favoriteTextsMatch(ref.home, home) && favoriteTextsMatch(ref.away, away);
+    const reverseOrder = favoriteTextsMatch(ref.home, away) && favoriteTextsMatch(ref.away, home);
+    const sameTournament = favoriteTournamentMatches(ref.tournament, tournament);
+    const sameStart = favoriteStartMatches(ref.startTimestamp, event.startTimestamp);
+    return (sameOrder || reverseOrder) && (sameTournament || sameStart);
 }
 
 function getFavoritePayloadFromReg(reg) {
     const favoriteMatches = normalizeFavoriteMatchRefs(reg?.favoriteMatches || reg?.matches || []);
-    const favoriteKeySet = new Set(normalizeIdList(reg?.favoriteKeys));
+    const favoriteKeySet = new Set(normalizeFavoriteKeyList(reg?.favoriteKeys));
     favoriteMatches.forEach(ref => {
         if (ref.favoriteKey) favoriteKeySet.add(ref.favoriteKey);
         if (ref.favoriteKeyNoStart) favoriteKeySet.add(ref.favoriteKeyNoStart);
@@ -4661,7 +4761,7 @@ function getFavoritePayloadFromReg(reg) {
 function collectFavoriteRecipients(matchId, leagueId, favoriteKey = "", event = null) {
     const matchKey = matchId?.toString();
     const leagueKey = leagueId?.toString();
-    const eventKeys = new Set([favoriteKey?.toString(), ...(event ? buildServerFavoriteKeyVariants(event) : [])].filter(Boolean));
+    const eventKeys = new Set([normalizeFavoriteKey(favoriteKey), ...(event ? buildServerFavoriteKeyVariants(event) : [])].filter(Boolean));
     const recipients = [];
 
     Object.entries(fcmRegistrations).forEach(([token, reg]) => {
@@ -4707,7 +4807,7 @@ async function sendWebPushMessage(deviceId, payload) {
     if (!reg?.subscription?.endpoint) return false;
 
     try {
-        const topic = payload.tag ? payload.tag.substring(0, 32) : "general-push";
+        const topic = String(payload.tag || "general-push").replace(/[^A-Za-z0-9_\-=]/g, "-").substring(0, 32) || "general-push";
         await webpush.sendNotification(reg.subscription, JSON.stringify(payload), {
             TTL: payload.ttl || 4 * 60 * 60,
             urgency: payload.urgency || "high",
@@ -4745,7 +4845,7 @@ function createPushPayload({ title, body, matchId, leagueId, type, tag, requireI
 }
 
 function buildRegistrationFavoriteKeys(favorites = [], favoriteKeys = [], favoriteMatches = []) {
-    const keySet = new Set(normalizeIdList(favoriteKeys));
+    const keySet = new Set(normalizeFavoriteKeyList(favoriteKeys));
     const refs = normalizeFavoriteMatchRefs(favoriteMatches);
     refs.forEach(ref => {
         if (ref.favoriteKey) keySet.add(ref.favoriteKey);
@@ -4957,11 +5057,20 @@ app.post("/api/push/test", async (req, res) => {
 });
 
 app.get("/api/push/status", (req, res) => {
+    const fcmFavoriteMatches = Object.values(fcmRegistrations).reduce((sum, reg) => sum + getFavoritePayloadFromReg(reg).favorites.length, 0);
+    const webPushFavoriteMatches = Object.values(webPushRegistrations).reduce((sum, reg) => sum + getFavoritePayloadFromReg(reg).favorites.length, 0);
+    const fcmFavoriteKeys = Object.values(fcmRegistrations).reduce((sum, reg) => sum + getFavoritePayloadFromReg(reg).favoriteKeys.length, 0);
+    const webPushFavoriteKeys = Object.values(webPushRegistrations).reduce((sum, reg) => sum + getFavoritePayloadFromReg(reg).favoriteKeys.length, 0);
     res.json({
         success: true,
         firebaseInitialized,
         fcmRegistrations: Object.keys(fcmRegistrations).length,
         webPushRegistrations: Object.keys(webPushRegistrations).length,
+        fcmFavoriteMatches,
+        webPushFavoriteMatches,
+        fcmFavoriteKeys,
+        webPushFavoriteKeys,
+        lastScores: Object.keys(lastScores).length,
         lastLiveFetchTime: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null
     });
 });
@@ -5119,11 +5228,12 @@ async function runBackgroundGoalTracker() {
         
         const events = liveData.events;
         
-        events.forEach(ev => {
+        for (const ev of events) {
+            if (!ev?.id) continue;
             const matchId = ev.id.toString();
             const hs = ev.homeScore?.current || 0;
             const as = ev.awayScore?.current || 0;
-            const leagueId = (ev.tournament.uniqueTournament?.id || ev.tournament.id).toString();
+            const leagueId = (ev.tournament?.uniqueTournament?.id || ev.tournament?.id || "").toString();
             const prev = lastScores[matchId];
             
             if (prev) {
@@ -5131,7 +5241,7 @@ async function runBackgroundGoalTracker() {
                     const scoreMarker = `score-${hs}-${as}`;
                     if (hasRecentGoalNotification(matchId, scoreMarker, 90 * 1000)) {
                         lastScores[matchId] = { homeScore: hs, awayScore: as };
-                        return;
+                        continue;
                     }
                     const scoringSide = hs > prev.homeScore ? "home" : "away";
                     const previousGoalTotal = (Number(prev.homeScore) || 0) + (Number(prev.awayScore) || 0);
@@ -5150,7 +5260,7 @@ async function runBackgroundGoalTracker() {
 
                     const recipients = collectFavoriteRecipientsForEvent(ev, matchId, leagueId);
                     if (recipients.length > 0) {
-                        sendGoalPushToRecipients(recipients, {
+                        const sendResult = await sendGoalPushToRecipients(recipients, {
                             title,
                             body,
                             matchId,
@@ -5160,6 +5270,9 @@ async function runBackgroundGoalTracker() {
                             tag: `goal-score-${matchId}-${hs}-${as}`,
                             ttl: "120"
                         });
+                        if (sendResult.sent === 0) {
+                            console.warn(`[Push][Goal] No notification reached devices for match ${matchId}. Check stale subscriptions or VAPID/APNs delivery.`);
+                        }
 
                         pendingGoalDetailNotifications[matchId] = {
                             scoreMarker,
@@ -5179,7 +5292,7 @@ async function runBackgroundGoalTracker() {
                 }
             }
             lastScores[matchId] = { homeScore: hs, awayScore: as };
-        });
+        }
     } catch (e) {
         console.error("[Background Tracker] Error:", e.message);
     } finally {
@@ -5290,7 +5403,7 @@ async function runIncidentScorerWorker() {
                 const body = `${minuteText} ${goalLabel}: ${scorerName}. ${ev.homeTeam.name} ${ev.homeScore?.current || 0} - ${ev.awayScore?.current || 0} ${ev.awayTeam.name}`;
 
                 addServerNotification({ type: "goal_scorer", title, body, matchId, leagueId });
-                sendGoalPushToRecipients(recipients, {
+                const sendResult = await sendGoalPushToRecipients(recipients, {
                     title,
                     body,
                     matchId,
@@ -5300,6 +5413,9 @@ async function runIncidentScorerWorker() {
                     tag: `goal-scorer-${matchId}-${incidentKey}`,
                     ttl: "300"
                 });
+                if (sendResult.sent === 0) {
+                    console.warn(`[Push][Scorer] No notification reached devices for match ${matchId}.`);
+                }
 
                 markGoalNotification(matchId, incidentKey);
                 if (pendingGoalDetailNotifications[matchId]) {

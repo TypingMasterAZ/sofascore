@@ -13,22 +13,22 @@
     ],
     "leagues": [],
     "favoriteKeys": [
-      "arsenal|atlético madrid|uefa champions league, knockout stage|1778007600",
-      "arsenal|atlético madrid|uefa champions league, knockout stage"
+      "arsenal|atletico madrid|uefa champions league knockout stage|1778007600",
+      "arsenal|atletico madrid|uefa champions league knockout stage"
     ],
     "favoriteMatches": [
       {
         "id": "15632635",
-        "favoriteKey": "arsenal|atlético madrid|uefa champions league, knockout stage|1778007600",
-        "favoriteKeyNoStart": "arsenal|atlético madrid|uefa champions league, knockout stage",
+        "favoriteKey": "arsenal|atletico madrid|uefa champions league knockout stage|1778007600",
+        "favoriteKeyNoStart": "arsenal|atletico madrid|uefa champions league knockout stage",
         "home": "arsenal",
-        "away": "atlético madrid",
-        "tournament": "uefa champions league, knockout stage",
+        "away": "atletico madrid",
+        "tournament": "uefa champions league knockout stage",
         "startTimestamp": "1778007600"
       }
     ],
+    "lastUpdated": 1778923142573,
     "platform": "webpush",
-    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
-    "lastUpdated": 1778789794011
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
   }
 }
