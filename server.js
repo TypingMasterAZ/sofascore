@@ -938,7 +938,9 @@ app.get("/api/debug/proxy", async (req, res) => {
 
     diagnostic.notifications = {
         registration_count: Object.keys(fcmRegistrations).length,
-        last_scores_size: Object.keys(lastScores).length
+        webpush_registration_count: Object.keys(webPushRegistrations).length,
+        last_scores_size: Object.keys(lastScores).length,
+        score_push_state_size: Object.keys(scorePushState).length
     };
 
     res.json(diagnostic);
@@ -1096,8 +1098,10 @@ async function fetchSofaImageCached(imagePath) {
 }
 
 let lastScores = {};
+let scorePushState = {};
 let liveGoalIncidentState = {};
 const SCORES_FILE = "./last_scores.json";
+const SCORE_PUSH_STATE_FILE = "./score_push_state.json";
 const INCIDENT_STATE_FILE = "./incident_state.json";
 
 function loadPersistentState() {
@@ -1105,6 +1109,10 @@ function loadPersistentState() {
         if (fs.existsSync(SCORES_FILE)) {
             lastScores = JSON.parse(fs.readFileSync(SCORES_FILE, "utf-8"));
             console.log(`[STATE] Loaded ${Object.keys(lastScores).length} match scores from disk.`);
+        }
+        if (fs.existsSync(SCORE_PUSH_STATE_FILE)) {
+            scorePushState = JSON.parse(fs.readFileSync(SCORE_PUSH_STATE_FILE, "utf-8"));
+            console.log(`[STATE] Loaded score push state for ${Object.keys(scorePushState).length} matches.`);
         }
         if (fs.existsSync(INCIDENT_STATE_FILE)) {
             const raw = JSON.parse(fs.readFileSync(INCIDENT_STATE_FILE, "utf-8"));
@@ -1121,6 +1129,7 @@ function loadPersistentState() {
 function savePersistentState() {
     try {
         fs.writeFileSync(SCORES_FILE, JSON.stringify(lastScores, null, 2));
+        fs.writeFileSync(SCORE_PUSH_STATE_FILE, JSON.stringify(scorePushState, null, 2));
         // Convert Sets to arrays for JSON
         const toSave = {};
         for (const id in liveGoalIncidentState) {
@@ -1134,6 +1143,7 @@ loadPersistentState();
 
 let goalNotificationState = {};
 let pendingGoalDetailNotifications = {};
+const scorePushInFlight = new Set();
 let globalLiveEvents = null;
 let lastLiveFetchTime = 0;
 let lastLiveFetchAttemptTime = 0;
@@ -1153,7 +1163,7 @@ const LIVE_SNAPSHOT_FILE = "./live_snapshot.json";
 const LIVE_SNAPSHOT_MAX_AGE = 2500;
 const LIVE_DISK_SNAPSHOT_MAX_AGE = 2 * 60 * 1000;
 const LIVE_STALE_RETURN_MAX_AGE = 2 * 60 * 1000;
-const LIVE_SCORE_POLL_INTERVAL_MS = Math.max(3000, Number(process.env.LIVE_SCORE_POLL_INTERVAL_MS) || 4000);
+const LIVE_SCORE_POLL_INTERVAL_MS = Math.max(1500, Number(process.env.LIVE_SCORE_POLL_INTERVAL_MS) || 2500);
 const LIVE_PRIMARY_SOURCE = String(process.env.LIVE_PRIMARY_SOURCE || "sofascore").toLowerCase();
 const ENABLE_MACKOLIK_MATCHES = String(process.env.ENABLE_MACKOLIK_MATCHES || "false").toLowerCase() === "true";
 const ALLOW_MACKOLIK_FALLBACK = String(process.env.ALLOW_MACKOLIK_FALLBACK || "false").toLowerCase() === "true";
@@ -1413,6 +1423,7 @@ async function fetchLiveFromRapidApi() {
 async function fetchLiveScoresForNotifications() {
     try {
         const data = await Promise.any([
+            fetchFromSofaNativeFast("/sport/football/events/live", {}, 1800),
             fetchFromSofaFastRace("/sport/football/events/live", {}, 3200),
             fetchRapidApiSofaPath("/sport/football/events/live", {}, 4200),
             fetchLiveFromScheduledFallback("live-poll-fast-fallback")
@@ -2821,6 +2832,36 @@ function pruneGoalNotificationState(maxAgeMs = 6 * 60 * 60 * 1000) {
             delete pendingGoalDetailNotifications[matchId];
         }
     });
+    Object.keys(scorePushState).forEach(matchId => {
+        if (now - Number(scorePushState[matchId]?.sentAt || 0) > maxAgeMs) {
+            delete scorePushState[matchId];
+        }
+    });
+}
+
+function getScoreSnapshot(source) {
+    return {
+        homeScore: Number(source?.homeScore?.current ?? source?.homeScore ?? source?.home ?? 0),
+        awayScore: Number(source?.awayScore?.current ?? source?.awayScore ?? source?.away ?? 0)
+    };
+}
+
+function scorePushAlreadySent(matchId, scoreMarker, maxAgeMs = 12 * 60 * 60 * 1000) {
+    const entry = scorePushState[matchId?.toString()];
+    return !!entry && entry.marker === scoreMarker && (Date.now() - Number(entry.sentAt || 0)) <= maxAgeMs;
+}
+
+function rememberScorePush(matchId, scoreMarker, snapshot) {
+    const key = matchId?.toString();
+    if (!key || !scoreMarker) return;
+    scorePushState[key] = {
+        marker: scoreMarker,
+        homeScore: snapshot.homeScore,
+        awayScore: snapshot.awayScore,
+        sentAt: Date.now()
+    };
+    markGoalNotification(key, scoreMarker);
+    savePersistentState();
 }
 
 function addServerNotification({ type, title, body, matchId, leagueId }) {
@@ -2873,8 +2914,8 @@ function buildFcmGoalMessage({ title, body, matchId, leagueId, type, tag, score 
                 title,
                 body,
                 vibrate: [500, 110, 500],
-                icon: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
-                badge: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
+                icon: "/icons/icon-192.png",
+                badge: "/icons/icon-192.png",
                 tag,
                 renotify: true
             },
@@ -2939,6 +2980,89 @@ async function sendGoalPushToRecipients(recipients, payload) {
 
     console.log(`[Push][Goal] attempted=${result.attempted} sent=${result.sent} failed=${result.failed} skipped=${result.skipped} type=${payload.type || "goal"}`);
     return result;
+}
+
+async function sendImmediateScoreGoalPush(event, previousScoreSource, source = "score") {
+    if (!event?.id) return { sent: 0, skipped: true, reason: "missing-event" };
+
+    const matchId = event.id.toString();
+    const current = getScoreSnapshot(event);
+    const previous = getScoreSnapshot(previousScoreSource);
+    const homeDelta = current.homeScore - previous.homeScore;
+    const awayDelta = current.awayScore - previous.awayScore;
+
+    if (homeDelta <= 0 && awayDelta <= 0) {
+        return { sent: 0, skipped: true, reason: "score-not-increased" };
+    }
+
+    const scoreMarker = `score-${current.homeScore}-${current.awayScore}`;
+    const inFlightKey = `${matchId}:${scoreMarker}`;
+    if (
+        scorePushInFlight.has(inFlightKey) ||
+        scorePushAlreadySent(matchId, scoreMarker) ||
+        hasRecentGoalNotification(matchId, scoreMarker, 12 * 60 * 60 * 1000)
+    ) {
+        return { sent: 0, skipped: true, reason: "duplicate-score" };
+    }
+
+    scorePushInFlight.add(inFlightKey);
+    try {
+        const leagueId = (event.tournament?.uniqueTournament?.id || event.tournament?.id || "").toString();
+        const homeName = event.homeTeam?.name || "Ev sahibi";
+        const awayName = event.awayTeam?.name || "Qonaq";
+        const scoringSide = homeDelta > 0 ? "home" : "away";
+        const scoringTeam = scoringSide === "home" ? homeName : awayName;
+        const previousGoalTotal = previous.homeScore + previous.awayScore;
+        const title = `QOL! ${scoringTeam}`;
+        const body = `${homeName} ${current.homeScore} - ${current.awayScore} ${awayName}`;
+        const recipients = collectFavoriteRecipientsForEvent(event, matchId, leagueId);
+
+        if (recipients.length === 0) {
+            console.log(`[Push][Goal][${source}] ${matchId} score changed but no favorite recipient matched.`);
+            rememberScorePush(matchId, scoreMarker, current);
+            return { sent: 0, skipped: true, reason: "no-recipients" };
+        }
+
+        addServerNotification({
+            type: "goal_score",
+            title,
+            body,
+            matchId,
+            leagueId
+        });
+
+        const sendResult = await sendGoalPushToRecipients(recipients, {
+            title,
+            body,
+            matchId,
+            leagueId,
+            type: "goal_score",
+            score: `${current.homeScore}-${current.awayScore}`,
+            tag: `goal-score-${matchId}-${current.homeScore}-${current.awayScore}`,
+            ttl: "300"
+        });
+
+        if (sendResult.sent === 0) {
+            console.warn(`[Push][Goal][${source}] No notification reached devices for match ${matchId}. Check stale subscriptions or Web Push delivery.`);
+        }
+
+        pendingGoalDetailNotifications[matchId] = {
+            scoreMarker,
+            homeScore: current.homeScore,
+            awayScore: current.awayScore,
+            score: `${current.homeScore}-${current.awayScore}`,
+            previousGoalTotal,
+            scoringSide,
+            leagueId,
+            createdAt: Date.now()
+        };
+
+        rememberScorePush(matchId, scoreMarker, current);
+        getMatchIncidentsData(matchId).catch(() => {});
+        return sendResult;
+    } finally {
+        scorePushInFlight.delete(inFlightKey);
+    }
 }
 
 function normalizeStatisticsData(data) {
@@ -4890,8 +5014,8 @@ function createPushPayload({ title, body, matchId, leagueId, type, tag, requireI
     return {
         title,
         body,
-        icon: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
-        badge: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
         tag,
         vibrate: [300, 100, 300],
         requireInteraction,
@@ -5084,7 +5208,7 @@ app.post("/api/fcm/test-push", async (req, res) => {
             headers: { Urgency: 'high' },
             notification: {
                 vibrate: [500, 100, 500],
-                icon: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
+                icon: '/icons/icon-192.png',
                 tag: 'test-push',
                 renotify: true
             },
@@ -5165,6 +5289,7 @@ app.get("/api/push/status", (req, res) => {
         fcmFavoriteKeys,
         webPushFavoriteKeys,
         lastScores: Object.keys(lastScores).length,
+        scorePushState: Object.keys(scorePushState).length,
         lastLiveFetchTime: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null
     });
 });
@@ -5229,8 +5354,8 @@ async function sendBroadcastPushTest() {
                     webpush: {
                         headers: { Urgency: "high" },
                         notification: {
-                            icon: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
-                            badge: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
+                            icon: "/icons/icon-192.png",
+                            badge: "/icons/icon-192.png",
                             requireInteraction: true,
                             tag: "broadcast-test"
                         },
@@ -5316,7 +5441,7 @@ app.get("/api/fcm/broadcast-test", async (req, res) => {
             headers: { Urgency: 'high' },
             notification: {
                 vibrate: [500, 100, 500],
-                icon: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
+                icon: '/icons/icon-192.png',
                 tag: 'broadcast-test',
                 renotify: true
             },
@@ -5349,8 +5474,6 @@ async function runBackgroundGoalTracker() {
         const liveData = await fetchLiveScoresForNotifications();
         if (!liveData || !Array.isArray(liveData.events)) return;
 
-        if (Object.keys(fcmRegistrations).length === 0 && Object.keys(webPushRegistrations).length === 0) return;
-        
         const events = liveData.events;
         
         for (const ev of events) {
@@ -5362,6 +5485,14 @@ async function runBackgroundGoalTracker() {
             const prev = lastScores[matchId];
             
             if (prev) {
+                const immediateResult = await sendImmediateScoreGoalPush(ev, prev, "tracker").catch(e => {
+                    console.error(`[Push][Goal][tracker] Immediate score push failed for ${matchId}:`, e.message);
+                    return null;
+                });
+                if (immediateResult && immediateResult.reason !== "score-not-increased" && immediateResult.reason !== "missing-event") {
+                    lastScores[matchId] = { homeScore: hs, awayScore: as };
+                    continue;
+                }
                 if (hs > prev.homeScore || as > prev.awayScore) {
                     const scoreMarker = `score-${hs}-${as}`;
                     if (hasRecentGoalNotification(matchId, scoreMarker, 90 * 1000)) {
@@ -5418,6 +5549,7 @@ async function runBackgroundGoalTracker() {
             }
             lastScores[matchId] = { homeScore: hs, awayScore: as };
         }
+        pruneGoalNotificationState();
     } catch (e) {
         console.error("[Background Tracker] Error:", e.message);
     } finally {
@@ -5589,8 +5721,8 @@ async function sendReminderToRecipient(recipient, payload) {
                 webpush: {
                     headers: { Urgency: "high" },
                     notification: {
-                        icon: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
-                        badge: "https://imglink.cc/cdn/hC_7Jg-pCe.png",
+                        icon: "/icons/icon-192.png",
+                        badge: "/icons/icon-192.png",
                         requireInteraction: true,
                         tag: payload.tag
                     },
@@ -6012,16 +6144,20 @@ async function refreshLiveData() {
     try {
         const data = await fetchLiveScoresForNotifications();
         const liveEvents = data?.events || [];
+        const scorePushTasks = [];
         
         for (const match of liveEvents) {
             const id = String(match.id);
             const prev = matchCache[id];
             matchCache[id] = match;
+            const scoreChanged = prev && (
+                prev.homeScore?.current !== match.homeScore?.current ||
+                prev.awayScore?.current !== match.awayScore?.current
+            );
 
             // Qol və ya vəziyyət dəyişikliyi yoxla
             if (!prev || (
-                prev.homeScore?.current !== match.homeScore?.current || 
-                prev.awayScore?.current !== match.awayScore?.current ||
+                scoreChanged ||
                 prev.status?.type !== match.status?.type
             )) {
                 // Detalları yenilə (xüsusilə qol olanda)
@@ -6031,10 +6167,16 @@ async function refreshLiveData() {
                 notifySseListeners(match);
                 
                 // Qol bildirişi (əgər qol olubsa)
-                if (prev && (prev.homeScore?.current !== match.homeScore?.current || prev.awayScore?.current !== match.awayScore?.current)) {
+                if (scoreChanged) {
                     console.log(`[GOAL] ${match.homeTeam.name} ${match.homeScore.current} - ${match.awayScore.current} ${match.awayTeam.name}`);
+                    scorePushTasks.push(sendImmediateScoreGoalPush(match, prev, "refresh").catch(e => {
+                        console.error(`[Push][Goal][refresh] Immediate score push failed for ${id}:`, e.message);
+                    }));
                 }
             }
+        }
+        if (scorePushTasks.length > 0) {
+            await Promise.allSettled(scorePushTasks);
         }
         console.log(`[REFRESH] Background update success. Live matches: ${liveEvents.length}`);
     } catch (e) {

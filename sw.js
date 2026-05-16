@@ -1,4 +1,4 @@
-const CACHE_NAME = 'proscore-shell-v33';
+const CACHE_NAME = 'proscore-shell-v34';
 const ASSETS_TO_CACHE = [
   '/manifest.json?v=3',
   '/icons/icon-192.png',
@@ -12,7 +12,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Pre-caching offline shell v33');
+      console.log('[SW] Pre-caching offline shell v34');
       return Promise.allSettled(
         ASSETS_TO_CACHE.map(url => cache.add(url).catch(e => console.warn('[SW] Cache miss:', url, e.message)))
       );
@@ -101,13 +101,15 @@ function limitCacheSize(name, maxItems) {
 }
 
 self.addEventListener('push', (event) => {
-  if (!event.data) return;
-
   let payload = {};
-  try {
-    payload = event.data.json();
-  } catch (e) {
-    payload = { title: 'Rabona Media', body: event.data.text() };
+  if (event.data) {
+    try {
+      payload = event.data.json();
+    } catch (e) {
+      payload = { title: 'Rabona Media', body: event.data.text() };
+    }
+  } else {
+    payload = { title: 'Rabona Media', body: 'Yeni bildiris var.' };
   }
 
   // Handle both WebPush (VAPID) and FCM payload structures
@@ -118,17 +120,18 @@ self.addEventListener('push', (event) => {
   const body = notificationData.body || customData.body || 'Yeni bildiriş var.';
   const matchId = customData.matchId || "";
   const targetUrl = customData.url || '/';
+  const requireInteraction = notificationData.requireInteraction ?? customData.requireInteraction ?? false;
 
   const options = {
     body: body,
-    icon: notificationData.icon || customData.icon || 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
-    badge: notificationData.badge || customData.badge || 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
+    icon: notificationData.icon || customData.icon || '/icons/icon-192.png',
+    badge: notificationData.badge || customData.badge || '/icons/icon-192.png',
     vibrate: notificationData.vibrate || customData.vibrate || [200, 100, 200],
     tag: notificationData.tag || customData.tag || (matchId ? `goal-${matchId}` : 'general'),
     renotify: true,
-    requireInteraction: notificationData.requireInteraction || customData.requireInteraction || false,
+    requireInteraction: requireInteraction === true || requireInteraction === 'true',
     timestamp: Date.now(),
-    data: { ...customData, url: targetUrl }
+    data: { ...customData, title, body, url: targetUrl }
   };
 
   event.waitUntil(

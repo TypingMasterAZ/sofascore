@@ -5501,7 +5501,9 @@
             let favLeagues = JSON.parse(localStorage.getItem('favLeagues') || '[]');
             let favCountries = JSON.parse(localStorage.getItem('favCountries') || '[]');
             const FAV_MATCH_KEYS_STORAGE = 'favMatchKeys_v1';
+            const REMOVED_FAV_MATCH_KEYS_STORAGE = 'removedFavMatchKeys_v1';
             let favMatchKeys = JSON.parse(localStorage.getItem(FAV_MATCH_KEYS_STORAGE) || '[]');
+            let removedFavMatchKeys = JSON.parse(localStorage.getItem(REMOVED_FAV_MATCH_KEYS_STORAGE) || '[]');
 
             function normalizeFavText(value) {
                 return String(value || '')
@@ -5581,6 +5583,25 @@
                 return (candidateKeys || []).some(key => stored.has(normalizeFavoriteKeyValue(key)));
             }
 
+            function rememberRemovedFavoriteKeys(keys) {
+                const next = new Set((removedFavMatchKeys || []).map(normalizeFavoriteKeyValue).filter(Boolean));
+                (keys || []).map(normalizeFavoriteKeyValue).filter(Boolean).forEach(key => next.add(key));
+                removedFavMatchKeys = Array.from(next).slice(-500);
+                localStorage.setItem(REMOVED_FAV_MATCH_KEYS_STORAGE, JSON.stringify(removedFavMatchKeys));
+            }
+
+            function forgetRemovedFavoriteKeys(keys) {
+                const removeSet = new Set((keys || []).map(normalizeFavoriteKeyValue).filter(Boolean));
+                removedFavMatchKeys = (removedFavMatchKeys || [])
+                    .map(normalizeFavoriteKeyValue)
+                    .filter(key => key && !removeSet.has(key));
+                localStorage.setItem(REMOVED_FAV_MATCH_KEYS_STORAGE, JSON.stringify(removedFavMatchKeys));
+            }
+
+            function wasFavoriteMatchRemoved(match) {
+                return hasAnyFavoriteKey(removedFavMatchKeys, getMatchFavoriteKeys(match));
+            }
+
             function persistFavoriteMatches(options = {}) {
                 const preserveExistingKeys = options.preserveExistingKeys === true;
                 const keySet = new Set(preserveExistingKeys
@@ -5596,6 +5617,7 @@
 
             function isFavoriteMatch(match) {
                 if (!match) return false;
+                if (wasFavoriteMatchRemoved(match)) return false;
                 const matchKeys = getMatchFavoriteKeys(match);
                 return favMatches.some(f => match.id && f.id?.toString() === match.id?.toString()) ||
                     hasAnyFavoriteKey(favMatchKeys, matchKeys) ||
@@ -5617,6 +5639,7 @@
                 let changed = false;
                 events.forEach(match => {
                     const matchKeys = getMatchFavoriteKeys(match);
+                    if (wasFavoriteMatchRemoved(match)) return;
                     if (!hasAnyFavoriteKey(favMatchKeys, matchKeys)) return;
                     const exists = favMatches.some(f => f.id?.toString() === match.id?.toString() || hasAnyFavoriteKey(getMatchFavoriteKeys(f), matchKeys));
                     if (!exists) {
@@ -5633,6 +5656,9 @@
                 ...(favMatchKeys || []).map(normalizeFavoriteKeyValue).filter(Boolean),
                 ...favMatches.flatMap(getMatchFavoriteKeys)
             ]));
+            removedFavMatchKeys = Array.from(new Set((removedFavMatchKeys || []).map(normalizeFavoriteKeyValue).filter(Boolean)));
+            favMatchKeys = favMatchKeys.filter(key => !hasAnyFavoriteKey(removedFavMatchKeys, [key]));
+            favMatches = favMatches.filter(match => !wasFavoriteMatchRemoved(match));
             persistFavoriteMatches();
             let toastTimer = null;
             let topLeaguesRaw = [];
@@ -9432,6 +9458,7 @@
                     const match = currentMatch;
                     if (match) {
                         const normalizedMatch = normalizeFavoriteMatch(match);
+                        forgetRemovedFavoriteKeys(getMatchFavoriteKeys(normalizedMatch));
                         favMatches.push(normalizedMatch);
                         getMatchFavoriteKeys(normalizedMatch).forEach(key => {
                             if (!hasAnyFavoriteKey(favMatchKeys, [key])) favMatchKeys.push(key);
@@ -9445,6 +9472,7 @@
                         ...currentKeys,
                         ...(idx !== -1 ? getMatchFavoriteKeys(favMatches[idx]) : [])
                     ].map(normalizeFavoriteKeyValue).filter(Boolean));
+                    rememberRemovedFavoriteKeys(Array.from(removalKeys));
                     favMatches = favMatches.filter(f => {
                         const sameId = f.id?.toString() === id.toString();
                         const sameKey = getMatchFavoriteKeys(f).some(key => removalKeys.has(normalizeFavoriteKeyValue(key)));
@@ -9580,7 +9608,7 @@
                 }
                 let registration = await navigator.serviceWorker.getRegistration('/');
                 if (!registration) {
-                    registration = await navigator.serviceWorker.register('/sw.js?v=33', { scope: '/' });
+                    registration = await navigator.serviceWorker.register('/sw.js?v=34', { scope: '/' });
                 } else {
                     try {
                         registration = registration.update ? await registration.update() : registration;
@@ -9614,6 +9642,12 @@
                         keepalive: true,
                         cache: 'no-store'
                     }).catch(() => null));
+                } else if (
+                    Notification.permission === 'granted' &&
+                    supportsWebPush() &&
+                    localStorage.getItem('webPushReady') === '1'
+                ) {
+                    requests.push(registerWebPushSubscription().catch(() => null));
                 }
 
                 const token = localStorage.getItem('fcmToken');
@@ -9697,7 +9731,7 @@
                         if (userSettings.browserNotifEnabled && Notification.permission === "granted") {
                             new Notification(notificationTitle, {
                                 body: notificationBody,
-                                icon: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
+                                icon: '/icons/icon-192.png',
                                 data: payload.data
                             });
                         }
@@ -9749,6 +9783,7 @@
                 const res = await fetch(API_BASE_URL + '/api/push/subscribe', {
                     method: 'POST',
                     keepalive: true,
+                    cache: 'no-store',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
@@ -11427,11 +11462,26 @@
                 syncRegisteredPushState();
             });
 
+            window.addEventListener('pageshow', () => {
+                if ("Notification" in window && Notification.permission === "granted") {
+                    syncPushRegistration().catch(() => syncRegisteredPushState());
+                }
+            });
+
+            window.addEventListener('online', () => {
+                if ("Notification" in window && Notification.permission === "granted") {
+                    syncPushRegistration().catch(() => syncRegisteredPushState());
+                }
+            });
+
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'hidden') {
                     syncFavoritesLight({ beacon: true });
                 } else {
                     syncFavoritesLight();
+                    if ("Notification" in window && Notification.permission === "granted") {
+                        syncRegisteredPushState();
+                    }
                 }
             });
 
@@ -11446,7 +11496,7 @@
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js?v=33', { scope: '/' }).then(reg => {
+                    navigator.serviceWorker.register('/sw.js?v=34', { scope: '/' }).then(reg => {
                         console.log('SW registered:', reg.scope);
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });

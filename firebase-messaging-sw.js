@@ -39,8 +39,8 @@ messaging.onBackgroundMessage((payload) => {
     if (!payload.notification) {
         const notificationOptions = {
             body: notificationBody,
-            icon: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
-            badge: 'https://imglink.cc/cdn/hC_7Jg-pCe.png',
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-192.png',
             data: payload.data,
             tag: payload.data?.matchId ? `goal-${payload.data.matchId}` : 'general',
             vibrate: [200, 100, 200],
