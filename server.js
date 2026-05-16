@@ -957,6 +957,16 @@ const CACHE_TIMES = {
     SCHEDULED: 5 * 60 * 1000, // 5 dÉ™qiqÉ™
     STATIC: 60 * 60 * 1000    // 1 saat
 };
+const BACKGROUND_REFRESH_THROTTLE_MS = 60 * 1000;
+const backgroundRefreshAttempts = {};
+
+function shouldStartBackgroundRefresh(key, isFresh = false, force = false) {
+    if (isFresh && !force) return false;
+    const now = Date.now();
+    if (!force && now - (backgroundRefreshAttempts[key] || 0) < BACKGROUND_REFRESH_THROTTLE_MS) return false;
+    backgroundRefreshAttempts[key] = now;
+    return true;
+}
 
 const IMAGE_CACHE_DIR = path.join(__dirname, ".image-cache");
 const imageMemoryCache = new Map();
@@ -2495,14 +2505,26 @@ async function fetchTopPlayersData(tournamentId, seasonId, options = {}) {
     };
 
     if (options.fast) {
+        const cachedStandingsFallback = buildTopPlayersFromStandingsFallback(tournamentId, seasonId);
+        if (hasTopPlayers(cachedStandingsFallback)) {
+            return { ...cachedStandingsFallback, fast: true, instant: true };
+        }
+
         const officialPromise = fetchOfficialTopPlayersData(tournamentId, seasonId);
         const eventsPromise = fetchTopPlayersFromEventsFallback(tournamentId, seasonId, fastFallbackOptions);
+        const standingsPromise = fetchTopPlayersFromStandingsFallback(tournamentId, seasonId, {
+            fetchFresh: true,
+            timeout: 1400
+        }).then(data => {
+            if (hasTopPlayers(data)) return { ...data, fast: true };
+            throw new Error("standings fallback returned no players");
+        });
         const realData = await Promise.race([
-            Promise.any([officialPromise, eventsPromise]).catch(error => {
+            Promise.any([officialPromise, eventsPromise, standingsPromise]).catch(error => {
                 console.warn(`[Top Players] Fast real data failed for ${tournamentId}/${seasonId}: ${error.message}`);
                 return null;
             }),
-            new Promise(resolve => setTimeout(() => resolve(null), 6500))
+            new Promise(resolve => setTimeout(() => resolve(null), 4200))
         ]);
         if (hasTopPlayers(realData)) return realData;
         throw new Error("Top players unavailable");
@@ -2520,6 +2542,15 @@ async function fetchTopPlayersData(tournamentId, seasonId, options = {}) {
 
     const fallbackData = await fetchTopPlayersFromEventsFallback(tournamentId, seasonId, {});
     if (fallbackData && extractGoalTopPlayersList(fallbackData).length) return fallbackData;
+
+    const standingsFallback = await fetchTopPlayersFromStandingsFallback(tournamentId, seasonId, {
+        fetchFresh: true,
+        timeout: 2400
+    }).catch(error => {
+        console.warn(`[Top Players] Standings final fallback failed for ${tournamentId}/${seasonId}: ${error.message}`);
+        return null;
+    });
+    if (hasTopPlayers(standingsFallback)) return standingsFallback;
 
     throw new Error("Top players unavailable");
 }
@@ -3087,10 +3118,12 @@ app.get("/api/team/:id(\\d+)", async (req, res) => {
             : playersPromise;
 
         if (fast) {
+            const playersCacheKey = `team_players_${teamId}`;
             const info = await infoPromise;
-            const players = await safePlayersPromise;
-            if (players?.partial) {
-                getCachedData(`team_players_${teamId}`, fetchTeamPlayers, TEAM_PLAYERS_TTL, { skipJitter: true }).catch(e => {
+            const cachedPlayers = cache[playersCacheKey]?.data;
+            const players = cachedPlayers || { players: [], partial: true };
+            if (!cachedPlayers) {
+                getCachedData(playersCacheKey, fetchTeamPlayers, TEAM_PLAYERS_TTL, { skipJitter: true }).catch(e => {
                     console.warn(`[TEAM PLAYERS WARMUP] ${teamId}: ${e.message}`);
                 });
             }
@@ -3822,50 +3855,62 @@ app.get("/api/standings/:tourId/:seasonId", async (req, res) => {
 
 // Yeni API: Populyar Liqalar siyahÄ±sÄ±
 app.get("/api/top-leagues", async (req, res) => {
-    try {
-        const data = await getCachedData("top_leagues", async () => {
+    const cachedEntry = cache.top_leagues;
+    const cachedData = cachedEntry?.data;
+    const hasCachedLeagues = Array.isArray(cachedData?.uniqueTournaments) && cachedData.uniqueTournaments.length;
+    const fallback = { uniqueTournaments: FALLBACK_TOP_LEAGUES, fallback: true, snapshot: true, instant: true };
+    const payload = hasCachedLeagues
+        ? { ...cachedData, cached: true, instant: true }
+        : fallback;
+
+    res.json(payload);
+    warmImagePaths(collectTopLeagueImagePaths(payload), 24).catch(e => {
+        console.warn("[Image Warmup] Top leagues failed:", e.message);
+    });
+
+    const isFresh = hasCachedLeagues && (Date.now() - cachedEntry.timestamp < CACHE_TIMES.STATIC);
+    if (!shouldStartBackgroundRefresh("top_leagues", isFresh, req.query.refresh === "1")) return;
+
+    getCachedData("top_leagues", async () => {
+        try {
             const result = await fetchFromSofa("/config/top-unique-tournaments/AZ/football");
             return result.data;
-        }, CACHE_TIMES.STATIC);
-        res.json(data);
-        warmImagePaths(collectTopLeagueImagePaths(data), 24).catch(e => {
-            console.warn("[Image Warmup] Top leagues failed:", e.message);
-        });
-    } catch (error) {
-        console.error(`[API ERROR] Top Leagues: ${error.message}`);
-        const fallback = { uniqueTournaments: FALLBACK_TOP_LEAGUES, fallback: true };
-        cache.top_leagues = { data: fallback, timestamp: Date.now() };
-        res.json(fallback);
-        warmImagePaths(collectTopLeagueImagePaths(fallback), 24).catch(e => {
-            console.warn("[Image Warmup] Fallback top leagues failed:", e.message);
-        });
-    }
+        } catch (error) {
+            console.error(`[API ERROR] Top Leagues refresh: ${error.message}`);
+            throw error;
+        }
+    }, CACHE_TIMES.STATIC, { skipJitter: true }).catch(() => {});
 });
 
 // Yeni API: BÃ¼tÃ¼n Kategoriyalar (Ã–lkÉ™lÉ™r)
 app.get("/api/categories", async (req, res) => {
-    try {
-        const data = await getCachedData("categories", async () => {
+    const cachedEntry = cache.categories;
+    const cachedData = cachedEntry?.data;
+    const cachedCategories = Array.isArray(cachedData?.categories) && cachedData.categories.length
+        ? cachedData.categories
+        : null;
+    const fallback = { categories: FALLBACK_CATEGORIES, fallback: true, snapshot: true, instant: true };
+    const payload = cachedCategories
+        ? { ...cachedData, categories: cachedCategories, cached: true, instant: true }
+        : fallback;
+
+    res.json(payload);
+    warmImagePaths(collectCategoryImagePaths(payload), 30).catch(e => {
+        console.warn("[Image Warmup] Categories failed:", e.message);
+    });
+
+    const isFresh = cachedCategories && (Date.now() - cachedEntry.timestamp < CACHE_TIMES.STATIC);
+    if (!shouldStartBackgroundRefresh("categories", isFresh, req.query.refresh === "1")) return;
+
+    getCachedData("categories", async () => {
+        try {
             const result = await fetchFromSofa("/sport/football/categories");
             return result.data;
-        }, CACHE_TIMES.STATIC);
-        const categories = Array.isArray(data?.categories) && data.categories.length
-            ? data.categories
-            : FALLBACK_CATEGORIES;
-        const payload = { ...data, categories };
-        res.json(payload);
-        warmImagePaths(collectCategoryImagePaths(payload), 30).catch(e => {
-            console.warn("[Image Warmup] Categories failed:", e.message);
-        });
-    } catch (error) {
-        console.error(`[API ERROR] Categories: ${error.message}`);
-        const fallback = { categories: FALLBACK_CATEGORIES, fallback: true };
-        cache.categories = { data: fallback, timestamp: Date.now() };
-        res.json(fallback);
-        warmImagePaths(collectCategoryImagePaths(fallback), 30).catch(e => {
-            console.warn("[Image Warmup] Fallback categories failed:", e.message);
-        });
-    }
+        } catch (error) {
+            console.error(`[API ERROR] Categories refresh: ${error.message}`);
+            throw error;
+        }
+    }, CACHE_TIMES.STATIC, { skipJitter: true }).catch(() => {});
 });
 
 app.get("/api/sofa-image", async (req, res) => {
@@ -3911,18 +3956,22 @@ app.get("/api/category/:id/tournaments", async (req, res) => {
     if (req.query.fast === "1" && cached) {
         res.json({ ...cached, cached: true, fast: true });
         warmCategoryStandings(cached, 20);
-        getCachedData(cacheKey, fetchFresh, CACHE_TIMES.STATIC, { skipJitter: true })
-            .then(data => warmImagePaths(collectTournamentImagePaths(data), 24))
-            .catch(e => console.warn(`[Category Cache Refresh] ${categoryId} failed:`, e.message));
+        if (shouldStartBackgroundRefresh(cacheKey, Date.now() - (cache[cacheKey]?.timestamp || 0) < CACHE_TIMES.STATIC, req.query.refresh === "1")) {
+            getCachedData(cacheKey, fetchFresh, CACHE_TIMES.STATIC, { skipJitter: true })
+                .then(data => warmImagePaths(collectTournamentImagePaths(data), 24))
+                .catch(e => console.warn(`[Category Cache Refresh] ${categoryId} failed:`, e.message));
+        }
         return;
     }
 
     if (req.query.fast === "1" && fallbackData) {
         res.json({ ...fallbackData, fallback: true, snapshot: true });
         warmCategoryStandings(fallbackData, 20);
-        getCachedData(cacheKey, fetchFresh, CACHE_TIMES.STATIC, { skipJitter: true })
-            .then(data => warmImagePaths(collectTournamentImagePaths(data), 36))
-            .catch(e => console.warn(`[Category Snapshot Refresh] ${categoryId} failed:`, e.message));
+        if (shouldStartBackgroundRefresh(cacheKey, false, req.query.refresh === "1")) {
+            getCachedData(cacheKey, fetchFresh, CACHE_TIMES.STATIC, { skipJitter: true })
+                .then(data => warmImagePaths(collectTournamentImagePaths(data), 36))
+                .catch(e => console.warn(`[Category Snapshot Refresh] ${categoryId} failed:`, e.message));
+        }
         return;
     }
 
@@ -3943,9 +3992,11 @@ app.get("/api/category/:id/tournaments", async (req, res) => {
                 fast: true,
                 message: "Category tournaments are loading"
             });
-            getCachedData(cacheKey, fetchFresh, CACHE_TIMES.STATIC, { skipJitter: true })
-                .then(data => warmImagePaths(collectTournamentImagePaths(data), 24))
-                .catch(e => console.warn(`[Category Fast Refresh] ${categoryId} failed:`, e.message));
+            if (shouldStartBackgroundRefresh(cacheKey, false, req.query.refresh === "1")) {
+                getCachedData(cacheKey, fetchFresh, CACHE_TIMES.STATIC, { skipJitter: true })
+                    .then(data => warmImagePaths(collectTournamentImagePaths(data), 24))
+                    .catch(e => console.warn(`[Category Fast Refresh] ${categoryId} failed:`, e.message));
+            }
         }
         return;
     }
@@ -4063,7 +4114,7 @@ app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
         } else {
             data = await withServerTimeout(
                 fetchTopPlayersDataForBestSeason(id, sid, fast ? { fast: true, maxSeasons: 1 } : {}),
-                fast ? 7000 : 9500,
+                fast ? 4800 : 8500,
                 "Top players"
             );
             if (data?.derived && cached?.data && !cached.data.derived && extractTopPlayersList(cached.data).length) {
@@ -4084,6 +4135,13 @@ app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
         });
         res.json(data);
     } catch (error) {
+        const fallback = await fetchTopPlayersFromStandingsFallback(req.params.id, req.params.sid, {
+            fetchFresh: req.query.fast === "1",
+            timeout: 1800
+        }).catch(() => null);
+        if (hasTopPlayers(fallback)) {
+            return res.json({ ...fallback, fast: req.query.fast === "1", fallback: true });
+        }
         res.json({ topPlayers: { goals: [] }, error: true, message: error.message });
     }
 });

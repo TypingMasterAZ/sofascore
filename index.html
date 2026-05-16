@@ -6799,32 +6799,35 @@
             }
 
             function renderTopPlayersHtml(topPlayers) {
-                const playerRows = (Array.isArray(topPlayers) ? topPlayers : []).filter(p => {
-                    const playerId = String(p?.player?.id || '');
-                    return !p?.synthetic && !playerId.startsWith('team-');
-                });
+                const playerRows = (Array.isArray(topPlayers) ? topPlayers : []).filter(p => p && (p.player?.name || p.team?.name || p.goals || p.statistics?.goals));
                 if (!playerRows.length) {
                     return "<div style='text-align:center; padding:40px; color:var(--text-muted); font-weight:600;'>Bombardir məlumatı tapılmadı.</div>";
                 }
 
                 let html = '<div class="top-players-list">';
+                if (playerRows.some(p => p?.synthetic || String(p?.player?.id || '').startsWith('team-'))) {
+                    html += `<div style="padding:10px 14px 16px; color:var(--text-muted); font-size:12px; font-weight:750; line-height:1.45;">Rəsmi bombardir siyahısı gecikəndə cədvəldəki komanda qol göstəriciləri dərhal göstərilir.</div>`;
+                }
                 playerRows.slice(0, 20).forEach((p, index) => {
                     const goals = p.statistics?.goals ?? p.statistics?.totalGoals ?? p.goals ?? p.totalGoals ?? p.value ?? p.statistic ?? 0;
-                    const playerId = p.player?.id || '';
-                    const playerImg = playerId ? sofaImageUrl(`/player/${playerId}/image`, {
+                    const playerId = String(p.player?.id || '');
+                    const isSynthetic = !!p?.synthetic || playerId.startsWith('team-');
+                    const displayName = p.player?.name || p.team?.name || 'Oyunçu';
+                    const teamName = isSynthetic ? (p.team?.name || 'Komanda') : (p.team ? p.team.name : 'Komanda yoxdur');
+                    const playerImg = isSynthetic && p.team?.id ? sofaImageUrl(`/team/${p.team.id}/image`, getTeamImageOptions(p.team, true)) : (playerId ? sofaImageUrl(`/player/${playerId}/image`, {
                         strict: true,
                         fallbackLabel: p.player?.shortName || p.player?.name || 'PL',
                         fallbackType: 'player',
                         primary: '#16a34a',
                         secondary: '#0f172a'
-                    }) : IMAGE_PLACEHOLDER;
+                    }) : IMAGE_PLACEHOLDER);
                     html += `
                             <div class="player-row">
                                 <span class="player-rank">${index + 1}</span>
                                 <img class="player-img" loading="lazy" decoding="async" src="${playerImg}" onerror="this.onerror=null; this.src='${IMAGE_PLACEHOLDER}'">
                                 <div class="player-info">
-                                    <span class="player-name">${p.player?.name || 'Oyunçu'}</span>
-                                    <span class="player-team">${p.team ? p.team.name : 'Komanda yoxdur'}</span>
+                                    <span class="player-name">${escapeHtml(displayName)}</span>
+                                    <span class="player-team">${escapeHtml(teamName)}</span>
                                 </div>
                                 <span class="player-goals">${goals} Qol</span>
                             </div>`;
@@ -7421,7 +7424,7 @@
 
                     // Auto-update open modal scores
                     if (typeof currentOpenMatchId !== 'undefined' && currentOpenMatchId) {
-                        const m = allEvents.find(e => e.id.toString() === currentOpenMatchId.toString());
+                        const m = allEvents.find(e => e.id?.toString() === currentOpenMatchId.toString());
                         if (m) {
                             const scoreEl = document.getElementById("scoreM");
                             if (scoreEl) scoreEl.innerText = `${m.homeScore?.current || 0} - ${m.awayScore?.current || 0}`;
@@ -8518,8 +8521,8 @@
                     let data = null;
                     try {
                         data = await withTimeout(
-                            fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players?fast=1`, "Top players server xətası", 7200),
-                            7000
+                            fetchServerJson(`/api/tournament/${tourId}/season/${seasonId}/top-players?fast=1`, "Top players server xətası", 5200),
+                            5000
                         );
                     } catch (serverErr) {}
 
@@ -8573,7 +8576,7 @@
                 try {
                     data = await withTimeout(
                         fetchServerJson(`/api/team/${teamId}?fast=1`, "Klub server xətası"),
-                        11000
+                        5600
                     );
                 } catch (serverErr) {
                     console.warn("Team API failed, trying browser SofaScore fallback:", serverErr.message);
@@ -9365,7 +9368,7 @@
             }
 
             function openMatchById(id) {
-                const match = allEvents.find(m => m.id.toString() === id.toString());
+                const match = allEvents.find(m => m.id?.toString() === id.toString());
                 if (match) {
                     const timeRaw = getMatchTime(match);
                     const safeHomeName = match.homeTeam.name.replace(/'/g, "\\'");
