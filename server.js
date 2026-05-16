@@ -138,8 +138,15 @@ const DEFAULT_VAPID_KEYS = {
   publicKey: "BHWOOLhZ6kHIPynDRpEilL9L7SMfwz0p9fWu0NLeZSIQCx2ffdlNwgLILQiA-d22Fy_SLPP-kTMa5AFo0YinhWM",
   privateKey: "XgT1SE-DUDLvp_IQsr60Qd_15fIau4OhXiu8zaGAAc8"
 };
-const VAPID_PUBLIC_KEY = process.env.WEB_PUSH_PUBLIC_KEY || DEFAULT_VAPID_KEYS.publicKey;
-const VAPID_PRIVATE_KEY = process.env.WEB_PUSH_PRIVATE_KEY || DEFAULT_VAPID_KEYS.privateKey;
+const ENV_VAPID_PUBLIC_KEY = String(process.env.WEB_PUSH_PUBLIC_KEY || "").trim();
+const ENV_VAPID_PRIVATE_KEY = String(process.env.WEB_PUSH_PRIVATE_KEY || "").trim();
+const HAS_COMPLETE_ENV_VAPID_PAIR = !!ENV_VAPID_PUBLIC_KEY && !!ENV_VAPID_PRIVATE_KEY;
+if (!!ENV_VAPID_PUBLIC_KEY !== !!ENV_VAPID_PRIVATE_KEY) {
+  console.warn("[WebPush] WEB_PUSH_PUBLIC_KEY and WEB_PUSH_PRIVATE_KEY must be set together. Falling back to bundled pair.");
+}
+const VAPID_PUBLIC_KEY = HAS_COMPLETE_ENV_VAPID_PAIR ? ENV_VAPID_PUBLIC_KEY : DEFAULT_VAPID_KEYS.publicKey;
+const VAPID_PRIVATE_KEY = HAS_COMPLETE_ENV_VAPID_PAIR ? ENV_VAPID_PRIVATE_KEY : DEFAULT_VAPID_KEYS.privateKey;
+const VAPID_KEY_SOURCE = HAS_COMPLETE_ENV_VAPID_PAIR ? "env-pair" : "bundled-pair";
 const VAPID_SUBJECT = process.env.WEB_PUSH_SUBJECT || "mailto:support@rabonamedia.app";
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
@@ -4807,11 +4814,9 @@ async function sendWebPushMessage(deviceId, payload) {
     if (!reg?.subscription?.endpoint) return false;
 
     try {
-        const topic = String(payload.tag || "general-push").replace(/[^A-Za-z0-9_\-=]/g, "-").substring(0, 32) || "general-push";
         await webpush.sendNotification(reg.subscription, JSON.stringify(payload), {
             TTL: payload.ttl || 4 * 60 * 60,
-            urgency: payload.urgency || "high",
-            topic: topic
+            urgency: payload.urgency || "high"
         });
         return true;
     } catch (err) {
@@ -4901,7 +4906,19 @@ app.post("/api/push/subscribe", (req, res) => {
     };
     saveWebPushRegistrations();
     console.log(`[WebPush] Device updated. Device: ${deviceId}, Matches: ${(favorites || []).length}, Keys: ${webPushRegistrations[deviceId].favoriteKeys.length}, Leagues: ${(leagues || []).length}`);
-    res.json({ success: true });
+    let endpointHost = "";
+    try {
+        endpointHost = new URL(subscription.endpoint).hostname;
+    } catch (e) {}
+    res.json({
+        success: true,
+        deviceId,
+        platform: webPushRegistrations[deviceId].platform,
+        endpointHost,
+        favoriteCount: webPushRegistrations[deviceId].favorites.length,
+        favoriteKeyCount: webPushRegistrations[deviceId].favoriteKeys.length,
+        vapidKeySource: VAPID_KEY_SOURCE
+    });
 });
 
 app.post("/api/push/favorites-sync", (req, res) => {
@@ -5043,7 +5060,7 @@ app.post("/api/push/test", async (req, res) => {
             title: "Rabona Media",
             body: "Test bildirişi uğurla göndərildi. Arxa plan bildirişləri hazırdır.",
             type: "test",
-            tag: `test-${deviceId}`,
+            tag: `test-${deviceId}-${Date.now()}`,
             requireInteraction: true
         });
         const sent = await sendWebPushMessage(deviceId, payload);
@@ -5061,17 +5078,67 @@ app.get("/api/push/status", (req, res) => {
     const webPushFavoriteMatches = Object.values(webPushRegistrations).reduce((sum, reg) => sum + getFavoritePayloadFromReg(reg).favorites.length, 0);
     const fcmFavoriteKeys = Object.values(fcmRegistrations).reduce((sum, reg) => sum + getFavoritePayloadFromReg(reg).favoriteKeys.length, 0);
     const webPushFavoriteKeys = Object.values(webPushRegistrations).reduce((sum, reg) => sum + getFavoritePayloadFromReg(reg).favoriteKeys.length, 0);
+    const webPushPlatforms = Object.values(webPushRegistrations).reduce((acc, reg) => {
+        const key = reg.platform || "unknown";
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+    }, {});
+    const webPushEndpointHosts = Object.values(webPushRegistrations).reduce((acc, reg) => {
+        try {
+            const key = new URL(reg.subscription?.endpoint || "").hostname || "unknown";
+            acc[key] = (acc[key] || 0) + 1;
+        } catch (e) {
+            acc.unknown = (acc.unknown || 0) + 1;
+        }
+        return acc;
+    }, {});
     res.json({
         success: true,
         firebaseInitialized,
+        vapidKeySource: VAPID_KEY_SOURCE,
+        vapidPairComplete: !!VAPID_PUBLIC_KEY && !!VAPID_PRIVATE_KEY,
+        envVapidPairComplete: HAS_COMPLETE_ENV_VAPID_PAIR,
         fcmRegistrations: Object.keys(fcmRegistrations).length,
         webPushRegistrations: Object.keys(webPushRegistrations).length,
+        webPushPlatforms,
+        webPushEndpointHosts,
         fcmFavoriteMatches,
         webPushFavoriteMatches,
         fcmFavoriteKeys,
         webPushFavoriteKeys,
         lastScores: Object.keys(lastScores).length,
         lastLiveFetchTime: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null
+    });
+});
+
+app.get("/api/push/device-status/:deviceId", (req, res) => {
+    const deviceId = String(req.params.deviceId || "");
+    const reg = webPushRegistrations[deviceId];
+    if (!deviceId || !reg) {
+        return res.status(404).json({
+            success: false,
+            registered: false,
+            message: "Device Web Push qeydiyyatı serverdə tapılmadı"
+        });
+    }
+
+    const payload = getFavoritePayloadFromReg(reg);
+    let endpointHost = "";
+    try {
+        endpointHost = new URL(reg.subscription?.endpoint || "").hostname;
+    } catch (e) {}
+
+    res.json({
+        success: true,
+        registered: true,
+        deviceId,
+        platform: reg.platform || "webpush",
+        endpointHost,
+        favoriteCount: payload.favorites.length,
+        favoriteKeyCount: payload.favoriteKeys.length,
+        leagueCount: payload.leagues.length,
+        lastUpdated: reg.lastUpdated || null,
+        vapidKeySource: VAPID_KEY_SOURCE
     });
 });
 
@@ -5127,7 +5194,7 @@ async function sendBroadcastPushTest() {
             title,
             body,
             type: "test_broadcast",
-            tag: `broadcast-${deviceId}`,
+            tag: `broadcast-${deviceId}-${Date.now()}`,
             requireInteraction: true
         }));
         if (ok) sentWebPush++;
@@ -5356,10 +5423,18 @@ async function runIncidentScorerWorker() {
             const goalIncidents = extractGoalIncidents(incidentsData);
             const goalKeys = goalIncidents.map(buildGoalIncidentKey);
             const pendingGoalDetail = pendingGoalDetailNotifications[matchId];
+            const currentHomeScore = Number(ev.homeScore?.current || 0);
+            const currentAwayScore = Number(ev.awayScore?.current || 0);
+            const currentGoalTotal = currentHomeScore + currentAwayScore;
+            const previousScore = lastScores[matchId];
+            const previousGoalTotal = previousScore
+                ? (Number(previousScore.homeScore) || 0) + (Number(previousScore.awayScore) || 0)
+                : null;
+            const scoreMovedSinceLastTrack = previousGoalTotal !== null && currentGoalTotal > previousGoalTotal;
 
             if (!liveGoalIncidentState[matchId]) {
                 liveGoalIncidentState[matchId] = new Set();
-                if (!pendingGoalDetail || goalIncidents.length <= pendingGoalDetail.previousGoalTotal) {
+                if (!scoreMovedSinceLastTrack && (!pendingGoalDetail || goalIncidents.length <= pendingGoalDetail.previousGoalTotal)) {
                     goalKeys.forEach(key => liveGoalIncidentState[matchId].add(key));
                     continue;
                 }
@@ -5370,9 +5445,11 @@ async function runIncidentScorerWorker() {
 
             goalKeys.forEach(key => knownKeys.add(key));
             let incidentsToNotify = newGoalIncidents;
-            if (pendingGoalDetail && newGoalIncidents.length) {
+            if ((pendingGoalDetail || scoreMovedSinceLastTrack) && newGoalIncidents.length) {
                 const sideFiltered = newGoalIncidents.filter(incident =>
-                    pendingGoalDetail.scoringSide === "home" ? incident.isHome === true : incident.isHome === false
+                    pendingGoalDetail
+                        ? (pendingGoalDetail.scoringSide === "home" ? incident.isHome === true : incident.isHome === false)
+                        : (currentHomeScore > (Number(previousScore?.homeScore) || 0) ? incident.isHome === true : incident.isHome === false)
                 );
                 incidentsToNotify = (sideFiltered.length ? sideFiltered : newGoalIncidents)
                     .slice()
@@ -5422,6 +5499,7 @@ async function runIncidentScorerWorker() {
                     delete pendingGoalDetailNotifications[matchId];
                 }
             }
+            lastScores[matchId] = { homeScore: currentHomeScore, awayScore: currentAwayScore };
         }
 
         pruneGoalNotificationState();

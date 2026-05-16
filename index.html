@@ -9411,7 +9411,7 @@
                     showToast('Oyun favoritlərdən çıxarıldı');
                 }
                 persistFavoriteMatches();
-                syncFavoritesLight();
+                syncFavoritesLight({ beacon: true });
                 refreshPushAfterFavoriteChange(favoriteAdded).catch(() => syncRegisteredPushState());
             }
 
@@ -9586,7 +9586,7 @@
             function buildFavoriteSyncPayload() {
                 return {
                     token: localStorage.getItem('fcmToken') || '',
-                    deviceId: localStorage.getItem('pushDeviceId') || '',
+                    deviceId: getPushDeviceId(),
                     favorites: getFavoriteIds(),
                     leagues: getFavoriteLeagueIds(),
                     favoriteKeys: getFavoriteKeys(),
@@ -9672,10 +9672,11 @@
 
                 let subscription = await swReg.pushManager.getSubscription();
                 const currentKey = keyData.publicKey.replace(/=+$/, '');
+                const storedKey = localStorage.getItem('webPushPublicKey') || '';
                 const subscriptionKey = subscription?.options?.applicationServerKey
                     ? arrayBufferToBase64Url(subscription.options.applicationServerKey)
-                    : currentKey;
-                if (subscription && subscriptionKey && subscriptionKey !== currentKey) {
+                    : storedKey;
+                if (subscription && (!subscriptionKey || subscriptionKey !== currentKey)) {
                     await subscription.unsubscribe().catch(() => {});
                     subscription = null;
                 }
@@ -9709,7 +9710,12 @@
                     throw new Error('Web Push qeydiyyatı alınmadı');
                 }
 
+                const serverInfo = await res.json().catch(() => null);
+                safeLocalStorageSet('webPushPublicKey', currentKey);
+                if (serverInfo?.endpointHost) safeLocalStorageSet('webPushEndpointHost', serverInfo.endpointHost);
+                if (serverInfo?.platform) safeLocalStorageSet('webPushPlatform', serverInfo.platform);
                 safeLocalStorageSet('webPushReady', '1');
+                syncFavoritesLight({ beacon: true });
                 if (document.getElementById('debugTokenBox')) {
                     document.getElementById('debugTokenBox').innerText = 'Web Push hazırdır';
                 }
@@ -9732,6 +9738,9 @@
                         body: JSON.stringify({ deviceId: getPushDeviceId() })
                     }).catch(() => {});
                     localStorage.removeItem(WEB_PUSH_SUBSCRIPTION_CACHE_KEY);
+                    localStorage.removeItem('webPushPublicKey');
+                    localStorage.removeItem('webPushEndpointHost');
+                    localStorage.removeItem('webPushPlatform');
                 } catch (e) {
                     console.warn('[WebPush] Unsubscribe failed:', e);
                 }
@@ -9918,7 +9927,7 @@
                     showToast('Liqa favoritlərdən çıxarıldı');
                 }
                 localStorage.setItem('favLeagues', JSON.stringify(favLeagues));
-                syncFavoritesLight();
+                syncFavoritesLight({ beacon: true });
                 refreshPushAfterFavoriteChange(favoriteAdded).catch(() => syncRegisteredPushState());
             }
 
@@ -10523,11 +10532,16 @@
                         return;
                     }
 
-                    notificationMgr.requestPermission().then(permission => {
+                    notificationMgr.requestPermission().then(async permission => {
                         if (permission === "granted") {
                             updateSetting('browserNotifEnabled', true);
-                            syncPushRegistration();
-                            showToast('Bildirişlər aktiv edildi', 'success');
+                            const ok = await syncPushRegistration();
+                            if (ok) {
+                                showToast('Bildirişlər aktiv edildi', 'success');
+                            } else {
+                                document.getElementById('browserNotifToggle').checked = false;
+                                updateSetting('browserNotifEnabled', false);
+                            }
                         } else {
                             if (permission !== 'unsupported') {
                                 showDialog({
