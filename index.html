@@ -5521,36 +5521,73 @@
                     .replace(/\s+/g, ' ');
             }
 
+            function repairFavoriteTextEncoding(value) {
+                const text = String(value || '');
+                if (!/[\u00C2-\u00C6]/.test(text)) return text;
+                try {
+                    const repaired = decodeURIComponent(escape(text));
+                    return repaired && !repaired.includes('\uFFFD') ? repaired : text;
+                } catch (e) {
+                    return text;
+                }
+            }
+
+            function normalizeFavoriteKeyValue(value) {
+                return String(value || '')
+                    .split('|')
+                    .map(part => {
+                        const trimmed = part.trim();
+                        return /^\d+$/.test(trimmed) ? trimmed : normalizeFavText(repairFavoriteTextEncoding(trimmed));
+                    })
+                    .filter(Boolean)
+                    .join('|');
+            }
+
             function getMatchFavoriteKey(match, options = {}) {
                 if (!match) return '';
-                const home = normalizeFavText(match.homeTeam?.name || match.homeTeam?.shortName);
-                const away = normalizeFavText(match.awayTeam?.name || match.awayTeam?.shortName);
-                const tournament = normalizeFavText(match.tournament?.name || match.tournament?.uniqueTournament?.name || match.tournamentName);
+                const home = normalizeFavText(repairFavoriteTextEncoding(match.homeTeam?.name || match.homeTeam?.shortName));
+                const away = normalizeFavText(repairFavoriteTextEncoding(match.awayTeam?.name || match.awayTeam?.shortName));
+                const tournament = normalizeFavText(repairFavoriteTextEncoding(match.tournament?.name || match.tournament?.uniqueTournament?.name || match.tournamentName));
                 const start = options.includeStart === false ? '' : (match.startTimestamp ? String(match.startTimestamp) : '');
                 return [home, away, tournament, start].filter(Boolean).join('|');
             }
 
             function normalizeFavoriteMatch(match) {
                 if (!match) return match;
-                const favoriteKey = getMatchFavoriteKey(match) || match.favoriteKey || '';
-                const favoriteKeyNoStart = getMatchFavoriteKey(match, { includeStart: false }) || match.favoriteKeyNoStart || '';
+                const favoriteKey = normalizeFavoriteKeyValue(getMatchFavoriteKey(match) || match.favoriteKey || '');
+                const favoriteKeyNoStart = normalizeFavoriteKeyValue(getMatchFavoriteKey(match, { includeStart: false }) || match.favoriteKeyNoStart || '');
                 return {
                     ...match,
-                    legacyFavoriteKey: match.legacyFavoriteKey || match.favoriteKey || '',
+                    legacyFavoriteKey: normalizeFavoriteKeyValue(match.legacyFavoriteKey || match.favoriteKey || ''),
                     favoriteKey,
                     favoriteKeyNoStart,
                     favoritedAt: match.favoritedAt || Date.now()
                 };
             }
 
-            function persistFavoriteMatches() {
-                const keySet = new Set((favMatchKeys || []).filter(Boolean));
+            function getMatchFavoriteKeys(match) {
+                if (!match) return [];
+                return Array.from(new Set([
+                    match.favoriteKey,
+                    match.favoriteKeyNoStart,
+                    match.legacyFavoriteKey,
+                    getMatchFavoriteKey(match),
+                    getMatchFavoriteKey(match, { includeStart: false })
+                ].map(normalizeFavoriteKeyValue).filter(Boolean)));
+            }
+
+            function hasAnyFavoriteKey(storedKeys, candidateKeys) {
+                const stored = new Set((storedKeys || []).map(normalizeFavoriteKeyValue).filter(Boolean));
+                return (candidateKeys || []).some(key => stored.has(normalizeFavoriteKeyValue(key)));
+            }
+
+            function persistFavoriteMatches(options = {}) {
+                const preserveExistingKeys = options.preserveExistingKeys === true;
+                const keySet = new Set(preserveExistingKeys
+                    ? (favMatchKeys || []).map(normalizeFavoriteKeyValue).filter(Boolean)
+                    : []);
                 favMatches.forEach(match => {
-                    const key = match.favoriteKey || getMatchFavoriteKey(match);
-                    const keyNoStart = match.favoriteKeyNoStart || getMatchFavoriteKey(match, { includeStart: false });
-                    if (key) keySet.add(key);
-                    if (keyNoStart) keySet.add(keyNoStart);
-                    if (match.legacyFavoriteKey) keySet.add(match.legacyFavoriteKey);
+                    getMatchFavoriteKeys(match).forEach(key => keySet.add(key));
                 });
                 favMatchKeys = Array.from(keySet);
                 localStorage.setItem('favMatches', JSON.stringify(favMatches));
@@ -5559,13 +5596,10 @@
 
             function isFavoriteMatch(match) {
                 if (!match) return false;
-                const key = getMatchFavoriteKey(match);
-                const keyNoStart = getMatchFavoriteKey(match, { includeStart: false });
+                const matchKeys = getMatchFavoriteKeys(match);
                 return favMatches.some(f => match.id && f.id?.toString() === match.id?.toString()) ||
-                    (!!key && favMatchKeys.includes(key)) ||
-                    (!!keyNoStart && favMatchKeys.includes(keyNoStart)) ||
-                    (!!key && favMatches.some(f => (f.favoriteKey || getMatchFavoriteKey(f)) === key)) ||
-                    (!!keyNoStart && favMatches.some(f => (f.favoriteKeyNoStart || getMatchFavoriteKey(f, { includeStart: false })) === keyNoStart));
+                    hasAnyFavoriteKey(favMatchKeys, matchKeys) ||
+                    favMatches.some(f => hasAnyFavoriteKey(getMatchFavoriteKeys(f), matchKeys));
             }
 
             function isFavoriteNotificationTarget(matchId, leagueId = '') {
@@ -5582,9 +5616,9 @@
                 if (!Array.isArray(events) || !favMatchKeys.length) return false;
                 let changed = false;
                 events.forEach(match => {
-                    const key = getMatchFavoriteKey(match);
-                    if (!key || !favMatchKeys.includes(key)) return;
-                    const exists = favMatches.some(f => f.id?.toString() === match.id?.toString() || (f.favoriteKey || getMatchFavoriteKey(f)) === key);
+                    const matchKeys = getMatchFavoriteKeys(match);
+                    if (!hasAnyFavoriteKey(favMatchKeys, matchKeys)) return;
+                    const exists = favMatches.some(f => f.id?.toString() === match.id?.toString() || hasAnyFavoriteKey(getMatchFavoriteKeys(f), matchKeys));
                     if (!exists) {
                         favMatches.push(normalizeFavoriteMatch(match));
                         changed = true;
@@ -5596,10 +5630,8 @@
 
             favMatches = favMatches.map(normalizeFavoriteMatch).filter(m => m && (m.id || m.favoriteKey));
             favMatchKeys = Array.from(new Set([
-                ...(favMatchKeys || []),
-                ...favMatches.map(m => m.favoriteKey || getMatchFavoriteKey(m)).filter(Boolean),
-                ...favMatches.map(m => m.favoriteKeyNoStart || getMatchFavoriteKey(m, { includeStart: false })).filter(Boolean),
-                ...favMatches.map(m => m.legacyFavoriteKey).filter(Boolean)
+                ...(favMatchKeys || []).map(normalizeFavoriteKeyValue).filter(Boolean),
+                ...favMatches.flatMap(getMatchFavoriteKeys)
             ]));
             persistFavoriteMatches();
             let toastTimer = null;
@@ -9297,7 +9329,7 @@
                 // Real-time SSE qoşulması
                 initMatchSSE(id);
 
-                const currentMatch = allEvents.find(m => m.id.toString() === id.toString());
+                const currentMatch = allEvents.find(m => m.id?.toString() === id.toString());
                 document.getElementById("logoH").src = normalizeSofaImageUrl(currentMatch?.homeTeam?.logoUrl, getTeamImageOptions(currentMatch?.homeTeam, false)) || getTeamLogoUrl(idH, false, currentMatch?.homeTeam);
                 document.getElementById("logoA").src = normalizeSofaImageUrl(currentMatch?.awayTeam?.logoUrl, getTeamImageOptions(currentMatch?.awayTeam, false)) || getTeamLogoUrl(idA, false, currentMatch?.awayTeam);
                 document.getElementById("nameH").innerText = nameH;
@@ -9386,26 +9418,38 @@
             /* Favorites Logic */
             function toggleFavoriteMatch(id, btn) {
                 if (window.event?.stopPropagation) window.event.stopPropagation();
-                const currentMatch = allEvents.find(m => m.id.toString() === id.toString());
-                const currentKey = getMatchFavoriteKey(currentMatch);
+                const currentMatch = allEvents.find(m => m.id?.toString() === id.toString());
+                const currentKeys = getMatchFavoriteKeys(currentMatch);
                 const idx = favMatches.findIndex(f =>
                     f.id?.toString() === id.toString() ||
-                    (currentKey && (f.favoriteKey || getMatchFavoriteKey(f)) === currentKey)
+                    hasAnyFavoriteKey(getMatchFavoriteKeys(f), currentKeys)
                 );
-                const keyIdx = currentKey ? favMatchKeys.indexOf(currentKey) : -1;
-                const favoriteAdded = idx === -1 && keyIdx === -1;
+                const favoriteAdded = idx === -1 && !hasAnyFavoriteKey(favMatchKeys, currentKeys);
                 if (favoriteAdded) {
                     const match = currentMatch;
                     if (match) {
-                        favMatches.push(normalizeFavoriteMatch(match));
-                        if (currentKey && !favMatchKeys.includes(currentKey)) favMatchKeys.push(currentKey);
+                        const normalizedMatch = normalizeFavoriteMatch(match);
+                        favMatches.push(normalizedMatch);
+                        getMatchFavoriteKeys(normalizedMatch).forEach(key => {
+                            if (!hasAnyFavoriteKey(favMatchKeys, [key])) favMatchKeys.push(key);
+                        });
                         btn.innerHTML = '&#9733;';
                         btn.classList.add('active');
                         showToast('Oyun favoritlərə əlavə edildi');
                     }
                 } else {
-                    if (idx !== -1) favMatches.splice(idx, 1);
-                    if (keyIdx !== -1) favMatchKeys.splice(keyIdx, 1);
+                    const removalKeys = new Set([
+                        ...currentKeys,
+                        ...(idx !== -1 ? getMatchFavoriteKeys(favMatches[idx]) : [])
+                    ].map(normalizeFavoriteKeyValue).filter(Boolean));
+                    favMatches = favMatches.filter(f => {
+                        const sameId = f.id?.toString() === id.toString();
+                        const sameKey = getMatchFavoriteKeys(f).some(key => removalKeys.has(normalizeFavoriteKeyValue(key)));
+                        return !(sameId || sameKey);
+                    });
+                    favMatchKeys = favMatchKeys
+                        .map(normalizeFavoriteKeyValue)
+                        .filter(key => key && !removalKeys.has(key));
                     btn.innerHTML = '&#9734;';
                     btn.classList.remove('active');
                     showToast('Oyun favoritlərdən çıxarıldı');
@@ -9442,7 +9486,7 @@
                     ...((typeof favMatches !== 'undefined' ? favMatches : []) || [])
                         .map(m => m.legacyFavoriteKey)
                         .filter(Boolean)
-                ]));
+                ].map(normalizeFavoriteKeyValue).filter(Boolean)));
             }
 
             function getFavoriteMatchPayloads() {
@@ -9450,8 +9494,8 @@
                     .filter(m => m && (m.id || m.favoriteKey || m.homeTeam || m.awayTeam))
                     .map(m => ({
                         id: m.id ? m.id.toString() : '',
-                        favoriteKey: m.favoriteKey || getMatchFavoriteKey(m),
-                        favoriteKeyNoStart: getMatchFavoriteKey(m, { includeStart: false }),
+                        favoriteKey: normalizeFavoriteKeyValue(m.favoriteKey || getMatchFavoriteKey(m)),
+                        favoriteKeyNoStart: normalizeFavoriteKeyValue(m.favoriteKeyNoStart || getMatchFavoriteKey(m, { includeStart: false })),
                         startTimestamp: m.startTimestamp || null,
                         home: m.homeTeam?.name || m.homeName || '',
                         away: m.awayTeam?.name || m.awayName || '',
@@ -11297,10 +11341,10 @@
                             rebuildFavoritesFromEvents(data.events);
                             const beforeIds = getFavoriteIds().join(',');
                             const updatedFavs = favMatches.map(fm => {
-                                const favKey = fm.favoriteKey || getMatchFavoriteKey(fm);
+                                const favKeys = getMatchFavoriteKeys(fm);
                                 const liveMatch = data.events.find(m => {
                                     if (m.id?.toString() === fm.id?.toString()) return true;
-                                    return favKey && getMatchFavoriteKey(m) === favKey;
+                                    return hasAnyFavoriteKey(getMatchFavoriteKeys(m), favKeys);
                                 });
                                 return normalizeFavoriteMatch(liveMatch || fm);
                             });
