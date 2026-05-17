@@ -4971,10 +4971,8 @@
             // API ünvanının təyin edilm?si (Lokal v? ya Render)
             const isFileProtocol = window.location.protocol === 'file:';
             const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            const isRender = window.location.hostname.includes('onrender.com');
-            // DİQQƏT: Render-d?n aldüçün?z ünvanı aşağıdakı DEPLOYED_URL hissəsin? yazın
-            const DEPLOYED_URL = 'https://sofascore-xoyr.onrender.com';
-            const API_BASE_URL = (isLocalhost || isRender || !DEPLOYED_URL) ? '' : DEPLOYED_URL;
+            const API_BASE_URL = isLocalhost ? 'http://localhost:3000' : '';
+            window.API_BASE_URL = API_BASE_URL;
             const SOFA_IMAGE_BASE_URL = 'https://img.sofascore.com/api/v1';
             console.log("API Base URL:", API_BASE_URL || "Local/SameOrigin");
 

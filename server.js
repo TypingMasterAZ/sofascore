@@ -6199,6 +6199,8 @@ async function refreshLiveDetailsLoop() {
 }
 
 async function runEnhancedSelfPing() {
+    if (!KEEPALIVE_ENABLED) return;
+
     const getSelfUrl = () => {
         if (process.env.KEEPALIVE_URL) return process.env.KEEPALIVE_URL;
         if (process.env.RENDER_EXTERNAL_URL) return process.env.RENDER_EXTERNAL_URL;
@@ -6261,10 +6263,12 @@ async function startAlwaysOnWorkers() {
         await warmRuntimeCaches({ light: true });
     }, 20000);
 
-    // 5. Aggressive Self-Ping (25s)
-    setInterval(async () => {
-        await runEnhancedSelfPing();
-    }, 25000);
+    // 5. Optional self-ping for platforms that sleep. Oracle VPS does not need this.
+    if (KEEPALIVE_ENABLED) {
+        setInterval(async () => {
+            await runEnhancedSelfPing();
+        }, SELF_PING_INTERVAL_MS);
+    }
 }
 
 const PORT = process.env.PORT || 3000;
