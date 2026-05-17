@@ -1,20 +1,23 @@
 {
   "107ef623-ed91-41fb-bbb5-2c37e2f28d02": {
     "subscription": {
-      "endpoint": "https://fcm.googleapis.com/fcm/send/f9OCHizRgOs:APA91bH8igonfB-7e3UbVaUGgfRMy9gR2zUAOoKLG5yaZSnc98faYjfLjSoZFhIden04hIrLNiK6DqILsWacawBU4KDxsT8mszpY2vozSQS9nMX32wMdgp3hSwfO8YkCGbHwsLwxBHTu",
+      "endpoint": "https://fcm.googleapis.com/fcm/send/d2Tw6wHQWgI:APA91bGVmtvX-XMrREL3hM1W3IWDHLM1Ccr5KW9E4jAMSG8mjgOwHJvSiE_4C-IiXQT8YBr0DUjnJz65OlvPGP2COquNirLG_rycwqe0UWafNcLVlhHkiFBH6R3Qvr4xSEHOByFIo39Q",
       "expirationTime": null,
       "keys": {
-        "p256dh": "BFXK6CZkII73P-DR_khiasrEoy7UGKCkwi--uMW4YuKjid0Ua35pvgw45yF_FM9HwJUKEUCvV7iFe6pURsdahcs",
-        "auth": "Cewe3_MTVntbt-dLFVD0xA"
+        "p256dh": "BAfbl2k3CGCZOOPKKLGOZtQupv9-1BXXPSmUTa6YrxxyMIeC9BhXt-5c-QpOmtmgZbjRrUDVGUfM2roLaBQjrxw",
+        "auth": "SSSVeIHW5S19i3VpcXKqTQ"
       }
     },
     "favorites": [
-      "15632635"
+      "15632635",
+      "14109925"
     ],
     "leagues": [],
     "favoriteKeys": [
       "arsenal|atletico madrid|uefa champions league knockout stage|1778007600",
-      "arsenal|atletico madrid|uefa champions league knockout stage"
+      "arsenal|atletico madrid|uefa champions league knockout stage",
+      "trabzonspor|genclerbirligi|trendyol super lig|1779037200",
+      "trabzonspor|genclerbirligi|trendyol super lig"
     ],
     "favoriteMatches": [
       {
@@ -25,9 +28,18 @@
         "away": "atletico madrid",
         "tournament": "uefa champions league knockout stage",
         "startTimestamp": "1778007600"
+      },
+      {
+        "id": "14109925",
+        "favoriteKey": "trabzonspor|genclerbirligi|trendyol super lig|1779037200",
+        "favoriteKeyNoStart": "trabzonspor|genclerbirligi|trendyol super lig",
+        "home": "trabzonspor",
+        "away": "genclerbirligi",
+        "tournament": "trendyol super lig",
+        "startTimestamp": "1779037200"
       }
     ],
-    "lastUpdated": 1778923629426,
+    "lastUpdated": 1779039546695,
     "platform": "webpush",
     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
   }

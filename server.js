@@ -1422,12 +1422,17 @@ async function fetchLiveFromRapidApi() {
 
 async function fetchLiveScoresForNotifications() {
     try {
-        const data = await Promise.any([
+        const fastSources = [
             fetchFromSofaNativeFast("/sport/football/events/live", {}, 1800),
             fetchFromSofaFastRace("/sport/football/events/live", {}, 3200),
             fetchRapidApiSofaPath("/sport/football/events/live", {}, 4200),
             fetchLiveFromScheduledFallback("live-poll-fast-fallback")
-        ]);
+        ];
+        if (ENABLE_MACKOLIK_MATCHES) {
+            fastSources.push(fetchLiveFromMackolik());
+        }
+
+        const data = await Promise.any(fastSources);
         const normalized = normalizeSofaLiveEventsData(data);
         if (Array.isArray(normalized.events)) {
             globalLiveEvents = normalized;
