@@ -7184,7 +7184,7 @@
             function keepSofascoreEventsOnly(events) {
                 return (Array.isArray(events) ? events : []).filter(event => {
                     if (!event) return false;
-                    return !event.source || event.source === 'sofascore' || event.source === 'mackolik';
+                    return !event.source || event.source === 'sofascore' || event.source === 'mackolik' || event.source === 'rapidapi-sofascore' || event.source === 'scheduled-live-fallback';
                 });
             }
 
@@ -7296,10 +7296,11 @@
             }
 
             let sofaDirectBlockedUntil = Number(sessionStorage.getItem('sofaDirectBlockedUntil') || 0);
+            const DISABLE_BROWSER_SOFASCORE_DIRECT = false;
 
             async function fetchEventsFromBestSource(localUrl, sofaPath, options = {}, allowDirectBrowserFallback = true, sourceOptions = {}) {
                 const directUrl = `https://api.sofascore.com/api/v1${sofaPath}`;
-                const canUseDirect = () => allowDirectBrowserFallback && Date.now() > sofaDirectBlockedUntil;
+                const canUseDirect = () => !DISABLE_BROWSER_SOFASCORE_DIRECT && allowDirectBrowserFallback && Date.now() > sofaDirectBlockedUntil;
                 const blockDirectTemporarily = () => {
                     sofaDirectBlockedUntil = Date.now() + 10 * 60 * 1000;
                     sessionStorage.setItem('sofaDirectBlockedUntil', String(sofaDirectBlockedUntil));
