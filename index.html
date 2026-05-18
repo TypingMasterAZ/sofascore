@@ -9916,6 +9916,10 @@
 
                 if (!("Notification" in window)) return false;
                 if (!supportsWebPush() && !supportsFirebaseMessaging()) return false;
+                if (!window.isSecureContext) {
+                    if (shouldAskPermission) showSecureNotificationDialog();
+                    return false;
+                }
 
                 let permission = Notification.permission;
                 if (shouldAskPermission && permission === 'default') {
@@ -10565,6 +10569,28 @@
                 applyTheme(localStorage.getItem('theme') || 'dark', false);
             }
 
+            function getSecureNotificationUrl() {
+                if (window.location.hostname === '152.67.152.191') {
+                    return 'https://152-67-152-191.nip.io' + window.location.pathname + window.location.search + window.location.hash;
+                }
+                return 'https://' + window.location.host + window.location.pathname + window.location.search + window.location.hash;
+            }
+
+            function showSecureNotificationDialog() {
+                const secureUrl = getSecureNotificationUrl();
+                showDialog({
+                    title: 'HTTPS lazimdir',
+                    message: 'Bildiris icazesi ucun sayt Secure olmalidir. IP ile acilan http sehifede brauzer bildiris vermir. Sayti HTTPS linki ile acin: ' + secureUrl,
+                    icon: '&#128274;',
+                    type: 'confirm',
+                    confirmTxt: 'HTTPS ile ac',
+                    cancelTxt: 'Bagla',
+                    onConfirm: () => {
+                        window.location.href = secureUrl;
+                    }
+                });
+            }
+
             function updateSetting(key, val) {
                 try {
                     userSettings[key] = val;
@@ -10598,6 +10624,13 @@
                 if (enabled) {
                     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
                     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+                    if (!window.isSecureContext) {
+                        showSecureNotificationDialog();
+                        document.getElementById('browserNotifToggle').checked = false;
+                        updateSetting('browserNotifEnabled', false);
+                        return;
+                    }
 
                     if (!("Notification" in window)) {
                         let msg = 'Sizin brauzeriniz bildirişləri dəstəkləmir.';
@@ -11274,7 +11307,7 @@
                 overlay.classList.add('show');
                 titleEl.innerText = title;
                 msgEl.innerText = message;
-                iconEl.innerText = icon;
+                iconEl.innerHTML = icon;
                 confirmBtn.innerText = confirmTxt;
                 cancelBtn.innerText = cancelTxt;
 
