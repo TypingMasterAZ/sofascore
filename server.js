@@ -1167,6 +1167,7 @@ const LIVE_SCORE_POLL_INTERVAL_MS = Math.max(1500, Number(process.env.LIVE_SCORE
 const LIVE_PRIMARY_SOURCE = String(process.env.LIVE_PRIMARY_SOURCE || "mackolik").toLowerCase();
 const ENABLE_MACKOLIK_MATCHES = String(process.env.ENABLE_MACKOLIK_MATCHES || "true").toLowerCase() !== "false";
 const ALLOW_MACKOLIK_FALLBACK = String(process.env.ALLOW_MACKOLIK_FALLBACK || "true").toLowerCase() !== "false";
+const SOFASCORE_ONLY_MODE = LIVE_PRIMARY_SOURCE === "sofascore" && !ENABLE_MACKOLIK_MATCHES && !ALLOW_MACKOLIK_FALLBACK;
 const MACKOLIK_LIVE_URL = "https://www.mackolik.com/perform/p0/ajax/components/competition/livescores/json";
 const MACKOLIK_LIVE_PAGE_URL = "https://www.mackolik.com/canli-sonuclar";
 const MACKOLIK_HEADERS = {
@@ -1422,13 +1423,18 @@ async function fetchLiveFromRapidApi() {
 
 async function fetchLiveScoresForNotifications() {
     try {
-        const fastSources = [
-            fetchFromSofaNativeFast("/sport/football/events/live", {}, 1800),
-            fetchFromSofaFastRace("/sport/football/events/live", {}, 3200),
-            fetchRapidApiSofaPath("/sport/football/events/live", {}, 4200),
-            fetchLiveFromScheduledFallback("live-poll-fast-fallback")
-        ];
-        if (ENABLE_MACKOLIK_MATCHES) {
+        const fastSources = SOFASCORE_ONLY_MODE
+            ? [
+                fetchFromSofaNativeFast("/sport/football/events/live", {}, 1800),
+                fetchFromSofaFastRace("/sport/football/events/live", {}, 3200)
+            ]
+            : [
+                fetchFromSofaNativeFast("/sport/football/events/live", {}, 1800),
+                fetchFromSofaFastRace("/sport/football/events/live", {}, 3200),
+                fetchRapidApiSofaPath("/sport/football/events/live", {}, 4200),
+                fetchLiveFromScheduledFallback("live-poll-fast-fallback")
+            ];
+        if (!SOFASCORE_ONLY_MODE && ENABLE_MACKOLIK_MATCHES) {
             fastSources.push(fetchLiveFromMackolik());
         }
 
@@ -1533,18 +1539,20 @@ async function fetchLiveWithFallback() {
         return null;
     };
 
-    const sources = LIVE_PRIMARY_SOURCE === "mackolik" && ENABLE_MACKOLIK_MATCHES
-        ? [
-            ["Mackolik", fetchLiveFromMackolik],
-            ["SofaScore live", fetchLiveFromSofaScore],
-            ["RapidAPI live", fetchLiveFromRapidApi],
-            ["Scheduled live", () => fetchLiveFromScheduledFallback(errors.join(" | "))]
-        ]
-        : [
-            ["SofaScore live", fetchLiveFromSofaScore],
-            ["RapidAPI live", fetchLiveFromRapidApi],
-            ["Scheduled live", () => fetchLiveFromScheduledFallback(errors.join(" | "))]
-        ];
+    const sources = SOFASCORE_ONLY_MODE
+        ? [["SofaScore live", fetchLiveFromSofaScore]]
+        : (LIVE_PRIMARY_SOURCE === "mackolik" && ENABLE_MACKOLIK_MATCHES
+            ? [
+                ["Mackolik", fetchLiveFromMackolik],
+                ["SofaScore live", fetchLiveFromSofaScore],
+                ["RapidAPI live", fetchLiveFromRapidApi],
+                ["Scheduled live", () => fetchLiveFromScheduledFallback(errors.join(" | "))]
+            ]
+            : [
+                ["SofaScore live", fetchLiveFromSofaScore],
+                ["RapidAPI live", fetchLiveFromRapidApi],
+                ["Scheduled live", () => fetchLiveFromScheduledFallback(errors.join(" | "))]
+            ]);
 
     if (ALLOW_MACKOLIK_FALLBACK && ENABLE_MACKOLIK_MATCHES && LIVE_PRIMARY_SOURCE !== "mackolik") {
         sources.push(["Mackolik", fetchLiveFromMackolik]);
@@ -1696,12 +1704,11 @@ function loadLiveSnapshot() {
             const snapshotAge = Date.now() - Number(snapshot.timestamp || 0);
             const source = String(snapshot.data.source || "").toLowerCase();
             const hasMackolikEvents = snapshot.data.events.some(event => event?.source === "mackolik");
-            const sofaOnlyMode = LIVE_PRIMARY_SOURCE === "sofascore" && !ALLOW_MACKOLIK_FALLBACK;
-            if (sofaOnlyMode && source && source !== "sofascore") {
+            if (SOFASCORE_ONLY_MODE && source && source !== "sofascore") {
                 console.log(`[LIVE SNAPSHOT] Ignoring ${source} disk cache; Sofascore-only mode is active.`);
                 return;
             }
-            if (sofaOnlyMode && hasMackolikEvents) {
+            if (SOFASCORE_ONLY_MODE && hasMackolikEvents) {
                 console.log("[LIVE SNAPSHOT] Ignoring disk cache with Mackolik events.");
                 return;
             }
