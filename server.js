@@ -1631,6 +1631,21 @@ function mapMackolikIncident(item) {
     return null;
 }
 
+function containsMackolikLiveData(payload) {
+    const events = Array.isArray(payload?.events) ? payload.events : [];
+    return events.some(event => {
+        if (String(event?.source || "").toLowerCase() === "mackolik") return true;
+        const logoFields = [
+            event?.homeTeam?.logoUrl,
+            event?.awayTeam?.logoUrl,
+            event?.tournament?.logoUrl,
+            event?.tournament?.category?.logoUrl,
+            event?.tournament?.uniqueTournament?.logoUrl
+        ];
+        return logoFields.some(value => String(value || "").includes("mackolikfeeds.com"));
+    });
+}
+
 function formatMackolikStatName(key) {
     const map = {
         possesionPercentage: "Topa sahibolma %",
@@ -1703,7 +1718,7 @@ function loadLiveSnapshot() {
         if (snapshot?.data?.events && Array.isArray(snapshot.data.events)) {
             const snapshotAge = Date.now() - Number(snapshot.timestamp || 0);
             const source = String(snapshot.data.source || "").toLowerCase();
-            const hasMackolikEvents = snapshot.data.events.some(event => event?.source === "mackolik");
+            const hasMackolikEvents = containsMackolikLiveData(snapshot.data);
             if (SOFASCORE_ONLY_MODE && source && source !== "sofascore") {
                 console.log(`[LIVE SNAPSHOT] Ignoring ${source} disk cache; Sofascore-only mode is active.`);
                 return;
@@ -1743,12 +1758,12 @@ async function loadLiveSnapshotFromFirestore() {
         if (data?.payload?.events && Array.isArray(data.payload.events)) {
             const snapshotAge = Date.now() - Number(data.timestamp || 0);
             const source = String(data.payload.source || "").toLowerCase();
-            const hasMackolikEvents = data.payload.events.some(event => event?.source === "mackolik");
-            if (source && source !== "sofascore") {
+            const hasMackolikEvents = containsMackolikLiveData(data.payload);
+            if (SOFASCORE_ONLY_MODE && source && source !== "sofascore") {
                 console.log(`[LIVE SNAPSHOT] Ignoring ${source} Firestore cache; Sofascore-only mode is active.`);
                 return false;
             }
-            if (hasMackolikEvents) {
+            if (SOFASCORE_ONLY_MODE && hasMackolikEvents) {
                 console.log("[LIVE SNAPSHOT] Ignoring Firestore cache with Mackolik events.");
                 return false;
             }
@@ -1784,6 +1799,10 @@ async function ensureLiveSnapshotLoaded() {
 function saveLiveSnapshot() {
     try {
         if (!globalLiveEvents?.events) return;
+        if (SOFASCORE_ONLY_MODE && containsMackolikLiveData(globalLiveEvents)) {
+            console.log("[LIVE SNAPSHOT] Skipping save with Mackolik data in Sofascore-only mode.");
+            return;
+        }
         fs.writeFileSync(LIVE_SNAPSHOT_FILE, JSON.stringify({
             data: globalLiveEvents,
             timestamp: lastLiveFetchTime
@@ -2780,6 +2799,11 @@ async function getLiveEventsData(forceFresh = false, preferImmediateCache = fals
     try {
         return await liveFetchPromise;
     } catch (error) {
+        if (SOFASCORE_ONLY_MODE && containsMackolikLiveData(globalLiveEvents)) {
+            globalLiveEvents = null;
+            lastLiveFetchTime = 0;
+            throw error;
+        }
         if (hasUsableCache && cacheAge <= LIVE_STALE_RETURN_MAX_AGE) {
             console.warn(`[LIVE STALE] Returning cached live events after fetch error: ${error.message}`);
             return {
