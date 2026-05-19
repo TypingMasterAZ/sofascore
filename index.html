@@ -7175,11 +7175,10 @@
                 if (document.getElementById('leaguesView').classList.contains('active')) renderLeaguesView();
             }
 
-            const LIVE_BOOT_CACHE_MAX_AGE = 45 * 1000;
-            const LIVE_ERROR_CACHE_MAX_AGE = 2 * 60 * 1000;
+            const LIVE_BOOT_CACHE_MAX_AGE = 10 * 60 * 1000;
+            const LIVE_ERROR_CACHE_MAX_AGE = 20 * 60 * 1000;
             const SCHEDULED_BOOT_CACHE_MAX_AGE = 5 * 60 * 1000;
             const LIVE_CACHE_KEY = 'cached_events_live_sofascore_v3';
-            try { localStorage.removeItem(LIVE_CACHE_KEY); } catch (_) {}
 
             function keepSofascoreEventsOnly(events) {
                 return (Array.isArray(events) ? events : []).filter(event => {
@@ -7246,7 +7245,6 @@
             }
 
             function saveEventsCache(cacheKey, events, dataCacheKey) {
-                if (dataCacheKey === 'live') return;
                 const compactEvents = keepSofascoreEventsOnly(events).map(compactEventForStorage).filter(Boolean).slice(0, 260);
                 try {
                     localStorage.setItem(cacheKey, JSON.stringify({
@@ -7395,9 +7393,10 @@
                 const syncOverlay = document.getElementById('syncStatusOverlay');
                 if (!isForced && (!allEvents || allEvents.length === 0)) {
                     const isLiveCache = dataCacheKey === 'live';
-                    if (!isLiveCache) {
-                        restoreEventsFromCache(eventsCacheKey, SCHEDULED_BOOT_CACHE_MAX_AGE);
-                    }
+                    restoreEventsFromCache(
+                        eventsCacheKey,
+                        isLiveCache ? LIVE_BOOT_CACHE_MAX_AGE : SCHEDULED_BOOT_CACHE_MAX_AGE
+                    );
                 }
                 
                 // --- HYBRID DATA POLICY REMOVED FOR FRESHNESS ---
