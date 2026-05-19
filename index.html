@@ -7178,12 +7178,37 @@
             const LIVE_BOOT_CACHE_MAX_AGE = 10 * 60 * 1000;
             const LIVE_ERROR_CACHE_MAX_AGE = 20 * 60 * 1000;
             const SCHEDULED_BOOT_CACHE_MAX_AGE = 5 * 60 * 1000;
-            const LIVE_CACHE_KEY = 'cached_events_live_sofascore_v3';
+            const LIVE_CACHE_KEY = 'cached_events_live_sofascore_only_v1';
+            try {
+                [
+                    'cached_events_live_sofascore_v3',
+                    'cached_events_live_sofascore_v2',
+                    'cached_events_live'
+                ].forEach(key => localStorage.removeItem(key));
+            } catch (_) {}
 
             function keepSofascoreEventsOnly(events) {
                 return (Array.isArray(events) ? events : []).filter(event => {
                     if (!event) return false;
-                    return !event.source || event.source === 'sofascore' || event.source === 'mackolik' || event.source === 'rapidapi-sofascore' || event.source === 'scheduled-live-fallback';
+                    const source = String(event.source || 'sofascore').toLowerCase();
+                    const logoFields = [
+                        event?.homeTeam?.logoUrl,
+                        event?.awayTeam?.logoUrl,
+                        event?.tournament?.logoUrl,
+                        event?.tournament?.category?.logoUrl,
+                        event?.tournament?.uniqueTournament?.logoUrl
+                    ];
+                    const idFields = [
+                        event?.id,
+                        event?.homeTeam?.id,
+                        event?.awayTeam?.id,
+                        event?.tournament?.id,
+                        event?.tournament?.category?.id,
+                        event?.tournament?.uniqueTournament?.id
+                    ];
+                    const hasMackolikAsset = logoFields.some(value => String(value || '').includes('mackolikfeeds.com'));
+                    const hasMackolikId = idFields.some(value => String(value || '').toLowerCase().startsWith('macko'));
+                    return source === 'sofascore' && !hasMackolikAsset && !hasMackolikId;
                 });
             }
 
