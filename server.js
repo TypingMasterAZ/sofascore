@@ -1480,7 +1480,7 @@ async function fetchLiveFromSofaScore() {
         ["SofaScore native live", fetchFromSofaNativeFast("/sport/football/events/live", {}, 3000), 3500],
         ["SofaScore proxy live", fetchFromSofaFastRace("/sport/football/events/live", {}, 6500), 7000],
         ["SofaScore queued live", fetchFromSofa("/sport/football/events/live").then(result => result.data), 8000],
-        ["SofaScore scheduled live", fetchLiveFromScheduledFallback("live endpoint unavailable"), 9000]
+        ["SofaScore scheduled live", fetchLiveFromScheduledFallback("live endpoint unavailable"), 18000]
     ];
 
     const normalizedAttempts = attempts.map(([name, promise, timeout]) =>
