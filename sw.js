@@ -1,4 +1,4 @@
-const CACHE_NAME = 'proscore-shell-v42';
+const CACHE_NAME = 'proscore-shell-v43';
 const ASSETS_TO_CACHE = [
   '/manifest.json?v=3',
   '/icons/icon-192.png',
@@ -12,7 +12,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Pre-caching offline shell v42');
+      console.log('[SW] Pre-caching offline shell v43');
       return Promise.allSettled(
         ASSETS_TO_CACHE.map(url => cache.add(url).catch(e => console.warn('[SW] Cache miss:', url, e.message)))
       );
