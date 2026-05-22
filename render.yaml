@@ -20,6 +20,10 @@ services:
         value: sofascore
       - key: ALLOW_MACKOLIK_FALLBACK
         value: "false"
+      - key: ENABLE_MACKOLIK_MATCHES
+        value: "false"
+      - key: SOFASCORE_STRICT_ONLY
+        value: "true"
       - key: KEEPALIVE_ENABLED
         value: "true"
       - key: KEEPALIVE_URL

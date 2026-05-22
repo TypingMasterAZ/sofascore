@@ -1,4 +1,4 @@
-const CACHE_NAME = 'proscore-shell-v34';
+const CACHE_NAME = 'proscore-shell-v41';
 const ASSETS_TO_CACHE = [
   '/manifest.json?v=3',
   '/icons/icon-192.png',
@@ -12,7 +12,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Pre-caching offline shell v34');
+      console.log('[SW] Pre-caching offline shell v41');
       return Promise.allSettled(
         ASSETS_TO_CACHE.map(url => cache.add(url).catch(e => console.warn('[SW] Cache miss:', url, e.message)))
       );
@@ -100,6 +100,14 @@ function limitCacheSize(name, maxItems) {
   });
 }
 
+function absoluteAsset(path) {
+  try {
+    return new URL(path, self.location.origin).href;
+  } catch (e) {
+    return path;
+  }
+}
+
 self.addEventListener('push', (event) => {
   let payload = {};
   if (event.data) {
@@ -121,21 +129,38 @@ self.addEventListener('push', (event) => {
   const matchId = customData.matchId || "";
   const targetUrl = customData.url || '/';
   const requireInteraction = notificationData.requireInteraction ?? customData.requireInteraction ?? false;
+  const icon = absoluteAsset(notificationData.icon || customData.icon || '/icons/icon-192.png');
+  const badge = absoluteAsset(notificationData.badge || customData.badge || '/icons/icon-192.png');
 
   const options = {
     body: body,
-    icon: notificationData.icon || customData.icon || '/icons/icon-192.png',
-    badge: notificationData.badge || customData.badge || '/icons/icon-192.png',
+    icon,
+    badge,
     vibrate: notificationData.vibrate || customData.vibrate || [200, 100, 200],
     tag: notificationData.tag || customData.tag || (matchId ? `goal-${matchId}` : 'general'),
     renotify: true,
     requireInteraction: requireInteraction === true || requireInteraction === 'true',
+    silent: false,
     timestamp: Date.now(),
     data: { ...customData, title, body, url: targetUrl }
   };
 
   event.waitUntil(
-    self.registration.showNotification(title, options).then(() => {
+    (async () => {
+      try {
+        await self.registration.showNotification(title, options);
+      } catch (error) {
+        console.warn('[SW] showNotification primary failed:', error && error.message ? error.message : error);
+        await self.registration.showNotification(title, {
+          body,
+          icon,
+          badge,
+          tag: options.tag,
+          renotify: true,
+          silent: false,
+          data: options.data
+        });
+      }
       try {
         // Broadcast to main thread if the app is open
         const bc = new BroadcastChannel('goal_notifications');
@@ -151,7 +176,7 @@ self.addEventListener('push', (event) => {
       } catch (e) {
         console.warn('[SW] BroadcastChannel disabled in background:', e);
       }
-    })
+    })()
   );
 });
 

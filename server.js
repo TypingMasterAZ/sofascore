@@ -31,25 +31,77 @@ function notifySseListeners(updatedMatch) {
 async function fetchMatchDetailsFromServer(id) {
     try {
         const [incidents, stats] = await Promise.all([
-            fetchFromSofaFastRace(`/event/${id}/incidents`).catch(() => ({ incidents: [] })),
-            fetchFromSofaFastRace(`/event/${id}/statistics`).catch(() => ({ statistics: [] }))
+            Promise.any([
+                fetchFromSofaApiDirect(`/event/${id}/incidents`, {}, 2200),
+                fetchFromSofaNativeFast(`/event/${id}/incidents`, {}, 2600),
+                fetchFromSofaFastRace(`/event/${id}/incidents`, {}, 4200)
+            ]).catch(() => ({ incidents: [] })),
+            Promise.any([
+                fetchFromSofaApiDirect(`/event/${id}/statistics`, {}, 2400),
+                fetchFromSofaNativeFast(`/event/${id}/statistics`, {}, 2800),
+                fetchFromSofaFastRace(`/event/${id}/statistics`, {}, 4200)
+            ]).catch(() => ({ statistics: [] }))
         ]);
-        return { incidents, stats };
+        return {
+            incidents: normalizeIncidentsData(incidents) || { incidents: [] },
+            stats: normalizeStatisticsData(stats)
+        };
     } catch (e) {
         console.error(`[DETAILS-FETCH] Error for ${id}:`, e.message);
         return null;
     }
 }
 
+function hasUsefulIncidentData(data) {
+    const payload = normalizeIncidentsData(data);
+    return Array.isArray(payload?.incidents) &&
+        payload.incidents.some(incident => ["goal", "card", "substitution"].includes(incident?.incidentType));
+}
+
+function matchHasAnyGoalScore(match) {
+    const home = Number(match?.homeScore?.current ?? match?.homeScore?.display ?? match?.homeScore ?? 0);
+    const away = Number(match?.awayScore?.current ?? match?.awayScore?.display ?? match?.awayScore ?? 0);
+    return (Number.isFinite(home) ? home : 0) + (Number.isFinite(away) ? away : 0) > 0;
+}
+
+function storeMatchDetailsCache(id, details = {}, source = "server") {
+    const matchId = String(id || "");
+    if (!matchId) return null;
+
+    const existing = matchDetailsCache[matchId] || {};
+    const nextIncidents = normalizeIncidentsData(details.incidents) || { incidents: [] };
+    const nextStats = normalizeStatisticsData(details.stats);
+    const incidents = hasUsefulIncidentData(nextIncidents)
+        ? nextIncidents
+        : (hasUsefulIncidentData(existing.incidents) ? existing.incidents : nextIncidents);
+    const stats = hasUsefulStatsData(nextStats)
+        ? nextStats
+        : (hasUsefulStatsData(existing.stats) ? existing.stats : nextStats);
+
+    const updatedAt = Date.now();
+    const stored = {
+        incidents,
+        stats,
+        updatedAt,
+        source
+    };
+
+    matchDetailsCache[matchId] = stored;
+    if (hasUsefulIncidentData(incidents)) cache[`incidents_${matchId}`] = { data: incidents, timestamp: updatedAt };
+    if (hasUsefulStatsData(stats)) cache[`stats_${matchId}`] = { data: stats, timestamp: updatedAt };
+
+    const match = matchCache[matchId];
+    if (match) {
+        notifySseListeners({ ...match, details: stored });
+    }
+    return stored;
+}
+
 async function refreshMatchDetails(id) {
     const details = await fetchMatchDetailsFromServer(id);
     if (details) {
-        matchDetailsCache[id] = { ...details, updatedAt: Date.now() };
+        storeMatchDetailsCache(id, details, "server-warm");
         console.log(`[DETAILS-CACHE] Updated for match ${id}`);
-        const match = matchCache[id];
-        if (match) {
-            notifySseListeners({ ...match, details: matchDetailsCache[id] });
-        }
     }
 }
 
@@ -866,22 +918,40 @@ app.get('/api/match/stream/:id', (req, res) => {
 
   const send = data => res.write(`data: ${JSON.stringify(data)}\n\n`);
 
-  // Send initial cached data if available
-  if (matchCache[matchId]) {
-    send({ type: 'init', payload: matchCache[matchId] });
+  const initialMatch = matchCache[matchId] || { id: matchId };
+  if (initialMatch || matchDetailsCache[matchId]) {
+    send({
+      type: 'init',
+      payload: {
+        ...initialMatch,
+        details: matchDetailsCache[matchId] || null
+      }
+    });
+  }
+  if (!matchDetailsCache[matchId]) {
+    refreshMatchDetails(matchId).catch(error => {
+      console.warn(`[SSE DETAILS WARMUP] ${matchId}: ${error.message}`);
+    });
   }
 
   const listener = updated => {
-    if (updated.id === matchId) {
-      send({ type: 'update', payload: updated });
+    if (String(updated.id) === String(matchId)) {
+      send({
+        type: 'update',
+        payload: {
+          ...updated,
+          details: matchDetailsCache[matchId] || updated.details || null
+        }
+      });
     }
   };
 
-  sseListeners.push({ id: matchId, fn: listener });
+  const listenerRecord = { id: matchId, fn: listener };
+  sseListeners.push(listenerRecord);
 
   // Cleanup on client disconnect
   req.on('close', () => {
-    sseListeners = sseListeners.filter(l => l !== listener);
+    sseListeners = sseListeners.filter(l => l !== listenerRecord);
     res.end();
   });
 });
@@ -1144,6 +1214,7 @@ loadPersistentState();
 let goalNotificationState = {};
 let pendingGoalDetailNotifications = {};
 const scorePushInFlight = new Set();
+const goalScorerProbeTimers = new Map();
 let globalLiveEvents = null;
 let lastLiveFetchTime = 0;
 let lastLiveFetchAttemptTime = 0;
@@ -1153,6 +1224,7 @@ let liveSnapshotLoadPromise = null;
 let liveDetailsWarmupPromise = null;
 let lastLiveDetailsWarmupAt = 0;
 let liveScoreWorkerInFlight = false;
+let favoriteGoalCatchupInFlight = false;
 const INCIDENTS_CACHE_TTL = 60 * 1000;
 const INCIDENTS_STALE_REFRESH_MS = 15 * 1000;
 const STATS_CACHE_TTL = 45 * 1000;
@@ -1161,13 +1233,17 @@ const EMPTY_STATS_CACHE_TTL = 6 * 1000;
 const DETAILS_WARMUP_INTERVAL_MS = 2500;
 const LIVE_SNAPSHOT_FILE = "./live_snapshot.json";
 const LIVE_SNAPSHOT_MAX_AGE = 2500;
-const LIVE_DISK_SNAPSHOT_MAX_AGE = 2 * 60 * 1000;
-const LIVE_STALE_RETURN_MAX_AGE = 2 * 60 * 1000;
+const LIVE_DISK_SNAPSHOT_MAX_AGE = 10 * 60 * 1000;
+const LIVE_STALE_RETURN_MAX_AGE = 10 * 60 * 1000;
 const LIVE_SCORE_POLL_INTERVAL_MS = Math.max(1500, Number(process.env.LIVE_SCORE_POLL_INTERVAL_MS) || 2500);
+const CLIENT_LIVE_SNAPSHOT_MAX_EVENTS = 160;
 const LIVE_PRIMARY_SOURCE = String(process.env.LIVE_PRIMARY_SOURCE || "sofascore").toLowerCase();
 const ENABLE_MACKOLIK_MATCHES = String(process.env.ENABLE_MACKOLIK_MATCHES || "false").toLowerCase() === "true";
 const ALLOW_MACKOLIK_FALLBACK = String(process.env.ALLOW_MACKOLIK_FALLBACK || "false").toLowerCase() === "true";
-const SOFASCORE_ONLY_MODE = LIVE_PRIMARY_SOURCE === "sofascore" && !ENABLE_MACKOLIK_MATCHES && !ALLOW_MACKOLIK_FALLBACK;
+const STRICT_SOFASCORE_ONLY = String(process.env.SOFASCORE_STRICT_ONLY || "false").toLowerCase() === "true";
+const SOFASCORE_ONLY_MODE = STRICT_SOFASCORE_ONLY || (LIVE_PRIMARY_SOURCE === "sofascore" && !ENABLE_MACKOLIK_MATCHES && !ALLOW_MACKOLIK_FALLBACK);
+const ENABLE_MACKOLIK_PUSH_FALLBACK = String(process.env.ENABLE_MACKOLIK_PUSH_FALLBACK || "true").toLowerCase() !== "false";
+let lastPushFallbackLogAt = 0;
 const MACKOLIK_LIVE_URL = "https://www.mackolik.com/perform/p0/ajax/components/competition/livescores/json";
 const MACKOLIK_LIVE_PAGE_URL = "https://www.mackolik.com/canli-sonuclar";
 const MACKOLIK_HEADERS = {
@@ -1400,12 +1476,46 @@ function isLiveSofaEvent(event) {
 }
 
 async function fetchLiveFromSofaScore() {
-    const data = await fetchFromSofaFastRace("/sport/football/events/live", {}, 6500);
-    const normalized = normalizeSofaLiveEventsData(data);
-    if (!Array.isArray(normalized.events)) {
-        throw new Error("SofaScore live response missing events array");
+    const attempts = [
+        ["SofaScore native live", fetchFromSofaNativeFast("/sport/football/events/live", {}, 3000), 3500],
+        ["SofaScore proxy live", fetchFromSofaFastRace("/sport/football/events/live", {}, 6500), 7000],
+        ["SofaScore queued live", fetchFromSofa("/sport/football/events/live").then(result => result.data), 8000],
+        ["SofaScore scheduled live", fetchLiveFromScheduledFallback("live endpoint unavailable"), 9000]
+    ];
+
+    const normalizedAttempts = attempts.map(([name, promise, timeout]) =>
+        withServerTimeout(promise, timeout, name)
+            .then(data => ({ name, data: normalizeSofaLiveEventsData(data) }))
+    );
+
+    try {
+        return await Promise.any(normalizedAttempts.map(promise => promise.then(({ name, data }) => {
+        if (!Array.isArray(data?.events)) {
+                throw new Error(`${name}: events array yoxdur`);
+        }
+        if (data.events.length > 0) {
+            return {
+                ...data,
+                source: data.source || (name.includes("scheduled") ? "scheduled-live-fallback" : "sofascore")
+            };
+        }
+            throw new Error(`${name}: empty`);
+        })));
+    } catch (nonEmptyError) {
+        try {
+            const firstValid = await Promise.any(normalizedAttempts.map(promise => promise.then(({ data }) => {
+                if (!Array.isArray(data?.events)) throw new Error("events array yoxdur");
+                return { ...data, source: data.source || "sofascore" };
+            })));
+            return firstValid;
+        } catch (validError) {
+            const reasons = nonEmptyError.errors?.map(error => error.message).join(" | ") ||
+                validError.errors?.map(error => error.message).join(" | ") ||
+                nonEmptyError.message ||
+                validError.message;
+            throw new Error(`SofaScore live unavailable: ${reasons || "no response"}`);
+        }
     }
-    return normalized;
 }
 
 async function fetchLiveFromRapidApi() {
@@ -1421,12 +1531,61 @@ async function fetchLiveFromRapidApi() {
     };
 }
 
-async function fetchLiveScoresForNotifications() {
+function shouldTreatAsMackolikLivePayload(data) {
+    return data?.source === "mackolik" || data?.source === "mackolik-push-fallback" ||
+        (Array.isArray(data?.events) && data.events.some(event => event?.source === "mackolik"));
+}
+
+function normalizeLivePollPayload(data) {
+    if (shouldTreatAsMackolikLivePayload(data)) {
+        return {
+            ...data,
+            events: Array.isArray(data.events) ? data.events : [],
+            source: data.source || "mackolik"
+        };
+    }
+    return normalizeSofaLiveEventsData(data);
+}
+
+function saveLivePollPayloadIfPublic(normalized, saveSnapshot) {
+    if (!saveSnapshot || normalized?.pushOnly) return;
+    if (SOFASCORE_ONLY_MODE && shouldTreatAsMackolikLivePayload(normalized)) return;
+    globalLiveEvents = normalized;
+    lastLiveFetchTime = Date.now();
+    saveLiveSnapshot();
+}
+
+async function fetchMackolikPushFallback(primaryError) {
+    if (!ENABLE_MACKOLIK_PUSH_FALLBACK) return null;
+    try {
+        const fallback = await fetchLiveFromMackolik();
+        if (!Array.isArray(fallback.events) || fallback.events.length === 0) return null;
+
+        const now = Date.now();
+        if (now - lastPushFallbackLogAt > 60 * 1000) {
+            console.warn(`[LIVE SCORE POLL] SofaScore unavailable for server push; using Mackolik push-only fallback (${fallback.events.length} live). UI cache is unchanged.`);
+            lastPushFallbackLogAt = now;
+        }
+
+        return {
+            ...fallback,
+            source: "mackolik-push-fallback",
+            pushOnly: true,
+            primarySourceError: primaryError || ""
+        };
+    } catch (fallbackError) {
+        console.warn(`[LIVE SCORE POLL] Push-only fallback failed: ${fallbackError.message}`);
+        return null;
+    }
+}
+
+async function fetchLiveScoresForNotifications(options = {}) {
+    const { allowPushFallback = true, saveSnapshot = true } = options;
+    let primaryErrorMessage = "";
     try {
         const fastSources = SOFASCORE_ONLY_MODE
             ? [
-                fetchFromSofaNativeFast("/sport/football/events/live", {}, 1800),
-                fetchFromSofaFastRace("/sport/football/events/live", {}, 3200)
+                fetchLiveFromSofaScore()
             ]
             : [
                 fetchFromSofaNativeFast("/sport/football/events/live", {}, 1800),
@@ -1439,16 +1598,21 @@ async function fetchLiveScoresForNotifications() {
         }
 
         const data = await Promise.any(fastSources);
-        const normalized = normalizeSofaLiveEventsData(data);
+        const normalized = normalizeLivePollPayload(data);
         if (Array.isArray(normalized.events)) {
-            globalLiveEvents = normalized;
-            lastLiveFetchTime = Date.now();
-            saveLiveSnapshot();
+            saveLivePollPayloadIfPublic(normalized, saveSnapshot);
             return normalized;
         }
     } catch (fastError) {
+        primaryErrorMessage = fastError.errors?.map(error => error.message).join(" | ") || fastError.message;
         console.warn(`[LIVE SCORE POLL] Fast source failed: ${fastError.message}`);
     }
+
+    if (allowPushFallback) {
+        const pushFallback = await fetchMackolikPushFallback(primaryErrorMessage);
+        if (pushFallback) return pushFallback;
+    }
+
     return getLiveEventsData(true);
 }
 
@@ -2888,6 +3052,52 @@ function scorePushAlreadySent(matchId, scoreMarker, maxAgeMs = 12 * 60 * 60 * 10
     return !!entry && entry.marker === scoreMarker && (Date.now() - Number(entry.sentAt || 0)) <= maxAgeMs;
 }
 
+function getGoalPushDeliveryMarker(payload = {}) {
+    const type = payload.type || "goal";
+    if (payload.deliveryMarker) return `${type}:${payload.deliveryMarker}`;
+    if (type === "goal_scorer" && payload.tag) return `${type}:${payload.tag}`;
+    if (payload.score) return `${type}:score-${String(payload.score).replace(/[^0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+    if (payload.tag) return `${type}:${payload.tag}`;
+    return "";
+}
+
+function recipientScorePushAlreadySent(reg, matchId, scoreMarker, maxAgeMs = 12 * 60 * 60 * 1000) {
+    const entry = reg?.recipientScorePushState?.[matchId?.toString()];
+    if (!entry || !scoreMarker) return false;
+    if (entry.markers && entry.markers[scoreMarker]) {
+        return (Date.now() - Number(entry.markers[scoreMarker] || 0)) <= maxAgeMs;
+    }
+    return entry.marker === scoreMarker && (Date.now() - Number(entry.sentAt || 0)) <= maxAgeMs;
+}
+
+function rememberRecipientScorePush(reg, matchId, scoreMarker) {
+    const key = matchId?.toString();
+    if (!reg || !key || !scoreMarker) return;
+    if (!reg.recipientScorePushState || typeof reg.recipientScorePushState !== "object") {
+        reg.recipientScorePushState = {};
+    }
+    const previous = reg.recipientScorePushState[key] || {};
+    const markers = previous.markers && typeof previous.markers === "object" ? previous.markers : {};
+    if (previous.marker && previous.sentAt) {
+        markers[previous.marker] = previous.sentAt;
+    }
+    markers[scoreMarker] = Date.now();
+    const freshMarkers = Object.fromEntries(
+        Object.entries(markers)
+            .filter(([, sentAt]) => Date.now() - Number(sentAt || 0) <= 12 * 60 * 60 * 1000)
+            .slice(-20)
+    );
+    reg.recipientScorePushState[key] = {
+        marker: scoreMarker,
+        sentAt: Date.now(),
+        markers: freshMarkers
+    };
+    const entries = Object.entries(reg.recipientScorePushState)
+        .filter(([, value]) => Date.now() - Number(value?.sentAt || 0) <= 12 * 60 * 60 * 1000)
+        .slice(-80);
+    reg.recipientScorePushState = Object.fromEntries(entries);
+}
+
 function rememberScorePush(matchId, scoreMarker, snapshot) {
     const key = matchId?.toString();
     if (!key || !scoreMarker) return;
@@ -2962,13 +3172,17 @@ function buildFcmGoalMessage({ title, body, matchId, leagueId, type, tag, score 
 }
 
 async function sendGoalPushToRecipients(recipients, payload) {
-    const fcmRecipients = recipients.filter(r => r.channel === "fcm");
-    const webPushRecipients = recipients.filter(r => r.channel === "webpush");
+    const deliveryMarker = getGoalPushDeliveryMarker(payload);
+    const deliverableRecipients = deliveryMarker
+        ? recipients.filter(recipient => !recipientScorePushAlreadySent(recipient.reg, payload.matchId, deliveryMarker))
+        : recipients;
+    const fcmRecipients = deliverableRecipients.filter(r => r.channel === "fcm");
+    const webPushRecipients = deliverableRecipients.filter(r => r.channel === "webpush");
     const result = {
         attempted: recipients.length,
         sent: 0,
         failed: 0,
-        skipped: 0
+        skipped: recipients.length - deliverableRecipients.length
     };
 
     if (fcmRecipients.length > 0 && firebaseInitialized) {
@@ -2976,20 +3190,29 @@ async function sendGoalPushToRecipients(recipients, payload) {
         const fcmResults = await Promise.allSettled(fcmRecipients.map(async ({ id: token }) => {
             try {
                 await admin.messaging().send({ ...message, token });
-                return true;
+                return { ok: true, token };
             } catch (err) {
                 if (err.code === "messaging/registration-token-not-registered") {
                     delete fcmRegistrations[token];
                     saveRegistrations();
                 }
                 console.error("[Push][FCM] Goal send error:", err.message || err.code || err);
-                return false;
+                return { ok: false, token };
             }
         }));
+        let fcmStateChanged = false;
         fcmResults.forEach(item => {
-            if (item.status === "fulfilled" && item.value) result.sent++;
-            else result.failed++;
+            if (item.status === "fulfilled" && item.value?.ok) {
+                result.sent++;
+                if (deliveryMarker && fcmRegistrations[item.value.token]) {
+                    rememberRecipientScorePush(fcmRegistrations[item.value.token], payload.matchId, deliveryMarker);
+                    fcmStateChanged = true;
+                }
+            } else {
+                result.failed++;
+            }
         });
+        if (fcmStateChanged) saveRegistrations();
     } else if (fcmRecipients.length > 0) {
         result.skipped += fcmRecipients.length;
     }
@@ -3007,12 +3230,21 @@ async function sendGoalPushToRecipients(recipients, payload) {
             urgency: "high"
         });
         const webResults = await Promise.allSettled(webPushRecipients.map(({ id: deviceId }) => {
-            return sendWebPushMessage(deviceId, webPayload);
+            return sendWebPushMessage(deviceId, webPayload).then(ok => ({ ok, deviceId }));
         }));
+        let webStateChanged = false;
         webResults.forEach(item => {
-            if (item.status === "fulfilled" && item.value) result.sent++;
-            else result.failed++;
+            if (item.status === "fulfilled" && item.value?.ok) {
+                result.sent++;
+                if (deliveryMarker && webPushRegistrations[item.value.deviceId]) {
+                    rememberRecipientScorePush(webPushRegistrations[item.value.deviceId], payload.matchId, deliveryMarker);
+                    webStateChanged = true;
+                }
+            } else {
+                result.failed++;
+            }
         });
+        if (webStateChanged) saveWebPushRegistrations();
     }
 
     console.log(`[Push][Goal] attempted=${result.attempted} sent=${result.sent} failed=${result.failed} skipped=${result.skipped} type=${payload.type || "goal"}`);
@@ -3056,7 +3288,6 @@ async function sendImmediateScoreGoalPush(event, previousScoreSource, source = "
 
         if (recipients.length === 0) {
             console.log(`[Push][Goal][${source}] ${matchId} score changed but no favorite recipient matched.`);
-            rememberScorePush(matchId, scoreMarker, current);
             return { sent: 0, skipped: true, reason: "no-recipients" };
         }
 
@@ -3081,6 +3312,11 @@ async function sendImmediateScoreGoalPush(event, previousScoreSource, source = "
 
         if (sendResult.sent === 0) {
             console.warn(`[Push][Goal][${source}] No notification reached devices for match ${matchId}. Check stale subscriptions or Web Push delivery.`);
+            return {
+                ...sendResult,
+                skipped: true,
+                reason: sendResult.failed > 0 ? "send-failed" : "duplicate-recipient"
+            };
         }
 
         pendingGoalDetailNotifications[matchId] = {
@@ -3095,11 +3331,162 @@ async function sendImmediateScoreGoalPush(event, previousScoreSource, source = "
         };
 
         rememberScorePush(matchId, scoreMarker, current);
+        queueGoalScorerChecks(event, `${source}-score`);
         getMatchIncidentsData(matchId).catch(() => {});
         return sendResult;
     } finally {
         scorePushInFlight.delete(inFlightKey);
     }
+}
+
+async function getScorerIncidentDataForEvent(event) {
+    const matchId = event?.id?.toString();
+    if (!matchId) return { incidents: [] };
+    const source = String(event.source || "").toLowerCase();
+    if (source.includes("mackolik")) {
+        const details = await getCachedData(`mackolik_scorer_incidents_${matchId}_${event.slug || ""}`, async () => {
+            const data = await fetchMackolikMatchDetails(matchId, event.slug || "");
+            return data.incidents;
+        }, 12000, { skipJitter: true });
+        return details;
+    }
+    return getMatchIncidentsData(matchId);
+}
+
+function getGoalScorerName(incident) {
+    const name =
+        incident?.playerName ||
+        incident?.player?.name ||
+        incident?.player?.shortName ||
+        incident?.scorerName ||
+        incident?.playerIn?.name ||
+        "";
+    return String(name || "").trim();
+}
+
+async function sendGoalScorerPushForEvent(event, reason = "incident-probe") {
+    if (!event?.id) return { sent: 0, reason: "missing-event" };
+    const matchId = event.id.toString();
+    const leagueId = (event.tournament?.uniqueTournament?.id || event.tournament?.id || "").toString();
+    const recipients = collectFavoriteRecipientsForEvent(event, matchId, leagueId);
+    if (recipients.length === 0) return { sent: 0, reason: "no-recipients" };
+
+    let incidentsData = null;
+    try {
+        incidentsData = await getScorerIncidentDataForEvent(event);
+    } catch (error) {
+        console.warn(`[Goal Scorer Probe] ${matchId} incidents unavailable: ${error.message}`);
+        return { sent: 0, reason: "incidents-unavailable" };
+    }
+
+    const goalIncidents = extractGoalIncidents(incidentsData);
+    if (!goalIncidents.length) return { sent: 0, reason: "no-goal-incidents" };
+
+    const pendingGoalDetail = pendingGoalDetailNotifications[matchId];
+    const currentHomeScore = Number(event.homeScore?.current || 0);
+    const currentAwayScore = Number(event.awayScore?.current || 0);
+    const currentGoalTotal = currentHomeScore + currentAwayScore;
+    const previousScore = lastScores[matchId];
+    const previousGoalTotal = pendingGoalDetail?.previousGoalTotal ?? (
+        previousScore
+            ? (Number(previousScore.homeScore) || 0) + (Number(previousScore.awayScore) || 0)
+            : null
+    );
+    const scoreMovedSinceLastTrack = previousGoalTotal !== null && currentGoalTotal > previousGoalTotal;
+
+    if (!liveGoalIncidentState[matchId]) {
+        liveGoalIncidentState[matchId] = new Set();
+        if (!scoreMovedSinceLastTrack && !pendingGoalDetail) {
+            goalIncidents.map(buildGoalIncidentKey).forEach(key => liveGoalIncidentState[matchId].add(key));
+            return { sent: 0, reason: "primed" };
+        }
+    }
+
+    const knownKeys = liveGoalIncidentState[matchId];
+    const newestCandidates = goalIncidents
+        .slice()
+        .sort((a, b) => (Number(b.time) || 0) - (Number(a.time) || 0));
+    let incidentsToNotify = newestCandidates.filter(incident => !knownKeys.has(buildGoalIncidentKey(incident)));
+
+    if ((pendingGoalDetail || scoreMovedSinceLastTrack) && incidentsToNotify.length) {
+        const scoringSide = pendingGoalDetail?.scoringSide ||
+            (currentHomeScore > (Number(previousScore?.homeScore) || 0) ? "home" : "away");
+        const sideFiltered = incidentsToNotify.filter(incident =>
+            scoringSide === "home" ? incident.isHome === true : incident.isHome === false
+        );
+        incidentsToNotify = (sideFiltered.length ? sideFiltered : incidentsToNotify).slice(0, 1);
+    } else if (pendingGoalDetail && currentGoalTotal > pendingGoalDetail.previousGoalTotal) {
+        const sideFiltered = newestCandidates.filter(incident =>
+            pendingGoalDetail.scoringSide === "home" ? incident.isHome === true : incident.isHome === false
+        );
+        incidentsToNotify = (sideFiltered.length ? sideFiltered : newestCandidates).slice(0, 1);
+    }
+
+    if (!incidentsToNotify.length) return { sent: 0, reason: "no-new-scorer" };
+
+    let sent = 0;
+    for (const incident of incidentsToNotify) {
+        const scorerName = getGoalScorerName(incident);
+        if (!scorerName) continue;
+
+        const incidentKey = buildGoalIncidentKey(incident);
+        if (hasRecentGoalNotification(matchId, incidentKey, 12 * 60 * 60 * 1000)) continue;
+
+        const minuteText = incident.time ? `${incident.time}'` : "Canlı";
+        const goalLabel =
+            incident.incidentClass === "ownGoal" ? "Avtoqol" :
+            incident.incidentClass === "penalty" ? "Penaltidən qol" :
+            "Qol";
+        const title = "Rabona Media";
+        const body = `${minuteText} ${goalLabel}: ${scorerName}. ${event.homeTeam.name} ${currentHomeScore} - ${currentAwayScore} ${event.awayTeam.name}`;
+
+        addServerNotification({ type: "goal_scorer", title, body, matchId, leagueId });
+        const sendResult = await sendGoalPushToRecipients(recipients, {
+            title,
+            body,
+            matchId,
+            leagueId,
+            type: "goal_scorer",
+            score: `${currentHomeScore}-${currentAwayScore}`,
+            tag: `goal-scorer-${matchId}-${incidentKey}`,
+            deliveryMarker: incidentKey,
+            ttl: "300"
+        });
+
+        knownKeys.add(incidentKey);
+        if (sendResult.sent > 0) {
+            sent += sendResult.sent;
+            markGoalNotification(matchId, incidentKey);
+            if (pendingGoalDetailNotifications[matchId]) {
+                delete pendingGoalDetailNotifications[matchId];
+            }
+            console.log(`[Push][Scorer][${reason}] sent=${sendResult.sent} match=${matchId}`);
+        } else {
+            console.warn(`[Push][Scorer][${reason}] No notification reached devices for match ${matchId}.`);
+        }
+    }
+
+    return { sent };
+}
+
+function queueGoalScorerChecks(event, reason = "score") {
+    const matchId = event?.id?.toString();
+    if (!matchId) return;
+    const score = `${event.homeScore?.current || 0}-${event.awayScore?.current || 0}`;
+    const key = `${matchId}:${score}`;
+    const previousTimers = goalScorerProbeTimers.get(key) || [];
+    previousTimers.forEach(timer => clearTimeout(timer));
+
+    const delays = [1500, 4000, 8000, 15000, 30000, 60000];
+    const timers = delays.map((delay, index) => setTimeout(() => {
+        const latestEvent = matchCache[matchId] || event;
+        sendGoalScorerPushForEvent(latestEvent, `${reason}+${delay}ms`).catch(error => {
+            console.warn(`[Goal Scorer Probe] ${matchId}: ${error.message}`);
+        }).finally(() => {
+            if (index === delays.length - 1) goalScorerProbeTimers.delete(key);
+        });
+    }, delay));
+    goalScorerProbeTimers.set(key, timers);
 }
 
 function normalizeStatisticsData(data) {
@@ -3228,6 +3615,18 @@ async function warmLiveMatchDetails(events = []) {
                 }
                 return tasks;
             }));
+            batch.forEach(event => {
+                const id = event.id?.toString();
+                if (!id) return;
+                const cachedIncidents = cache[`incidents_${id}`]?.data;
+                const cachedStats = cache[`stats_${id}`]?.data;
+                if (cachedIncidents || cachedStats) {
+                    storeMatchDetailsCache(id, {
+                        incidents: cachedIncidents || { incidents: [] },
+                        stats: cachedStats || { statistics: [] }
+                    }, "live-warm-cache");
+                }
+            });
         }
     })().catch(error => {
         console.warn("[LIVE DETAILS WARMUP] Failed:", error.message);
@@ -3311,6 +3710,50 @@ app.get("/api/team/:id(\\d+)", async (req, res) => {
 });
 
 // Yeni API: CanlÄ± MatÃ§lar
+app.post("/api/matches/live/client-snapshot", (req, res) => {
+    try {
+        const rawEvents = Array.isArray(req.body?.events) ? req.body.events : [];
+        if (!rawEvents.length) {
+            return res.status(400).json({ success: false, message: "events array required" });
+        }
+
+        const normalized = normalizeSofaLiveEventsData({
+            events: rawEvents.slice(0, CLIENT_LIVE_SNAPSHOT_MAX_EVENTS),
+            source: "sofascore",
+            generatedAt: req.body?.generatedAt || new Date().toISOString()
+        });
+        normalized.events = normalized.events.filter(isLiveSofaEvent);
+        normalized.source = "sofascore";
+        normalized.clientSnapshot = true;
+        normalized.client = String(req.body?.client || "web").slice(0, 24);
+        normalized.generatedAt = new Date().toISOString();
+
+        if (!normalized.events.length) {
+            return res.status(400).json({ success: false, message: "no live SofaScore events in snapshot" });
+        }
+        if (containsMackolikLiveData(normalized)) {
+            return res.status(400).json({ success: false, message: "Mackolik data is not accepted in SofaScore snapshot" });
+        }
+
+        globalLiveEvents = normalized;
+        lastLiveFetchTime = Date.now();
+        normalized.events.forEach(match => {
+            if (match?.id) matchCache[String(match.id)] = match;
+        });
+        saveLiveSnapshot();
+
+        res.json({
+            success: true,
+            accepted: normalized.events.length,
+            source: normalized.source,
+            clientSnapshot: true
+        });
+    } catch (error) {
+        console.warn("[CLIENT LIVE SNAPSHOT] Rejecting snapshot:", error.message);
+        res.status(400).json({ success: false, message: error.message });
+    }
+});
+
 app.get("/api/matches/live", async (req, res) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
@@ -3380,6 +3823,32 @@ app.get("/api/matches/:date", async (req, res) => {
 });
 
 // Yeni API: MatÃ§ HadisÉ™lÉ™ri (Qollar, Kartlar)
+// Client-side SofaScore details snapshot. This keeps match details instant on
+// devices where the server or iOS Safari hits a temporary upstream block.
+app.post("/api/match/:id/client-details", (req, res) => {
+    const id = req.params.id;
+    try {
+        const incidents = normalizeIncidentsData(req.body?.incidents) || { incidents: [] };
+        const stats = normalizeStatisticsData(req.body?.stats || req.body?.statistics || { statistics: [] });
+        if (!hasUsefulIncidentData(incidents) && !hasUsefulStatsData(stats)) {
+            return res.status(400).json({ error: true, message: "No useful details in snapshot" });
+        }
+
+        const stored = storeMatchDetailsCache(id, { incidents, stats }, "client-snapshot");
+        return res.json({
+            success: true,
+            cached: true,
+            instant: true,
+            hasIncidents: hasUsefulIncidentData(stored?.incidents),
+            hasStats: hasUsefulStatsData(stored?.stats),
+            updatedAt: stored?.updatedAt || Date.now()
+        });
+    } catch (error) {
+        console.warn(`[CLIENT DETAILS SNAPSHOT] ${id}: ${error.message}`);
+        return res.status(400).json({ error: true, message: "Invalid details snapshot" });
+    }
+});
+
 app.get("/api/match/:id/incidents", async (req, res) => {
     const id = req.params.id;
     try {
@@ -3395,11 +3864,13 @@ app.get("/api/match/:id/incidents", async (req, res) => {
         }
         const id = req.params.id;
         const cachedFromLoop = matchDetailsCache[id];
-        if (req.query.fresh !== "1" && cachedFromLoop?.incidents) {
-            return res.json({ incidents: cachedFromLoop.incidents, cached: true, instant: true, source: 'background_cache' });
+        if (req.query.fresh !== "1" && hasUsefulIncidentData(cachedFromLoop?.incidents)) {
+            return res.json({ ...normalizeIncidentsData(cachedFromLoop.incidents), cached: true, instant: true, source: 'background_cache' });
         }
         const cached = cache[`incidents_${id}`];
-        if (req.query.fresh !== "1" && cached?.data) {
+        const matchHasScore = matchHasAnyGoalScore(matchCache[id]);
+        const cachedUseful = hasUsefulIncidentData(cached?.data);
+        if (req.query.fresh !== "1" && cached?.data && (cachedUseful || !matchHasScore)) {
             if (Date.now() - cached.timestamp > INCIDENTS_STALE_REFRESH_MS) {
                 getMatchIncidentsData(id).catch(error => {
                     console.warn(`[INCIDENTS BACKGROUND REFRESH] ${id}: ${error.message}`);
@@ -3433,7 +3904,7 @@ app.get("/api/match/:id/statistics", async (req, res) => {
     const id = req.params.id;
     try {
         const cachedFromLoop = matchDetailsCache[id];
-        if (req.query.fresh !== "1" && cachedFromLoop?.stats) {
+        if (req.query.fresh !== "1" && hasUsefulStatsData(cachedFromLoop?.stats)) {
             return res.json({
                 ...normalizeStatisticsData(cachedFromLoop.stats),
                 cached: true,
@@ -3502,7 +3973,9 @@ app.get("/api/match/:id/details", async (req, res) => {
         const forceFresh = req.query.fresh === "1";
 
         const cachedFromLoop = matchDetailsCache[id];
-        if (!forceFresh && cachedFromLoop) {
+        const cachedLoopUseful = hasUsefulIncidentData(cachedFromLoop?.incidents) ||
+            (!statsDisabled && hasUsefulStatsData(cachedFromLoop?.stats));
+        if (!forceFresh && cachedFromLoop && cachedLoopUseful) {
             return res.json({
                 incidents: cachedFromLoop.incidents,
                 stats: statsDisabled ? null : (cachedFromLoop.stats ? normalizeStatisticsData(cachedFromLoop.stats) : null),
@@ -3514,8 +3987,11 @@ app.get("/api/match/:id/details", async (req, res) => {
 
         const cachedIncidents = cache[`incidents_${id}`];
         const cachedStats = cache[`stats_${id}`];
-        if (!forceFresh && cachedIncidents?.data) {
-            if (Date.now() - cachedIncidents.timestamp > INCIDENTS_STALE_REFRESH_MS) {
+        const cachedIncidentUseful = hasUsefulIncidentData(cachedIncidents?.data);
+        const cachedStatsUseful = !statsDisabled && hasUsefulStatsData(cachedStats?.data);
+        const matchHasScore = matchHasAnyGoalScore(matchCache[id]);
+        if (!forceFresh && (cachedIncidentUseful || cachedStatsUseful || (cachedIncidents?.data && !matchHasScore))) {
+            if (!cachedIncidents || Date.now() - cachedIncidents.timestamp > INCIDENTS_STALE_REFRESH_MS) {
                 getMatchIncidentsData(id).catch(error => {
                     console.warn(`[DETAILS INCIDENTS BACKGROUND REFRESH] ${id}: ${error.message}`);
                 });
@@ -3524,7 +4000,7 @@ app.get("/api/match/:id/details", async (req, res) => {
                 refreshMatchStatisticsInBackground(id, "DETAILS STATS BACKGROUND REFRESH");
             }
             return res.json({
-                incidents: cachedIncidents.data,
+                incidents: cachedIncidents?.data || { incidents: [] },
                 stats: statsDisabled ? null : (cachedStats?.data ? normalizeStatisticsData(cachedStats.data) : null),
                 cached: true,
                 instant: true
@@ -3565,14 +4041,43 @@ app.get("/api/match/:id/details", async (req, res) => {
             : optionalCachedFetch(`stats_${id}`, `/event/${id}/statistics`, STATS_CACHE_TTL);
 
         const [incidents, stats] = await Promise.all([incidentsPromise, statsPromise]);
+        const normalizedIncidents = normalizeIncidentsData(incidents) || { incidents: [] };
+        const normalizedStats = statsDisabled ? null : normalizeStatisticsData(stats);
+        if (hasUsefulIncidentData(normalizedIncidents) || hasUsefulStatsData(normalizedStats)) {
+            storeMatchDetailsCache(id, { incidents: normalizedIncidents, stats: normalizedStats || { statistics: [] } }, "details-endpoint");
+        } else {
+            refreshMatchDetails(id).catch(error => {
+                console.warn(`[DETAILS BACKGROUND WARM] ${id}: ${error.message}`);
+            });
+        }
 
         res.json({
-            incidents,
-            stats
+            incidents: normalizedIncidents,
+            stats: normalizedStats,
+            pending: !hasUsefulIncidentData(normalizedIncidents) && !hasUsefulStatsData(normalizedStats)
         });
     } catch (error) {
         console.error(`[API ERROR] Match details main ${id}: ${error.message}`);
-        res.status(500).json({ error: true });
+        const cachedFromLoop = matchDetailsCache[id];
+        const cachedIncidents = cache[`incidents_${id}`];
+        const cachedStats = cache[`stats_${id}`];
+        if (cachedFromLoop || cachedIncidents?.data || cachedStats?.data) {
+            return res.json({
+                incidents: normalizeIncidentsData(cachedFromLoop?.incidents || cachedIncidents?.data) || { incidents: [] },
+                stats: req.query.stats === "0" ? null : normalizeStatisticsData(cachedFromLoop?.stats || cachedStats?.data),
+                cached: true,
+                stale: true,
+                instant: true,
+                warning: error.message
+            });
+        }
+        refreshMatchDetails(id).catch(() => {});
+        res.json({
+            incidents: { incidents: [] },
+            stats: req.query.stats === "0" ? null : { statistics: [] },
+            pending: true,
+            warning: error.message
+        });
     }
 });
 
@@ -4910,7 +5415,31 @@ function favoriteStartMatches(refStart, eventStart) {
     if (!refStart || !eventStart) return false;
     const left = Number(refStart);
     const right = Number(eventStart);
-    return Number.isFinite(left) && Number.isFinite(right) && Math.abs(left - right) <= 6 * 60 * 60;
+    return Number.isFinite(left) && Number.isFinite(right) && Math.abs(left - right) <= 12 * 60 * 60;
+}
+
+function favoriteStartLooselyMatches(refStart, eventStart) {
+    if (!refStart || !eventStart) return false;
+    const left = Number(refStart);
+    const right = Number(eventStart);
+    return Number.isFinite(left) && Number.isFinite(right) && Math.abs(left - right) <= 30 * 60 * 60;
+}
+
+function favoriteStartSameLiveWindow(refStart, eventStart) {
+    if (!refStart || !eventStart) return false;
+    const left = Number(refStart);
+    const right = Number(eventStart);
+    return Number.isFinite(left) && Number.isFinite(right) && Math.abs(left - right) <= 48 * 60 * 60;
+}
+
+function favoriteRefWasRecentlyUpdated(ref, maxAgeMs = 12 * 60 * 60 * 1000) {
+    const ts = Number(ref?.favoritedAt || ref?.savedAt || 0);
+    return Number.isFinite(ts) && ts > 0 && Date.now() - ts <= maxAgeMs;
+}
+
+function isCrossSourceLiveEvent(event) {
+    const source = String(event?.source || "").toLowerCase();
+    return source.includes("mackolik") || source.includes("push-fallback") || source.includes("fallback");
 }
 
 function getEventTournamentName(event) {
@@ -4947,7 +5476,10 @@ function normalizeFavoriteMatchRefs(list) {
                 home: normalizeFavoriteText(item.homeTeam?.name || item.homeTeam?.shortName || item.home || item.homeName),
                 away: normalizeFavoriteText(item.awayTeam?.name || item.awayTeam?.shortName || item.away || item.awayName),
                 tournament: normalizeFavoriteText(item.tournament?.name || item.tournamentName || item.leagueName),
-                startTimestamp: item.startTimestamp ? String(item.startTimestamp) : ""
+                startTimestamp: item.startTimestamp ? String(item.startTimestamp) : "",
+                favoritedAt: Number(item.favoritedAt || item.savedAt || 0) || 0,
+                homeScoreAtFavorite: Number(item.homeScoreAtFavorite ?? item.homeScore?.current ?? item.homeScore ?? 0),
+                awayScoreAtFavorite: Number(item.awayScoreAtFavorite ?? item.awayScore?.current ?? item.awayScore ?? 0)
             };
             return (ref.id || ref.favoriteKey || ref.favoriteKeyNoStart || (ref.home && ref.away)) ? ref : null;
         })
@@ -4969,7 +5501,23 @@ function favoriteRefMatchesEvent(ref, event, matchKey, eventKeySet) {
     const reverseOrder = favoriteTextsMatch(ref.home, away) && favoriteTextsMatch(ref.away, home);
     const sameTournament = favoriteTournamentMatches(ref.tournament, tournament);
     const sameStart = favoriteStartMatches(ref.startTimestamp, event.startTimestamp);
-    return (sameOrder || reverseOrder) && (sameTournament || sameStart);
+    const looseStart = favoriteStartLooselyMatches(ref.startTimestamp, event.startTimestamp);
+    const sameLiveWindow = favoriteStartSameLiveWindow(ref.startTimestamp, event.startTimestamp);
+    const teamsMatch = sameOrder || reverseOrder;
+    const hasStartData = !!ref.startTimestamp && !!event.startTimestamp;
+    const canTrustTeamsOnly = !hasStartData && (!ref.tournament || !tournament);
+    const crossSourceLive = isCrossSourceLiveEvent(event);
+    const recentlyFavorited = favoriteRefWasRecentlyUpdated(ref);
+
+    if (teamsMatch && crossSourceLive) {
+        const tournamentLooksDifferent = ref.tournament && tournament && !sameTournament;
+        const sourceCanRenameTournament = tournamentLooksDifferent || !ref.tournament || !tournament;
+        if (sameStart || looseStart || sameLiveWindow || recentlyFavorited || sourceCanRenameTournament) {
+            return true;
+        }
+    }
+
+    return teamsMatch && (sameTournament || sameStart || looseStart || canTrustTeamsOnly);
 }
 
 function getFavoritePayloadFromReg(reg) {
@@ -4985,6 +5533,122 @@ function getFavoritePayloadFromReg(reg) {
         favoriteKeys: Array.from(favoriteKeySet),
         favoriteMatches
     };
+}
+
+function getFavoriteRefInitialScore(ref) {
+    const home = Number(ref?.homeScoreAtFavorite);
+    const away = Number(ref?.awayScoreAtFavorite);
+    if (!Number.isFinite(home) || !Number.isFinite(away)) return null;
+    return { homeScore: home, awayScore: away };
+}
+
+function findLiveEventForFavoriteRef(ref, events = []) {
+    if (!ref) return null;
+    for (const event of events) {
+        if (!event?.id) continue;
+        const eventKeys = new Set(buildServerFavoriteKeyVariants(event));
+        if (favoriteRefMatchesEvent(ref, event, String(event.id), eventKeys)) return event;
+    }
+    return null;
+}
+
+async function sendMissedGoalPushForRegistration(channel, id, reg, reason = "favorite-sync", liveEvents = null) {
+    const payload = getFavoritePayloadFromReg(reg);
+    if (!payload.favoriteMatches.length) return { checked: 0, sent: 0 };
+
+    let sourceEvents = Array.isArray(liveEvents) ? liveEvents : [];
+    if (!sourceEvents.length) {
+        const liveData = await fetchLiveScoresForNotifications({ allowPushFallback: true, saveSnapshot: false }).catch(() => globalLiveEvents);
+        sourceEvents = Array.isArray(liveData?.events) ? liveData.events : [];
+    }
+    if (!sourceEvents.length) return { checked: payload.favoriteMatches.length, sent: 0 };
+
+    let sent = 0;
+    for (const ref of payload.favoriteMatches) {
+        const initial = getFavoriteRefInitialScore(ref);
+        if (!initial) continue;
+        const event = findLiveEventForFavoriteRef(ref, sourceEvents);
+        if (!event?.id) continue;
+
+        const current = getScoreSnapshot(event);
+        if ((current.homeScore + current.awayScore) <= (initial.homeScore + initial.awayScore)) continue;
+
+        const matchId = String(event.id);
+        const scoreMarker = `score-${current.homeScore}-${current.awayScore}`;
+        const deliveryMarker = getGoalPushDeliveryMarker({
+            type: "goal_score",
+            score: `${current.homeScore}-${current.awayScore}`
+        });
+        if (recipientScorePushAlreadySent(reg, matchId, deliveryMarker)) continue;
+
+        const leagueId = (event.tournament?.uniqueTournament?.id || event.tournament?.id || "").toString();
+        const homeName = event.homeTeam?.name || ref.home || "Ev sahibi";
+        const awayName = event.awayTeam?.name || ref.away || "Qonaq";
+        const homeDelta = current.homeScore - initial.homeScore;
+        const awayDelta = current.awayScore - initial.awayScore;
+        const scoringSide = homeDelta > 0 ? "home" : "away";
+        const scoringTeam = homeDelta > 0 ? homeName : awayName;
+        const title = `QOL! ${scoringTeam}`;
+        const body = `${homeName} ${current.homeScore} - ${current.awayScore} ${awayName}`;
+
+        const result = await sendGoalPushToRecipients([{ channel, id, reg }], {
+            title,
+            body,
+            matchId,
+            leagueId,
+            type: "goal_score",
+            score: `${current.homeScore}-${current.awayScore}`,
+            tag: `goal-score-${matchId}-${current.homeScore}-${current.awayScore}`,
+            ttl: "300"
+        });
+        if (result.sent > 0) {
+            sent += result.sent;
+            pendingGoalDetailNotifications[matchId] = {
+                scoreMarker,
+                homeScore: current.homeScore,
+                awayScore: current.awayScore,
+                score: `${current.homeScore}-${current.awayScore}`,
+                previousGoalTotal: initial.homeScore + initial.awayScore,
+                scoringSide: awayDelta > 0 && homeDelta <= 0 ? "away" : scoringSide,
+                leagueId,
+                createdAt: Date.now()
+            };
+            rememberRecipientScorePush(reg, matchId, deliveryMarker);
+            if (channel === "fcm") saveRegistrations();
+            if (channel === "webpush") saveWebPushRegistrations();
+            queueGoalScorerChecks(event, `missed-${reason}`);
+            console.log(`[Push][MissedGoal][${reason}] sent=${result.sent} channel=${channel} match=${matchId}`);
+        }
+    }
+    return { checked: payload.favoriteMatches.length, sent };
+}
+
+function queueMissedGoalCheck(channel, id, reg, reason) {
+    const delays = [250, 3500, 12000];
+    delays.forEach(delay => {
+        setTimeout(() => {
+            sendMissedGoalPushForRegistration(channel, id, reg, reason).catch(error => {
+                console.warn(`[Push][MissedGoal] ${channel}:${id} failed: ${error.message}`);
+            });
+        }, delay);
+    });
+}
+
+async function runFavoriteGoalCatchup(events, reason = "live-poll") {
+    if (favoriteGoalCatchupInFlight || !Array.isArray(events) || events.length === 0) return;
+    favoriteGoalCatchupInFlight = true;
+    try {
+        const tasks = [];
+        Object.entries(fcmRegistrations).forEach(([token, reg]) => {
+            tasks.push(sendMissedGoalPushForRegistration("fcm", token, reg, reason, events));
+        });
+        Object.entries(webPushRegistrations).forEach(([deviceId, reg]) => {
+            tasks.push(sendMissedGoalPushForRegistration("webpush", deviceId, reg, reason, events));
+        });
+        if (tasks.length) await Promise.allSettled(tasks);
+    } finally {
+        favoriteGoalCatchupInFlight = false;
+    }
 }
 
 function collectFavoriteRecipients(matchId, leagueId, favoriteKey = "", event = null) {
@@ -5036,13 +5700,21 @@ async function sendWebPushMessage(deviceId, payload) {
     if (!reg?.subscription?.endpoint) return false;
 
     try {
+        reg.lastPushAttemptAt = Date.now();
+        reg.lastPushType = payload?.data?.type || payload?.type || "general";
+        reg.lastPushTitle = payload?.title || "";
         await webpush.sendNotification(reg.subscription, JSON.stringify(payload), {
             TTL: payload.ttl || 4 * 60 * 60,
             urgency: payload.urgency || "high"
         });
+        reg.lastPushSuccessAt = Date.now();
+        reg.lastPushError = "";
         return true;
     } catch (err) {
-        console.error(`[WebPush] Send error for ${deviceId}:`, err.statusCode || err.message);
+        const detail = err.body || err.response?.body || err.message || "";
+        reg.lastPushErrorAt = Date.now();
+        reg.lastPushError = String(detail || err.message || "").slice(0, 240);
+        console.error(`[WebPush] Send error for ${deviceId}:`, err.statusCode || err.message, detail ? String(detail).slice(0, 240) : "");
         if (err.statusCode === 404 || err.statusCode === 410) {
             removeInvalidWebPushRegistration(deviceId);
         }
@@ -5099,11 +5771,15 @@ function buildRegistrationFavoriteState({ favorites, leagues, favoriteKeys, favo
 app.post("/api/fcm/register", (req, res) => {
     const { token, favorites, leagues, favoriteKeys, favoriteMatches } = req.body;
     if (token) {
+        const previous = fcmRegistrations[token] || {};
         fcmRegistrations[token] = { 
-            ...buildRegistrationFavoriteState({ favorites, leagues, favoriteKeys, favoriteMatches })
+            ...previous,
+            ...buildRegistrationFavoriteState({ favorites, leagues, favoriteKeys, favoriteMatches }),
+            recipientScorePushState: previous.recipientScorePushState || {}
         };
         saveRegistrations();
         console.log(`[FCM] Token updated. Matches: ${(favorites||[]).length}, Keys: ${fcmRegistrations[token].favoriteKeys.length}, Leagues: ${(leagues||[]).length}`);
+        queueMissedGoalCheck("fcm", token, fcmRegistrations[token], "fcm-register");
         res.json({ success: true });
     } else {
         res.status(400).json({ success: false, message: "Token is required" });
@@ -5120,14 +5796,18 @@ app.post("/api/push/subscribe", (req, res) => {
         return res.status(400).json({ success: false, message: "deviceId and valid subscription are required" });
     }
 
+    const previous = webPushRegistrations[deviceId] || {};
     webPushRegistrations[deviceId] = {
+        ...previous,
         subscription,
         ...buildRegistrationFavoriteState({ favorites, leagues, favoriteKeys, favoriteMatches }),
         platform: platform || "webpush",
-        userAgent: userAgent || ""
+        userAgent: userAgent || "",
+        recipientScorePushState: previous.recipientScorePushState || {}
     };
     saveWebPushRegistrations();
     console.log(`[WebPush] Device updated. Device: ${deviceId}, Matches: ${(favorites || []).length}, Keys: ${webPushRegistrations[deviceId].favoriteKeys.length}, Leagues: ${(leagues || []).length}`);
+    queueMissedGoalCheck("webpush", deviceId, webPushRegistrations[deviceId], "webpush-subscribe");
     let endpointHost = "";
     try {
         endpointHost = new URL(subscription.endpoint).hostname;
@@ -5153,6 +5833,7 @@ app.post("/api/push/favorites-sync", (req, res) => {
             ...fcmRegistrations[token],
             ...favoriteState
         };
+        queueMissedGoalCheck("fcm", token, fcmRegistrations[token], "favorites-sync");
         updated++;
     }
 
@@ -5161,6 +5842,7 @@ app.post("/api/push/favorites-sync", (req, res) => {
             ...webPushRegistrations[deviceId],
             ...favoriteState
         };
+        queueMissedGoalCheck("webpush", deviceId, webPushRegistrations[deviceId], "favorites-sync");
         updated++;
     }
 
@@ -5330,7 +6012,12 @@ app.get("/api/push/status", (req, res) => {
         webPushFavoriteKeys,
         lastScores: Object.keys(lastScores).length,
         scorePushState: Object.keys(scorePushState).length,
-        lastLiveFetchTime: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null
+        lastLiveFetchTime: lastLiveFetchTime ? new Date(lastLiveFetchTime).toISOString() : null,
+        liveSnapshotEvents: Array.isArray(globalLiveEvents?.events) ? globalLiveEvents.events.length : 0,
+        liveSnapshotClient: !!globalLiveEvents?.clientSnapshot,
+        sofaScoreOnlyMode: SOFASCORE_ONLY_MODE,
+        mackolikVisibleMatchesEnabled: ENABLE_MACKOLIK_MATCHES,
+        mackolikPushFallbackEnabled: ENABLE_MACKOLIK_PUSH_FALLBACK
     });
 });
 
@@ -5360,6 +6047,8 @@ app.get("/api/push/device-status/:deviceId", (req, res) => {
         favoriteCount: payload.favorites.length,
         favoriteKeyCount: payload.favoriteKeys.length,
         leagueCount: payload.leagues.length,
+        favoriteMatchCount: payload.favoriteMatches.length,
+        recipientScoreStateCount: Object.keys(reg.recipientScorePushState || {}).length,
         lastUpdated: reg.lastUpdated || null,
         vapidKeySource: VAPID_KEY_SOURCE
     });
@@ -5515,6 +6204,7 @@ async function runBackgroundGoalTracker() {
         if (!liveData || !Array.isArray(liveData.events)) return;
 
         const events = liveData.events;
+        await runFavoriteGoalCatchup(events, liveData.source || "live-poll");
         
         for (const ev of events) {
             if (!ev?.id) continue;
@@ -5529,7 +6219,12 @@ async function runBackgroundGoalTracker() {
                     console.error(`[Push][Goal][tracker] Immediate score push failed for ${matchId}:`, e.message);
                     return null;
                 });
-                if (immediateResult && immediateResult.reason !== "score-not-increased" && immediateResult.reason !== "missing-event") {
+                if (
+                    immediateResult &&
+                    immediateResult.reason !== "score-not-increased" &&
+                    immediateResult.reason !== "missing-event" &&
+                    immediateResult.reason !== "send-failed"
+                ) {
                     lastScores[matchId] = { homeScore: hs, awayScore: as };
                     continue;
                 }
@@ -5555,6 +6250,7 @@ async function runBackgroundGoalTracker() {
                     });
 
                     const recipients = collectFavoriteRecipientsForEvent(ev, matchId, leagueId);
+                    let sentFallbackGoal = false;
                     if (recipients.length > 0) {
                         const sendResult = await sendGoalPushToRecipients(recipients, {
                             title,
@@ -5569,22 +6265,28 @@ async function runBackgroundGoalTracker() {
                         if (sendResult.sent === 0) {
                             console.warn(`[Push][Goal] No notification reached devices for match ${matchId}. Check stale subscriptions or VAPID/APNs delivery.`);
                         }
+                        sentFallbackGoal = sendResult.sent > 0;
 
-                        pendingGoalDetailNotifications[matchId] = {
-                            scoreMarker,
-                            homeScore: hs,
-                            awayScore: as,
-                            score: `${hs}-${as}`,
-                            previousGoalTotal,
-                            scoringSide,
-                            leagueId,
-                            createdAt: Date.now()
-                        };
+                        if (sentFallbackGoal) {
+                            pendingGoalDetailNotifications[matchId] = {
+                                scoreMarker,
+                                homeScore: hs,
+                                awayScore: as,
+                                score: `${hs}-${as}`,
+                                previousGoalTotal,
+                                scoringSide,
+                                leagueId,
+                                createdAt: Date.now()
+                            };
+                            queueGoalScorerChecks(ev, "tracker-fallback");
+                        }
 
                         getMatchIncidentsData(matchId).catch(() => {});
                     }
 
-                    markGoalNotification(matchId, scoreMarker);
+                    if (sentFallbackGoal) {
+                        markGoalNotification(matchId, scoreMarker);
+                    }
                 }
             }
             lastScores[matchId] = { homeScore: hs, awayScore: as };
@@ -5623,7 +6325,8 @@ async function runIncidentScorerWorker() {
 
         if (favoriteMatchIds.size === 0 && favoriteMatchKeys.size === 0 && favoriteLeagueIds.size === 0 && favoriteMatchRefs.length === 0) return;
 
-        const liveData = await getLiveEventsData(true);
+        const liveData = await fetchLiveScoresForNotifications({ allowPushFallback: true, saveSnapshot: false })
+            .catch(() => getLiveEventsData(true));
         if (!liveData?.events?.length) return;
 
         const favoriteLiveMatches = liveData.events.filter(ev => {
@@ -5644,7 +6347,7 @@ async function runIncidentScorerWorker() {
 
             let incidentsData = null;
             try {
-                incidentsData = await getMatchIncidentsData(matchId);
+                incidentsData = await getScorerIncidentDataForEvent(ev);
             } catch (e) {
                 console.warn(`[Goal Incidents] ${matchId} incidents unavailable: ${e.message}`);
                 continue;
@@ -5700,7 +6403,8 @@ async function runIncidentScorerWorker() {
                     incident.player?.name ||
                     incident.player?.shortName ||
                     incident.playerIn?.name ||
-                    "Oyunçu";
+                    "";
+                if (!scorerName) continue;
                 const minuteText = incident.time ? `${incident.time}'` : "Canlı";
                 const goalLabel =
                     incident.incidentClass === "ownGoal" ? "Avtoqol" :
@@ -5722,6 +6426,7 @@ async function runIncidentScorerWorker() {
                 });
                 if (sendResult.sent === 0) {
                     console.warn(`[Push][Scorer] No notification reached devices for match ${matchId}.`);
+                    continue;
                 }
 
                 markGoalNotification(matchId, incidentKey);
@@ -6182,7 +6887,7 @@ app.get("/api/match/stream/:id", (req, res) => {
 // ——— BACKGROUND REFRESH LOGIC ———————————————
 async function refreshLiveData() {
     try {
-        const data = await fetchLiveScoresForNotifications();
+        const data = await fetchLiveScoresForNotifications({ allowPushFallback: false });
         const liveEvents = data?.events || [];
         const scorePushTasks = [];
         
@@ -6226,15 +6931,21 @@ async function refreshLiveData() {
 
 let lastDetailIndex = 0;
 async function refreshLiveDetailsLoop() {
-    const ids = Object.keys(matchCache);
+    const ids = Object.keys(matchCache).sort((a, b) => {
+        const aLive = isLiveSofaEvent(matchCache[a]) ? 1 : 0;
+        const bLive = isLiveSofaEvent(matchCache[b]) ? 1 : 0;
+        return bLive - aLive;
+    });
     if (ids.length === 0) return;
 
-    const count = 3; // Hər dövrdə 3 oyunun detallarını yenilə
+    const count = 8;
+    const tasks = [];
     for (let i = 0; i < count; i++) {
         const idx = (lastDetailIndex + i) % ids.length;
         const id = ids[idx];
-        await refreshMatchDetails(id);
+        tasks.push(refreshMatchDetails(id));
     }
+    await Promise.allSettled(tasks);
     lastDetailIndex = (lastDetailIndex + count) % ids.length;
 }
 
@@ -6275,8 +6986,16 @@ async function startAlwaysOnWorkers() {
     console.log("-----------------------------------------");
     
     const runLivePulse = async () => {
-        await refreshLiveData(); 
-        await runBackgroundGoalTracker(); 
+        const [refreshResult, trackerResult] = await Promise.allSettled([
+            refreshLiveData(),
+            runBackgroundGoalTracker()
+        ]);
+        if (refreshResult.status === "rejected") {
+            console.warn("[Always-On] Public live refresh failed:", refreshResult.reason?.message || refreshResult.reason);
+        }
+        if (trackerResult.status === "rejected") {
+            console.warn("[Always-On] Push tracker failed:", trackerResult.reason?.message || trackerResult.reason);
+        }
     };
 
     // 1. Live Score & Goal Detection (Tight Loop: 3-5s)
@@ -6285,11 +7004,11 @@ async function startAlwaysOnWorkers() {
         runLivePulse().catch(e => console.error("[Always-On] Live pulse failed:", e.message));
     }, LIVE_SCORE_POLL_INTERVAL_MS);
 
-    // 2. Incident Scorer Detection (15s - was 4s, too aggressive for SofaScore)
+    // 2. Incident Scorer Detection: scorer notification must follow score push quickly.
     runIncidentScorerWorker().catch(e => console.error("[Always-On] Initial incident worker failed:", e.message));
     setInterval(() => {
         runIncidentScorerWorker().catch(e => console.error("[Always-On] Incident worker failed:", e.message));
-    }, 15000);
+    }, 5000);
 
     // 3. Reminders & State Persistence (1 min)
     setInterval(async () => {
@@ -6332,6 +7051,10 @@ const server = app.listen(PORT, "0.0.0.0", async () => {
 
 
 app.get("/", (req, res) => {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+    res.set("Surrogate-Control", "no-store");
     res.sendFile(path.join(__dirname, "index.html"));
 });
 

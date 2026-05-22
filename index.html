@@ -4962,7 +4962,7 @@
         <div id="toast" class="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
 
         <script>
-            console.log("SCRIPT START: index.html VERSION 1.2.12 running");
+            console.log("SCRIPT START: index.html VERSION 1.2.22 running");
 
             const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"defaultView": "matches"}');
             const auth = firebase.auth();
@@ -4974,6 +4974,8 @@
             const API_BASE_URL = isLocalhost ? 'http://localhost:3000' : '';
             window.API_BASE_URL = API_BASE_URL;
             const SOFA_IMAGE_BASE_URL = 'https://img.sofascore.com/api/v1';
+            const IS_IOS_DEVICE = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
             console.log("API Base URL:", API_BASE_URL || "Local/SameOrigin");
 
             const IMAGE_PLACEHOLDER = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iMTIiIGZpbGw9IiMxMTE4MjciLz48Y2lyY2xlIGN4PSIyNCIgY3k9IjI0IiByPSIxMSIgZmlsbD0iIzMzNDE1NSIvPjwvc3ZnPg==";
@@ -5556,12 +5558,20 @@
                 if (!match) return match;
                 const favoriteKey = normalizeFavoriteKeyValue(getMatchFavoriteKey(match) || match.favoriteKey || '');
                 const favoriteKeyNoStart = normalizeFavoriteKeyValue(getMatchFavoriteKey(match, { includeStart: false }) || match.favoriteKeyNoStart || '');
+                const homeScoreAtFavorite = Number.isFinite(Number(match.homeScoreAtFavorite))
+                    ? Number(match.homeScoreAtFavorite)
+                    : Number(match.homeScore?.current || match.homeScore || 0);
+                const awayScoreAtFavorite = Number.isFinite(Number(match.awayScoreAtFavorite))
+                    ? Number(match.awayScoreAtFavorite)
+                    : Number(match.awayScore?.current || match.awayScore || 0);
                 return {
                     ...match,
                     legacyFavoriteKey: normalizeFavoriteKeyValue(match.legacyFavoriteKey || match.favoriteKey || ''),
                     favoriteKey,
                     favoriteKeyNoStart,
-                    favoritedAt: match.favoritedAt || Date.now()
+                    favoritedAt: match.favoritedAt || Date.now(),
+                    homeScoreAtFavorite,
+                    awayScoreAtFavorite
                 };
             }
 
@@ -7253,6 +7263,31 @@
                 };
             }
 
+            let lastLiveSnapshotShareAt = 0;
+            function shareLiveSofaSnapshot(events) {
+                const liveEvents = keepSofascoreEventsOnly(events)
+                    .filter(isSofascoreLiveEvent)
+                    .map(compactEventForStorage)
+                    .filter(Boolean)
+                    .slice(0, 120);
+                if (!liveEvents.length) return;
+
+                const now = Date.now();
+                if (now - lastLiveSnapshotShareAt < 15000) return;
+                lastLiveSnapshotShareAt = now;
+
+                fetch(API_BASE_URL + '/api/matches/live/client-snapshot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    cache: 'no-store',
+                    body: JSON.stringify({
+                        events: liveEvents,
+                        generatedAt: new Date().toISOString(),
+                        client: IS_IOS_DEVICE ? 'ios' : 'web'
+                    })
+                }).catch(() => {});
+            }
+
             function pruneVolatileStorage() {
                 try {
                     Object.keys(localStorage).forEach(key => {
@@ -7318,15 +7353,16 @@
                 return data;
             }
 
-            let sofaDirectBlockedUntil = Number(sessionStorage.getItem('sofaDirectBlockedUntil') || 0);
-            const DISABLE_BROWSER_SOFASCORE_DIRECT = false;
+            const SOFA_DIRECT_BLOCKED_KEY = 'sofaDirectBlockedUntil_v2';
+            let sofaDirectBlockedUntil = Number(sessionStorage.getItem(SOFA_DIRECT_BLOCKED_KEY) || 0);
+            const DISABLE_BROWSER_SOFASCORE_DIRECT = true;
 
             async function fetchEventsFromBestSource(localUrl, sofaPath, options = {}, allowDirectBrowserFallback = true, sourceOptions = {}) {
                 const directUrl = `https://api.sofascore.com/api/v1${sofaPath}`;
                 const canUseDirect = () => !DISABLE_BROWSER_SOFASCORE_DIRECT && allowDirectBrowserFallback && Date.now() > sofaDirectBlockedUntil;
                 const blockDirectTemporarily = () => {
                     sofaDirectBlockedUntil = Date.now() + 10 * 60 * 1000;
-                    sessionStorage.setItem('sofaDirectBlockedUntil', String(sofaDirectBlockedUntil));
+                    sessionStorage.setItem(SOFA_DIRECT_BLOCKED_KEY, String(sofaDirectBlockedUntil));
                 };
                 const validateLiveResponse = (data) => {
                     const events = Array.isArray(data?.events) ? data.events : [];
@@ -7341,7 +7377,7 @@
                 const directFetch = () => fetchJsonOrThrow(directUrl, {
                     ...options,
                     timeoutMs: sourceOptions.directTimeoutMs || options.timeoutMs || 6000,
-                    retryCount: 0,
+                    retryCount: sourceOptions.directRetryCount ?? 0,
                     quiet: true
                 }, 'SofaScore direct xətası');
                 const serverFetch = () => fetchJsonOrThrow(localUrl, {
@@ -7445,7 +7481,7 @@
                     const allowDirectBrowserFallback = true;
                     let dataEvents = await fetchEventsFromBestSource(url, sofaFallbackPath, fetchOptions, allowDirectBrowserFallback, {
                         raceDirect: dataCacheKey === 'live',
-                        directTimeoutMs: dataCacheKey === 'live' ? 4500 : 8000,
+                        directTimeoutMs: dataCacheKey === 'live' ? (IS_IOS_DEVICE ? 14000 : 4500) : 8000,
                         serverTimeoutMs: dataCacheKey === 'live' ? 12000 : 14000,
                         serverRetryCount: 0
                     });
@@ -7470,6 +7506,9 @@
                     }
 
                     saveEventsCache(eventsCacheKey, allEvents, dataCacheKey);
+                    if (dataCacheKey === 'live') {
+                        shareLiveSofaSnapshot(allEvents);
+                    }
 
                     // Auto-update open modal scores
                     if (typeof currentOpenMatchId !== 'undefined' && currentOpenMatchId) {
@@ -8380,6 +8419,29 @@
                 } catch (e) {}
             }
 
+            const MATCH_DETAILS_SHARE_INTERVAL_MS = 10000;
+            const matchDetailsShareTimes = {};
+            function shareMatchDetailsSnapshot(id, incidents, stats) {
+                const matchId = id?.toString();
+                if (!matchId) return;
+                if (!hasUsefulIncidentsPayload(incidents) && !hasUsefulStatsPayload(stats)) return;
+                const now = Date.now();
+                if (now - (matchDetailsShareTimes[matchId] || 0) < MATCH_DETAILS_SHARE_INTERVAL_MS) return;
+                matchDetailsShareTimes[matchId] = now;
+
+                fetch(`${API_BASE_URL}/api/match/${encodeURIComponent(matchId)}/client-details`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        incidents: hasUsefulIncidentsPayload(incidents) ? incidents : { incidents: [] },
+                        stats: hasUsefulStatsPayload(stats) ? stats : { statistics: [] },
+                        client: IS_IOS_DEVICE ? 'ios' : 'web',
+                        generatedAt: new Date().toISOString()
+                    }),
+                    cache: 'no-store'
+                }).catch(() => {});
+            }
+
             function saveMatchDetailsToCache(id, incidents, stats) {
                 const existing = modalDetailsMemoryCache[id] || {};
                 const mergedIncidents = hasUsefulIncidentsPayload(incidents)
@@ -8394,6 +8456,7 @@
                     savedAt: Date.now()
                 };
                 persistMatchDetailsCache();
+                shareMatchDetailsSnapshot(id, mergedIncidents, mergedStats);
             }
 
             function getCachedMatchDetails(id, maxAge = 3 * 60 * 1000) {
@@ -8413,6 +8476,9 @@
             }
 
             async function fetchDirectSofaJson(path, params = null) {
+                if (DISABLE_BROWSER_SOFASCORE_DIRECT) {
+                    throw new Error('Browser SofaScore direct disabled');
+                }
                 const query = params ? `?${new URLSearchParams(params).toString()}` : '';
                 const directUrl = `https://api.sofascore.com/api/v1${path}${query}`;
                 const res = await fetchWithRetry(directUrl, {
@@ -9025,7 +9091,8 @@
             }
 
             function hasUsefulIncidentsPayload(data) {
-                return Array.isArray(data?.incidents) && data.incidents.length > 0;
+                return Array.isArray(data?.incidents) &&
+                    data.incidents.some(incident => ["goal", "card", "substitution"].includes(incident?.incidentType));
             }
 
             function hasUsefulStatsPayload(data) {
@@ -9042,6 +9109,45 @@
                 const home = Number(match?.homeScore?.current || 0);
                 const away = Number(match?.awayScore?.current || 0);
                 return (home + away) > 0;
+            }
+
+            function buildScoreFallbackIncidents(match) {
+                const homeGoals = Math.max(0, Number(match?.homeScore?.current || 0));
+                const awayGoals = Math.max(0, Number(match?.awayScore?.current || 0));
+                const rawTime = typeof getMatchTime === 'function' ? String(getMatchTime(match) || '') : '';
+                const minuteMatch = rawTime.match(/\d+/);
+                const minute = minuteMatch ? Number(minuteMatch[0]) : 0;
+                const incidents = [];
+                for (let i = 0; i < Math.min(homeGoals, 8); i++) {
+                    incidents.push({
+                        incidentType: 'goal',
+                        incidentClass: 'regular',
+                        isHome: true,
+                        time: minute,
+                        playerName: 'Qol melumati yenilenir',
+                        derivedFromScore: true
+                    });
+                }
+                for (let i = 0; i < Math.min(awayGoals, 8); i++) {
+                    incidents.push({
+                        incidentType: 'goal',
+                        incidentClass: 'regular',
+                        isHome: false,
+                        time: minute,
+                        playerName: 'Qol melumati yenilenir',
+                        derivedFromScore: true
+                    });
+                }
+                return { incidents };
+            }
+
+            function renderScoreFallbackIncidents(match) {
+                const fallback = buildScoreFallbackIncidents(match);
+                if (hasUsefulIncidentsPayload(fallback)) {
+                    renderMatchIncidents(fallback);
+                } else {
+                    renderMatchIncidents({ incidents: [] });
+                }
             }
 
             function renderMatchIncidents(dataI) {
@@ -9087,6 +9193,8 @@
                             </div>`;
                     }).join("");
                     tHtml += '</div>';
+                    const goalsBox = document.getElementById("goalsBox");
+                    if (goalsBox) goalsBox.dataset.loading = "0";
                     document.getElementById("goalsBox").innerHTML = tHtml;
                 } else {
                     document.getElementById("goalsBox").innerHTML = `
@@ -9106,6 +9214,8 @@
                     : (Array.isArray(stats?.statisticsItems) ? [{ groupName: stats.groupName || "Ümumi", statisticsItems: stats.statisticsItems }] : []);
                 const groupsWithItems = groups.filter(group => Array.isArray(group.statisticsItems) && group.statisticsItems.length);
                 if (groupsWithItems.length) {
+                    const statsBox = document.getElementById("statsBox");
+                    if (statsBox) statsBox.dataset.loading = "0";
                     let sHtml = "";
                     groupsWithItems.forEach(group => {
                         const items = group.statisticsItems;
@@ -9152,7 +9262,10 @@
 
                 if (match?.source === 'mackolik') return;
 
-                fetchMatchDetailsFast(matchId, match, { timeout: 4200, directFallback: false }).then(details => {
+                fetchMatchDetailsFast(matchId, match, {
+                    timeout: IS_IOS_DEVICE ? 9000 : 4200,
+                    directFallback: true
+                }).then(details => {
                     saveMatchDetailsToCache(matchId, details.incidents, details.stats);
                 }).catch(() => {});
             }
@@ -9161,7 +9274,27 @@
             async function updateModalStatsAndIncidents(id, options = {}) {
                 const match = options.match || allEvents.find(m => m.id?.toString() === id?.toString()) || null;
                 const now = Date.now();
-                if (!options.force && modalDetailsLastFetch[id] && (now - modalDetailsLastFetch[id] < 5000)) {
+                const cachedBefore = getCachedMatchDetails(id, 5 * 60 * 1000);
+                const isStillOpen = () => !currentOpenMatchId || currentOpenMatchId.toString() === id.toString();
+                const hasWarmCache = hasUsefulIncidentsPayload(cachedBefore?.incidents) || hasUsefulStatsPayload(cachedBefore?.stats);
+
+                if (isStillOpen() && cachedBefore) {
+                    if (hasUsefulIncidentsPayload(cachedBefore.incidents)) {
+                        const goalsBox = document.getElementById("goalsBox");
+                        if (goalsBox) goalsBox.dataset.loading = "0";
+                        renderMatchIncidents(cachedBefore.incidents);
+                    }
+                    if (hasUsefulStatsPayload(cachedBefore.stats)) {
+                        const statsBox = document.getElementById("statsBox");
+                        if (statsBox) statsBox.dataset.loading = "0";
+                        renderMatchStats(cachedBefore.stats);
+                    }
+                }
+                if (isStillOpen() && !hasUsefulIncidentsPayload(cachedBefore?.incidents) && matchHasGoalScore(match)) {
+                    renderScoreFallbackIncidents(match);
+                }
+
+                if (!options.force && hasWarmCache && modalDetailsLastFetch[id] && (now - modalDetailsLastFetch[id] < 5000)) {
                     return;
                 }
                 if (modalDetailsInFlight === id) {
@@ -9170,12 +9303,10 @@
                 modalDetailsInFlight = id;
 
                 try {
-                    let latestIncidents = null;
-                    let latestStats = null;
-                    const cachedBefore = getCachedMatchDetails(id, 5 * 60 * 1000);
-                    const isStillOpen = () => !currentOpenMatchId || currentOpenMatchId.toString() === id.toString();
+                    let latestIncidents = cachedBefore?.incidents || null;
+                    let latestStats = cachedBefore?.stats || null;
                     const maybeSave = () => {
-                        if (latestIncidents && latestStats) {
+                        if (hasUsefulIncidentsPayload(latestIncidents) || hasUsefulStatsPayload(latestStats)) {
                             saveMatchDetailsToCache(id, latestIncidents, latestStats);
                         }
                     };
@@ -9188,7 +9319,7 @@
                     }
                     const statsRequest = fetchMatchStatsLazy(id, match, {
                         fresh: options.force,
-                        timeout: options.background ? 4500 : 6000,
+                        timeout: options.background ? 4500 : (IS_IOS_DEVICE ? 9000 : 6000),
                         directFallback: !options.background
                     }).then(data => {
                         latestStats = data || { statistics: [] };
@@ -9207,7 +9338,7 @@
                     if (!options.force) {
                         const fastDetails = await fetchMatchDetailsFast(id, match, {
                             fresh: false,
-                            timeout: options.background ? 2800 : 3600,
+                            timeout: options.background ? 2800 : (IS_IOS_DEVICE ? 8500 : 3600),
                             directFallback: !options.background
                         }).catch(() => null);
                         if (fastDetails?.incidents) {
@@ -9247,7 +9378,7 @@
 
                     const incidentsPromise = fetchMatchIncidentsFast(id, match, {
                         fresh: options.force,
-                        timeout: options.background ? 3000 : 3800,
+                        timeout: options.background ? 3000 : (IS_IOS_DEVICE ? 8000 : 3800),
                         directFallback: !options.background
                     }).then(data => {
                         latestIncidents = data || { incidents: [] };
@@ -9263,7 +9394,7 @@
                 if (isStillOpen() && (!hasUsefulIncidentsPayload(latestIncidents) || !hasUsefulStatsPayload(latestStats))) {
                     const fallbackDetails = await fetchMatchDetailsFast(id, match, {
                         fresh: false,
-                        timeout: options.background ? 3200 : 4200,
+                        timeout: options.background ? 3200 : (IS_IOS_DEVICE ? 9000 : 4200),
                         directFallback: !options.background
                     }).catch(() => null);
                     if (fallbackDetails?.incidents && !hasUsefulIncidentsPayload(latestIncidents)) {
@@ -9280,8 +9411,12 @@
                     }
                     maybeSave();
                 }
-                if (isStillOpen() && !hasUsefulIncidentsPayload(latestIncidents) && !hasUsefulIncidentsPayload(cachedBefore?.incidents) && !matchHasGoalScore(match)) {
-                    renderMatchIncidents(latestIncidents || { incidents: [] });
+                if (isStillOpen() && !hasUsefulIncidentsPayload(latestIncidents) && !hasUsefulIncidentsPayload(cachedBefore?.incidents)) {
+                    if (matchHasGoalScore(match)) {
+                        renderScoreFallbackIncidents(match);
+                    } else {
+                        renderMatchIncidents(latestIncidents || { incidents: [] });
+                    }
                 }
                 if (isStillOpen() && !hasUsefulStatsPayload(latestStats) && !hasUsefulStatsPayload(cachedBefore?.stats)) {
                     renderMatchStats(latestStats || { statistics: [] });
@@ -9405,6 +9540,7 @@
                 const cachedDetails = getCachedMatchDetails(id);
                 if (cachedDetails) {
                     if (hasUsefulIncidentsPayload(cachedDetails.incidents)) {
+                        goalsBox.dataset.loading = "0";
                         renderMatchIncidents(cachedDetails.incidents);
                     }
                     if (hasUsefulStatsPayload(cachedDetails.stats)) {
@@ -9551,6 +9687,13 @@
                         favoriteKey: normalizeFavoriteKeyValue(m.favoriteKey || getMatchFavoriteKey(m)),
                         favoriteKeyNoStart: normalizeFavoriteKeyValue(m.favoriteKeyNoStart || getMatchFavoriteKey(m, { includeStart: false })),
                         startTimestamp: m.startTimestamp || null,
+                        favoritedAt: m.favoritedAt || null,
+                        homeScoreAtFavorite: Number.isFinite(Number(m.homeScoreAtFavorite))
+                            ? Number(m.homeScoreAtFavorite)
+                            : Number(m.homeScore?.current || m.homeScore || 0),
+                        awayScoreAtFavorite: Number.isFinite(Number(m.awayScoreAtFavorite))
+                            ? Number(m.awayScoreAtFavorite)
+                            : Number(m.awayScore?.current || m.awayScore || 0),
                         home: m.homeTeam?.name || m.homeName || '',
                         away: m.awayTeam?.name || m.awayName || '',
                         tournamentName: m.tournament?.name || m.tournament?.uniqueTournament?.name || m.leagueName || '',
@@ -9631,7 +9774,7 @@
                 }
                 let registration = await navigator.serviceWorker.getRegistration('/');
                 if (!registration) {
-                    registration = await navigator.serviceWorker.register('/sw.js?v=34', { scope: '/' });
+                    registration = await navigator.serviceWorker.register('/sw.js?v=41', { scope: '/' });
                 } else {
                     try {
                         registration = registration.update ? await registration.update() : registration;
@@ -11427,7 +11570,7 @@
                             '/sport/football/events/live',
                             { cache: 'no-store', timeoutMs: 12000, retryCount: 0, quiet: true },
                             true,
-                            { raceDirect: true, directTimeoutMs: 4500, serverTimeoutMs: 12000, serverRetryCount: 0 }
+                            { raceDirect: true, directTimeoutMs: IS_IOS_DEVICE ? 14000 : 4500, serverTimeoutMs: 12000, serverRetryCount: 0 }
                         );
 
                     liveSource.then(data => {
@@ -11552,7 +11695,7 @@
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js?v=34', { scope: '/' }).then(reg => {
+                    navigator.serviceWorker.register('/sw.js?v=41', { scope: '/' }).then(reg => {
                         console.log('SW registered:', reg.scope);
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
