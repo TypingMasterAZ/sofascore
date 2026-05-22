@@ -4962,7 +4962,7 @@
         <div id="toast" class="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
 
         <script>
-            console.log("SCRIPT START: index.html VERSION 1.2.24 running");
+            console.log("SCRIPT START: index.html VERSION 1.2.25 running");
 
             const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"defaultView": "matches"}');
             const auth = firebase.auth();
@@ -9774,7 +9774,7 @@
                 }
                 let registration = await navigator.serviceWorker.getRegistration('/');
                 if (!registration) {
-                    registration = await navigator.serviceWorker.register('/sw.js?v=43', { scope: '/' });
+                    registration = await navigator.serviceWorker.register('/sw.js?v=44', { scope: '/' });
                 } else {
                     try {
                         registration = registration.update ? await registration.update() : registration;
@@ -11695,7 +11695,7 @@
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js?v=43', { scope: '/' }).then(reg => {
+                    navigator.serviceWorker.register('/sw.js?v=44', { scope: '/' }).then(reg => {
                         console.log('SW registered:', reg.scope);
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });

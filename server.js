@@ -1237,9 +1237,9 @@ const LIVE_DISK_SNAPSHOT_MAX_AGE = 10 * 60 * 1000;
 const LIVE_STALE_RETURN_MAX_AGE = 10 * 60 * 1000;
 const LIVE_SCORE_POLL_INTERVAL_MS = Math.max(1500, Number(process.env.LIVE_SCORE_POLL_INTERVAL_MS) || 2500);
 const CLIENT_LIVE_SNAPSHOT_MAX_EVENTS = 160;
-const LIVE_PRIMARY_SOURCE = String(process.env.LIVE_PRIMARY_SOURCE || "sofascore").toLowerCase();
-const ENABLE_MACKOLIK_MATCHES = String(process.env.ENABLE_MACKOLIK_MATCHES || "false").toLowerCase() === "true";
-const ALLOW_MACKOLIK_FALLBACK = String(process.env.ALLOW_MACKOLIK_FALLBACK || "false").toLowerCase() === "true";
+const LIVE_PRIMARY_SOURCE = String(process.env.LIVE_PRIMARY_SOURCE || "mackolik").toLowerCase();
+const ENABLE_MACKOLIK_MATCHES = String(process.env.ENABLE_MACKOLIK_MATCHES || "true").toLowerCase() !== "false";
+const ALLOW_MACKOLIK_FALLBACK = String(process.env.ALLOW_MACKOLIK_FALLBACK || "true").toLowerCase() !== "false";
 const STRICT_SOFASCORE_ONLY = String(process.env.SOFASCORE_STRICT_ONLY || "false").toLowerCase() === "true";
 const SOFASCORE_ONLY_MODE = STRICT_SOFASCORE_ONLY || (LIVE_PRIMARY_SOURCE === "sofascore" && !ENABLE_MACKOLIK_MATCHES && !ALLOW_MACKOLIK_FALLBACK);
 const ENABLE_MACKOLIK_PUSH_FALLBACK = String(process.env.ENABLE_MACKOLIK_PUSH_FALLBACK || "true").toLowerCase() !== "false";
@@ -1584,7 +1584,11 @@ async function fetchLiveScoresForNotifications(options = {}) {
     const { allowPushFallback = true, saveSnapshot = true } = options;
     let primaryErrorMessage = "";
     try {
-        const fastSources = SOFASCORE_ONLY_MODE
+        const fastSources = (LIVE_PRIMARY_SOURCE === "mackolik" && ENABLE_MACKOLIK_MATCHES)
+            ? [
+                fetchLiveFromMackolik()
+            ]
+            : SOFASCORE_ONLY_MODE
             ? [
                 fetchLiveFromSofaScore()
             ]
@@ -1594,7 +1598,7 @@ async function fetchLiveScoresForNotifications(options = {}) {
                 fetchRapidApiSofaPath("/sport/football/events/live", {}, 4200),
                 fetchLiveFromScheduledFallback("live-poll-fast-fallback")
             ];
-        if (!SOFASCORE_ONLY_MODE && ENABLE_MACKOLIK_MATCHES) {
+        if (LIVE_PRIMARY_SOURCE !== "mackolik" && !SOFASCORE_ONLY_MODE && ENABLE_MACKOLIK_MATCHES) {
             fastSources.push(fetchLiveFromMackolik());
         }
 
@@ -1708,10 +1712,7 @@ async function fetchLiveWithFallback() {
         ? [["SofaScore live", fetchLiveFromSofaScore]]
         : (LIVE_PRIMARY_SOURCE === "mackolik" && ENABLE_MACKOLIK_MATCHES
             ? [
-                ["Mackolik", fetchLiveFromMackolik],
-                ["SofaScore live", fetchLiveFromSofaScore],
-                ["RapidAPI live", fetchLiveFromRapidApi],
-                ["Scheduled live", () => fetchLiveFromScheduledFallback(errors.join(" | "))]
+                ["Mackolik", fetchLiveFromMackolik]
             ]
             : [
                 ["SofaScore live", fetchLiveFromSofaScore],

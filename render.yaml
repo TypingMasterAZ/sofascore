@@ -17,13 +17,13 @@ services:
       - key: GAS_PROXY_URL
         value: https://script.google.com/macros/s/AKfycbwFuXK4oHJIAjMoCxPEMeh5hH5jn10PGYEEo048pnmQLFNQoI-M0Fqr5-NZ1wyITYJQrQ/exec
       - key: LIVE_PRIMARY_SOURCE
-        value: sofascore
+        value: mackolik
       - key: ALLOW_MACKOLIK_FALLBACK
-        value: "false"
-      - key: ENABLE_MACKOLIK_MATCHES
-        value: "false"
-      - key: SOFASCORE_STRICT_ONLY
         value: "true"
+      - key: ENABLE_MACKOLIK_MATCHES
+        value: "true"
+      - key: SOFASCORE_STRICT_ONLY
+        value: "false"
       - key: KEEPALIVE_ENABLED
         value: "true"
       - key: KEEPALIVE_URL
