@@ -4461,7 +4461,7 @@
             </div>
         </div>
         <div class="sidebar-nav">
-            <div class="side-item" onclick="switchMainView('profile'); toggleSidebar()"><i>&#9881;</i> Tənzimləmələr</div>
+            <div class="side-item" onclick="switchMainView('settings'); toggleSidebar()"><i>&#9881;</i> Tənzimləmələr</div>
             <div class="side-item" onclick="switchMainView('support'); toggleSidebar()"><i>&#128172;</i> Dəstək</div>
             <div class="side-item" onclick="showAboutApp(); toggleSidebar()"><i>&#8505;</i> Haqqımızda</div>
         </div>
@@ -4788,103 +4788,75 @@
                 </div>
 
 
-                <span class="profile-section-title">TƏNZİMLƏMƏLƏR</span>
-                <div style="background: transparent;">
-                    <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Başlanğıc Səhifə</span>
-                        <select id="defaultViewSelect" class="profile-input"
-                            style="width:auto; margin-top:0; padding:8px 16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);"
-                            onchange="updateSetting('defaultView', this.value)">
-                            <option value="matches">Oyunlar</option>
-                            <option value="leagues">Liqalar</option>
-                        </select>
-                    </div>
-                    <div class="profile-row" style="flex-direction: column; align-items: flex-start;">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9); margin-bottom: 5px;">Qol Bildiriş Səsi</span>
-                        <div class="sound-grid">
-                            <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" onclick="selectSound(this.dataset.url, this)">
-                                <i>&#9917;</i>
-                                <span>Qol 1</span>
-                                <div class="play-indicator">&#9654;</div>
-                            </div>
-                            <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3" onclick="selectSound(this.dataset.url, this)">
-                                <i>&#128226;</i>
-                                <span>Qol 2</span>
-                                <div class="play-indicator">&#9654;</div>
-                            </div>
-                            <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/1004/1004-preview.mp3" onclick="selectSound(this.dataset.url, this)">
-                                <i>&#127937;</i>
-                                <span>Fit</span>
-                                <div class="play-indicator">&#9654;</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Yalnız Favoritlər</span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="onlyFavNotifToggle" onchange="updateSetting('onlyFavNotif', this.checked)">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Brauzer Bildirişləri</span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="browserNotifToggle" onchange="toggleBrowserNotifications(this.checked)">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Səsli Bildiriş</span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="soundNotifToggle" onchange="updateSetting('soundEnabled', this.checked)">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Avtomatik Yenilənmə</span>
-                        <select id="refreshIntervalSelect" class="profile-input"
-                            style="width:auto; margin-top:0; padding:8px 16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);"
-                            onchange="updateRefreshInterval(this.value)">
-                            <option value="5">5 saniyə</option>
-                            <option value="8">8 saniyə</option>
-                            <option value="15">15 saniyə</option>
-                            <option value="30">30 saniyə</option>
-                        </select>
-                    </div>
-
-                    <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">İşıqlı Tema</span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="themeToggle" onchange="toggleThemeSetting(this.checked)">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="profile-row" style="cursor:pointer;" onclick="refreshNowFromSettings()">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Məlumatları Yenilə</span>
-                        <span style="font-size:18px;">&#10227;</span>
-                    </div>
-
-                    <div class="profile-row" style="cursor:pointer;" onclick="clearAppCache()">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Keşi Təmizlə</span>
-                        <span style="font-size:18px;">&#128260;</span>
-                    </div>
-
+                <div style="background: transparent; margin-top: 14px;">
                     <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
                         onclick="clearAllData()">
-                        <span style="font-size:15px; font-weight:600; color:#ef4444;">Bütün Məlumatlar Sil</span>
-                            <span>&#128465;</span>
-                        </div>
-                        <div id="logoutBtnBox" class="profile-row"
-                            style="margin-top:20px; border-top:1px solid rgba(255,255,255,0.05); cursor:pointer;"
-                            onclick="logoutUser()">
-                            <span style="font-size:15px; font-weight:700; color:#ef4444;">Hesabdan Çıx</span>
-                            <span style="font-size:18px;">🚪</span>
-                        </div>
-
+                        <span style="font-size:15px; font-weight:600; color:#ef4444;">B?t?n M?lumatlar Sil</span>
+                        <span>&#128465;</span>
+                    </div>
+                    <div id="logoutBtnBox" class="profile-row"
+                        style="margin-top:20px; border-top:1px solid rgba(255,255,255,0.05); cursor:pointer;"
+                        onclick="logoutUser()">
+                        <span style="font-size:15px; font-weight:700; color:#ef4444;">Hesabdan ??x</span>
+                        <span style="font-size:18px;">&#128682;</span>
                     </div>
                 </div>
+            </div>
+
+            <!-- 9. Settings View -->
+            <div class="container" id="settingsView" style="padding-bottom: 40px;">
+                <div class="profile-section-head">
+                    <span class="profile-section-title">Bildiri? parametrl?ri</span>
+                </div>
+                <div style="background: transparent;">
+                    <div class="profile-row" style="flex-direction: column; align-items: flex-start;">
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9); margin-bottom: 5px;">Qol bildiri? s?si</span>
+                        <div class="sound-grid">
+                            <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" onclick="selectSound(this.dataset.url, this)">
+                                <i>&#9917;</i><span>Qol 1</span><div class="play-indicator">&#9654;</div>
+                            </div>
+                            <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3" onclick="selectSound(this.dataset.url, this)">
+                                <i>&#128226;</i><span>Qol 2</span><div class="play-indicator">&#9654;</div>
+                            </div>
+                            <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/1004/1004-preview.mp3" onclick="selectSound(this.dataset.url, this)">
+                                <i>&#127937;</i><span>Fit</span><div class="play-indicator">&#9654;</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="profile-row">
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Yaln?z favoritl?r</span>
+                        <label class="toggle-switch"><input type="checkbox" id="onlyFavNotifToggle" onchange="updateSetting('onlyFavNotif', this.checked)"><span class="slider"></span></label>
+                    </div>
+                    <div class="profile-row">
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Brauzer bildiri?l?ri</span>
+                        <label class="toggle-switch"><input type="checkbox" id="browserNotifToggle" onchange="toggleBrowserNotifications(this.checked)"><span class="slider"></span></label>
+                    </div>
+                    <div class="profile-row">
+                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">S?sli bildiri?</span>
+                        <label class="toggle-switch"><input type="checkbox" id="soundNotifToggle" onchange="updateSetting('soundEnabled', this.checked)"><span class="slider"></span></label>
+                    </div>
+                </div>
+
+                <div class="profile-section-head" style="margin-top:22px;">
+                    <span class="profile-section-title">Dil se?imi</span>
+                </div>
+                <div style="background: transparent;">
+                    <div class="profile-row">
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);">Proqram dili</span>
+                            <span style="font-size:12px; color:var(--text-muted);">D?yi??n kimi t?tbiqd?ki yaz?lar yenil?nir</span>
+                        </div>
+                        <select id="languageSelect" class="profile-input" style="width:auto; margin-top:0; padding:8px 16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);" onchange="changeAppLanguage(this.value)">
+                            <option value="az">Az?rbaycan dili</option>
+                            <option value="en">English</option>
+                            <option value="tr">T?rk?e</option>
+                            <option value="ru">???????</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="settingsVersion" style="text-align:center; color:var(--text-muted); font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase; padding:22px 0 8px;">Versiya</div>
+            </div>
+
             </div> <!-- main-content sonu -->
 
         </div>
@@ -4962,10 +4934,154 @@
         <div id="toast" class="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
 
         <script>
-            console.log("SCRIPT START: index.html VERSION 1.2.25 running");
+            const APP_VERSION = '1.2.58';
+            console.log(`SCRIPT START: index.html VERSION ${APP_VERSION} running`);
 
             const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"defaultView": "matches"}');
+            userSettings.language = userSettings.language || localStorage.getItem('appLanguage') || 'az';
             const auth = firebase.auth();
+
+            const APP_TRANSLATIONS = {
+                az: {
+                    'Tənzimləmələr': 'Tənzimləmələr', 'Dəstək': 'Dəstək', 'Haqqımızda': 'Haqqımızda', 'Canlı Nəticələr': 'Canlı Nəticələr',
+                    'Oyunlar': 'Oyunlar', 'Liqalar': 'Liqalar', 'Favoritlər': 'Favoritlər', 'Profil': 'Profil',
+                    'Bildiriş parametrləri': 'Bildiriş parametrləri', 'Qol bildiriş səsi': 'Qol bildiriş səsi', 'Yalnız favoritlər': 'Yalnız favoritlər',
+                    'Brauzer bildirişləri': 'Brauzer bildirişləri', 'Səsli bildiriş': 'Səsli bildiriş', 'Dil seçimi': 'Dil seçimi',
+                    'Proqram dili': 'Proqram dili', 'Dəyişən kimi tətbiqdəki yazılar yenilənir': 'Dəyişən kimi tətbiqdəki yazılar yenilənir',
+                    'Azərbaycan dili': 'Azərbaycan dili', 'English': 'English', 'Türkçe': 'Türkçe', 'Русский': 'Русский', 'Versiya': 'Versiya',
+                    'Hesab Məlumatları': 'Hesab Məlumatları', 'Redaktə et': 'Redaktə et', 'İstifadəçi Adı': 'İstifadəçi Adı', 'Status': 'Status',
+                    'Məlumatlar Saxla': 'Məlumatlar Saxla', 'Bütün Məlumatlar Sil': 'Bütün Məlumatlar Sil', 'Hesabdan Çıx': 'Hesabdan Çıx',
+                    'QEYDİYYAT': 'QEYDİYYAT', 'BİLDİRİŞLƏR': 'BİLDİRİŞLƏR', 'DƏSTƏK': 'DƏSTƏK', 'PROFİL': 'PROFİL', 'LİQALAR': 'LİQALAR', 'FAVORİTLƏR': 'FAVORİTLƏR', 'TƏNZİMLƏMƏLƏR': 'TƏNZİMLƏMƏLƏR',
+                    'Tənzimləmə yadda saxlanıldı': 'Tənzimləmə yadda saxlanıldı'
+                },
+                en: {
+                    'Tənzimləmələr': 'Settings', 'Dəstək': 'Support', 'Haqqımızda': 'About', 'Canlı Nəticələr': 'Live Scores',
+                    'Oyunlar': 'Matches', 'Liqalar': 'Leagues', 'Favoritlər': 'Favorites', 'Profil': 'Profile',
+                    'Bildiriş parametrləri': 'Notification settings', 'Qol bildiriş səsi': 'Goal notification sound', 'Yalnız favoritlər': 'Favorites only',
+                    'Brauzer bildirişləri': 'Browser notifications', 'Səsli bildiriş': 'Sound alerts', 'Dil seçimi': 'Language',
+                    'Proqram dili': 'App language', 'Dəyişən kimi tətbiqdəki yazılar yenilənir': 'Texts update across the app immediately',
+                    'Azərbaycan dili': 'Azerbaijani', 'English': 'English', 'Türkçe': 'Turkish', 'Русский': 'Russian', 'Versiya': 'Version',
+                    'Hesab Məlumatları': 'Account information', 'Redaktə et': 'Edit', 'İstifadəçi Adı': 'Username', 'Status': 'Status',
+                    'Məlumatlar Saxla': 'Save information', 'Bütün Məlumatlar Sil': 'Delete all data', 'Hesabdan Çıx': 'Sign out',
+                    'QEYDİYYAT': 'REGISTER', 'BİLDİRİŞLƏR': 'NOTIFICATIONS', 'DƏSTƏK': 'SUPPORT', 'PROFİL': 'PROFILE', 'LİQALAR': 'LEAGUES', 'FAVORİTLƏR': 'FAVORITES', 'TƏNZİMLƏMƏLƏR': 'SETTINGS',
+                    'Tənzimləmə yadda saxlanıldı': 'Setting saved'
+                },
+                tr: {
+                    'Tənzimləmələr': 'Ayarlar', 'Dəstək': 'Destek', 'Haqqımızda': 'Hakkımızda', 'Canlı Nəticələr': 'Canlı Skorlar',
+                    'Oyunlar': 'Maçlar', 'Liqalar': 'Ligler', 'Favoritlər': 'Favoriler', 'Profil': 'Profil',
+                    'Bildiriş parametrləri': 'Bildirim ayarları', 'Qol bildiriş səsi': 'Gol bildirim sesi', 'Yalnız favoritlər': 'Sadece favoriler',
+                    'Brauzer bildirişləri': 'Tarayıcı bildirimleri', 'Səsli bildiriş': 'Sesli bildirim', 'Dil seçimi': 'Dil seçimi',
+                    'Proqram dili': 'Uygulama dili', 'Dəyişən kimi tətbiqdəki yazılar yenilənir': 'Değişince uygulamadaki yazılar hemen yenilenir',
+                    'Azərbaycan dili': 'Azerbaycan dili', 'English': 'İngilizce', 'Türkçe': 'Türkçe', 'Русский': 'Rusça', 'Versiya': 'Versiyon',
+                    'Hesab Məlumatları': 'Hesap bilgileri', 'Redaktə et': 'Düzenle', 'İstifadəçi Adı': 'Kullanıcı adı', 'Status': 'Durum',
+                    'Məlumatlar Saxla': 'Bilgileri kaydet', 'Bütün Məlumatlar Sil': 'Tüm verileri sil', 'Hesabdan Çıx': 'Hesaptan çık',
+                    'QEYDİYYAT': 'KAYIT', 'BİLDİRİŞLƏR': 'BİLDİRİMLER', 'DƏSTƏK': 'DESTEK', 'PROFİL': 'PROFİL', 'LİQALAR': 'LİGLER', 'FAVORİTLƏR': 'FAVORİLER', 'TƏNZİMLƏMƏLƏR': 'AYARLAR',
+                    'Tənzimləmə yadda saxlanıldı': 'Ayar kaydedildi'
+                },
+                ru: {
+                    'Tənzimləmələr': 'Настройки', 'Dəstək': 'Поддержка', 'Haqqımızda': 'О нас', 'Canlı Nəticələr': 'Счета онлайн',
+                    'Oyunlar': 'Матчи', 'Liqalar': 'Лиги', 'Favoritlər': 'Избранное', 'Profil': 'Профиль',
+                    'Bildiriş parametrləri': 'Настройки уведомлений', 'Qol bildiriş səsi': 'Звук гола', 'Yalnız favoritlər': 'Только избранное',
+                    'Brauzer bildirişləri': 'Уведомления браузера', 'Səsli bildiriş': 'Звуковые уведомления', 'Dil seçimi': 'Язык',
+                    'Proqram dili': 'Язык приложения', 'Dəyişən kimi tətbiqdəki yazılar yenilənir': 'Тексты в приложении обновляются сразу',
+                    'Azərbaycan dili': 'Азербайджанский', 'English': 'Английский', 'Türkçe': 'Турецкий', 'Русский': 'Русский', 'Versiya': 'Версия',
+                    'Hesab Məlumatları': 'Данные аккаунта', 'Redaktə et': 'Изменить', 'İstifadəçi Adı': 'Имя пользователя', 'Status': 'Статус',
+                    'Məlumatlar Saxla': 'Сохранить данные', 'Bütün Məlumatlar Sil': 'Удалить все данные', 'Hesabdan Çıx': 'Выйти из аккаунта',
+                    'QEYDİYYAT': 'РЕГИСТРАЦИЯ', 'BİLDİRİŞLƏR': 'УВЕДОМЛЕНИЯ', 'DƏSTƏK': 'ПОДДЕРЖКА', 'PROFİL': 'ПРОФИЛЬ', 'LİQALAR': 'ЛИГИ', 'FAVORİTLƏR': 'ИЗБРАННОЕ', 'TƏNZİMLƏMƏLƏR': 'НАСТРОЙКИ',
+                    'Tənzimləmə yadda saxlanıldı': 'Настройка сохранена'
+                }
+            };
+            const UI_TEXT_KEYS = Object.keys(APP_TRANSLATIONS.az);
+            let appLanguage = userSettings.language;
+            let translationObserver = null;
+            let isTranslatingText = false;
+            function normalizeUiText(value) { return decodeMojibake(String(value || '')).trim(); }
+            function getUiText(key) {
+                const direct = APP_TRANSLATIONS[appLanguage]?.[key] || APP_TRANSLATIONS.az[key];
+                if (direct) return direct;
+                const normalizedKey = normalizeUiText(key);
+                const actualKey = UI_TEXT_KEYS.find(item => normalizeUiText(item) === normalizedKey);
+                return actualKey ? (APP_TRANSLATIONS[appLanguage]?.[actualKey] || APP_TRANSLATIONS.az[actualKey] || key) : key;
+            }
+            function getTranslationKey(value) {
+                const text = normalizeUiText(value);
+                if (!text) return '';
+                for (const key of UI_TEXT_KEYS) {
+                    if (key === text || normalizeUiText(key) === text) return key;
+                    for (const lang of Object.keys(APP_TRANSLATIONS)) {
+                        if (APP_TRANSLATIONS[lang]?.[key] === text || normalizeUiText(APP_TRANSLATIONS[lang]?.[key]) === text) return key;
+                    }
+                }
+                return '';
+            }
+            function shouldSkipUiTranslation(node) {
+                const el = node?.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+                return !!(el && el.nodeType === Node.ELEMENT_NODE && el.closest('script, style, .team-name, .team-block, [data-no-translate]'));
+            }
+            function translateAppText(root = document.body) {
+                if (!root || isTranslatingText || shouldSkipUiTranslation(root)) return;
+                isTranslatingText = true;
+                try {
+                    const applyText = (node) => {
+                        const raw = node.nodeValue;
+                        const key = getTranslationKey(raw);
+                        if (key) node.nodeValue = raw.replace(raw.trim(), getUiText(key));
+                    };
+                    const applyElement = (el) => {
+                        if (!el || shouldSkipUiTranslation(el)) return;
+                        ['placeholder', 'title', 'aria-label'].forEach(attr => {
+                            const value = el.getAttribute?.(attr);
+                            const key = getTranslationKey(value);
+                            if (value && key) el.setAttribute(attr, getUiText(key));
+                        });
+                    };
+                    if (root.nodeType === Node.TEXT_NODE) { applyText(root); return; }
+                    applyElement(root);
+                    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null);
+                    let current = walker.currentNode;
+                    while (current) {
+                        if (current.nodeType === Node.TEXT_NODE && !shouldSkipUiTranslation(current)) applyText(current);
+                        else if (current.nodeType === Node.ELEMENT_NODE) applyElement(current);
+                        current = walker.nextNode();
+                    }
+                } finally { isTranslatingText = false; }
+            }
+            function refreshLanguageUi() {
+                document.documentElement.lang = appLanguage;
+                translateAppText(document.body);
+                const activeView = document.querySelector('.container.active')?.id;
+                const titleMap = { settingsView: 'TƏNZİMLƏMƏLƏR', profileView: 'PROFİL', leaguesView: 'LİQALAR', favoritesView: 'FAVORİTLƏR', authView: 'QEYDİYYAT', notificationsView: 'BİLDİRİŞLƏR', supportView: 'DƏSTƏK' };
+                const titleKey = titleMap[activeView];
+                const logoTitle = document.getElementById('logoTitle');
+                if (logoTitle && titleKey) logoTitle.innerText = getUiText(titleKey);
+                if (logoTitle && activeView === 'matchView') logoTitle.innerText = 'RABONA MEDIA';
+                const langSelect = document.getElementById('languageSelect');
+                if (langSelect) langSelect.value = appLanguage;
+                const version = document.getElementById('settingsVersion');
+                if (version) version.textContent = `${getUiText('Versiya')} ${APP_VERSION}`;
+            }
+            function startTranslationObserver() {
+                refreshLanguageUi();
+                if (translationObserver) return;
+                translationObserver = new MutationObserver(mutations => {
+                    if (isTranslatingText) return;
+                    mutations.forEach(m => {
+                        if (m.type === 'characterData') translateAppText(m.target);
+                        if (m.type === 'attributes') translateAppText(m.target);
+                        m.addedNodes.forEach(node => translateAppText(node));
+                    });
+                });
+                translationObserver.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['placeholder', 'title', 'aria-label'] });
+            }
+            window.changeAppLanguage = function(language) {
+                appLanguage = APP_TRANSLATIONS[language] ? language : 'az';
+                userSettings.language = appLanguage;
+                localStorage.setItem('appLanguage', appLanguage);
+                localStorage.setItem('userSettings', JSON.stringify(userSettings));
+                if (firebase?.auth) firebase.auth().languageCode = appLanguage === 'az' ? 'az' : appLanguage;
+                refreshLanguageUi();
+                showToast(getUiText('Tənzimləmə yadda saxlanıldı'));
+            };
 
             try {
             // API ünvanının təyin edilm?si (Lokal v? ya Render)
@@ -5744,7 +5860,7 @@
                         item.classList.add('active');
                     } else if (view === 'favorites' && text.includes('favorit')) {
                         item.classList.add('active');
-                    } else if (view === 'profile' && text.includes('tənzimləmə')) {
+                    } else if (view === 'settings' && item.getAttribute('onclick')?.includes("'settings'")) {
                         item.classList.add('active');
                     } else if (view === 'notifications' && text.includes('bildiriş')) {
                         item.classList.add('active');
@@ -6509,6 +6625,16 @@
                         return;
                     }
                     proceedToProfile();
+                }
+                else if (viewType === 'settings') {
+                    userHasNavigated = true;
+                    if (authTimer) clearTimeout(authTimer);
+                    document.getElementById('settingsView').classList.add('active');
+                    document.getElementById('dateTabsContainer').style.display = 'none';
+                    document.getElementById('logoTitle').innerText = getUiText('TƏNZİMLƏMƏLƏR');
+                    showBackBtn();
+                    mc.style.paddingTop = '70px';
+                    loadSettings();
                 }
                 else if (viewType === 'auth') {
 
@@ -10736,6 +10862,25 @@
                 applyTheme(localStorage.getItem('theme') || 'dark', false);
             }
 
+            function loadSettings() {
+                const langSelect = document.getElementById('languageSelect');
+                if (langSelect) langSelect.value = userSettings.language || localStorage.getItem('appLanguage') || 'az';
+                const bNotif = document.getElementById('browserNotifToggle');
+                const sNotif = document.getElementById('soundNotifToggle');
+                const fNotif = document.getElementById('onlyFavNotifToggle');
+                const currentSound = userSettings.notifSound || 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+                document.querySelectorAll('.sound-card').forEach(card => {
+                    card.classList.toggle('active', card.dataset.url === currentSound);
+                    card.classList.remove('playing');
+                });
+                if (bNotif) bNotif.checked = !!userSettings.browserNotifEnabled;
+                if (sNotif) sNotif.checked = !!userSettings.soundEnabled;
+                if (fNotif) fNotif.checked = !!userSettings.onlyFavNotif;
+                const version = document.getElementById('settingsVersion');
+                if (version) version.textContent = `${getUiText('Versiya')} ${APP_VERSION}`;
+                refreshLanguageUi();
+            }
+
             function getSecureNotificationUrl() {
                 if (window.location.hostname === '152.67.152.191') {
                     return 'https://152-67-152-191.nip.io' + window.location.pathname + window.location.search + window.location.hash;
@@ -10762,7 +10907,7 @@
                 try {
                     userSettings[key] = val;
                     localStorage.setItem('userSettings', JSON.stringify(userSettings));
-                    showToast('Tənzimləmə yadda saxlanıldı');
+                    showToast(getUiText('Tənzimləmə yadda saxlanıldı'));
                 } catch (e) {
                     showToast('Yaddaşa yazmaq mümkün olmadı: ' + e.message, 'error');
                 }
@@ -11555,6 +11700,7 @@
             }
 
             startAzerbaijaniTextRepair();
+            startTranslationObserver();
             fetchData();
             const todayBootKey = new Date().toISOString().split('T')[0];
             if (selectedDate === todayBootKey && !isLiveFiltered) {
