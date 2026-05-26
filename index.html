@@ -3082,6 +3082,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: 0.2s;
+            text-decoration: none;
         }
 
         .side-item:active {
@@ -3494,6 +3495,182 @@
         .sound-card.playing .play-indicator {
             opacity: 1;
             animation: pulse-badge 1s infinite;
+        }
+
+        /* Settings page */
+        .settings-page {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .settings-hero {
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background:
+                linear-gradient(145deg, rgba(37, 99, 235, 0.22), rgba(15, 23, 42, 0.96)),
+                var(--card);
+            padding: 22px 18px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+        }
+
+        .settings-hero::after {
+            content: "";
+            position: absolute;
+            right: -34px;
+            top: -34px;
+            width: 116px;
+            height: 116px;
+            border-radius: 999px;
+            border: 24px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .settings-hero-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            font-size: 24px;
+            margin-bottom: 14px;
+        }
+
+        .settings-title {
+            margin: 0 0 8px;
+            font-size: 25px;
+            line-height: 1.1;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .settings-subtitle {
+            margin: 0;
+            max-width: 520px;
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        .settings-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .settings-section-title {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 0 4px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 13px;
+            font-weight: 900;
+            letter-spacing: .8px;
+            text-transform: uppercase;
+        }
+
+        .settings-panel {
+            overflow: hidden;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(15, 23, 42, 0.72);
+        }
+
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .settings-row:last-child {
+            border-bottom: 0;
+        }
+
+        .settings-row-main {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .settings-row-title {
+            color: rgba(255, 255, 255, 0.92);
+            font-size: 15px;
+            font-weight: 850;
+            line-height: 1.25;
+        }
+
+        .settings-row-text {
+            color: var(--text-muted);
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .settings-select {
+            min-width: 150px;
+            height: 42px;
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            border-radius: 12px;
+            background: rgba(2, 6, 23, 0.52);
+            color: var(--text-main);
+            padding: 0 12px;
+            font: inherit;
+            font-weight: 800;
+            outline: none;
+        }
+
+        .settings-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .settings-action-btn {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            padding: 13px 12px;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .settings-action-btn.primary {
+            border-color: rgba(59, 130, 246, 0.5);
+            background: linear-gradient(135deg, var(--primary), #2563eb);
+            color: #fff;
+        }
+
+        .settings-version {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 6px 0 2px;
+        }
+
+        @media (max-width: 420px) {
+            .settings-row {
+                align-items: flex-start;
+            }
+
+            .settings-select {
+                min-width: 118px;
+                max-width: 44vw;
+            }
         }
 
             /* PWA Guide Styles */
@@ -4457,13 +4634,13 @@
             </div>
             <div>
                 <div style="font-weight:900; font-size:18px;">Rabona Media</div>
-                <div style="font-size:12px; color:var(--text-muted);">Canlı Nəticələr</div>
+                <div style="font-size:12px; color:var(--text-muted);" data-i18n="menu.liveScores">Canlı nəticələr</div>
             </div>
         </div>
         <div class="sidebar-nav">
-            <div class="side-item" onclick="switchMainView('settings'); toggleSidebar()"><i>&#9881;</i> Tənzimləmələr</div>
-            <div class="side-item" onclick="switchMainView('support'); toggleSidebar()"><i>&#128172;</i> Dəstək</div>
-            <div class="side-item" onclick="showAboutApp(); toggleSidebar()"><i>&#8505;</i> Haqqımızda</div>
+            <a class="side-item" data-view="settings" href="settings.html"><i>&#9881;</i><span data-i18n="menu.settings">Tənzimləmələr</span></a>
+            <div class="side-item" data-view="support" onclick="switchMainView('support'); toggleSidebar()"><i>&#128172;</i><span data-i18n="menu.support">Dəstək</span></div>
+            <div class="side-item" onclick="showAboutApp(); toggleSidebar()"><i>&#8505;</i><span data-i18n="menu.about">Haqqımızda</span></div>
         </div>
     </div>
 
@@ -4584,37 +4761,37 @@
                 <div class="support-page">
                     <div class="support-hero">
                         <div class="support-hero-icon">&#128172;</div>
-                        <h2 class="support-title">Dəstək</h2>
-                        <p class="support-subtitle">Proqramda gördüyünüz səhvləri, gecikmələri və yeni ideyalarınızı buradan göndərə bilərsiniz.</p>
+                        <h2 class="support-title" data-i18n="support.title">Dəstək</h2>
+                        <p class="support-subtitle" data-i18n="support.subtitle">Proqramda gördüyünüz səhvləri, gecikmələri və yeni ideyalarınızı buradan göndərə bilərsiniz.</p>
                     </div>
                 </div>
                 <form class="support-form" onsubmit="submitSupportRequest(event)">
                     <div class="support-field">
-                        <label class="support-label" for="supportType">Mövzu</label>
+                        <label class="support-label" for="supportType" data-i18n="support.topic">Mövzu</label>
                         <select class="support-select" id="supportType">
-                            <option value="bug">Səhv bildirmək</option>
-                            <option value="idea">Təklif göndərmək</option>
-                            <option value="notification">Bildiriş problemi</option>
-                            <option value="other">Digər</option>
+                            <option value="bug" data-i18n="support.bug">Səhv bildirmək</option>
+                            <option value="idea" data-i18n="support.idea">Təklif göndərmək</option>
+                            <option value="notification" data-i18n="support.notification">Bildiriş problemi</option>
+                            <option value="other" data-i18n="support.other">Digər</option>
                         </select>
                     </div>
                     <div class="support-field">
-                        <label class="support-label" for="supportTitle">Başlıq</label>
-                        <input class="support-input" id="supportTitle" maxlength="120" placeholder="Məsələn: Bildiriş gec gəlir">
+                        <label class="support-label" for="supportTitle" data-i18n="support.subject">Başlıq</label>
+                        <input class="support-input" id="supportTitle" maxlength="120" placeholder="Məsələn: Bildiriş gec gəlir" data-i18n-placeholder="support.subjectPlaceholder">
                     </div>
                     <div class="support-field">
-                        <label class="support-label" for="supportMessage">Mesaj</label>
-                        <textarea class="support-textarea" id="supportMessage" maxlength="1200" placeholder="Problemi və ya təklifinizi qısa izah edin"></textarea>
+                        <label class="support-label" for="supportMessage" data-i18n="support.message">Mesaj</label>
+                        <textarea class="support-textarea" id="supportMessage" maxlength="1200" placeholder="Problemi və ya təklifinizi qısa izah edin" data-i18n-placeholder="support.messagePlaceholder"></textarea>
                     </div>
                     <div class="support-field">
-                        <label class="support-label" for="supportContact">Əlaqə (istəyə bağlı)</label>
-                        <input class="support-input" id="supportContact" maxlength="120" placeholder="Email və ya istifadəçi adınız">
+                        <label class="support-label" for="supportContact" data-i18n="support.contact">Əlaqə (istəyə bağlı)</label>
+                        <input class="support-input" id="supportContact" maxlength="120" placeholder="Email və ya istifadəçi adınız" data-i18n-placeholder="support.contactPlaceholder">
                     </div>
                     <div class="support-actions">
-                        <button class="support-submit" id="supportSubmitBtn" type="submit">Göndər</button>
+                        <button class="support-submit" id="supportSubmitBtn" type="submit" data-i18n="support.send">Göndər</button>
                     </div>
                 </form>
-                <div class="support-note">Göndərdiyiniz məlumatlar tətbiqi yaxşılaşdırmaq üçün saxlanılır. Şifrə və ya gizli kod yazmayın.</div>
+                <div class="support-note" data-i18n="support.note">Göndərdiyiniz məlumatlar tətbiqi yaxşılaşdırmaq üçün saxlanılır. Şifrə və ya gizli kod yazmayın.</div>
             </div>
 
             <!-- 7. Auth View -->
@@ -4804,57 +4981,86 @@
             </div>
 
             <!-- 9. Settings View -->
-            <div class="container" id="settingsView" style="padding-bottom: 40px;">
-                <div class="profile-section-head">
-                    <span class="profile-section-title" data-i18n="settings.notifications">Bildiris parametrl?ri</span>
-                </div>
-                <div style="background: transparent;">
-                    <div class="profile-row" style="flex-direction: column; align-items: flex-start;">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9); margin-bottom: 5px;" data-i18n="settings.goalSound">Qol bildiris s?si</span>
-                        <div class="sound-grid">
-                            <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" onclick="selectSound(this.dataset.url, this)">
-                                <i>&#9917;</i><span>Qol 1</span><div class="play-indicator">&#9654;</div>
-                            </div>
-                            <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3" onclick="selectSound(this.dataset.url, this)">
-                                <i>&#128226;</i><span>Qol 2</span><div class="play-indicator">&#9654;</div>
-                            </div>
-                            <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/1004/1004-preview.mp3" onclick="selectSound(this.dataset.url, this)">
-                                <i>&#127937;</i><span>Fit</span><div class="play-indicator">&#9654;</div>
-                            </div>
-                        </div>
+            <div class="container" id="settingsView">
+                <div class="settings-page">
+                    <div class="settings-hero">
+                        <div class="settings-hero-icon">&#9881;</div>
+                        <h2 class="settings-title" data-i18n="settings.heroTitle">Tənzimləmələr</h2>
+                        <p class="settings-subtitle" data-i18n="settings.heroText">Bildirişləri, səs seçimlərini və tətbiqin dilini buradan idarə edin.</p>
                     </div>
-                    <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);" data-i18n="settings.onlyFavorites">Yalniz favoritl?r</span>
-                        <label class="toggle-switch"><input type="checkbox" id="onlyFavNotifToggle" onchange="updateSetting('onlyFavNotif', this.checked)"><span class="slider"></span></label>
-                    </div>
-                    <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);" data-i18n="settings.browserNotifications">Brauzer bildirisleri</span>
-                        <label class="toggle-switch"><input type="checkbox" id="browserNotifToggle" onchange="toggleBrowserNotifications(this.checked)"><span class="slider"></span></label>
-                    </div>
-                    <div class="profile-row">
-                        <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);" data-i18n="settings.soundNotifications">Sesli bildiris</span>
-                        <label class="toggle-switch"><input type="checkbox" id="soundNotifToggle" onchange="updateSetting('soundEnabled', this.checked)"><span class="slider"></span></label>
-                    </div>
-                </div>
 
-                <div class="profile-section-head" style="margin-top:22px;">
-                    <span class="profile-section-title" data-i18n="settings.languageChoice">Dil secimi</span>
-                </div>
-                <div style="background: transparent;">
-                    <div class="profile-row">
-                        <div style="display:flex; flex-direction:column; gap:4px;">
-                            <span style="font-size:15px; font-weight:700; color:rgba(255,255,255,0.9);" data-i18n="settings.appLanguage">Proqram dili</span>
-                            <span style="font-size:12px; color:var(--text-muted);" data-i18n="settings.languageHint">Deyisen kimi tetbiqdeki yazilar yenilenir</span>
+                    <section class="settings-section">
+                        <div class="settings-section-title"><span>&#128276;</span><span data-i18n="settings.notifications">Bildiriş parametrləri</span></div>
+                        <div class="settings-panel">
+                            <div class="settings-row" style="align-items:flex-start; flex-direction:column;">
+                                <div class="settings-row-main">
+                                    <div class="settings-row-title" data-i18n="settings.goalSound">Qol bildiriş səsi</div>
+                                    <div class="settings-row-text" data-i18n="settings.goalSoundHint">Səsi seçmək üçün karta basın. Seçilən səs dərhal yadda saxlanılır.</div>
+                                </div>
+                                <div class="sound-grid">
+                                    <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" onclick="selectSound(this.dataset.url, this)">
+                                        <i>&#9917;</i><span data-i18n="settings.soundGoal1">Qol 1</span><div class="play-indicator">&#9654;</div>
+                                    </div>
+                                    <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3" onclick="selectSound(this.dataset.url, this)">
+                                        <i>&#128226;</i><span data-i18n="settings.soundGoal2">Qol 2</span><div class="play-indicator">&#9654;</div>
+                                    </div>
+                                    <div class="sound-card" data-url="https://assets.mixkit.co/active_storage/sfx/1004/1004-preview.mp3" onclick="selectSound(this.dataset.url, this)">
+                                        <i>&#127937;</i><span data-i18n="settings.soundWhistle">Fit</span><div class="play-indicator">&#9654;</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="settings-row">
+                                <div class="settings-row-main">
+                                    <div class="settings-row-title" data-i18n="settings.onlyFavorites">Yalnız favoritlər</div>
+                                    <div class="settings-row-text" data-i18n="settings.onlyFavoritesHint">Aktivdirsə, bildirişlər yalnız favorit oyunlar üçün göndərilir.</div>
+                                </div>
+                                <label class="toggle-switch"><input type="checkbox" id="onlyFavNotifToggle" onchange="updateSetting('onlyFavNotif', this.checked)"><span class="slider"></span></label>
+                            </div>
+                            <div class="settings-row">
+                                <div class="settings-row-main">
+                                    <div class="settings-row-title" data-i18n="settings.browserNotifications">Brauzer bildirişləri</div>
+                                    <div class="settings-row-text" data-i18n="settings.browserNotificationsHint">Telefon və brauzer bildiriş icazəsini idarə edir.</div>
+                                </div>
+                                <label class="toggle-switch"><input type="checkbox" id="browserNotifToggle" onchange="toggleBrowserNotifications(this.checked)"><span class="slider"></span></label>
+                            </div>
+                            <div class="settings-row">
+                                <div class="settings-row-main">
+                                    <div class="settings-row-title" data-i18n="settings.soundNotifications">Səsli bildiriş</div>
+                                    <div class="settings-row-text" data-i18n="settings.soundNotificationsHint">Sayt açıq olanda qol bildirişinin səsi çalınsın.</div>
+                                </div>
+                                <label class="toggle-switch"><input type="checkbox" id="soundNotifToggle" onchange="updateSetting('soundEnabled', this.checked)"><span class="slider"></span></label>
+                            </div>
                         </div>
-                        <select id="languageSelect" class="profile-input" style="width:auto; margin-top:0; padding:8px 16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);" onchange="changeAppLanguage(this.value)">
-                            <option value="az" data-i18n="language.az">Azerbaycan dili</option>
-                            <option value="en" data-i18n="language.en">English</option>
-                            <option value="tr" data-i18n="language.tr">Turkce</option>
-                            <option value="ru" data-i18n="language.ru">Russkiy</option>
-                        </select>
-                    </div>
+                    </section>
+
+                    <section class="settings-section">
+                        <div class="settings-section-title"><span>&#127760;</span><span data-i18n="settings.languageChoice">Dil seçimi</span></div>
+                        <div class="settings-panel">
+                            <div class="settings-row">
+                                <div class="settings-row-main">
+                                    <div class="settings-row-title" data-i18n="settings.appLanguage">Proqram dili</div>
+                                    <div class="settings-row-text" data-i18n="settings.languageHint">Dəyişən kimi tətbiqdəki yazılar yenilənir.</div>
+                                </div>
+                                <select id="languageSelect" class="settings-select" onchange="changeAppLanguage(this.value)" aria-label="Language">
+                                    <option value="az" data-i18n="language.az">Azərbaycan dili</option>
+                                    <option value="en" data-i18n="language.en">English</option>
+                                    <option value="tr" data-i18n="language.tr">Türkçe</option>
+                                    <option value="ru" data-i18n="language.ru">Русский</option>
+                                </select>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="settings-section">
+                        <div class="settings-section-title"><span>&#9889;</span><span data-i18n="settings.quickActions">Sürətli əməliyyatlar</span></div>
+                        <div class="settings-actions">
+                            <button class="settings-action-btn primary" type="button" onclick="refreshNowFromSettings()" data-i18n="settings.refreshNow">İndi yenilə</button>
+                            <button class="settings-action-btn" type="button" onclick="clearAppCache()" data-i18n="settings.clearCache">Keşi təmizlə</button>
+                        </div>
+                    </section>
+
+                    <div id="settingsVersion" class="settings-version">Versiya</div>
                 </div>
-                <div id="settingsVersion" style="text-align:center; color:var(--text-muted); font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase; padding:22px 0 8px;">Versiya</div>
             </div>
 
             </div> <!-- main-content sonu -->            </div> <!-- main-content sonu -->
@@ -4901,19 +5107,19 @@
             <div class="bottom-nav">
             <div class="nav-item active" id="navMatches" onclick="switchMainView('matches')">
                 <div class="nav-icon">&#9917;</div>
-                <span>Oyunlar</span>
+                <span data-i18n="nav.matches">Oyunlar</span>
             </div>
             <div class="nav-item" id="navLeagues" onclick="switchMainView('leagues')">
                 <div class="nav-icon">&#127942;</div>
-                <span>Liqalar</span>
+                <span data-i18n="nav.leagues">Liqalar</span>
             </div>
             <div class="nav-item" id="navFavorites" onclick="switchMainView('favorites')">
                 <div class="nav-icon">&#11088;</div>
-                <span>Favoritlər</span>
+                <span data-i18n="nav.favorites">Favoritlər</span>
             </div>
             <div class="nav-item" id="navProfile" onclick="switchMainView('profile')">
                 <div class="nav-icon">&#128100;</div>
-                <span>Profil</span>
+                <span data-i18n="nav.profile">Profil</span>
             </div>
         </div>
 
@@ -4934,7 +5140,7 @@
         <div id="toast" class="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
 
         <script>
-            const APP_VERSION = '1.2.58';
+            const APP_VERSION = '1.2.63';
             console.log(`SCRIPT START: index.html VERSION ${APP_VERSION} running`);
 
             const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"defaultView": "matches"}');
@@ -4944,20 +5150,35 @@
 
             const APP_I18N = {
                 az: {
+                    'settings.heroTitle': 'T\u0259nziml\u0259m\u0259l\u0259r',
+                    'settings.heroText': 'Bildiri\u015fl\u0259ri, s\u0259s se\u00e7iml\u0259rini v\u0259 t\u0259tbiqin dilini buradan idar\u0259 edin.',
                     'settings.notifications': 'Bildiri\u015f parametrl\u0259ri',
                     'settings.goalSound': 'Qol bildiri\u015f s\u0259si',
+                    'settings.goalSoundHint': 'S\u0259si se\u00e7m\u0259k \u00fc\u00e7\u00fcn karta bas\u0131n. Se\u00e7il\u0259n s\u0259s d\u0259rhal yadda saxlan\u0131l\u0131r.',
+                    'settings.soundGoal1': 'Qol 1',
+                    'settings.soundGoal2': 'Qol 2',
+                    'settings.soundWhistle': 'Fit',
                     'settings.onlyFavorites': 'Yaln\u0131z favoritl\u0259r',
+                    'settings.onlyFavoritesHint': 'Aktivdirs\u0259, bildiri\u015fl\u0259r yaln\u0131z favorit oyunlar \u00fc\u00e7\u00fcn g\u00f6nd\u0259rilir.',
                     'settings.browserNotifications': 'Brauzer bildiri\u015fl\u0259ri',
+                    'settings.browserNotificationsHint': 'Telefon v\u0259 brauzer bildiri\u015f icaz\u0259sini idar\u0259 edir.',
                     'settings.soundNotifications': 'S\u0259sli bildiri\u015f',
+                    'settings.soundNotificationsHint': 'Sayt a\u00e7\u0131q olanda qol bildiri\u015finin s\u0259si \u00e7al\u0131ns\u0131n.',
                     'settings.languageChoice': 'Dil se\u00e7imi',
                     'settings.appLanguage': 'Proqram dili',
                     'settings.languageHint': 'D\u0259yi\u015f\u0259n kimi t\u0259tbiqd\u0259ki yaz\u0131lar yenil\u0259nir',
+                    'settings.quickActions': 'S\u00fcr\u0259tli \u0259m\u0259liyyatlar',
+                    'settings.refreshNow': '\u0130ndi yenil\u0259',
+                    'settings.clearCache': 'Ke\u015fi t\u0259mizl\u0259',
+                    'settings.refreshing': 'M\u0259lumatlar yenil\u0259nir...',
+                    'settings.cacheCleared': 'Ke\u015f t\u0259mizl\u0259ndi',
                     'language.az': 'Az\u0259rbaycan dili',
                     'language.en': 'English',
                     'language.tr': 'T\u00fcrk\u00e7e',
                     'language.ru': 'Rus dili',
                     'version': 'Versiya',
                     'menu.settings': 'T\u0259nziml\u0259m\u0259l\u0259r',
+                    'menu.liveScores': 'Canl\u0131 n\u0259tic\u0259l\u0259r',
                     'menu.support': 'D\u0259st\u0259k',
                     'menu.about': 'Haqq\u0131m\u0131zda',
                     'nav.matches': 'Oyunlar',
@@ -4971,6 +5192,22 @@
                     'title.auth': 'QEYD\u0130YYAT',
                     'title.notifications': 'B\u0130LD\u0130R\u0130\u015eL\u018fR',
                     'title.support': 'D\u018fST\u018fK',
+                    'support.title': 'D\u0259st\u0259k',
+                    'support.subtitle': 'Proqramda g\u00f6rd\u00fcy\u00fcn\u00fcz s\u0259hvl\u0259ri, gecikm\u0259l\u0259ri v\u0259 yeni ideyalar\u0131n\u0131z\u0131 buradan g\u00f6nd\u0259r\u0259 bil\u0259rsiniz.',
+                    'support.topic': 'M\u00f6vzu',
+                    'support.bug': 'S\u0259hv bildirm\u0259k',
+                    'support.idea': 'T\u0259klif g\u00f6nd\u0259rm\u0259k',
+                    'support.notification': 'Bildiri\u015f problemi',
+                    'support.other': 'Dig\u0259r',
+                    'support.subject': 'Ba\u015fl\u0131q',
+                    'support.subjectPlaceholder': 'M\u0259s\u0259l\u0259n: Bildiri\u015f gec g\u0259lir',
+                    'support.message': 'Mesaj',
+                    'support.messagePlaceholder': 'Problemi v\u0259 ya t\u0259klifinizi q\u0131sa izah edin',
+                    'support.contact': '\u018flaq\u0259 (ist\u0259y\u0259 ba\u011fl\u0131)',
+                    'support.contactPlaceholder': 'Email v\u0259 ya istifad\u0259\u00e7i ad\u0131n\u0131z',
+                    'support.send': 'G\u00f6nd\u0259r',
+                    'support.sent': 'Mesaj\u0131n\u0131z g\u00f6nd\u0259rildi',
+                    'support.note': 'G\u00f6nd\u0259rdiyiniz m\u0259lumatlar t\u0259tbiqi yax\u015f\u0131la\u015fd\u0131rmaq \u00fc\u00e7\u00fcn saxlan\u0131l\u0131r. \u015eifr\u0259 v\u0259 ya gizli kod yazmay\u0131n.',
                     'profile.account': 'Hesab M\u0259lumatlar\u0131',
                     'profile.edit': 'Redakt\u0259 et',
                     'profile.username': '\u0130stifad\u0259\u00e7i ad\u0131',
@@ -4980,20 +5217,35 @@
                     'toast.settingSaved': 'T\u0259nziml\u0259m\u0259 yadda saxlan\u0131ld\u0131'
                 },
                 en: {
+                    'settings.heroTitle': 'Settings',
+                    'settings.heroText': 'Manage notifications, sound choices, and the app language here.',
                     'settings.notifications': 'Notification settings',
                     'settings.goalSound': 'Goal notification sound',
+                    'settings.goalSoundHint': 'Tap a card to choose a sound. The selected sound is saved immediately.',
+                    'settings.soundGoal1': 'Goal 1',
+                    'settings.soundGoal2': 'Goal 2',
+                    'settings.soundWhistle': 'Whistle',
                     'settings.onlyFavorites': 'Favorites only',
+                    'settings.onlyFavoritesHint': 'When enabled, alerts are sent only for favorite matches.',
                     'settings.browserNotifications': 'Browser notifications',
+                    'settings.browserNotificationsHint': 'Controls phone and browser notification permission.',
                     'settings.soundNotifications': 'Sound alerts',
+                    'settings.soundNotificationsHint': 'Play a goal alert sound while the site is open.',
                     'settings.languageChoice': 'Language',
                     'settings.appLanguage': 'App language',
                     'settings.languageHint': 'Texts update across the app immediately',
+                    'settings.quickActions': 'Quick actions',
+                    'settings.refreshNow': 'Refresh now',
+                    'settings.clearCache': 'Clear cache',
+                    'settings.refreshing': 'Refreshing data...',
+                    'settings.cacheCleared': 'Cache cleared',
                     'language.az': 'Azerbaijani',
                     'language.en': 'English',
                     'language.tr': 'Turkish',
                     'language.ru': 'Russian',
                     'version': 'Version',
                     'menu.settings': 'Settings',
+                    'menu.liveScores': 'Live scores',
                     'menu.support': 'Support',
                     'menu.about': 'About',
                     'nav.matches': 'Matches',
@@ -5007,6 +5259,22 @@
                     'title.auth': 'REGISTER',
                     'title.notifications': 'NOTIFICATIONS',
                     'title.support': 'SUPPORT',
+                    'support.title': 'Support',
+                    'support.subtitle': 'Send bugs, delays, and new ideas you notice in the app from here.',
+                    'support.topic': 'Topic',
+                    'support.bug': 'Report a bug',
+                    'support.idea': 'Send an idea',
+                    'support.notification': 'Notification issue',
+                    'support.other': 'Other',
+                    'support.subject': 'Subject',
+                    'support.subjectPlaceholder': 'Example: Notifications arrive late',
+                    'support.message': 'Message',
+                    'support.messagePlaceholder': 'Briefly explain the issue or suggestion',
+                    'support.contact': 'Contact (optional)',
+                    'support.contactPlaceholder': 'Email or username',
+                    'support.send': 'Send',
+                    'support.sent': 'Your message was sent',
+                    'support.note': 'Submitted information is stored to improve the app. Do not write passwords or secret codes.',
                     'profile.account': 'Account information',
                     'profile.edit': 'Edit',
                     'profile.username': 'Username',
@@ -5016,20 +5284,35 @@
                     'toast.settingSaved': 'Setting saved'
                 },
                 tr: {
+                    'settings.heroTitle': 'Ayarlar',
+                    'settings.heroText': 'Bildirimleri, ses se\u00e7imlerini ve uygulama dilini buradan y\u00f6netin.',
                     'settings.notifications': 'Bildirim ayarlar\u0131',
                     'settings.goalSound': 'Gol bildirim sesi',
+                    'settings.goalSoundHint': 'Ses se\u00e7mek i\u00e7in karta dokunun. Se\u00e7ilen ses hemen kaydedilir.',
+                    'settings.soundGoal1': 'Gol 1',
+                    'settings.soundGoal2': 'Gol 2',
+                    'settings.soundWhistle': 'D\u00fcd\u00fck',
                     'settings.onlyFavorites': 'Sadece favoriler',
+                    'settings.onlyFavoritesHint': 'A\u00e7\u0131ksa bildirimler sadece favori ma\u00e7lar i\u00e7in g\u00f6nderilir.',
                     'settings.browserNotifications': 'Taray\u0131c\u0131 bildirimleri',
+                    'settings.browserNotificationsHint': 'Telefon ve taray\u0131c\u0131 bildirim iznini y\u00f6netir.',
                     'settings.soundNotifications': 'Sesli bildirim',
+                    'settings.soundNotificationsHint': 'Site a\u00e7\u0131kken gol bildirimi sesi \u00e7al\u0131ns\u0131n.',
                     'settings.languageChoice': 'Dil se\u00e7imi',
                     'settings.appLanguage': 'Uygulama dili',
                     'settings.languageHint': 'De\u011fi\u015fince uygulamadaki yaz\u0131lar hemen yenilenir',
+                    'settings.quickActions': 'H\u0131zl\u0131 i\u015flemler',
+                    'settings.refreshNow': '\u015eimdi yenile',
+                    'settings.clearCache': '\u00d6nbelle\u011fi temizle',
+                    'settings.refreshing': 'Veriler yenileniyor...',
+                    'settings.cacheCleared': '\u00d6nbellek temizlendi',
                     'language.az': 'Azerbaycan dili',
                     'language.en': '\u0130ngilizce',
                     'language.tr': 'T\u00fcrk\u00e7e',
                     'language.ru': 'Rus\u00e7a',
                     'version': 'Versiyon',
                     'menu.settings': 'Ayarlar',
+                    'menu.liveScores': 'Canl\u0131 skorlar',
                     'menu.support': 'Destek',
                     'menu.about': 'Hakk\u0131m\u0131zda',
                     'nav.matches': 'Ma\u00e7lar',
@@ -5043,6 +5326,22 @@
                     'title.auth': 'KAYIT',
                     'title.notifications': 'B\u0130LD\u0130R\u0130MLER',
                     'title.support': 'DESTEK',
+                    'support.title': 'Destek',
+                    'support.subtitle': 'Uygulamada gördüğünüz hataları, gecikmeleri ve yeni fikirlerinizi buradan gönderebilirsiniz.',
+                    'support.topic': 'Konu',
+                    'support.bug': 'Hata bildir',
+                    'support.idea': 'Öneri gönder',
+                    'support.notification': 'Bildirim sorunu',
+                    'support.other': 'Diğer',
+                    'support.subject': 'Başlık',
+                    'support.subjectPlaceholder': 'Örnek: Bildirim geç geliyor',
+                    'support.message': 'Mesaj',
+                    'support.messagePlaceholder': 'Sorunu veya önerinizi kısaca açıklayın',
+                    'support.contact': 'İletişim (isteğe bağlı)',
+                    'support.contactPlaceholder': 'Email veya kullanıcı adınız',
+                    'support.send': 'Gönder',
+                    'support.sent': 'Mesajınız gönderildi',
+                    'support.note': 'Gönderdiğiniz bilgiler uygulamayı iyileştirmek için saklanır. Şifre veya gizli kod yazmayın.',
                     'profile.account': 'Hesap bilgileri',
                     'profile.edit': 'D\u00fczenle',
                     'profile.username': 'Kullan\u0131c\u0131 ad\u0131',
@@ -5052,40 +5351,71 @@
                     'toast.settingSaved': 'Ayar kaydedildi'
                 },
                 ru: {
-                    'settings.notifications': 'Nastroyki uvedomleniy',
-                    'settings.goalSound': 'Zvuk gola',
-                    'settings.onlyFavorites': 'Tolko izbrannoe',
-                    'settings.browserNotifications': 'Uvedomleniya brauzera',
-                    'settings.soundNotifications': 'Zvukovye uvedomleniya',
-                    'settings.languageChoice': 'Vybor yazyka',
-                    'settings.appLanguage': 'Yazyk prilozheniya',
-                    'settings.languageHint': 'Teksty v prilozhenii obnovlyayutsya srazu',
-                    'language.az': 'Azerbaydzhanskiy',
-                    'language.en': 'Angliyskiy',
-                    'language.tr': 'Turetskiy',
-                    'language.ru': 'Russkiy',
-                    'version': 'Versiya',
-                    'menu.settings': 'Nastroyki',
-                    'menu.support': 'Podderzhka',
-                    'menu.about': 'O nas',
-                    'nav.matches': 'Matchi',
-                    'nav.leagues': 'Ligi',
-                    'nav.favorites': 'Izbrannoe',
-                    'nav.profile': 'Profil',
-                    'title.settings': 'NASTROYKI',
-                    'title.profile': 'PROFIL',
-                    'title.leagues': 'LIGI',
-                    'title.favorites': 'IZBRANNOE',
-                    'title.auth': 'REGISTRATSIYA',
-                    'title.notifications': 'UVEDOMLENIYA',
-                    'title.support': 'PODDERZHKA',
-                    'profile.account': 'Dannye akkaunta',
-                    'profile.edit': 'Izmenit',
-                    'profile.username': 'Imya polzovatelya',
-                    'profile.save': 'Sohranit dannye',
-                    'profile.deleteAll': 'Udalit vse dannye',
-                    'profile.logout': 'Vyiti iz akkaunta',
-                    'toast.settingSaved': 'Nastroyka sohranena'
+                    'settings.heroTitle': '\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438',
+                    'settings.heroText': '\u0417\u0434\u0435\u0441\u044c \u043c\u043e\u0436\u043d\u043e \u0443\u043f\u0440\u0430\u0432\u043b\u044f\u0442\u044c \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f\u043c\u0438, \u0437\u0432\u0443\u043a\u043e\u043c \u0438 \u044f\u0437\u044b\u043a\u043e\u043c.',
+                    'settings.notifications': '\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439',
+                    'settings.goalSound': '\u0417\u0432\u0443\u043a \u0433\u043e\u043b\u0430',
+                    'settings.goalSoundHint': '\u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u043d\u0430 \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0443, \u0447\u0442\u043e\u0431\u044b \u0432\u044b\u0431\u0440\u0430\u0442\u044c \u0437\u0432\u0443\u043a. \u0412\u044b\u0431\u043e\u0440 \u0441\u043e\u0445\u0440\u0430\u043d\u044f\u0435\u0442\u0441\u044f \u0441\u0440\u0430\u0437\u0443.',
+                    'settings.soundGoal1': 'Gol 1',
+                    'settings.soundGoal2': 'Gol 2',
+                    'settings.soundWhistle': '\u0421\u0432\u0438\u0441\u0442\u043e\u043a',
+                    'settings.onlyFavorites': '\u0422\u043e\u043b\u044c\u043a\u043e \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435',
+                    'settings.onlyFavoritesHint': '\u0415\u0441\u043b\u0438 \u0432\u043a\u043b\u044e\u0447\u0435\u043d\u043e, \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f \u043f\u0440\u0438\u0445\u043e\u0434\u044f\u0442 \u0442\u043e\u043b\u044c\u043a\u043e \u043f\u043e \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u044b\u043c \u043c\u0430\u0442\u0447\u0430\u043c.',
+                    'settings.browserNotifications': '\u0423\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0430',
+                    'settings.browserNotificationsHint': '\u0423\u043f\u0440\u0430\u0432\u043b\u044f\u0435\u0442 \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043d\u0438\u0435\u043c \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439 \u043d\u0430 \u0442\u0435\u043b\u0435\u0444\u043e\u043d\u0435 \u0438 \u0432 \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0435.',
+                    'settings.soundNotifications': '\u0417\u0432\u0443\u043a\u043e\u0432\u044b\u0435 \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f',
+                    'settings.soundNotificationsHint': '\u041f\u0440\u043e\u0438\u0433\u0440\u044b\u0432\u0430\u0442\u044c \u0437\u0432\u0443\u043a \u0433\u043e\u043b\u0430, \u043a\u043e\u0433\u0434\u0430 \u0441\u0430\u0439\u0442 \u043e\u0442\u043a\u0440\u044b\u0442.',
+                    'settings.languageChoice': '\u0412\u044b\u0431\u043e\u0440 \u044f\u0437\u044b\u043a\u0430',
+                    'settings.appLanguage': '\u042f\u0437\u044b\u043a \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u044f',
+                    'settings.languageHint': '\u0422\u0435\u043a\u0441\u0442\u044b \u0432 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0438 \u043e\u0431\u043d\u043e\u0432\u043b\u044f\u044e\u0442\u0441\u044f \u0441\u0440\u0430\u0437\u0443',
+                    'settings.quickActions': '\u0411\u044b\u0441\u0442\u0440\u044b\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f',
+                    'settings.refreshNow': '\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c',
+                    'settings.clearCache': '\u041e\u0447\u0438\u0441\u0442\u0438\u0442\u044c \u043a\u0435\u0448',
+                    'settings.refreshing': '\u0414\u0430\u043d\u043d\u044b\u0435 \u043e\u0431\u043d\u043e\u0432\u043b\u044f\u044e\u0442\u0441\u044f...',
+                    'settings.cacheCleared': '\u041a\u0435\u0448 \u043e\u0447\u0438\u0449\u0435\u043d',
+                    'language.az': '\u0410\u0437\u0435\u0440\u0431\u0430\u0439\u0434\u0436\u0430\u043d\u0441\u043a\u0438\u0439',
+                    'language.en': '\u0410\u043d\u0433\u043b\u0438\u0439\u0441\u043a\u0438\u0439',
+                    'language.tr': '\u0422\u0443\u0440\u0435\u0446\u043a\u0438\u0439',
+                    'language.ru': '\u0420\u0443\u0441\u0441\u043a\u0438\u0439',
+                    'version': '\u0412\u0435\u0440\u0441\u0438\u044f',
+                    'menu.settings': '\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438',
+                    'menu.liveScores': '\u0421\u0447\u0435\u0442\u0430 \u043e\u043d\u043b\u0430\u0439\u043d',
+                    'menu.support': '\u041f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430',
+                    'menu.about': '\u041e \u043d\u0430\u0441',
+                    'nav.matches': '\u041c\u0430\u0442\u0447\u0438',
+                    'nav.leagues': '\u041b\u0438\u0433\u0438',
+                    'nav.favorites': '\u0418\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435',
+                    'nav.profile': '\u041f\u0440\u043e\u0444\u0438\u043b\u044c',
+                    'title.settings': '\u041d\u0410\u0421\u0422\u0420\u041e\u0419\u041a\u0418',
+                    'title.profile': '\u041f\u0420\u041e\u0424\u0418\u041b\u042c',
+                    'title.leagues': '\u041b\u0418\u0413\u0418',
+                    'title.favorites': '\u0418\u0417\u0411\u0420\u0410\u041d\u041d\u041e\u0415',
+                    'title.auth': '\u0420\u0415\u0413\u0418\u0421\u0422\u0420\u0410\u0426\u0418\u042f',
+                    'title.notifications': '\u0423\u0412\u0415\u0414\u041e\u041c\u041b\u0415\u041d\u0418\u042f',
+                    'title.support': '\u041f\u041e\u0414\u0414\u0415\u0420\u0416\u041a\u0410',
+                    'support.title': '\u041f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430',
+                    'support.subtitle': '\u041e\u0442\u043f\u0440\u0430\u0432\u043b\u044f\u0439\u0442\u0435 \u043e\u0448\u0438\u0431\u043a\u0438, \u0437\u0430\u0434\u0435\u0440\u0436\u043a\u0438 \u0438 \u043d\u043e\u0432\u044b\u0435 \u0438\u0434\u0435\u0438 \u043f\u043e \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u044e \u0437\u0434\u0435\u0441\u044c.',
+                    'support.topic': '\u0422\u0435\u043c\u0430',
+                    'support.bug': '\u0421\u043e\u043e\u0431\u0449\u0438\u0442\u044c \u043e\u0431 \u043e\u0448\u0438\u0431\u043a\u0435',
+                    'support.idea': '\u041e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u0438\u0434\u0435\u044e',
+                    'support.notification': '\u041f\u0440\u043e\u0431\u043b\u0435\u043c\u0430 \u0441 \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f\u043c\u0438',
+                    'support.other': '\u0414\u0440\u0443\u0433\u043e\u0435',
+                    'support.subject': '\u0417\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u043a',
+                    'support.subjectPlaceholder': '\u041f\u0440\u0438\u043c\u0435\u0440: \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f \u043f\u0440\u0438\u0445\u043e\u0434\u044f\u0442 \u043f\u043e\u0437\u0434\u043d\u043e',
+                    'support.message': '\u0421\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435',
+                    'support.messagePlaceholder': '\u041a\u0440\u0430\u0442\u043a\u043e \u043e\u043f\u0438\u0448\u0438\u0442\u0435 \u043f\u0440\u043e\u0431\u043b\u0435\u043c\u0443 \u0438\u043b\u0438 \u043f\u0440\u0435\u0434\u043b\u043e\u0436\u0435\u043d\u0438\u0435',
+                    'support.contact': '\u041a\u043e\u043d\u0442\u0430\u043a\u0442 (\u043d\u0435\u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u043e)',
+                    'support.contactPlaceholder': 'Email \u0438\u043b\u0438 \u0438\u043c\u044f \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f',
+                    'support.send': '\u041e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c',
+                    'support.sent': '\u0421\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u043e',
+                    'support.note': '\u041e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u043d\u0430\u044f \u0438\u043d\u0444\u043e\u0440\u043c\u0430\u0446\u0438\u044f \u0445\u0440\u0430\u043d\u0438\u0442\u0441\u044f \u0434\u043b\u044f \u0443\u043b\u0443\u0447\u0448\u0435\u043d\u0438\u044f \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u044f. \u041d\u0435 \u043f\u0438\u0448\u0438\u0442\u0435 \u043f\u0430\u0440\u043e\u043b\u0438 \u0438\u043b\u0438 \u0441\u0435\u043a\u0440\u0435\u0442\u043d\u044b\u0435 \u043a\u043e\u0434\u044b.',
+                    'profile.account': '\u0414\u0430\u043d\u043d\u044b\u0435 \u0430\u043a\u043a\u0430\u0443\u043d\u0442\u0430',
+                    'profile.edit': '\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c',
+                    'profile.username': '\u0418\u043c\u044f \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f',
+                    'profile.save': '\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0434\u0430\u043d\u043d\u044b\u0435',
+                    'profile.deleteAll': '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0432\u0441\u0435 \u0434\u0430\u043d\u043d\u044b\u0435',
+                    'profile.logout': '\u0412\u044b\u0439\u0442\u0438 \u0438\u0437 \u0430\u043a\u043a\u0430\u0443\u043d\u0442\u0430',
+                    'toast.settingSaved': '\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0430'
                 }
             };
 
@@ -5194,7 +5524,10 @@
             let appLanguage = userSettings.language;
             let translationObserver = null;
             let isTranslatingText = false;
-            function normalizeUiText(value) { return decodeMojibake(String(value || '')).trim(); }
+            function normalizeUiText(value) {
+                const text = String(value || '');
+                return (typeof decodeMojibake === 'function' ? decodeMojibake(text) : text).trim();
+            }
             function getUiText(key) {
                 const direct = APP_TRANSLATIONS[appLanguage]?.[key] || APP_TRANSLATIONS.az[key];
                 if (direct) return direct;
@@ -6061,11 +6394,11 @@
                         item.classList.add('active');
                     } else if (view === 'favorites' && text.includes('favorit')) {
                         item.classList.add('active');
-                    } else if (view === 'settings' && item.getAttribute('onclick')?.includes("'settings'")) {
+                    } else if (view === 'settings' && (item.dataset.view === 'settings' || item.getAttribute('onclick')?.includes("'settings'"))) {
                         item.classList.add('active');
                     } else if (view === 'notifications' && text.includes('bildiriş')) {
                         item.classList.add('active');
-                    } else if (view === 'support' && text.includes('dəstək')) {
+                    } else if (view === 'support' && (item.dataset.view === 'support' || item.getAttribute('onclick')?.includes("'support'"))) {
                         item.classList.add('active');
                     }
                 });
@@ -6744,7 +7077,7 @@
                     document.getElementById('supportTitle').value = '';
                     document.getElementById('supportMessage').value = '';
                     document.getElementById('supportContact').value = '';
-                    showToast('Mesajınız göndərildi', 'success');
+                    showToast(appT('support.sent'), 'success');
                 } catch (error) {
                     try {
                         const saved = JSON.parse(localStorage.getItem('supportDrafts') || '[]');
@@ -6758,15 +7091,20 @@
                 } finally {
                     if (btn) {
                         btn.disabled = false;
-                        btn.innerText = 'Göndər';
+                        btn.innerText = appT('support.send');
                     }
                 }
             }
             window.submitSupportRequest = submitSupportRequest;
 
             function switchMainView(viewType) {
+                window.__activeViewToken = (window.__activeViewToken || 0) + 1;
+                const activeViewToken = window.__activeViewToken;
                 currentStandingsTourId = null;
-                document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
+                document.querySelectorAll('.container').forEach(c => {
+                    c.classList.remove('active');
+                    c.style.display = '';
+                });
                 document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
                 const mc = document.querySelector('.main-content');
@@ -6777,7 +7115,7 @@
                     document.getElementById('profileView').classList.add('active');
                     document.getElementById('navProfile').classList.add('active');
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'PROFİL';
+                    document.getElementById('logoTitle').innerText = appT('title.profile');
                     hideBackBtn();
                     mc.style.paddingTop = '80px';
                     loadProfile();
@@ -6796,7 +7134,7 @@
                     document.getElementById('leaguesView').classList.add('active');
                     document.getElementById('navLeagues').classList.add('active');
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'LİQALAR';
+                    document.getElementById('logoTitle').innerText = appT('title.leagues');
                     hideBackBtn();
                     mc.style.paddingTop = '80px';
                     renderLeaguesView();
@@ -6806,7 +7144,7 @@
                     document.getElementById('favoritesView').classList.add('active');
                     document.getElementById('navFavorites').classList.add('active');
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'FAVORİTLƏR';
+                    document.getElementById('logoTitle').innerText = appT('title.favorites');
                     hideBackBtn();
                     mc.style.paddingTop = '80px';
                     renderFavoritesView();
@@ -6815,6 +7153,7 @@
                     // Firebase state might be async on fresh load, give it a tiny grace period
                     if (!auth.currentUser) {
                         setTimeout(() => {
+                            if (activeViewToken !== window.__activeViewToken) return;
                             if (!auth.currentUser) {
                                 showToast('Profil üçün daxil olun');
                                 switchMainView('auth');
@@ -6844,7 +7183,7 @@
                     document.getElementById('authView').classList.add('active');
                     document.getElementById('navProfile').classList.add('active');
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'QEYDİYYAT';
+                    document.getElementById('logoTitle').innerText = appT('title.auth');
                     hideBackBtn();
                     mc.style.paddingTop = '65px'; // Reduced padding to remove gap
                     switchAuthTab('login'); // Always default to login and reset button
@@ -6853,7 +7192,7 @@
                     document.getElementById('notificationsView').classList.add('active');
                     document.getElementById('navLeagues').classList.remove('active'); // Reset other navs
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'BİLDİRİŞLƏR';
+                    document.getElementById('logoTitle').innerText = appT('title.notifications');
                     showBackBtn();
                     notificationMgr.renderHistory();
                     notificationMgr.markAllAsRead();
@@ -6862,13 +7201,25 @@
                 else if (viewType === 'support') {
                     document.getElementById('supportView').classList.add('active');
                     document.getElementById('dateTabsContainer').style.display = 'none';
-                    document.getElementById('logoTitle').innerText = 'DƏSTƏK';
+                    document.getElementById('logoTitle').innerText = appT('title.support');
                     showBackBtn();
                     mc.style.paddingTop = '70px';
                 }
                 mc.scrollTo({ top: 0, behavior: 'auto' });
                 updateSidebarActive(viewType);
+                applyI18n();
             }
+            window.switchMainView = switchMainView;
+
+            window.openSettingsPage = function() {
+                const query = window.location.search || '';
+                const hash = window.location.hash || '';
+                window.location.href = `settings.html${query}${hash}`;
+            };
+
+            window.openSettingsView = function() {
+                openSettingsPage();
+            };
 
             window.openSingleLeague = async function(keyOrId, isUnique = true) {
                 let tourId = null;
@@ -10101,7 +10452,7 @@
                 }
                 let registration = await navigator.serviceWorker.getRegistration('/');
                 if (!registration) {
-                    registration = await navigator.serviceWorker.register('/sw.js?v=72', { scope: '/' });
+                    registration = await navigator.serviceWorker.register('/sw.js?v=77', { scope: '/' });
                 } else {
                     try {
                         registration = registration.update ? await registration.update() : registration;
@@ -11252,7 +11603,7 @@
                 pingServer();
                 fetchData(null, true);
                 syncFavoritesLive();
-                showToast('Məlumatlar yenilənir...');
+                showToast(appT('settings.refreshing'));
             };
 
             window.clearAppCache = function() {
@@ -11267,7 +11618,7 @@
                         localStorage.removeItem(key);
                     }
                 });
-                showToast('Keş təmizləndi', 'success');
+                showToast(appT('settings.cacheCleared'), 'success');
             }
 
             /* Auth Logic */
@@ -12043,7 +12394,7 @@
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js?v=72', { scope: '/' }).then(reg => {
+                    navigator.serviceWorker.register('/sw.js?v=77', { scope: '/' }).then(reg => {
                         console.log('SW registered:', reg.scope);
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
