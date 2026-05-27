@@ -32,8 +32,12 @@
             measurementId: "G-75VQ3Q8GH7"
         };
         
-        // Initialize Firebase before any other calls
-        firebase.initializeApp(firebaseConfig);
+        // Initialize Firebase before any other calls, but tolerate CDN load failure.
+        if (typeof firebase !== 'undefined' && typeof firebase.initializeApp === 'function') {
+            firebase.initializeApp(firebaseConfig);
+        } else {
+            console.warn('[Firebase] SDK not available; auth and push features will be limited.');
+        }
         
         // Ilkin yüklənmədə çağırılsa belə, əsas push sync helperi hazır olan kimi ona yönləndiririk.
         window.registerFCMToken = function() {
@@ -5145,7 +5149,7 @@
 
             const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"defaultView": "matches"}');
             userSettings.language = userSettings.language || localStorage.getItem('appLanguage') || 'az';
-            const auth = firebase.auth();
+            const auth = (typeof firebase !== 'undefined' && typeof firebase.auth === 'function') ? firebase.auth() : { currentUser: null };
 
 
             const APP_I18N = {
