@@ -5140,7 +5140,7 @@
         <div id="toast" class="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
 
         <script>
-            const APP_VERSION = '1.2.63';
+            const APP_VERSION = '1.2.64';
             console.log(`SCRIPT START: index.html VERSION ${APP_VERSION} running`);
 
             const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{"defaultView": "matches"}');
@@ -5574,7 +5574,6 @@
                 APP_I18N[lang] = { ...(APP_I18N[lang] || {}), ...APP_I18N_EXTRA[lang] };
             });
 
-            const APP_TEXT_KEY_BY_AZ = new Map(Object.entries(APP_I18N.az).map(([key, value]) => [normalizeUiText(value), key]));
             function appT(key) {
                 return APP_I18N[appLanguage]?.[key] || APP_I18N.az[key] || getUiText?.(key) || key;
             }
@@ -8042,28 +8041,7 @@
             } catch (_) {}
 
             function keepSofascoreEventsOnly(events) {
-                return (Array.isArray(events) ? events : []).filter(event => {
-                    if (!event) return false;
-                    const source = String(event.source || 'sofascore').toLowerCase();
-                    const logoFields = [
-                        event?.homeTeam?.logoUrl,
-                        event?.awayTeam?.logoUrl,
-                        event?.tournament?.logoUrl,
-                        event?.tournament?.category?.logoUrl,
-                        event?.tournament?.uniqueTournament?.logoUrl
-                    ];
-                    const idFields = [
-                        event?.id,
-                        event?.homeTeam?.id,
-                        event?.awayTeam?.id,
-                        event?.tournament?.id,
-                        event?.tournament?.category?.id,
-                        event?.tournament?.uniqueTournament?.id
-                    ];
-                    const hasMackolikAsset = logoFields.some(value => String(value || '').includes('mackolikfeeds.com'));
-                    const hasMackolikId = idFields.some(value => String(value || '').toLowerCase().startsWith('macko'));
-                    return source === 'sofascore' && !hasMackolikAsset && !hasMackolikId;
-                });
+                return (Array.isArray(events) ? events : []).filter(Boolean);
             }
 
             function compactEventForStorage(event) {
@@ -8456,11 +8434,19 @@
                 }
 
             function createMatchRow(m, group) {
+                if (!m) return "";
+                m.homeTeam = m.homeTeam || { id: "", name: "Ev sahibi", shortName: "Ev sahibi" };
+                m.awayTeam = m.awayTeam || { id: "", name: "Qonaq", shortName: "Qonaq" };
+                m.tournament = m.tournament || { id: group?.id || "", name: group?.name || "Liqa" };
+                m.status = m.status || { type: "notstarted", description: "" };
+                m.homeTeam.name = m.homeTeam.name || m.homeTeam.shortName || "Ev sahibi";
+                m.awayTeam.name = m.awayTeam.name || m.awayTeam.shortName || "Qonaq";
+                group = group || { id: m.tournament.id || "", name: m.tournament.name || "Liqa", country: "Other" };
                 const timeRaw = getMatchTime(m);
                 const isLive = isSofascoreLiveEvent(m);
                 const isStateLabel = ['HT', 'FT', 'ET', 'AET', 'PEN', 'LIVE'].includes(timeRaw);
-                const homeLogo = normalizeSofaImageUrl(m.homeTeam?.logoUrl, getTeamImageOptions(m.homeTeam, false)) || getTeamLogoUrl(m.homeTeam.id, false, m.homeTeam);
-                const awayLogo = normalizeSofaImageUrl(m.awayTeam?.logoUrl, getTeamImageOptions(m.awayTeam, false)) || getTeamLogoUrl(m.awayTeam.id, false, m.awayTeam);
+                const homeLogo = normalizeSofaImageUrl(m.homeTeam?.logoUrl, getTeamImageOptions(m.homeTeam, false)) || getTeamLogoUrl(m.homeTeam.id || "", false, m.homeTeam);
+                const awayLogo = normalizeSofaImageUrl(m.awayTeam?.logoUrl, getTeamImageOptions(m.awayTeam, false)) || getTeamLogoUrl(m.awayTeam.id || "", false, m.awayTeam);
 
                 let displayTime = timeRaw;
                 const timeClass = isLive ? 'match-time is-live' : 'match-time';
@@ -8468,10 +8454,10 @@
                     ? `<span class="live-min">${displayTime}</span>`
                     : `<span class="time-label${isStateLabel ? ' is-state' : ''}">${displayTime}</span>`;
 
-                const safeTimeRaw = timeRaw.replace(/'/g, "\\'");
-                const safeHomeName = m.homeTeam.name.replace(/'/g, "\\'");
-                const safeAwayName = m.awayTeam.name.replace(/'/g, "\\'");
-                const safeGroupName = group.name.replace(/'/g, "\\'");
+                const safeTimeRaw = String(timeRaw || "").replace(/'/g, "\\'");
+                const safeHomeName = String(m.homeTeam.name || "Ev sahibi").replace(/'/g, "\\'");
+                const safeAwayName = String(m.awayTeam.name || "Qonaq").replace(/'/g, "\\'");
+                const safeGroupName = String(group.name || "Liqa").replace(/'/g, "\\'");
 
                 const isFav = isFavoriteMatch(m);
                 
@@ -8480,7 +8466,7 @@
                 const awayScore = (m.awayScore && m.awayScore.current !== undefined) ? m.awayScore.current : '';
 
                 return `
-        <div class="match-row" onmouseenter="prefetchMatchDetails('${m.id}')" onpointerdown="prefetchMatchDetails('${m.id}')" onclick="openMatch('${m.id}', '${m.homeTeam.id}', '${m.awayTeam.id}', '${safeHomeName}', '${safeAwayName}', '${homeScore}', '${awayScore}', '${safeTimeRaw}', '${safeGroupName}')">
+        <div class="match-row" onmouseenter="prefetchMatchDetails('${m.id || ''}')" onpointerdown="prefetchMatchDetails('${m.id || ''}')" onclick="openMatch('${m.id || ''}', '${m.homeTeam.id || ''}', '${m.awayTeam.id || ''}', '${safeHomeName}', '${safeAwayName}', '${homeScore}', '${awayScore}', '${safeTimeRaw}', '${safeGroupName}')">
             <div class="${timeClass}">${formattedMinute}</div>
             <div class="match-teams">
                 <div class="team-line">
@@ -8496,7 +8482,7 @@
                 <span class="score-val ${isLive ? 'is-live' : ''}">${homeScore}</span>
                 <span class="score-val ${isLive ? 'is-live' : ''}">${awayScore}</span>
             </div>
-                <div class="fav-star ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavoriteMatch('${m.id}', this)">${isFav ? '&#9733;' : '&#9734;'}</div>
+                <div class="fav-star ${isFav ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavoriteMatch('${m.id || ''}', this)">${isFav ? '&#9733;' : '&#9734;'}</div>
         </div>`;
             }
 
@@ -8610,7 +8596,7 @@
                     let html = "";
                     for (const key of chunk) {
                         const group = grouped[key];
-                        const isFav = favLeagues.some(f => f.id.toString() === group.id.toString());
+                        const isFav = favLeagues.some(f => f?.id != null && group?.id != null && f.id.toString() === group.id.toString());
                         const { logoUrl, fallBack } = getLeagueLogoData(group);
 
                         html += `
@@ -8627,7 +8613,14 @@
                         <span class="chevron" onclick="toggleCollapsible(this.parentElement)">&#9660;</span>
                     </div>
                     <div class="league-matches">
-                        ${group.matches.map(m => createMatchRow(m, group)).join("")}
+                        ${group.matches.map(m => {
+                            try {
+                                return createMatchRow(m, group);
+                            } catch (rowError) {
+                                console.warn("Match row render skipped:", rowError.message || rowError, m);
+                                return "";
+                            }
+                        }).join("")}
                     </div>
                 </div>`;
                     }
@@ -8636,13 +8629,27 @@
                     i += 5;
                     
                     if (i < renderKeys.length) {
-                        renderAnimationFrameId = requestAnimationFrame(renderChunk);
+                        renderAnimationFrameId = requestAnimationFrame(() => {
+                            try {
+                                renderChunk();
+                            } catch (renderError) {
+                                console.error("Match render failed:", renderError);
+                                finishRender();
+                            }
+                        });
                     } else {
                         finishRender();
                     }
                 }
                 
-                renderAnimationFrameId = requestAnimationFrame(renderChunk);
+                renderAnimationFrameId = requestAnimationFrame(() => {
+                    try {
+                        renderChunk();
+                    } catch (renderError) {
+                        console.error("Match render failed:", renderError);
+                        list.innerHTML = "<div class='loader-wrapper' style='text-align:center; padding:50px; font-weight:600; color:var(--live);'>Oyunlar yenilənərkən xəta oldu. Səhifəni yeniləyin və ya bir az sonra yenidən yoxlayın.</div>";
+                    }
+                });
             }
 
             function normalizeCategoryLeaguesPayload(data) {
