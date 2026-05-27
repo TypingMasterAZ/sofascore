@@ -4638,7 +4638,7 @@
             </div>
         </div>
         <div class="sidebar-nav">
-            <a class="side-item" data-view="settings" href="settings.html"><i>&#9881;</i><span data-i18n="menu.settings">Tənzimləmələr</span></a>
+            <a class="side-item" data-view="settings" href="settings.html?v=mobile-premium-4" style="text-decoration:none;color:inherit;"><i>&#9881;</i><span data-i18n="menu.settings">Tənzimləmələr</span></a>
             <div class="side-item" data-view="support" onclick="switchMainView('support'); toggleSidebar()"><i>&#128172;</i><span data-i18n="menu.support">Dəstək</span></div>
             <div class="side-item" onclick="showAboutApp(); toggleSidebar()"><i>&#8505;</i><span data-i18n="menu.about">Haqqımızda</span></div>
         </div>
@@ -4925,7 +4925,7 @@
                             </div>
                         </div>
                         <div class="avatar-edit-label" onclick="triggerPicUpload()">
-                            <i class="fas fa-image"></i> Şəkli Dəyiş
+                            <i class="fas fa-image"></i> <span data-i18n="profile.changePhoto">??kli d?yi?</span>
                         </div>
                     </div>
                     
@@ -4947,20 +4947,20 @@
                 </div>
 
                 <div class="profile-section-head">
-                    <span class="profile-section-title">Hesab Məlumatları</span>
-                    <button type="button" id="profileEditBtn" class="profile-edit-btn" onclick="enableProfileEdit()">Redaktə et</button>
+                    <span class="profile-section-title" data-i18n="profile.account">Hesab Məlumatları</span>
+                    <button type="button" id="profileEditBtn" class="profile-edit-btn" onclick="enableProfileEdit()" data-i18n="profile.edit">Redaktə et</button>
                 </div>
                 <div style="margin-bottom: 20px;">
                     <div class="profile-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                        <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">İstifadəçi Adı</label>
+                        <label data-i18n="profile.username" style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">İstifadəçi Adı</label>
                         <input type="text" id="usernameInput" class="profile-input" style="margin-top:0; border:none; background:rgba(255,255,255,0.03); padding:14px;" placeholder="Adınızı daxil edin" value="İstifadəçi" readonly oninput="handleProfileNameTyping(this.value)">
                     </div>
                     <div class="profile-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                        <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Status</label>
+                        <label data-i18n="profile.status" style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Status</label>
                         <input type="text" id="statusInput" class="profile-input" style="margin-top:0; border:none; background:rgba(255,255,255,0.03); padding:14px; opacity:.75;" value="Rabona Media istifadəçisi" readonly>
                     </div>
                     <div style="padding: 15px 16px;">
-                        <button class="save-btn" onclick="saveProfile()" style="margin-top:0; height:52px; border-radius: 14px; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);">Məlumatlar Saxla</button>
+                        <button class="save-btn" onclick="saveProfile()" data-i18n="profile.save" style="margin-top:0; height:52px; border-radius: 14px; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);">Məlumatlar Saxla</button>
                     </div>
                 </div>
 
@@ -4968,13 +4968,13 @@
                 <div style="background: transparent; margin-top: 14px;">
                     <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;"
                         onclick="clearAllData()">
-                        <span style="font-size:15px; font-weight:600; color:#ef4444;">B?t?n M?lumatlar Sil</span>
+                        <span data-i18n="profile.deleteAll" style="font-size:15px; font-weight:600; color:#ef4444;">Bütün Məlumatlar Sil</span>
                         <span>&#128465;</span>
                     </div>
                     <div id="logoutBtnBox" class="profile-row"
                         style="margin-top:20px; border-top:1px solid rgba(255,255,255,0.05); cursor:pointer;"
                         onclick="logoutUser()">
-                        <span style="font-size:15px; font-weight:700; color:#ef4444;">Hesabdan ??x</span>
+                        <span data-i18n="profile.logout" style="font-size:15px; font-weight:700; color:#ef4444;">Hesabdan Çıx</span>
                         <span style="font-size:18px;">&#128682;</span>
                     </div>
                 </div>
@@ -5063,7 +5063,7 @@
                 </div>
             </div>
 
-            </div> <!-- main-content sonu -->            </div> <!-- main-content sonu -->
+            </div> <!-- main-content sonu -->
 
         </div>
 
@@ -5211,6 +5211,7 @@
                     'profile.account': 'Hesab M\u0259lumatlar\u0131',
                     'profile.edit': 'Redakt\u0259 et',
                     'profile.username': '\u0130stifad\u0259\u00e7i ad\u0131',
+                    'profile.status': 'Status',
                     'profile.save': 'M\u0259lumatlar\u0131 saxla',
                     'profile.deleteAll': 'B\u00fct\u00fcn m\u0259lumatlar\u0131 sil',
                     'profile.logout': 'Hesabdan \u00e7\u0131x',
@@ -5278,6 +5279,7 @@
                     'profile.account': 'Account information',
                     'profile.edit': 'Edit',
                     'profile.username': 'Username',
+                    'profile.status': 'Status',
                     'profile.save': 'Save information',
                     'profile.deleteAll': 'Delete all data',
                     'profile.logout': 'Sign out',
@@ -5345,6 +5347,7 @@
                     'profile.account': 'Hesap bilgileri',
                     'profile.edit': 'D\u00fczenle',
                     'profile.username': 'Kullan\u0131c\u0131 ad\u0131',
+                    'profile.status': 'Durum',
                     'profile.save': 'Bilgileri kaydet',
                     'profile.deleteAll': 'T\u00fcm verileri sil',
                     'profile.logout': 'Hesaptan \u00e7\u0131k',
@@ -5412,12 +5415,164 @@
                     'profile.account': '\u0414\u0430\u043d\u043d\u044b\u0435 \u0430\u043a\u043a\u0430\u0443\u043d\u0442\u0430',
                     'profile.edit': '\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c',
                     'profile.username': '\u0418\u043c\u044f \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f',
+                    'profile.status': '\u0421\u0442\u0430\u0442\u0443\u0441',
                     'profile.save': '\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0434\u0430\u043d\u043d\u044b\u0435',
                     'profile.deleteAll': '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0432\u0441\u0435 \u0434\u0430\u043d\u043d\u044b\u0435',
                     'profile.logout': '\u0412\u044b\u0439\u0442\u0438 \u0438\u0437 \u0430\u043a\u043a\u0430\u0443\u043d\u0442\u0430',
                     'toast.settingSaved': '\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0430'
                 }
             };
+
+
+            const APP_I18N_EXTRA = {
+                az: {
+                    'league.popular': 'Populyar turnirl\u0259r',
+                    'league.allCountries': 'B\u00fct\u00fcn \u00f6lk\u0259l\u0259r',
+                    'league.searchResults': 'Axtar\u0131\u015f n\u0259tic\u0259l\u0259ri',
+                    'league.countSuffix': 'Liqa',
+                    'league.favoriteLeagues': 'Favorit liqalar',
+                    'league.favoriteMatches': 'Favorit oyunlar',
+                    'favorites.emptyTitle': 'Favoritl\u0259riniz yoxdur',
+                    'favorites.emptyText': 'Oyunlar\u0131 v\u0259 ya liqalar\u0131 favoritl\u0259riniz\u0259 \u0259lav\u0259 ed\u0259r\u0259k burada g\u00f6r\u0259 bil\u0259rsiniz.',
+                    'profile.defaultStatus': 'Rabona Media istifad\u0259\u00e7isi',
+                    'profile.photo': '\u015e\u0259kil',
+                    'profile.changePhoto': '\u015e\u0259kli d\u0259yi\u015f',
+                    'about.title': 'Haqq\u0131m\u0131zda',
+                    'about.message': 'Rabona Media canl\u0131 oyunlar, liqalar, favoritl\u0259r v\u0259 \u0259sas futbol m\u0259lumatlar\u0131n\u0131 bir yerd\u0259 t\u0259qdim ed\u0259n m\u00fcasir idman t\u0259tbiqidir. M\u0259qs\u0259dimiz n\u0259tic\u0259l\u0259ri v\u0259 vacib hadis\u0259l\u0259ri siz\u0259 rahat, s\u00fcr\u0259tli v\u0259 s\u0259liq\u0259li \u015f\u0259kild\u0259 \u00e7atd\u0131rmaqd\u0131r.',
+                    'date.today': 'BU G\u00dcN',
+                    'date.live': 'CANLI',
+                    'day.0': 'Bazar',
+                    'day.1': 'B.Ert\u0259si',
+                    'day.2': '\u00c7.Ax\u015fam',
+                    'day.3': '\u00c7\u0259r\u015f\u0259nb\u0259',
+                    'day.4': 'C.Ax\u015fam',
+                    'day.5': 'C\u00fcm\u0259',
+                    'day.6': '\u015e\u0259nb\u0259',
+                    'month.0': 'Yan',
+                    'month.1': 'Fev',
+                    'month.2': 'Mar',
+                    'month.3': 'Apr',
+                    'month.4': 'May',
+                    'month.5': '\u0130yun',
+                    'month.6': '\u0130yul',
+                    'month.7': 'Avq',
+                    'month.8': 'Sen',
+                    'month.9': 'Okt',
+                    'month.10': 'Noy',
+                    'month.11': 'Dek'
+                },
+                en: {
+                    'league.popular': 'Popular tournaments',
+                    'league.allCountries': 'All countries',
+                    'league.searchResults': 'Search results',
+                    'league.countSuffix': 'Leagues',
+                    'league.favoriteLeagues': 'Favorite leagues',
+                    'league.favoriteMatches': 'Favorite matches',
+                    'favorites.emptyTitle': 'You have no favorites',
+                    'favorites.emptyText': 'Add matches or leagues to your favorites and they will appear here.',
+                    'profile.defaultStatus': 'Rabona Media user',
+                    'profile.photo': 'Photo',
+                    'profile.changePhoto': 'Change photo',
+                    'about.title': 'About us',
+                    'about.message': 'Rabona Media is a modern sports app that brings live matches, leagues, favorites, and key football information together. Our goal is to deliver scores and important events in a clean, fast, and convenient way.',
+                    'date.today': 'TODAY',
+                    'date.live': 'LIVE',
+                    'day.0': 'Sunday',
+                    'day.1': 'Monday',
+                    'day.2': 'Tuesday',
+                    'day.3': 'Wednesday',
+                    'day.4': 'Thursday',
+                    'day.5': 'Friday',
+                    'day.6': 'Saturday',
+                    'month.0': 'Jan',
+                    'month.1': 'Feb',
+                    'month.2': 'Mar',
+                    'month.3': 'Apr',
+                    'month.4': 'May',
+                    'month.5': 'Jun',
+                    'month.6': 'Jul',
+                    'month.7': 'Aug',
+                    'month.8': 'Sep',
+                    'month.9': 'Oct',
+                    'month.10': 'Nov',
+                    'month.11': 'Dec'
+                },
+                tr: {
+                    'league.popular': 'Pop\u00fcler turnuvalar',
+                    'league.allCountries': 'T\u00fcm \u00fclkeler',
+                    'league.searchResults': 'Arama sonu\u00e7lar\u0131',
+                    'league.countSuffix': 'Lig',
+                    'league.favoriteLeagues': 'Favori ligler',
+                    'league.favoriteMatches': 'Favori ma\u00e7lar',
+                    'favorites.emptyTitle': 'Favoriniz yok',
+                    'favorites.emptyText': 'Ma\u00e7lar\u0131 veya ligleri favorilerinize ekleyerek burada g\u00f6rebilirsiniz.',
+                    'profile.defaultStatus': 'Rabona Media kullan\u0131c\u0131s\u0131',
+                    'profile.photo': 'Foto\u011fraf',
+                    'profile.changePhoto': 'Foto\u011fraf\u0131 de\u011fi\u015ftir',
+                    'about.title': 'Hakk\u0131m\u0131zda',
+                    'about.message': 'Rabona Media canl\u0131 ma\u00e7lar\u0131, ligleri, favorileri ve temel futbol bilgilerini bir araya getiren modern bir spor uygulamas\u0131d\u0131r. Amac\u0131m\u0131z skorlar\u0131 ve \u00f6nemli olaylar\u0131 size h\u0131zl\u0131, d\u00fczenli ve rahat \u015fekilde ula\u015ft\u0131rmakt\u0131r.',
+                    'date.today': 'BUG\u00dcN',
+                    'date.live': 'CANLI',
+                    'day.0': 'Pazar',
+                    'day.1': 'Pazartesi',
+                    'day.2': 'Sal\u0131',
+                    'day.3': '\u00c7ar\u015famba',
+                    'day.4': 'Per\u015fembe',
+                    'day.5': 'Cuma',
+                    'day.6': 'Cumartesi',
+                    'month.0': 'Oca',
+                    'month.1': '\u015eub',
+                    'month.2': 'Mar',
+                    'month.3': 'Nis',
+                    'month.4': 'May',
+                    'month.5': 'Haz',
+                    'month.6': 'Tem',
+                    'month.7': 'A\u011fu',
+                    'month.8': 'Eyl',
+                    'month.9': 'Eki',
+                    'month.10': 'Kas',
+                    'month.11': 'Ara'
+                },
+                ru: {
+                    'league.popular': '\u041f\u043e\u043f\u0443\u043b\u044f\u0440\u043d\u044b\u0435 \u0442\u0443\u0440\u043d\u0438\u0440\u044b',
+                    'league.allCountries': '\u0412\u0441\u0435 \u0441\u0442\u0440\u0430\u043d\u044b',
+                    'league.searchResults': '\u0420\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u044b \u043f\u043e\u0438\u0441\u043a\u0430',
+                    'league.countSuffix': '\u041b\u0438\u0433\u0438',
+                    'league.favoriteLeagues': '\u0418\u0437\u0431\u0440\u0430\u043d\u043d\u044b\u0435 \u043b\u0438\u0433\u0438',
+                    'league.favoriteMatches': '\u0418\u0437\u0431\u0440\u0430\u043d\u043d\u044b\u0435 \u043c\u0430\u0442\u0447\u0438',
+                    'favorites.emptyTitle': '\u0423 \u0432\u0430\u0441 \u043d\u0435\u0442 \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0433\u043e',
+                    'favorites.emptyText': '\u0414\u043e\u0431\u0430\u0432\u044c\u0442\u0435 \u043c\u0430\u0442\u0447\u0438 \u0438\u043b\u0438 \u043b\u0438\u0433\u0438 \u0432 \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435, \u0438 \u043e\u043d\u0438 \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f \u0437\u0434\u0435\u0441\u044c.',
+                    'profile.defaultStatus': '\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c Rabona Media',
+                    'profile.photo': '\u0424\u043e\u0442\u043e',
+                    'profile.changePhoto': '\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0444\u043e\u0442\u043e',
+                    'about.title': '\u041e \u043d\u0430\u0441',
+                    'about.message': 'Rabona Media - \u0441\u043e\u0432\u0440\u0435\u043c\u0435\u043d\u043d\u043e\u0435 \u0441\u043f\u043e\u0440\u0442\u0438\u0432\u043d\u043e\u0435 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435, \u0433\u0434\u0435 \u0441\u043e\u0431\u0440\u0430\u043d\u044b live-\u043c\u0430\u0442\u0447\u0438, \u043b\u0438\u0433\u0438, \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435 \u0438 \u0432\u0430\u0436\u043d\u0430\u044f \u0444\u0443\u0442\u0431\u043e\u043b\u044c\u043d\u0430\u044f \u0438\u043d\u0444\u043e\u0440\u043c\u0430\u0446\u0438\u044f. \u041d\u0430\u0448\u0430 \u0446\u0435\u043b\u044c - \u0434\u043e\u0441\u0442\u0430\u0432\u043b\u044f\u0442\u044c \u0441\u0447\u0435\u0442\u0430 \u0438 \u0432\u0430\u0436\u043d\u044b\u0435 \u0441\u043e\u0431\u044b\u0442\u0438\u044f \u0431\u044b\u0441\u0442\u0440\u043e, \u0443\u0434\u043e\u0431\u043d\u043e \u0438 \u0430\u043a\u043a\u0443\u0440\u0430\u0442\u043d\u043e.',
+                    'date.today': '\u0421\u0415\u0413\u041e\u0414\u041d\u042f',
+                    'date.live': 'LIVE',
+                    'day.0': '\u0412\u043e\u0441\u043a\u0440\u0435\u0441\u0435\u043d\u044c\u0435',
+                    'day.1': '\u041f\u043e\u043d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a',
+                    'day.2': '\u0412\u0442\u043e\u0440\u043d\u0438\u043a',
+                    'day.3': '\u0421\u0440\u0435\u0434\u0430',
+                    'day.4': '\u0427\u0435\u0442\u0432\u0435\u0440\u0433',
+                    'day.5': '\u041f\u044f\u0442\u043d\u0438\u0446\u0430',
+                    'day.6': '\u0421\u0443\u0431\u0431\u043e\u0442\u0430',
+                    'month.0': '\u042f\u043d\u0432',
+                    'month.1': '\u0424\u0435\u0432',
+                    'month.2': '\u041c\u0430\u0440',
+                    'month.3': '\u0410\u043f\u0440',
+                    'month.4': '\u041c\u0430\u0439',
+                    'month.5': '\u0418\u044e\u043d',
+                    'month.6': '\u0418\u044e\u043b',
+                    'month.7': '\u0410\u0432\u0433',
+                    'month.8': '\u0421\u0435\u043d',
+                    'month.9': '\u041e\u043a\u0442',
+                    'month.10': '\u041d\u043e\u044f',
+                    'month.11': '\u0414\u0435\u043a'
+                }
+            };
+            Object.keys(APP_I18N_EXTRA).forEach(lang => {
+                APP_I18N[lang] = { ...(APP_I18N[lang] || {}), ...APP_I18N_EXTRA[lang] };
+            });
 
             const APP_TEXT_KEY_BY_AZ = new Map(Object.entries(APP_I18N.az).map(([key, value]) => [normalizeUiText(value), key]));
             function appT(key) {
@@ -5466,6 +5621,9 @@
                 const logoTitle = document.getElementById('logoTitle');
                 if (logoTitle && titleKey) logoTitle.innerText = appT(titleKey);
                 if (logoTitle && activeView === 'matchView') logoTitle.innerText = 'RABONA MEDIA';
+                if (typeof renderLeaguesView === 'function' && document.getElementById('leaguesView')?.classList.contains('active')) renderLeaguesView();
+                if (typeof renderFavoritesView === 'function' && document.getElementById('favoritesView')?.classList.contains('active')) renderFavoritesView();
+                if (typeof generateDateTabs === 'function') generateDateTabs();
                 const languageSelect = document.getElementById('languageSelect');
                 if (languageSelect) languageSelect.value = appLanguage;
             }
@@ -6409,8 +6567,8 @@
                 const container = document.getElementById('dateTabsContainer');
                 if (!container) return;
                 const today = new Date();
-                const days = ['Bazar', 'B.Ertəsi', 'Ç.Axşam', 'Çərşənbə', 'C.Axşam', 'Cümə', 'Şənbə'];
-                const months = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'İyun', 'İyul', 'Avq', 'Sen', 'Okt', 'Noy', 'Dek'];
+                const days = Array.from({ length: 7 }, (_, index) => appT(`day.${index}`));
+                const months = Array.from({ length: 12 }, (_, index) => appT(`month.${index}`));
                 
                 let html = '';
                 for (let i = -7; i <= 30; i++) {
@@ -6422,7 +6580,7 @@
                     
                     html += `
                         <div class="date-tab ${activeClass}" onclick="selectDate('${dateStr}', this)">
-                            <span class="day-name">${isToday ? 'BU GÜN' : days[d.getDay()].toUpperCase()}</span>
+                            <span class="day-name">${isToday ? appT('date.today') : days[d.getDay()].toUpperCase()}</span>
                             <span class="date-num">${d.getDate()} ${months[d.getMonth()]}</span>
                         </div>
                     `;
@@ -6430,7 +6588,7 @@
                     if (isToday) {
                         html += `
                             <div class="date-tab live-tab ${isLiveFiltered ? 'active' : ''}" id="filterLiveBtn" onclick="toggleLiveFilter(this)">
-                                <span class="day-name">CANLI</span>
+                                <span class="day-name">${appT('date.live')}</span>
                                 <span class="date-num">LIVE</span>
                             </div>
                         `;
@@ -7214,7 +7372,15 @@
             window.openSettingsPage = function() {
                 const query = window.location.search || '';
                 const hash = window.location.hash || '';
-                window.location.href = `settings.html${query}${hash}`;
+                const settingsUrl = new URL('settings.html', window.location.href);
+                settingsUrl.searchParams.set('v', 'mobile-premium-4');
+                if (query) {
+                    new URLSearchParams(query).forEach((value, key) => {
+                        if (key !== 'v') settingsUrl.searchParams.set(key, value);
+                    });
+                }
+                settingsUrl.hash = hash || '';
+                window.location.href = settingsUrl.toString();
             };
 
             window.openSettingsView = function() {
@@ -8921,7 +9087,7 @@
                 ];
 
                 if (!searchTerm) {
-                    html += `<div class="category-header"><span>Populyar Turnirlər</span></div>`;
+                    html += `<div class="category-header"><span>${appT('league.popular')}</span></div>`;
                     
                     // Priority: If topLeaguesRaw is empty, use a fallback set to ensure UI is never empty
                     let displayPopular = topLeaguesRaw && topLeaguesRaw.length > 0 ? topLeaguesRaw : [
@@ -9004,7 +9170,7 @@
                         });
 
                     if (countryCategories.length > 0) {
-                        html += `<div class="category-header"><span>Bütün Ölkələr (${countryCategories.length})</span></div>`;
+                        html += `<div class="category-header"><span>${appT('league.allCountries')} (${countryCategories.length})</span></div>`;
                         countryCategories.forEach(cat => {
                             const flagUrl = getCountryFlagUrl(cat);
                             const catKey = String(cat.id);
@@ -9037,7 +9203,7 @@
                             results = data.results.filter(r => r.type === "uniqueTournament").map(r => r.entity);
                         }
 
-                        html += `<div class="category-header"><span>Axtarış Nəticələri: ${results.length} Liqa</span></div>`;
+                        html += `<div class="category-header"><span>${appT('league.searchResults')}: ${results.length} ${appT('league.countSuffix')}</span></div>`;
                         
                         if (results.length > 0) {
                             results.forEach(l => {
@@ -10452,7 +10618,7 @@
                 }
                 let registration = await navigator.serviceWorker.getRegistration('/');
                 if (!registration) {
-                    registration = await navigator.serviceWorker.register('/sw.js?v=77', { scope: '/' });
+                    registration = await navigator.serviceWorker.register('/sw.js?v=79', { scope: '/' });
                 } else {
                     try {
                         registration = registration.update ? await registration.update() : registration;
@@ -10868,8 +11034,8 @@
                     container.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-state-icon">&#11088;</div>
-                    <div class="empty-state-title">Favoritləriniz yoxdur</div>
-                    <div class="empty-state-text">Oyunları və ya liqaları favoritlərinizə əlavə edərək burada görə bilərsiniz.</div>
+                    <div class="empty-state-title">${appT('favorites.emptyTitle')}</div>
+                    <div class="empty-state-text">${appT('favorites.emptyText')}</div>
                 </div>`;
                     return;
                 }
@@ -10877,7 +11043,7 @@
                 let html = "";
 
                 if (favLeagues.length > 0) {
-                    html += "<div style='padding: 24px 24px 10px; font-weight:700; color:var(--text-muted); font-size:13px; text-transform:uppercase;'>Favorit Liqalar</div>";
+                    html += `<div style='padding: 24px 24px 10px; font-weight:700; color:var(--text-muted); font-size:13px; text-transform:uppercase;'>${appT('league.favoriteLeagues')}</div>`;
                     favLeagues.forEach(l => {
                         const groupKey = Object.keys(groupedDataGlobal).find(k => k.startsWith(l.name));
                         html += `
@@ -10895,7 +11061,7 @@
                 }
 
                 if (favMatches.length > 0 || favMatchKeys.length > 0) {
-                    html += "<div style='padding: 24px 24px 10px; font-weight:700; color:var(--text-muted); font-size:13px; text-transform:uppercase;'>Favorit Oyunlar</div>";
+                    html += `<div style='padding: 24px 24px 10px; font-weight:700; color:var(--text-muted); font-size:13px; text-transform:uppercase;'>${appT('league.favoriteMatches')}</div>`;
                     html += `<div class="league-group" style="margin-top:0;">`;
                     favMatches.forEach(m => {
                         const favKey = m.favoriteKey || getMatchFavoriteKey(m);
@@ -11013,7 +11179,7 @@
                 if (uInput && (options.forceInputs || !isEditingName)) uInput.value = normalized.name;
                 if (sInput) sInput.value = normalized.status;
                 if (nameEl) nameEl.innerText = displayName;
-                if (statusEl) statusEl.innerText = normalized.status;
+                if (statusEl) statusEl.innerText = normalizeUiText(normalized.status) === normalizeUiText(DEFAULT_PROFILE_STATUS) ? appT('profile.defaultStatus') : normalized.status;
 
                 if (avatarEl) {
                     const savedImg = normalized.profilePic || getLocalProfileImage(user);
@@ -12205,8 +12371,8 @@
 
             window.showAboutApp = function() {
                 showDialog({
-                    title: 'Haqqımızda',
-                    message: 'Rabona Media canlı oyunlar, liqalar, favoritlər və əsas futbol məlumatlarını bir yerdə təqdim edən müasir idman tətbiqidir. Məqsədimiz nəticələri və vacib hadisələri sizə rahat, sürətli və səliqəli şəkildə çatdırmaqdır.',
+                    title: appT('about.title'),
+                    message: appT('about.message'),
                     icon: 'ℹ️',
                     type: 'alert'
                 });
@@ -12219,7 +12385,7 @@
                     msgEl.innerHTML = `
                         <div style="text-align:center;">
                             <div style="line-height:1.7; color:var(--text-muted); margin-bottom:18px;">
-                                Rabona Media canlı oyunlar, liqalar, favoritlər və əsas futbol məlumatlarını bir yerdə təqdim edən müasir idman tətbiqidir. Məqsədimiz nəticələri və vacib hadisələri sizə rahat, sürətli və səliqəli şəkildə çatdırmaqdır.
+                                ${appT('about.message')}
                             </div>
                             <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
                                 <a href="https://www.instagram.com/rabonamedia/" target="_blank" style="display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:14px; background:rgba(255,255,255,0.06); color:#fff; text-decoration:none; font-weight:700;">
@@ -12394,7 +12560,7 @@
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js?v=77', { scope: '/' }).then(reg => {
+                    navigator.serviceWorker.register('/sw.js?v=79', { scope: '/' }).then(reg => {
                         console.log('SW registered:', reg.scope);
                         reg.update && reg.update();
                         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
