@@ -10,7 +10,7 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const app = express();
 // -------------------------------------------------------------------
-// Real‑time cache and SSE infrastructure
+// Realâ€‘time cache and SSE infrastructure
 // -------------------------------------------------------------------
 let matchCache = {};
 let matchDetailsCache = {};
@@ -30,6 +30,11 @@ function notifySseListeners(updatedMatch) {
 
 async function fetchMatchDetailsFromServer(id) {
     try {
+        const cachedMatch = matchCache[String(id)];
+        if (String(cachedMatch?.source || "").toLowerCase().includes("mackolik")) {
+            return await fetchMackolikMatchDetails(id, cachedMatch?.slug || "");
+        }
+
         const [incidents, stats] = await Promise.all([
             Promise.any([
                 fetchFromSofaApiDirect(`/event/${id}/incidents`, {}, 2200),
@@ -37,9 +42,9 @@ async function fetchMatchDetailsFromServer(id) {
                 fetchFromSofaFastRace(`/event/${id}/incidents`, {}, 4200)
             ]).catch(() => ({ incidents: [] })),
             Promise.any([
-                fetchFromSofaApiDirect(`/event/${id}/statistics`, {}, 2400),
-                fetchFromSofaNativeFast(`/event/${id}/statistics`, {}, 2800),
-                fetchFromSofaFastRace(`/event/${id}/statistics`, {}, 4200)
+                fetchFromSofaApiDirect(`/event/${id}/statistics`, {}, 1400),
+                fetchFromSofaNativeFast(`/event/${id}/statistics`, {}, 1800),
+                fetchFromSofaFastRace(`/event/${id}/statistics`, {}, 2800)
             ]).catch(() => ({ statistics: [] }))
         ]);
         return {
@@ -55,7 +60,15 @@ async function fetchMatchDetailsFromServer(id) {
 function hasUsefulIncidentData(data) {
     const payload = normalizeIncidentsData(data);
     return Array.isArray(payload?.incidents) &&
-        payload.incidents.some(incident => ["goal", "card", "substitution"].includes(incident?.incidentType));
+        payload.incidents.some(incident => {
+            const type = String(incident?.incidentType || incident?.type || "").toLowerCase();
+            const cls = String(incident?.incidentClass || incident?.class || incident?.subType || "").toLowerCase();
+            const reason = String(incident?.reason || incident?.text || incident?.description || "").toLowerCase();
+            return ["goal", "card", "substitution"].includes(incident?.incidentType) ||
+                type.includes("penalty") ||
+                cls.includes("penalty") ||
+                reason.includes("penalty");
+        });
 }
 
 function matchHasAnyGoalScore(match) {
@@ -120,12 +133,13 @@ process.on("uncaughtException", (error) => {
 });
 
 const KEEPALIVE_ENABLED = process.env.KEEPALIVE_ENABLED !== "false";
+const ALWAYS_ON_ENABLED = process.env.ALWAYS_ON_ENABLED !== "false";
 const RUNTIME_WARMUP_INTERVAL_MS = Math.max(10000, Number(process.env.RUNTIME_WARMUP_INTERVAL_MS) || 15000);
 const SELF_PING_INTERVAL_MS = Math.max(25000, Number(process.env.SELF_PING_INTERVAL_MS) || 30000);
 const CATEGORY_WARMUP_INTERVAL_MS = Math.max(60000, Number(process.env.CATEGORY_WARMUP_INTERVAL_MS) || 2 * 60 * 1000);
 const BACKGROUND_REFRESH_INTERVAL_MS = Math.max(3000, Number(process.env.BACKGROUND_REFRESH_INTERVAL_MS) || 5000);
 
-// Firebase Admin SDK-nÄ±n yaradÄ±lmasÄ±
+// Firebase Admin SDK-nÃ„Â±n yaradÃ„Â±lmasÃ„Â±
 let serviceAccount;
 let firebaseInitialized = false;
 
@@ -143,7 +157,7 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   }
 }
 
-// Render Secret File dÉ™stÉ™yi
+// Render Secret File dÃ‰â„¢stÃ‰â„¢yi
 const RENDER_SECRET_PATH = "/etc/secrets/FIREBASE_SERVICE_ACCOUNT";
 if (!firebaseInitialized && fs.existsSync(RENDER_SECRET_PATH)) {
     try {
@@ -203,7 +217,7 @@ const VAPID_SUBJECT = process.env.WEB_PUSH_SUBJECT || "mailto:support@rabonamedi
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
-// â”€â”€â”€ FIRESTORE USER HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ FIRESTORE USER HELPERS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 async function getUsers() {
     if (db) {
         try {
@@ -237,7 +251,7 @@ async function saveProfileRecord(profile) {
         uid: profile.uid || "",
         email: normalizedEmail,
         displayName: String(profile.displayName || "").trim(),
-        status: profile.status || "Rabona Media istifadəçisi",
+        status: profile.status || "Rabona Media istifadÉ™Ã§isi",
         profilePic: profile.profilePic || "",
         updatedAt: profile.updatedAt || new Date().toISOString()
     };
@@ -348,10 +362,10 @@ async function getUserByIdentity({ email, uid }) {
     const users = await getUsers();
     return users.find(u => String(u.email || "").trim().toLowerCase() === normalizedEmail) || null;
 }
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-// Nodemailer TÉ™nzimlÉ™mÉ™lÉ™ri (OTP gÃ¶ndÉ™rmÉ™k Ã¼Ã§Ã¼n)
-// DÄ°QQÆT: Buraya Ã¶z email vÉ™ tÉ™tbiq ÅŸifrÉ™nizi (App Password) yazmalÄ±sÄ±nÄ±z
+// Nodemailer TÃ‰â„¢nzimlÃ‰â„¢mÃ‰â„¢lÃ‰â„¢ri (OTP gÃƒÂ¶ndÃ‰â„¢rmÃ‰â„¢k ÃƒÂ¼ÃƒÂ§ÃƒÂ¼n)
+// DÃ„Â°QQÃ†ÂT: Buraya ÃƒÂ¶z email vÃ‰â„¢ tÃ‰â„¢tbiq Ã…Å¸ifrÃ‰â„¢nizi (App Password) yazmalÃ„Â±sÃ„Â±nÃ„Â±z
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     connectionTimeout: 8000,
@@ -359,12 +373,12 @@ const transporter = nodemailer.createTransport({
     socketTimeout: 10000,
     auth: {
         user: process.env.EMAIL_USER || 'typingmaster.az@gmail.com', // Sizin email
-        pass: process.env.EMAIL_PASS || 'hlwg iaey ryxn klsq'    // Sizin "App Password" ÅŸifrÉ™niz
+        pass: process.env.EMAIL_PASS || 'hlwg iaey ryxn klsq'    // Sizin "App Password" Ã…Å¸ifrÃ‰â„¢niz
     }
 });
 
 app.use(cors({
-    origin: '*', // HÉ™lÉ™lik hÉ™r yerÉ™ icazÉ™ veririk, Render linki bÉ™lli olandan sonra bunu GitHub linkinlÉ™ É™vÉ™z edÉ™ bilÉ™rik
+    origin: '*', // HÃ‰â„¢lÃ‰â„¢lik hÃ‰â„¢r yerÃ‰â„¢ icazÃ‰â„¢ veririk, Render linki bÃ‰â„¢lli olandan sonra bunu GitHub linkinlÃ‰â„¢ Ã‰â„¢vÃ‰â„¢z edÃ‰â„¢ bilÃ‰â„¢rik
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -384,6 +398,22 @@ app.use((req, res, next) => {
     }
     next();
 });
+
+function sendNoStoreHtml(res, fileName) {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+    res.set("Surrogate-Control", "no-store");
+    res.sendFile(path.join(__dirname, fileName));
+}
+
+app.get(["/", "/index.html"], (req, res, next) => {
+    if (String(process.env.LOCAL_SAFE_MODE || "false").toLowerCase() === "true") {
+        return sendNoStoreHtml(res, "local-safe.html");
+    }
+    return sendNoStoreHtml(res, "index.html");
+});
+
 app.use(express.static(path.join(__dirname), {
     setHeaders(res, filePath) {
         if (
@@ -526,7 +556,7 @@ async function legacyFetchFromSofa(path, params = {}) {
         }
     }
 
-    throw new Error(`BÃ¼tÃ¼n baÄŸlantÄ± cÉ™hdlÉ™ri uÄŸursuz oldu: ${lastError ? lastError.message : 'Unknown'}`);
+    throw new Error(`BÃƒÂ¼tÃƒÂ¼n baÃ„Å¸lantÃ„Â± cÃ‰â„¢hdlÃ‰â„¢ri uÃ„Å¸ursuz oldu: ${lastError ? lastError.message : 'Unknown'}`);
 }
 
 const SOFA_DIRECT_TIMEOUT = 12000;
@@ -574,6 +604,7 @@ function normalizeIncidentsData(data) {
 }
 
 let rapidApiDisabledUntil = 0;
+const RAPIDAPI_ENABLED = String(process.env.RAPIDAPI_ENABLED || "true").toLowerCase() !== "false";
 
 function rememberRapidApiFailure(error) {
     const status = error?.response?.status;
@@ -585,6 +616,7 @@ function rememberRapidApiFailure(error) {
 }
 
 function ensureRapidApiAvailable() {
+    if (!RAPIDAPI_ENABLED) throw new Error("RAPIDAPI disabled by RAPIDAPI_ENABLED=false");
     const rapidApiKey = process.env.RAPIDAPI_KEY;
     if (!rapidApiKey) throw new Error("RAPIDAPI_KEY is not configured");
     if (Date.now() < rapidApiDisabledUntil) throw new Error("RAPIDAPI temporarily disabled after quota/rate-limit response");
@@ -1019,14 +1051,14 @@ app.get("/api/debug/proxy", async (req, res) => {
 // Caching System
 
 // -------------------------------------------------------------------
-// Keep‑alive and health endpoints
+// Keepâ€‘alive and health endpoints
 // -------------------------------------------------------------------
 // Consolidated Ping and Health endpoints moved to the end of file or kept here
 
 const cache = {};
 const CACHE_TIMES = {
-    LIVE: 1500,        // canlı qol bildirişləri üçün qısa cache
-    SCHEDULED: 5 * 60 * 1000, // 5 dÉ™qiqÉ™
+    LIVE: 150,        // Live must not lag behind Mackolik.
+    SCHEDULED: 5 * 60 * 1000, // 5 dÃ‰â„¢qiqÃ‰â„¢
     STATIC: 60 * 60 * 1000    // 1 saat
 };
 const BACKGROUND_REFRESH_THROTTLE_MS = 60 * 1000;
@@ -1133,7 +1165,7 @@ async function fetchSofaImageCached(imagePath) {
             try {
                 response = await axios.get(`${baseUrl}${imagePath}`, {
                     responseType: "arraybuffer",
-                    timeout: 5000,
+                    timeout: 1800,
                     headers: {
                         ...HEADERS,
                         Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
@@ -1164,6 +1196,82 @@ async function fetchSofaImageCached(imagePath) {
     });
 
     imageInFlight.set(imagePath, request);
+    return request;
+}
+
+const EXTERNAL_IMAGE_HOSTS = new Set([
+    "file.mackolikfeeds.com",
+    "flagcdn.com",
+    "img.sofascore.com",
+    "api.sofascore.com",
+    "www.sofascore.com",
+    "api.sofascore.app"
+]);
+
+function getExternalImageCacheKey(imageUrl) {
+    return `external:${imageUrl}`;
+}
+
+function inferImageContentType(imageUrl, fallback = "image/png") {
+    const pathname = (() => {
+        try { return new URL(imageUrl).pathname.toLowerCase(); } catch (e) { return ""; }
+    })();
+    if (pathname.endsWith(".svg")) return "image/svg+xml";
+    if (pathname.endsWith(".webp")) return "image/webp";
+    if (pathname.endsWith(".jpg") || pathname.endsWith(".jpeg")) return "image/jpeg";
+    if (pathname.endsWith(".gif")) return "image/gif";
+    if (pathname.endsWith(".avif")) return "image/avif";
+    return fallback;
+}
+
+async function fetchExternalImageCached(imageUrl) {
+    const cacheKey = getExternalImageCacheKey(imageUrl);
+    const cached = readCachedImage(cacheKey);
+    if (cached) return cached;
+
+    const recentFailure = getRecentImageFailure(cacheKey);
+    if (recentFailure) {
+        throw new Error(`External image unavailable: ${recentFailure.message}`);
+    }
+
+    if (imageInFlight.has(cacheKey)) {
+        return imageInFlight.get(cacheKey);
+    }
+
+    const request = (async () => {
+        try {
+            const imageHost = new URL(imageUrl).hostname;
+            const response = await axios.get(imageUrl, {
+                responseType: "arraybuffer",
+                timeout: imageHost === "file.mackolikfeeds.com" ? 6000 : 2200,
+                maxRedirects: 3,
+                headers: {
+                    ...HEADERS,
+                    Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+                    Referer: imageHost === "file.mackolikfeeds.com" ? "https://www.mackolik.com/" : "https://www.sofascore.com/",
+                    "User-Agent": getRandomUA()
+                }
+            });
+            const contentType = String(response.headers["content-type"] || inferImageContentType(imageUrl)).split(";")[0].trim();
+            if (!contentType.startsWith("image/")) {
+                throw new Error(`Unexpected image content-type: ${contentType || "unknown"}`);
+            }
+            const payload = {
+                body: Buffer.from(response.data),
+                contentType
+            };
+            imageFailureCache.delete(cacheKey);
+            saveCachedImage(cacheKey, payload);
+            return { ...payload, cached: false };
+        } catch (error) {
+            rememberFailedImage(cacheKey, error);
+            throw error;
+        }
+    })().finally(() => {
+        imageInFlight.delete(cacheKey);
+    });
+
+    imageInFlight.set(cacheKey, request);
     return request;
 }
 
@@ -1225,42 +1333,114 @@ let liveDetailsWarmupPromise = null;
 let lastLiveDetailsWarmupAt = 0;
 let liveScoreWorkerInFlight = false;
 let favoriteGoalCatchupInFlight = false;
-const INCIDENTS_CACHE_TTL = 60 * 1000;
-const INCIDENTS_STALE_REFRESH_MS = 15 * 1000;
-const STATS_CACHE_TTL = 45 * 1000;
-const STATS_STALE_REFRESH_MS = 12 * 1000;
-const EMPTY_STATS_CACHE_TTL = 6 * 1000;
-const DETAILS_WARMUP_INTERVAL_MS = 2500;
+const INCIDENTS_CACHE_TTL = 2500;
+const INCIDENTS_STALE_REFRESH_MS = 1200;
+const STATS_CACHE_TTL = 2500;
+const STATS_STALE_REFRESH_MS = 500;
+const EMPTY_STATS_CACHE_TTL = 500;
+const MACKOLIK_DETAILS_CACHE_TTL = 450;
+const DETAILS_WARMUP_INTERVAL_MS = 700;
 const LIVE_SNAPSHOT_FILE = "./live_snapshot.json";
-const LIVE_SNAPSHOT_MAX_AGE = 2500;
+const LIVE_SNAPSHOT_MAX_AGE = 900;
 const LIVE_DISK_SNAPSHOT_MAX_AGE = 10 * 60 * 1000;
-const LIVE_STALE_RETURN_MAX_AGE = 10 * 60 * 1000;
-const LIVE_SCORE_POLL_INTERVAL_MS = Math.max(1500, Number(process.env.LIVE_SCORE_POLL_INTERVAL_MS) || 2500);
+const LIVE_STALE_RETURN_MAX_AGE = 1500;
+const LIVE_SCORE_POLL_INTERVAL_MS = Math.max(450, Number(process.env.LIVE_SCORE_POLL_INTERVAL_MS) || 500);
 const CLIENT_LIVE_SNAPSHOT_MAX_EVENTS = 160;
 const LIVE_PRIMARY_SOURCE = String(process.env.LIVE_PRIMARY_SOURCE || "mackolik").toLowerCase();
 const ENABLE_MACKOLIK_MATCHES = String(process.env.ENABLE_MACKOLIK_MATCHES || "true").toLowerCase() !== "false";
 const ALLOW_MACKOLIK_FALLBACK = String(process.env.ALLOW_MACKOLIK_FALLBACK || "true").toLowerCase() !== "false";
 const STRICT_SOFASCORE_ONLY = String(process.env.SOFASCORE_STRICT_ONLY || "false").toLowerCase() === "true";
 const SOFASCORE_ONLY_MODE = STRICT_SOFASCORE_ONLY || (LIVE_PRIMARY_SOURCE === "sofascore" && !ENABLE_MACKOLIK_MATCHES && !ALLOW_MACKOLIK_FALLBACK);
+const MACKOLIK_CANONICAL_MODE = !SOFASCORE_ONLY_MODE && LIVE_PRIMARY_SOURCE === "mackolik" && ENABLE_MACKOLIK_MATCHES;
 const ENABLE_MACKOLIK_PUSH_FALLBACK = String(process.env.ENABLE_MACKOLIK_PUSH_FALLBACK || "true").toLowerCase() !== "false";
+const ENABLE_MACKOLIK_SCORE_OVERLAY = String(process.env.ENABLE_MACKOLIK_SCORE_OVERLAY || "true").toLowerCase() !== "false";
 let lastPushFallbackLogAt = 0;
 const MACKOLIK_LIVE_URL = "https://www.mackolik.com/perform/p0/ajax/components/competition/livescores/json";
 const MACKOLIK_LIVE_PAGE_URL = "https://www.mackolik.com/canli-sonuclar";
+let mackolikLiveConfigCache = null;
+let mackolikLiveConfigCacheAt = 0;
+const MACKOLIK_LIVE_CONFIG_TTL = 15 * 1000;
 const MACKOLIK_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
     "Accept": "application/json, text/plain, */*",
     "Referer": "https://www.mackolik.com/canli-sonuclar",
-    "X-Requested-With": "XMLHttpRequest"
+    
 };
 
 function getMackolikTeamLogo(teamId) {
     const id = teamId ? String(teamId) : "";
-    if (!id || id.length < 5 || id === "1" || id === "2") return null;
+    if (!id || id === "1" || id === "2" || /^macko/i.test(id) || /^mk_/i.test(id)) return null;
     return `https://file.mackolikfeeds.com/teams/${id}`;
 }
 
 function getMackolikCountryLogo(countryId) {
     return countryId ? `https://file.mackolikfeeds.com/areas/${countryId}` : null;
+}
+
+function getMackolikCompetitionLogo(competitionId) {
+    return competitionId ? `https://file.mackolikfeeds.com/competitions/${competitionId}` : null;
+}
+
+const MACKOLIK_CURATED_CATEGORIES = {
+    europe: { id: "mackolik_europe", name: "Europe", slug: "avrupa", alpha2: "EU", priority: 100, source: "mackolik" },
+    turkey: { id: "mackolik_turkey", name: "Turkey", slug: "turkiye", alpha2: "TR", priority: 98, source: "mackolik" },
+    england: { id: "mackolik_england", name: "England", slug: "ingiltere", alpha2: "GB-ENG", priority: 97, source: "mackolik" },
+    spain: { id: "mackolik_spain", name: "Spain", slug: "ispanya", alpha2: "ES", priority: 96, source: "mackolik" },
+    italy: { id: "mackolik_italy", name: "Italy", slug: "italya", alpha2: "IT", priority: 95, source: "mackolik" },
+    germany: { id: "mackolik_germany", name: "Germany", slug: "almanya", alpha2: "DE", priority: 94, source: "mackolik" },
+    france: { id: "mackolik_france", name: "France", slug: "fransa", alpha2: "FR", priority: 93, source: "mackolik" },
+    netherlands: { id: "mackolik_netherlands", name: "Netherlands", slug: "hollanda", alpha2: "NL", priority: 92, source: "mackolik" },
+    azerbaijan: { id: "mackolik_azerbaijan", name: "Azerbaijan", slug: "azerbaycan", alpha2: "AZ", priority: 91, source: "mackolik" }
+};
+
+const MACKOLIK_CURATED_LEAGUES = [
+    { id: "4oogyu6o156iphvdvphwpck10", name: "UEFA Champions League", slug: "sampiyonlar-ligi", categoryKey: "europe", priority: 1000 },
+    { id: "4c1nfi2j1m731hcay25fcgndq", name: "UEFA Europa League", slug: "avrupa-ligi", categoryKey: "europe", priority: 990 },
+    { id: "482ofyysbdbeoxauk19yg7tdt", name: "Süper Lig", slug: "super-lig", categoryKey: "turkey", priority: 980 },
+    { id: "2kwbbcootiqqgmrzs6o5inle5", name: "Premier League", slug: "premier-lig", categoryKey: "england", priority: 970 },
+    { id: "34pl8szyvrbwcmfkuocjm3r6t", name: "LaLiga", slug: "laliga", categoryKey: "spain", priority: 960 },
+    { id: "1r097lpxe0xn03ihb7wi98kao", name: "Serie A", slug: "serie-a", categoryKey: "italy", priority: 950 },
+    { id: "6by3h89i2eykc341oz7lv1ddd", name: "Bundesliga", slug: "bundesliga", categoryKey: "germany", priority: 940 },
+    { id: "dm5ka0os1e3dxcp3vh05kmp33", name: "Ligue 1", slug: "ligue-1", categoryKey: "france", priority: 930 },
+    { id: "akmkihra9ruad09ljapsm84b3", name: "Eredivisie", slug: "eredivisie", categoryKey: "netherlands", priority: 920 },
+    { id: "3428tckxcirwwh3o3jgc1m8ji", name: "Azerbaijan Premier Lig", slug: "misli-premier-lig", categoryKey: "azerbaijan", priority: 910 },
+    { id: "1pz0ch210cun5hthsvq0lb7x3", name: "Azerbaijan 1.Lig", slug: "1lig", categoryKey: "azerbaijan", priority: 900 }
+];
+
+function addCuratedMackolikLeagues(categoriesById, leaguesByCategory) {
+    Object.values(MACKOLIK_CURATED_CATEGORIES).forEach(category => {
+        if (!categoriesById.has(String(category.id))) {
+            categoriesById.set(String(category.id), {
+                ...category,
+                flag: null,
+                logoUrl: null
+            });
+        }
+    });
+
+    MACKOLIK_CURATED_LEAGUES.forEach(item => {
+        const category = MACKOLIK_CURATED_CATEGORIES[item.categoryKey] || MACKOLIK_CURATED_CATEGORIES.europe;
+        const categoryId = String(category.id);
+        if (!leaguesByCategory.has(categoryId)) leaguesByCategory.set(categoryId, []);
+        const list = leaguesByCategory.get(categoryId);
+        if (list.some(league => String(league.id) === String(item.id))) return;
+        list.push({
+            id: String(item.id),
+            name: item.name,
+            slug: item.slug,
+            priority: item.priority,
+            category: categoriesById.get(categoryId),
+            uniqueTournament: {
+                id: String(item.id),
+                name: item.name,
+                slug: item.slug
+            },
+            logoUrl: getMackolikCompetitionLogo(item.id),
+            source: "mackolik",
+            seasonId: "auto",
+            isUnique: true
+        });
+    });
 }
 
 function decodeMackolikSettings(raw) {
@@ -1284,6 +1464,9 @@ function extractMackolikSettingsObjects(html) {
 }
 
 async function fetchMackolikLiveConfig() {
+    if (mackolikLiveConfigCache && Date.now() - mackolikLiveConfigCacheAt < MACKOLIK_LIVE_CONFIG_TTL) {
+        return mackolikLiveConfigCache;
+    }
     try {
         const response = await axios.get(MACKOLIK_LIVE_PAGE_URL, {
             headers: {
@@ -1303,18 +1486,22 @@ async function fetchMackolikLiveConfig() {
         const settings = JSON.parse(decoded);
         const params = settings?.asyncRequestParams || {};
 
-        return {
+        mackolikLiveConfigCache = {
             matchDate: params.matchDate,
             sports: ["Soccer"],
             urlJson: settings?.urlJson || MACKOLIK_LIVE_URL
         };
+        mackolikLiveConfigCacheAt = Date.now();
+        return mackolikLiveConfigCache;
     } catch (error) {
         console.warn("[MACKOLIK CONFIG] Falling back to default live config:", error.message);
-        return {
+        mackolikLiveConfigCache = {
             matchDate: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10),
             sports: ["Soccer"],
             urlJson: MACKOLIK_LIVE_URL
         };
+        mackolikLiveConfigCacheAt = Date.now();
+        return mackolikLiveConfigCache;
     }
 }
 
@@ -1327,52 +1514,176 @@ function getMackolikInitialSeconds(periodId) {
     }
 }
 
+function formatMackolikElapsedMinute(totalSeconds, periodId) {
+    const totalMinute = Math.floor(Math.max(0, totalSeconds) / 60) + 1;
+    if (!Number.isFinite(totalMinute) || totalMinute <= 0) return null;
+    const period = Number(periodId);
+    if (period === 1 && totalMinute > 45) return `45+${totalMinute - 45}`;
+    if (period === 2 && totalMinute > 90) return `90+${totalMinute - 90}`;
+    if (period === 3 && totalMinute > 105) return `105+${totalMinute - 105}`;
+    if (period === 4 && totalMinute > 120) return `120+${totalMinute - 120}`;
+    return `${totalMinute}'`;
+}
+
 function getMackolikMinuteText(match) {
+    const box = String(match?.statusBoxContent || "").trim();
+    if (box && box !== "-" && box.toUpperCase() !== "LIVE") return box;
+    return null;
+}
+
+function getMackolikComputedMinuteText(match) {
     if (!match?.periodStart) return null;
-    const elapsedSeconds = Math.max(0, Math.floor((Date.now() - Number(match.periodStart)) / 1000));
-    const minute = Math.floor((elapsedSeconds + getMackolikInitialSeconds(match.periodId)) / 60) + 1;
-    if (!Number.isFinite(minute) || minute <= 0) return null;
-    return `${minute}'`;
+    const periodStartMs = Number(match.periodStart);
+    if (!Number.isFinite(periodStartMs) || periodStartMs <= 0) return null;
+    const elapsedSeconds = Math.floor((Date.now() - periodStartMs) / 1000) + getMackolikInitialSeconds(match.periodId);
+    return formatMackolikElapsedMinute(elapsedSeconds, match.periodId);
+}
+
+function isMackolikOvertimeStaleLive(match) {
+    if (!match?.periodStart) return false;
+    const periodStartMs = Number(match.periodStart);
+    if (!Number.isFinite(periodStartMs) || periodStartMs <= 0) return false;
+    const totalMinute = Math.floor(Math.max(0, (Date.now() - periodStartMs) / 1000 + getMackolikInitialSeconds(match.periodId)) / 60) + 1;
+    const period = Number(match.periodId);
+    if (period === 1 && totalMinute > 57) return true;
+    if (period === 2 && totalMinute > 102) return true;
+    if (period === 3 && totalMinute > 117) return true;
+    if (period === 4 && totalMinute > 132) return true;
+    return false;
+}
+
+function getMackolikLiveMinuteText(match) {
+    return getMackolikMinuteText(match);
 }
 
 function mapMackolikStatus(match) {
     const state = match?.state;
-    const substate = (match?.substate || "").toLowerCase();
-    const box = (match?.statusBoxContent || "").toUpperCase();
+    const substate = String(match?.substate || "").toLowerCase();
+    const rawBox = String(match?.statusBoxContent || "").trim();
+    const box = rawBox.toUpperCase();
 
     if (state === "live") {
-        if (substate === "halftime" || box === "İY" || box === "IY") {
-            return { type: "inprogress", description: "HT" };
+        if (substate === "halftime" || box === "IY" || box === "İY" || box === "HT") {
+            return { type: "inprogress", description: rawBox || "HT" };
         }
         return {
             type: "inprogress",
-            description: getMackolikMinuteText(match) || (box || "LIVE")
+            description: getMackolikLiveMinuteText(match) || rawBox || "LIVE"
         };
     }
 
-    if (state === "post") {
-        if (substate === "penalties") return { type: "finished", description: "PEN" };
-        if (substate === "afterextratime") return { type: "finished", description: "AET" };
-        return { type: "finished", description: "FT" };
+    if (isMackolikFinishedStatus(match)) {
+        if (substate === "penalties" || box === "PEN") return { type: "finished", description: rawBox || "PEN" };
+        if (substate === "afterextratime" || box === "AET") return { type: "finished", description: rawBox || "AET" };
+        return { type: "finished", description: rawBox || "FT" };
     }
 
-    if (substate === "postponed") {
-        return { type: "notstarted", description: "POSTPONED" };
+    if (substate === "postponed" || box === "ERT" || box === "POSTPONED") {
+        return { type: "notstarted", description: rawBox || "ERT" };
+    }
+    if (substate === "canceled" || substate === "cancelled" || box === "İPT" || box === "IPT") {
+        return { type: "notstarted", description: rawBox || "İPT" };
     }
 
-    return { type: "notstarted", description: box || "" };
+    return { type: "notstarted", description: rawBox || "" };
+}
+
+function isMackolikFinishedStatus(match) {
+    const state = String(match?.state || "").toLowerCase();
+    const substate = String(match?.substate || "").toLowerCase();
+    const box = String(match?.statusBoxContent || "").trim().toUpperCase();
+    if (state === "post" || state === "finished") return true;
+    if (["post", "finished", "ended", "afterextratime", "penalties"].includes(substate)) return true;
+    return [
+        "MS",
+        "FT",
+        "FULL TIME",
+        "FINISHED",
+        "ENDED",
+        "BITTI",
+        "BİTTİ",
+        "MAÇ SONU",
+        "MAC SONU",
+        "PEN",
+        "AET"
+    ].includes(box);
+}
+
+function isMackolikLiveMatch(match) {
+    const state = String(match?.state || "").toLowerCase();
+    if (isMackolikFinishedStatus(match)) return false;
+    if (isMackolikOvertimeStaleLive(match)) return false;
+    return state === "live";
+}
+
+function parseMackolikScoreNumber(value) {
+    if (value === null || value === undefined || value === "") return NaN;
+    if (typeof value === "number") return Number.isFinite(value) ? value : NaN;
+    const match = String(value).match(/\d+/);
+    return match ? Number(match[0]) : NaN;
+}
+
+function getMackolikScore(match, side) {
+    const score = match?.score || {};
+    const candidates = side === "home"
+        ? [score.home, score.homeScore, match?.homeScore, match?.scoreHome, match?.homeTeamScore]
+        : [score.away, score.awayScore, match?.awayScore, match?.scoreAway, match?.awayTeamScore];
+    for (const candidate of candidates) {
+        const parsed = parseMackolikScoreNumber(candidate);
+        if (Number.isFinite(parsed)) return parsed;
+    }
+
+    const combined = [
+        score.current,
+        score.display,
+        score.fullTime,
+        score.score,
+        match?.scoreText,
+        match?.result
+    ].filter(Boolean).join(" ");
+    const numbers = combined.match(/\d+/g);
+    if (numbers && numbers.length >= 2) {
+        return Number(numbers[side === "home" ? 0 : 1]);
+    }
+
+    return 0;
+}
+
+function parseMackolikIncidentMinuteText(timeText) {
+    const raw = String(timeText || "").trim();
+    const baseMatch = raw.match(/(\d+)/);
+    if (!baseMatch) return null;
+    const addedMatch = raw.match(/\+\s*(\d+)/);
+    return {
+        time: Number(baseMatch[1]),
+        addedTime: addedMatch ? Number(addedMatch[1]) : 0
+    };
+}
+
+function formatMackolikIncidentMinute(parts) {
+    if (!parts) return "";
+    if (parts.addedTime > 0) return `${parts.time}+${parts.addedTime}'`;
+    return parts.time > 0 ? `${parts.time}'` : "";
+}
+
+function getLatestMackolikIncidentMinute(match) {
+    const keyEvents = Array.isArray(match?.keyEvents) ? match.keyEvents : [];
+    return keyEvents
+        .map(event => parseMackolikIncidentMinuteText(event?.timeMin))
+        .filter(Boolean)
+        .sort((a, b) => (b.time - a.time) || (b.addedTime - a.addedTime))[0] || null;
 }
 
 function normalizeMackolikMatch(match, competitions, options = {}) {
     const { liveOnly = false } = options;
     const competition = competitions[match?.competitionId] || {};
     if (competition?.sport !== "S") return null;
-    if (liveOnly && match?.state !== "live") return null;
+    if (liveOnly && !isMackolikLiveMatch(match)) return null;
 
     const category = competition.country || {};
     const status = mapMackolikStatus(match);
-    const homeScore = Number(match?.score?.home ?? 0);
-    const awayScore = Number(match?.score?.away ?? 0);
+    const homeScore = getMackolikScore(match, "home");
+    const awayScore = getMackolikScore(match, "away");
     const homeTeamId = match?.homeTeam?.id || `mk_home_${match.id}`;
     const awayTeamId = match?.awayTeam?.id || `mk_away_${match.id}`;
     const tournamentLogoUrl = getMackolikCountryLogo(category.id);
@@ -1383,10 +1694,7 @@ function normalizeMackolikMatch(match, competitions, options = {}) {
         customId: match.iddaaCode ? String(match.iddaaCode) : match.id,
         startTimestamp: match.mstUtc ? Math.floor(Number(match.mstUtc) / 1000) : undefined,
         status,
-        time: match.periodStart ? {
-            currentPeriodStartTimestamp: Math.floor(Number(match.periodStart) / 1000),
-            initial: getMackolikInitialSeconds(match.periodId)
-        } : undefined,
+        time: undefined,
         homeTeam: {
             id: homeTeamId,
             name: match?.homeTeam?.name || "Home",
@@ -1414,7 +1722,7 @@ function normalizeMackolikMatch(match, competitions, options = {}) {
             logoUrl: tournamentLogoUrl,
             category: {
                 id: category.id || `mk_cat_${competition.id || match.competitionId}`,
-                name: category.name || "Digər",
+                name: category.name || "DigÉ™r",
                 slug: competition.countrySlug || "",
                 logoUrl: tournamentLogoUrl
             },
@@ -1445,6 +1753,115 @@ function normalizeMackolikMatchesData(payload, options = {}) {
     };
 }
 
+function syncLiveMatchCache(events = []) {
+    const liveIds = new Set((Array.isArray(events) ? events : [])
+        .map(event => event?.id ? String(event.id) : "")
+        .filter(Boolean));
+    Object.keys(matchCache).forEach(id => {
+        const cached = matchCache[id];
+        if (String(cached?.source || "").toLowerCase().includes("mackolik") && !liveIds.has(id)) {
+            delete matchCache[id];
+        }
+    });
+    (Array.isArray(events) ? events : []).forEach(event => {
+        if (event?.id) matchCache[String(event.id)] = event;
+    });
+}
+
+function normalizeMackolikCompetitionsData(payload = {}) {
+    const data = payload?.data || payload || {};
+    const competitions = Object.values(data.competitions || {})
+        .filter(competition => competition?.sport === "S");
+    const categoriesById = new Map();
+    const leaguesByCategory = new Map();
+
+    competitions.forEach(competition => {
+        const country = competition.country || {};
+        const categoryId = String(country.id || "mackolik_other");
+        if (!categoriesById.has(categoryId)) {
+            categoriesById.set(categoryId, {
+                id: categoryId,
+                name: country.name || "Digər",
+                slug: competition.countrySlug || "",
+                alpha2: country.code || country.alpha2 || "",
+                flag: getMackolikCountryLogo(country.id),
+                logoUrl: getMackolikCountryLogo(country.id),
+                source: "mackolik"
+            });
+        }
+
+        const league = {
+            id: String(competition.id),
+            name: competition.name || "Liqa",
+            slug: competition.competitionSlug || "",
+            priority: Number(competition.priority || 0),
+            category: categoriesById.get(categoryId),
+            uniqueTournament: {
+                id: String(competition.id),
+                name: competition.name || "Liqa",
+                slug: competition.competitionSlug || ""
+            },
+            logoUrl: getMackolikCompetitionLogo(competition.id),
+            source: "mackolik",
+            seasonId: competition.seasonId || null,
+            isUnique: true
+        };
+        if (!leaguesByCategory.has(categoryId)) leaguesByCategory.set(categoryId, []);
+        leaguesByCategory.get(categoryId).push(league);
+    });
+
+    addCuratedMackolikLeagues(categoriesById, leaguesByCategory);
+
+    const sortLeagues = list => list
+        .sort((a, b) => (b.priority || 0) - (a.priority || 0) || String(a.name || "").localeCompare(String(b.name || ""), "az"));
+
+    return {
+        categories: Array.from(categoriesById.values()).sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "az")),
+        leaguesByCategory: Object.fromEntries(Array.from(leaguesByCategory.entries()).map(([key, value]) => [key, sortLeagues(value)])),
+        uniqueTournaments: sortLeagues(Array.from(leaguesByCategory.values()).flat()),
+        source: "mackolik",
+        generatedAt: new Date().toISOString()
+    };
+}
+
+async function fetchMackolikCompetitionCatalog(matchDate = null) {
+    const config = await fetchMackolikLiveConfig();
+    let response = null;
+    try {
+        response = await axios.get(config.urlJson, {
+            params: {
+                sports: config.sports,
+                matchDate: matchDate || config.matchDate
+            },
+            headers: MACKOLIK_HEADERS,
+            timeout: 6000
+        });
+        if (response.data?.status !== "success") {
+            throw new Error(`Mackolik competitions failed: ${response.data?.status || "unknown"}`);
+        }
+    } catch (error) {
+        console.warn("[MACKOLIK CATALOG] Live catalog failed, returning curated leagues:", error.message);
+        const curatedCatalog = normalizeMackolikCompetitionsData({ data: { competitions: {} } });
+        curatedCatalog.matchDate = matchDate || config.matchDate;
+        curatedCatalog.curatedOnly = true;
+        return curatedCatalog;
+    }
+    const catalog = normalizeMackolikCompetitionsData(response.data);
+    catalog.matchDate = matchDate || config.matchDate;
+    return catalog;
+}
+
+function mackolikUnavailablePayload(message = "Mackolik bu məlumatı hazırda vermir") {
+    return {
+        source: "mackolik",
+        unavailable: true,
+        message,
+        standings: [],
+        topPlayers: { goals: [] },
+        seasons: []
+    };
+}
+
 function normalizeSofaEventsData(payload) {
     const events = Array.isArray(payload?.events) ? payload.events : [];
     return {
@@ -1459,6 +1876,211 @@ function normalizeSofaEventsData(payload) {
         source: "sofascore",
         generatedAt: new Date().toISOString()
     };
+}
+
+function buildMackolikCompetitionSlug(league = {}) {
+    const countrySlug = String(league?.category?.slug || league?.countrySlug || "").trim();
+    const competitionSlug = String(league?.slug || league?.competitionSlug || "").trim();
+    return [countrySlug, competitionSlug].filter(Boolean).join("-");
+}
+
+function getMackolikActiveSeason(settings = {}) {
+    const season = settings.season || {};
+    if (season?.id) return season;
+    const seasons = Object.values(settings?.seasonList || settings?.competition?.tournamentCalendar || {});
+    return seasons.find(item => String(item?.active || "").toLowerCase() === "yes") || seasons[0] || null;
+}
+
+function normalizeMackolikNumber(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const parsed = Number(String(value).replace("%", "").replace(",", ".").replace(/[^\d.-]/g, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeMackolikCompetitionStandings(settings = {}, competitionId = "") {
+    const competition = settings.competition || {};
+    const season = getMackolikActiveSeason(settings);
+    const standing = Array.isArray(competition.standings) ? competition.standings[0] : null;
+    const table = Array.isArray(standing?.table) ? standing.table : [];
+    const rows = table.map(item => {
+        const team = item.team || {};
+        const teamId = String(team.uuid || team.id || "");
+        const logoTeamId = String(team.id || team.uuid || "");
+        return {
+            position: item.rank ?? item.position ?? null,
+            team: {
+                id: teamId,
+                name: team.display_name || team.name || "Komanda",
+                shortName: team.name || team.display_name || "Komanda",
+                logoUrl: getMackolikTeamLogo(logoTeamId),
+                source: "mackolik",
+                mackolikId: team.id || team.uuid || ""
+            },
+            matches: item.played ?? null,
+            wins: item.win ?? null,
+            draws: item.draw ?? null,
+            losses: item.lost ?? null,
+            scoresFor: item.pro ?? null,
+            scoresAgainst: item.against ?? null,
+            points: item.pts ?? null,
+            source: "mackolik",
+            form: item.serie || "",
+            zone: item.zone || null
+        };
+    }).filter(row => row.team?.id || row.team?.name);
+
+    return {
+        standings: rows.length ? [{
+            name: standing?.name || competition.name || "Mackolik",
+            type: "total",
+            rows
+        }] : [],
+        seasonId: season?.id || "auto",
+        season: season ? { id: season.id, name: season.name, year: season.name } : null,
+        competition: {
+            id: competition.id || competitionId,
+            name: competition.name || "Liqa",
+            country: competition.country || null
+        },
+        source: "mackolik",
+        generatedAt: new Date().toISOString()
+    };
+}
+
+function normalizeMackolikTopScorers(settings = {}) {
+    const competition = settings.competition || {};
+    const season = getMackolikActiveSeason(settings);
+    const standingsRows = competition.standings?.[0]?.table || [];
+    const teamsById = new Map();
+    standingsRows.forEach(row => {
+        const team = row.team || {};
+        const uuid = String(team.uuid || team.id || "");
+        const logoTeamId = String(team.id || team.uuid || "");
+        if (!uuid) return;
+        const value = {
+            id: uuid,
+            name: team.display_name || team.name || "Komanda",
+            shortName: team.name || team.display_name || "Komanda",
+            logoUrl: getMackolikTeamLogo(logoTeamId),
+            source: "mackolik",
+            mackolikId: team.id || team.uuid || ""
+        };
+        [uuid, team.id].map(v => String(v || "")).filter(Boolean).forEach(id => teamsById.set(id, value));
+    });
+    (competition.teamStats || []).forEach(stat => {
+        const teams = Array.isArray(stat?.teams) ? stat.teams : Object.values(stat?.teams || {});
+        teams.forEach(team => {
+            const primaryId = String(team.uuid || team.team_id || team.id || "");
+            if (!primaryId) return;
+            const value = {
+                id: primaryId,
+                name: team.n || team.name || "Komanda",
+                logoUrl: getMackolikTeamLogo(String(team.id || team.team_id || team.uuid || primaryId)),
+                source: "mackolik",
+                mackolikId: team.id || team.team_id || team.uuid || primaryId
+            };
+            [primaryId, team.id, team.uuid, team.team_id].map(v => String(v || "")).filter(Boolean).forEach(id => {
+                if (!teamsById.has(id)) teamsById.set(id, value);
+            });
+        });
+    });
+
+    const goalStat = (competition.playerStats || []).find(stat => stat?.key === "ps_g") ||
+        (competition.playerStats || []).find(stat => /goal|gol|ps_g/i.test(String(stat?.key || "")));
+    const players = Array.isArray(goalStat?.players) ? goalStat.players : Object.values(goalStat?.players || {});
+    const goals = players.map((item, index) => {
+        const teamId = String(item.team_id || "");
+        const playerId = String(item.uuid || item.i || "");
+        const goalValue = normalizeMackolikNumber(item.v);
+        return {
+            player: {
+                id: playerId,
+                name: item.n || "Oyunçu",
+                shortName: item.n || "Oyunçu",
+                logoUrl: item.uuid ? `https://file.mackolikfeeds.com/people/${item.uuid}` : "",
+                source: "mackolik"
+            },
+            team: teamsById.get(teamId) || {
+                id: teamId,
+                name: "Komanda",
+                logoUrl: teamId ? getMackolikTeamLogo(teamId) : "",
+                source: "mackolik"
+            },
+            goals: goalValue ?? item.v ?? 0,
+            statistics: { goals: goalValue ?? item.v ?? 0 },
+            value: item.v,
+            rank: index + 1,
+            source: "mackolik"
+        };
+    }).filter(item => item.player?.name);
+
+    return {
+        topPlayers: { goals },
+        seasonId: season?.id || "auto",
+        season: season ? { id: season.id, name: season.name, year: season.name } : null,
+        source: "mackolik",
+        generatedAt: new Date().toISOString()
+    };
+}
+
+async function fetchMackolikCompetitionPageSettings(competitionId, seasonId = null) {
+    const catalog = await getCachedData("mackolik_competition_catalog", fetchMackolikCompetitionCatalog, 30 * 1000, { skipJitter: true });
+    const league = (catalog.uniqueTournaments || []).find(item => String(item.id) === String(competitionId)) || {
+        id: competitionId,
+        slug: "",
+        category: { slug: "" }
+    };
+    const slug = buildMackolikCompetitionSlug(league) || String(competitionId);
+    const seasonPart = seasonId && !["auto", "null", "undefined"].includes(String(seasonId)) ? `/${encodeURIComponent(String(seasonId))}` : "";
+    const candidates = [
+        `https://www.mackolik.com/puan-durumu/${slug}${seasonPart}/${competitionId}`,
+        `https://www.mackolik.com/puan-durumu/${slug}/${competitionId}`
+    ];
+    let lastError = null;
+    for (const url of Array.from(new Set(candidates))) {
+        try {
+            const response = await axios.get(url, {
+                headers: {
+                    ...MACKOLIK_HEADERS,
+                    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    Referer: "https://www.mackolik.com/canli-sonuclar"
+                },
+                timeout: 14000,
+                maxRedirects: 5
+            });
+            const settings = extractMackolikSettingsObjects(response.data)
+                .find(item => item?.competition?.id || item?.competition?.standings || item?.competition?.playerStats);
+            if (settings?.competition) return settings;
+            throw new Error("Mackolik competition settings not found");
+        } catch (error) {
+            lastError = error;
+        }
+    }
+    throw lastError || new Error("Mackolik competition page unavailable");
+}
+
+async function fetchMackolikLeagueStandings(competitionId, seasonId = null) {
+    const settings = await fetchMackolikCompetitionPageSettings(competitionId, seasonId);
+    return normalizeMackolikCompetitionStandings(settings, competitionId);
+}
+
+async function fetchMackolikLeagueTopPlayers(competitionId, seasonId = null) {
+    const settings = await fetchMackolikCompetitionPageSettings(competitionId, seasonId);
+    return normalizeMackolikTopScorers(settings);
+}
+
+async function fetchMackolikLeagueSeasons(competitionId) {
+    const settings = await fetchMackolikCompetitionPageSettings(competitionId);
+    const seasonList = settings?.seasonList || settings?.competition?.tournamentCalendar || {};
+    return Object.values(seasonList).filter(item => item?.id).map(item => ({
+        id: item.id,
+        name: item.name,
+        year: item.name,
+        slug: item.slug || item.id,
+        isCurrent: String(item.active || "").toLowerCase() === "yes",
+        current: String(item.active || "").toLowerCase() === "yes",
+        source: "mackolik"
+    }));
 }
 
 function normalizeSofaLiveEventsData(payload) {
@@ -1548,9 +2170,112 @@ function normalizeLivePollPayload(data) {
     return normalizeSofaLiveEventsData(data);
 }
 
+function getScoreOverlayKey(event) {
+    const home = normalizeSearchName(event?.homeTeam?.name || event?.homeTeam?.shortName);
+    const away = normalizeSearchName(event?.awayTeam?.name || event?.awayTeam?.shortName);
+    if (!home || !away) return "";
+    return `${home}|${away}`;
+}
+
+function isScoreOverlayTeamMatch(primaryName, mackolikName) {
+    const a = normalizeSearchName(primaryName);
+    const b = normalizeSearchName(mackolikName);
+    if (!a || !b) return false;
+    if (a === b) return true;
+
+    const compactA = a.replace(/\s+/g, "");
+    const compactB = b.replace(/\s+/g, "");
+    if (compactA.length >= 4 && compactB.length >= 4 && (compactA.includes(compactB) || compactB.includes(compactA))) {
+        return true;
+    }
+
+    const tokensA = new Set(a.split(/\s+/).filter(token => token.length >= 3));
+    const tokensB = b.split(/\s+/).filter(token => token.length >= 3);
+    if (!tokensA.size || !tokensB.length) return false;
+    const overlap = tokensB.filter(token => tokensA.has(token)).length;
+    return overlap > 0 && overlap / Math.min(tokensA.size, tokensB.length) >= 0.67;
+}
+
+function findMackolikOverlayMatch(primaryEvent, exactMap, mackolikEvents) {
+    const exact = exactMap.get(getScoreOverlayKey(primaryEvent));
+    if (exact) return exact;
+
+    const homeName = primaryEvent?.homeTeam?.name || primaryEvent?.homeTeam?.shortName;
+    const awayName = primaryEvent?.awayTeam?.name || primaryEvent?.awayTeam?.shortName;
+    return mackolikEvents.find(event =>
+        isScoreOverlayTeamMatch(homeName, event?.homeTeam?.name || event?.homeTeam?.shortName) &&
+        isScoreOverlayTeamMatch(awayName, event?.awayTeam?.name || event?.awayTeam?.shortName)
+    ) || null;
+}
+
+function applyMackolikScoreOverlay(primaryData, mackolikData) {
+    const primaryEvents = Array.isArray(primaryData?.events) ? primaryData.events : [];
+    const mackolikEvents = Array.isArray(mackolikData?.events) ? mackolikData.events : [];
+    if (!primaryEvents.length || !mackolikEvents.length) return primaryData;
+
+    const mackolikByKey = new Map();
+    mackolikEvents.forEach(event => {
+        const key = getScoreOverlayKey(event);
+        if (key) mackolikByKey.set(key, event);
+    });
+    if (!mackolikByKey.size) return primaryData;
+
+    let changed = 0;
+    const events = primaryEvents.map(event => {
+        const match = findMackolikOverlayMatch(event, mackolikByKey, mackolikEvents);
+        if (!match) return event;
+        const home = Number(match.homeScore?.current ?? event.homeScore?.current ?? 0);
+        const away = Number(match.awayScore?.current ?? event.awayScore?.current ?? 0);
+        const homeLogo = match.homeTeam?.logoUrl || event.homeTeam?.logoUrl;
+        const awayLogo = match.awayTeam?.logoUrl || event.awayTeam?.logoUrl;
+        const scoreChanged = home !== Number(event.homeScore?.current ?? 0) || away !== Number(event.awayScore?.current ?? 0);
+        const logoChanged = homeLogo !== event.homeTeam?.logoUrl || awayLogo !== event.awayTeam?.logoUrl;
+        if (!scoreChanged && !logoChanged) return event;
+        changed++;
+        return {
+            ...event,
+            homeTeam: {
+                ...(event.homeTeam || {}),
+                logoUrl: homeLogo,
+                mackolikId: match.homeTeam?.id || event.homeTeam?.mackolikId || ""
+            },
+            awayTeam: {
+                ...(event.awayTeam || {}),
+                logoUrl: awayLogo,
+                mackolikId: match.awayTeam?.id || event.awayTeam?.mackolikId || ""
+            },
+            homeScore: { ...(event.homeScore || {}), current: home },
+            awayScore: { ...(event.awayScore || {}), current: away },
+            mackolikMatchId: match.id || event.mackolikMatchId || "",
+            mackolikSlug: match.slug || event.mackolikSlug || "",
+            mackolikScoreOverlay: true,
+            mackolikScoreUpdatedAt: new Date().toISOString()
+        };
+    });
+
+    return changed ? {
+        ...primaryData,
+        events,
+        source: `${primaryData.source || "sofascore"}+mackolik-score`,
+        mackolikScoreOverlayCount: changed
+    } : primaryData;
+}
+
+async function maybeApplyMackolikScoreOverlay(primaryData, timeoutMs = 1600) {
+    if (!ENABLE_MACKOLIK_SCORE_OVERLAY) return primaryData;
+    if (shouldTreatAsMackolikLivePayload(primaryData)) return primaryData;
+    try {
+        const mackolik = await withServerTimeout(fetchLiveFromMackolik(), timeoutMs, "Mackolik score overlay");
+        return applyMackolikScoreOverlay(primaryData, mackolik);
+    } catch (error) {
+        return primaryData;
+    }
+}
+
 function saveLivePollPayloadIfPublic(normalized, saveSnapshot) {
     if (!saveSnapshot || normalized?.pushOnly) return;
     if (SOFASCORE_ONLY_MODE && shouldTreatAsMackolikLivePayload(normalized)) return;
+    if (shouldTreatAsMackolikLivePayload(normalized)) syncLiveMatchCache(normalized.events);
     globalLiveEvents = normalized;
     lastLiveFetchTime = Date.now();
     saveLiveSnapshot();
@@ -1584,11 +2309,13 @@ async function fetchLiveScoresForNotifications(options = {}) {
     const { allowPushFallback = true, saveSnapshot = true } = options;
     let primaryErrorMessage = "";
     try {
-        const fastSources = (LIVE_PRIMARY_SOURCE === "mackolik" && ENABLE_MACKOLIK_MATCHES)
-            ? [
-                fetchLiveFromMackolik()
-            ]
-            : SOFASCORE_ONLY_MODE
+        if (MACKOLIK_CANONICAL_MODE) {
+            const normalized = await fetchLiveFromMackolik();
+            saveLivePollPayloadIfPublic(normalized, saveSnapshot);
+            return normalized;
+        }
+
+        const fastSources = SOFASCORE_ONLY_MODE
             ? [
                 fetchLiveFromSofaScore()
             ]
@@ -1598,12 +2325,13 @@ async function fetchLiveScoresForNotifications(options = {}) {
                 fetchRapidApiSofaPath("/sport/football/events/live", {}, 4200),
                 fetchLiveFromScheduledFallback("live-poll-fast-fallback")
             ];
-        if (LIVE_PRIMARY_SOURCE !== "mackolik" && !SOFASCORE_ONLY_MODE && ENABLE_MACKOLIK_MATCHES) {
+        if (!SOFASCORE_ONLY_MODE && ENABLE_MACKOLIK_MATCHES) {
             fastSources.push(fetchLiveFromMackolik());
         }
 
         const data = await Promise.any(fastSources);
-        const normalized = normalizeLivePollPayload(data);
+        let normalized = normalizeLivePollPayload(data);
+        normalized = await maybeApplyMackolikScoreOverlay(normalized, 1400);
         if (Array.isArray(normalized.events)) {
             saveLivePollPayloadIfPublic(normalized, saveSnapshot);
             return normalized;
@@ -1620,6 +2348,8 @@ async function fetchLiveScoresForNotifications(options = {}) {
 
     return getLiveEventsData(true);
 }
+
+
 
 async function fetchLiveFromScheduledFallback(sourceError = "") {
     const now = Date.now();
@@ -1657,12 +2387,31 @@ async function fetchLiveFromScheduledFallback(sourceError = "") {
 }
 
 async function fetchScheduledFromSofaScore(date) {
-    const data = await fetchFromSofa(`/sport/football/scheduled-events/${date}`);
-    const normalized = normalizeSofaEventsData(data.data);
-    if (!Array.isArray(normalized.events)) {
+    const attempts = await Promise.allSettled([
+        fetchFromSofaFastRace(`/sport/football/scheduled-events/${date}`, {}, 9000),
+        fetchFromSofaFastRace(`/sport/football/scheduled-events/${date}/inverse`, {}, 9000),
+        fetchFromSofa(`/sport/football/scheduled-events/${date}`),
+        fetchFromSofa(`/sport/football/scheduled-events/${date}/inverse`).catch(() => null)
+    ]);
+    const eventsById = new Map();
+    let firstMeta = null;
+    for (const attempt of attempts) {
+        if (attempt.status !== "fulfilled" || !attempt.value) continue;
+        const normalized = normalizeSofaEventsData(attempt.value?.data || attempt.value);
+        if (!firstMeta && normalized) firstMeta = normalized;
+        (normalized.events || []).forEach(event => {
+            if (event?.id) eventsById.set(event.id.toString(), event);
+        });
+    }
+    const events = Array.from(eventsById.values()).sort((a, b) => (a.startTimestamp || 0) - (b.startTimestamp || 0));
+    if (!events.length) {
         throw new Error("SofaScore scheduled response missing events array");
     }
-    return normalized;
+    return {
+        ...(firstMeta || {}),
+        events,
+        source: "sofascore-scheduled-merged"
+    };
 }
 
 async function fetchLiveFromMackolik() {
@@ -1673,7 +2422,7 @@ async function fetchLiveFromMackolik() {
             matchDate: config.matchDate
         },
         headers: MACKOLIK_HEADERS,
-        timeout: 20000
+        timeout: 4500
     });
 
     if (response.data?.status !== "success") {
@@ -1686,6 +2435,10 @@ async function fetchLiveFromMackolik() {
 }
 
 async function fetchLiveWithFallback() {
+    if (MACKOLIK_CANONICAL_MODE) {
+        return await fetchLiveFromMackolik();
+    }
+
     const errors = [];
     const trySource = async (name, fetchFn) => {
         try {
@@ -1700,7 +2453,6 @@ async function fetchLiveWithFallback() {
             errors.push(`${name}: empty`);
         } catch (error) {
             errors.push(`${name}: ${error.message}`);
-            // Sadece ciddi xetaları logla (403/timeout cox olanda logu doldurmasın)
             if (!error.message.includes("403") && !error.message.includes("timeout")) {
                 console.warn(`[LIVE SOURCE] ${name} failed: ${error.message}`);
             }
@@ -1712,7 +2464,10 @@ async function fetchLiveWithFallback() {
         ? [["SofaScore live", fetchLiveFromSofaScore]]
         : (LIVE_PRIMARY_SOURCE === "mackolik" && ENABLE_MACKOLIK_MATCHES
             ? [
-                ["Mackolik", fetchLiveFromMackolik]
+                ["Mackolik", fetchLiveFromMackolik],
+                ["SofaScore live", fetchLiveFromSofaScore],
+                ["RapidAPI live", fetchLiveFromRapidApi],
+                ["Scheduled live", () => fetchLiveFromScheduledFallback(errors.join(" | "))]
             ]
             : [
                 ["SofaScore live", fetchLiveFromSofaScore],
@@ -1735,7 +2490,7 @@ async function fetchLiveWithFallback() {
 async function fetchMackolikMatchesByDate(matchDate) {
     const response = await axios.get(MACKOLIK_LIVE_URL, {
         params: {
-            sports: ["Soccer"],
+            "sports[]": "Soccer",
             matchDate
         },
         headers: MACKOLIK_HEADERS,
@@ -1759,6 +2514,8 @@ function mapMackolikIncident(item) {
     const base = {
         time: timeMatch ? Number(timeMatch[1]) : 0,
         addedTime: addedMatch ? Number(addedMatch[1]) : undefined,
+        timeMin: rawTime,
+        minuteText: rawTime,
         isHome: item.position === "home"
     };
 
@@ -1827,41 +2584,211 @@ function formatMackolikStatName(key) {
     return map[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase()).trim();
 }
 
+function parseMackolikStatNumber(value) {
+    if (value === null || value === undefined || value === "") return NaN;
+    if (typeof value === "number") return Number.isFinite(value) ? value : NaN;
+    if (typeof value === "string") {
+        const normalized = value.replace(",", ".");
+        const match = normalized.match(/-?\d+(?:\.\d+)?/);
+        return match ? Number(match[0]) : NaN;
+    }
+    if (typeof value === "object") {
+        const candidates = [
+            value.value,
+            value.displayValue,
+            value.display,
+            value.home,
+            value.homeValue,
+            value.local,
+            value[0]
+        ];
+        for (const candidate of candidates) {
+            const parsed = parseMackolikStatNumber(candidate);
+            if (Number.isFinite(parsed)) return parsed;
+        }
+    }
+    return NaN;
+}
+
+function parseMackolikStatPair(homeValue, awayValue) {
+    if (Array.isArray(homeValue)) {
+        return {
+            home: parseMackolikStatNumber(homeValue[0]),
+            away: parseMackolikStatNumber(homeValue[1])
+        };
+    }
+
+    if (homeValue && typeof homeValue === "object") {
+        const homeCandidate = homeValue.home ?? homeValue.homeValue ?? homeValue.local ?? homeValue[0] ?? homeValue.value;
+        const awayCandidate = homeValue.away ?? homeValue.awayValue ?? homeValue.visitor ?? homeValue.guest ?? homeValue[1];
+        const parsedHome = parseMackolikStatNumber(homeCandidate);
+        const parsedAway = parseMackolikStatNumber(awayCandidate);
+        if (Number.isFinite(parsedHome) || Number.isFinite(parsedAway)) {
+            return { home: parsedHome, away: parsedAway };
+        }
+    }
+
+    const combined = [homeValue, awayValue]
+        .filter(value => value !== null && value !== undefined)
+        .map(value => typeof value === "string" ? value : "")
+        .join(" ");
+    const combinedNumbers = combined.match(/\d+(?:[.,]\d+)?/g);
+    if (combinedNumbers && combinedNumbers.length >= 2) {
+        return {
+            home: parseMackolikStatNumber(combinedNumbers[0]),
+            away: parseMackolikStatNumber(combinedNumbers[1])
+        };
+    }
+
+    return {
+        home: parseMackolikStatNumber(homeValue),
+        away: parseMackolikStatNumber(awayValue)
+    };
+}
+
+function formatMackolikStatValue(value) {
+    const parsed = parseMackolikStatNumber(value);
+    if (Number.isFinite(parsed)) return Number.isInteger(parsed) ? String(parsed) : String(Number(parsed.toFixed(1)));
+    if (value === null || value === undefined || value === "") return "0";
+    return String(value);
+}
+
+function hasMackolikStatValue(value) {
+    return value !== null && value !== undefined && value !== "" && Number.isFinite(parseMackolikStatNumber(value));
+}
+
+function mergeMackolikStatItem(homeStats, awayStats, item) {
+    if (!item || typeof item !== "object") return;
+    const key = item.key || item.name || item.type || item.statName || item.title;
+    if (!key) return;
+    const pair = parseMackolikStatPair(
+        item.home ?? item.homeValue ?? item.local ?? item.value ?? item.values,
+        item.away ?? item.awayValue ?? item.visitor ?? item.guest
+    );
+    if (Number.isFinite(pair.home)) homeStats[key] = pair.home;
+    if (Number.isFinite(pair.away)) awayStats[key] = pair.away;
+}
+
+function normalizeMackolikGameStatsPayload(payload = {}) {
+    const source = payload?.data || payload || {};
+    const homeStats = { ...(source.home || {}) };
+    const awayStats = { ...(source.away || {}) };
+    const statArrays = [
+        source.stats,
+        source.statistics,
+        source.statisticsItems,
+        source.items,
+        source.gameStats,
+        source.matchStats
+    ].filter(Array.isArray);
+    statArrays.flat().forEach(item => mergeMackolikStatItem(homeStats, awayStats, item));
+
+    ["possesionPercentage", "possessionPercentage"].forEach(key => {
+        const pair = parseMackolikStatPair(homeStats[key], awayStats[key]);
+        const homeValue = pair.home;
+        const awayValue = pair.away;
+        if (Number.isFinite(homeValue) && !Number.isFinite(awayValue) && homeValue > 0 && homeValue < 100) {
+            awayStats[key] = Math.max(0, 100 - homeValue);
+        } else if (!Number.isFinite(homeValue) && Number.isFinite(awayValue) && awayValue > 0 && awayValue < 100) {
+            homeStats[key] = Math.max(0, 100 - awayValue);
+        } else if (Number.isFinite(homeValue) && Number.isFinite(awayValue)) {
+            homeStats[key] = homeValue;
+            awayStats[key] = awayValue;
+        }
+    });
+
+    const statKeys = [...new Set([...Object.keys(homeStats), ...Object.keys(awayStats)])];
+    return statKeys
+        .filter(key => hasMackolikStatValue(homeStats[key]) && hasMackolikStatValue(awayStats[key]))
+        .filter(key => {
+            const home = parseMackolikStatNumber(homeStats[key]);
+            const away = parseMackolikStatNumber(awayStats[key]);
+            const missingWhenZero = ["possesionPercentage", "possessionPercentage", "totalPasses", "accuratePasses"];
+            return !(missingWhenZero.includes(key) && home === 0 && away === 0);
+        })
+        .map(key => ({
+            name: formatMackolikStatName(key),
+            homeValue: formatMackolikStatValue(homeStats[key]),
+            awayValue: formatMackolikStatValue(awayStats[key])
+        }));
+}
+
+async function fetchMackolikGameStats(matchId, slug = "") {
+    const safeSlug = slug || "mac";
+    const response = await axios.get("https://www.mackolik.com/ajax/soccer/match/gameStats", {
+        params: { matchId },
+        headers: {
+            ...MACKOLIK_HEADERS,
+            Referer: `https://www.mackolik.com/mac/${safeSlug}/${matchId}`
+        },
+        timeout: 2800
+    });
+    if (response.data?.status && response.data.status !== "success") {
+        throw new Error(`Mackolik stats failed: ${response.data.status}`);
+    }
+    return response.data?.data || response.data;
+}
+
+async function fetchMackolikKeyEvents(matchId, slug = "") {
+    const safeSlug = slug || "mac";
+    const response = await axios.get("https://www.mackolik.com/ajax/football/key-events", {
+        params: {
+            ajaxViewName: "Football_Match_KeyEvents",
+            matchId
+        },
+        headers: {
+            ...MACKOLIK_HEADERS,
+            Referer: `https://www.mackolik.com/mac/${safeSlug}/${matchId}`
+        },
+        timeout: 2800
+    });
+    if (response.data?.status && response.data.status !== "success") {
+        throw new Error(`Mackolik key events failed: ${response.data.status}`);
+    }
+    const payload = response.data?.data || response.data || {};
+    return Array.isArray(payload.keyEvents) ? payload.keyEvents : [];
+}
+
 async function fetchMackolikMatchDetails(matchId, slug = "") {
     const safeSlug = slug || "mac";
     const url = `https://www.mackolik.com/mac/${safeSlug}/${matchId}`;
-    const response = await axios.get(url, {
+    
+    // Start fetching HTML concurrently to save time if AJAX fails
+    const htmlPromise = axios.get(url, {
         headers: {
             "User-Agent": MACKOLIK_HEADERS["User-Agent"],
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
         },
-        timeout: 20000
-    });
+        timeout: 4500
+    }).catch(() => null);
 
-    const settingsObjects = extractMackolikSettingsObjects(response.data);
-    const keyEventsSettings = settingsObjects.find(obj => obj?.url?.includes("/ajax/football/key-events"));
-    const gameStatsSettings = settingsObjects.find(obj => obj?.url?.includes("/ajax/soccer/match/gameStats"));
+    const freshStatsPromise = fetchMackolikGameStats(matchId, safeSlug).catch(() => null);
+    let keyEvents = await fetchMackolikKeyEvents(matchId, safeSlug).catch(() => []);
+    let gameStatsSettings = null;
 
-    let keyEvents = Array.isArray(keyEventsSettings?.keyEvents) ? keyEventsSettings.keyEvents : [];
-    if (!keyEvents.length && keyEventsSettings?.url && keyEventsSettings?.asyncRequestParams) {
-        const keyEventsResponse = await axios.get(keyEventsSettings.url, {
-            params: keyEventsSettings.asyncRequestParams,
-            headers: MACKOLIK_HEADERS,
-            timeout: 15000
-        }).catch(() => null);
-        keyEvents = Array.isArray(keyEventsResponse?.data?.keyEvents) ? keyEventsResponse.data.keyEvents : [];
+    if (!keyEvents.length) {
+        const response = await htmlPromise;
+
+        const settingsObjects = extractMackolikSettingsObjects(response?.data || "");
+        const keyEventsSettings = settingsObjects.find(obj => obj?.url?.includes("/ajax/football/key-events"));
+        gameStatsSettings = settingsObjects.find(obj => obj?.url?.includes("/ajax/soccer/match/gameStats"));
+
+        keyEvents = Array.isArray(keyEventsSettings?.keyEvents) ? keyEventsSettings.keyEvents : [];
+        if (!keyEvents.length && keyEventsSettings?.url && keyEventsSettings?.asyncRequestParams) {
+            const keyEventsResponse = await axios.get(keyEventsSettings.url, {
+                params: keyEventsSettings.asyncRequestParams,
+                headers: MACKOLIK_HEADERS,
+                timeout: 2500
+            }).catch(() => null);
+            const keyPayload = keyEventsResponse?.data?.data || keyEventsResponse?.data || {};
+            keyEvents = Array.isArray(keyPayload.keyEvents) ? keyPayload.keyEvents : [];
+        }
     }
 
     const incidents = keyEvents.map(mapMackolikIncident).filter(Boolean);
 
-    const homeStats = gameStatsSettings?.home || {};
-    const awayStats = gameStatsSettings?.away || {};
-    const statKeys = [...new Set([...Object.keys(homeStats), ...Object.keys(awayStats)])];
-    const statisticsItems = statKeys.map(key => ({
-        name: formatMackolikStatName(key),
-        homeValue: String(homeStats[key] ?? 0),
-        awayValue: String(awayStats[key] ?? 0)
-    }));
+    const freshStats = await freshStatsPromise;
+    const statisticsItems = normalizeMackolikGameStatsPayload(freshStats || gameStatsSettings || {});
 
     return {
         incidents: { incidents },
@@ -1893,8 +2820,12 @@ function loadLiveSnapshot() {
                 console.log("[LIVE SNAPSHOT] Ignoring disk cache with Mackolik events.");
                 return;
             }
-            // Snapshot age yoxlanışını yumşaldırıq - 12 saata qədər icazə veririk
-            // çünki heç olmasa köhnə məlumatın olması sıfır məlumatdan yaxşıdır.
+            if (MACKOLIK_CANONICAL_MODE && source && source !== "mackolik" && !hasMackolikEvents) {
+                console.log(`[LIVE SNAPSHOT] Ignoring ${source} disk cache; Mackolik canonical mode is active.`);
+                return;
+            }
+            // Snapshot age yoxlanÄ±ÅŸÄ±nÄ± yumÅŸaldÄ±rÄ±q - 12 saata qÉ™dÉ™r icazÉ™ veririk
+            // Ã§Ã¼nki heÃ§ olmasa kÃ¶hnÉ™ mÉ™lumatÄ±n olmasÄ± sÄ±fÄ±r mÉ™lumatdan yaxÅŸÄ±dÄ±r.
             if (!Number.isFinite(snapshotAge) || snapshotAge > LIVE_DISK_SNAPSHOT_MAX_AGE) {
                 console.log("[LIVE SNAPSHOT] Ignoring stale disk cache.");
                 return;
@@ -1902,7 +2833,7 @@ function loadLiveSnapshot() {
             globalLiveEvents = snapshot.data;
             lastLiveFetchTime = snapshot.timestamp || 0;
             
-            // matchCache-i də snapshot-dan doldururuq ki, ilk saniyələrdə sayt boş olmasın
+            // matchCache-i dÉ™ snapshot-dan doldururuq ki, ilk saniyÉ™lÉ™rdÉ™ sayt boÅŸ olmasÄ±n
             if (Array.isArray(globalLiveEvents.events)) {
                 globalLiveEvents.events.forEach(match => {
                     if (match.id) matchCache[String(match.id)] = match;
@@ -1931,6 +2862,10 @@ async function loadLiveSnapshotFromFirestore() {
             }
             if (SOFASCORE_ONLY_MODE && hasMackolikEvents) {
                 console.log("[LIVE SNAPSHOT] Ignoring Firestore cache with Mackolik events.");
+                return false;
+            }
+            if (MACKOLIK_CANONICAL_MODE && source && source !== "mackolik" && !hasMackolikEvents) {
+                console.log(`[LIVE SNAPSHOT] Ignoring ${source} Firestore cache; Mackolik canonical mode is active.`);
                 return false;
             }
             if (!Number.isFinite(snapshotAge) || snapshotAge > LIVE_DISK_SNAPSHOT_MAX_AGE) {
@@ -1999,7 +2934,7 @@ const FALLBACK_TOP_LEAGUES = [
     { id: 35, name: "Bundesliga", category: { id: 30, name: "Germany" } },
     { id: 34, name: "Ligue 1", category: { id: 7, name: "France" } },
     { id: 52, name: "Super Lig", category: { id: 46, name: "Turkey" } },
-    { id: 709, name: "Azərbaycan Premyer Liqası", category: { id: 297, name: "Azerbaijan" }, season: { id: 78700 } }
+    { id: 709, name: "AzÉ™rbaycan Premyer LiqasÄ±", category: { id: 297, name: "Azerbaijan" }, season: { id: 78700 } }
 ];
 
 const KNOWN_CURRENT_SEASONS = {
@@ -2011,10 +2946,10 @@ const KNOWN_CURRENT_SEASONS = {
     35: 77333,  // Bundesliga 25/26
     34: 77356,  // Ligue 1 25/26
     52: 77805,  // Super Lig 25/26
-    709: 78700, // Azərbaycan Premyer Liqası 25/26
-    736: 81188, // Azərbaycan Birinci Liqa 25/26
-    21050: 79799, // Azərbaycan İkinci Liqa 25/26
-    20077: 84274, // Azərbaycan Regional League 25/26
+    709: 78700, // AzÉ™rbaycan Premyer LiqasÄ± 25/26
+    736: 81188, // AzÉ™rbaycan Birinci Liqa 25/26
+    21050: 79799, // AzÉ™rbaycan Ä°kinci Liqa 25/26
+    20077: 84274, // AzÉ™rbaycan Regional League 25/26
     679: 76984  // UEFA Europa League 25/26
 };
 
@@ -2330,8 +3265,18 @@ function collectStandingTeamImagePaths(data) {
         .filter(Boolean);
 }
 
+function collectStandingTeamImageUrls(data) {
+    const rows = data?.standings?.flatMap(standing => standing.rows || []) || [];
+    return rows
+        .map(row => row?.team?.logoUrl || null)
+        .filter(Boolean);
+}
+
 function warmStandingTeamImages(data, limit = 32) {
-    return warmImagePaths(collectStandingTeamImagePaths(data), limit);
+    return Promise.allSettled([
+        warmImagePaths(collectStandingTeamImagePaths(data), limit),
+        warmExternalImageUrls(collectStandingTeamImageUrls(data), limit)
+    ]);
 }
 
 function collectTopPlayerImagePaths(data) {
@@ -2769,7 +3714,7 @@ async function fetchTopPlayersDataForBestSeason(tournamentId, seasonId, options 
     if (!seasonIds.length) {
         seasonIds = await getFallbackTopPlayerSeasonIds(tournamentId, seasonIds, options);
     }
-    if (!seasonIds.length) throw new Error("Season id tapılmadı");
+    if (!seasonIds.length) throw new Error("Season id tapÄ±lmadÄ±");
     if (options.maxSeasons) seasonIds = seasonIds.slice(0, Number(options.maxSeasons));
 
     let firstData = null;
@@ -2837,6 +3782,18 @@ async function warmImagePaths(paths, limit = 12) {
     const unique = [...new Set(paths)].filter(Boolean).slice(0, limit);
     if (!unique.length) return;
     await Promise.allSettled(unique.map(imagePath => fetchSofaImageCached(imagePath)));
+}
+
+async function warmExternalImageUrls(urls, limit = 12) {
+    const unique = [...new Set(urls)].filter(Boolean).slice(0, limit);
+    if (!unique.length) return;
+    await Promise.allSettled(unique.map(async imageUrl => {
+        try {
+            const parsed = new URL(imageUrl);
+            if (!["https:", "http:"].includes(parsed.protocol) || !EXTERNAL_IMAGE_HOSTS.has(parsed.hostname)) return;
+            await fetchExternalImageCached(parsed.href);
+        } catch (e) {}
+    }));
 }
 
 async function warmLeagueImages(limit = 10) {
@@ -2952,6 +3909,7 @@ async function getLiveEventsData(forceFresh = false, preferImmediateCache = fals
             if (!data || !Array.isArray(data.events)) {
                 throw new Error("Live response missing events array");
             }
+            if (shouldTreatAsMackolikLivePayload(data)) syncLiveMatchCache(data.events);
             globalLiveEvents = data;
             lastLiveFetchTime = Date.now();
             saveLiveSnapshot();
@@ -2965,6 +3923,17 @@ async function getLiveEventsData(forceFresh = false, preferImmediateCache = fals
     try {
         return await liveFetchPromise;
     } catch (error) {
+        if (MACKOLIK_CANONICAL_MODE) {
+            globalLiveEvents = {
+                events: [],
+                source: "mackolik",
+                stale: true,
+                warning: error.message,
+                generatedAt: new Date().toISOString()
+            };
+            lastLiveFetchTime = Date.now();
+            return globalLiveEvents;
+        }
         if (SOFASCORE_ONLY_MODE && containsMackolikLiveData(globalLiveEvents)) {
             globalLiveEvents = null;
             lastLiveFetchTime = 0;
@@ -3434,10 +4403,10 @@ async function sendGoalScorerPushForEvent(event, reason = "incident-probe") {
         const incidentKey = buildGoalIncidentKey(incident);
         if (hasRecentGoalNotification(matchId, incidentKey, 12 * 60 * 60 * 1000)) continue;
 
-        const minuteText = incident.time ? `${incident.time}'` : "Canlı";
+        const minuteText = incident.time ? `${incident.time}'` : "CanlÄ±";
         const goalLabel =
             incident.incidentClass === "ownGoal" ? "Avtoqol" :
-            incident.incidentClass === "penalty" ? "Penaltidən qol" :
+            incident.incidentClass === "penalty" ? "PenaltidÉ™n qol" :
             "Qol";
         const title = "Rabona Media";
         const body = `${minuteText} ${goalLabel}: ${scorerName}. ${event.homeTeam.name} ${currentHomeScore} - ${currentAwayScore} ${event.awayTeam.name}`;
@@ -3500,7 +4469,7 @@ function normalizeStatisticsData(data) {
             statistics: [{
                 period: payload.period || "ALL",
                 groups: [{
-                    groupName: payload.groupName || "Ümumi",
+                    groupName: payload.groupName || "Ãœmumi",
                     statisticsItems: payload.statisticsItems
                 }]
             }]
@@ -3523,13 +4492,18 @@ async function getMatchIncidentsData(matchId) {
     return getCachedData(`incidents_${matchId}`, async () => {
         try {
             const data = await Promise.any([
-                fetchFromSofaFastRace(`/event/${matchId}/incidents`, {}, 4500),
-                fetchRapidApiSofaPath(`/event/${matchId}/incidents`, {}, 6500)
+                fetchFromSofaApiDirect(`/event/${matchId}/incidents`, {}, 1600),
+                fetchFromSofaNativeFast(`/event/${matchId}/incidents`, {}, 2000),
+                fetchFromSofaFastRace(`/event/${matchId}/incidents`, {}, 2600),
+                fetchRapidApiSofaPath(`/event/${matchId}/incidents`, {}, 2800)
             ]);
             return normalizeIncidentsData(data);
         } catch (error) {
             console.warn(`[INCIDENTS FALLBACK] Native incidents failed for ${matchId}: ${error.message}`);
-            const fallback = await fetchRapidApiIncidents(matchId);
+            const fallback = await Promise.race([
+                fetchRapidApiIncidents(matchId),
+                new Promise(resolve => setTimeout(() => resolve(null), 900))
+            ]);
             if (fallback) return fallback;
             throw error;
         }
@@ -3539,10 +4513,10 @@ async function getMatchIncidentsData(matchId) {
 async function fetchMatchStatisticsFresh(matchId) {
     try {
         const fast = await Promise.any([
-            fetchFromSofaApiDirect(`/event/${matchId}/statistics`, {}, 2400),
-            fetchFromSofaNativeFast(`/event/${matchId}/statistics`, {}, 2800),
-            fetchFromSofaFastRace(`/event/${matchId}/statistics`, {}, 4200),
-            fetchRapidApiSofaPath(`/event/${matchId}/statistics`, {}, 6200)
+            fetchFromSofaApiDirect(`/event/${matchId}/statistics`, {}, 1400),
+            fetchFromSofaNativeFast(`/event/${matchId}/statistics`, {}, 1800),
+            fetchFromSofaFastRace(`/event/${matchId}/statistics`, {}, 2800),
+            fetchRapidApiSofaPath(`/event/${matchId}/statistics`, {}, 3000)
         ]);
         return normalizeStatisticsData(fast);
     } catch (error) {
@@ -3587,10 +4561,11 @@ function refreshMatchStatisticsInBackground(matchId, label = "STATS BACKGROUND R
 }
 
 async function warmLiveMatchDetails(events = []) {
+    if (!ALWAYS_ON_ENABLED) return;
     const now = Date.now();
     if (liveDetailsWarmupPromise || now - lastLiveDetailsWarmupAt < DETAILS_WARMUP_INTERVAL_MS) return;
     const warmableEvents = events
-        .filter(event => event?.id && String(event.source || "sofascore").toLowerCase() !== "mackolik")
+        .filter(event => event?.id)
         .sort((a, b) => {
             const aLive = isLiveSofaEvent(a) ? 1 : 0;
             const bLive = isLiveSofaEvent(b) ? 1 : 0;
@@ -3606,6 +4581,9 @@ async function warmLiveMatchDetails(events = []) {
             const batch = warmableEvents.slice(i, i + batchSize);
             await Promise.allSettled(batch.flatMap(event => {
                 const id = event.id.toString();
+                if (String(event.source || "").toLowerCase().includes("mackolik")) {
+                    return [refreshMatchDetails(id)];
+                }
                 const tasks = [];
                 if (!cache[`incidents_${id}`] || Date.now() - cache[`incidents_${id}`].timestamp > INCIDENTS_STALE_REFRESH_MS) {
                     tasks.push(getMatchIncidentsData(id));
@@ -3637,9 +4615,17 @@ async function warmLiveMatchDetails(events = []) {
     });
 }
 
-// API vasitÉ™Ã§isi (Komanda mÉ™lumatlarÄ± vÉ™ heyÉ™t Ã¼Ã§Ã¼n)
+// API vasitÃ‰â„¢ÃƒÂ§isi (Komanda mÃ‰â„¢lumatlarÃ„Â± vÃ‰â„¢ heyÃ‰â„¢t ÃƒÂ¼ÃƒÂ§ÃƒÂ¼n)
 app.get("/api/team/:id(\\d+)", async (req, res) => {
     try {
+        if (MACKOLIK_CANONICAL_MODE) {
+            return res.json({
+                info: { team: null, source: "mackolik", unavailable: true },
+                players: { players: [], source: "mackolik", unavailable: true },
+                fast: req.query.fast === "1",
+                mackolikOnly: true
+            });
+        }
         const teamId = req.params.id;
         const fast = req.query.fast === "1";
         const fetchTeamInfo = async () => {
@@ -3711,12 +4697,16 @@ app.get("/api/team/:id(\\d+)", async (req, res) => {
     }
 });
 
-// Yeni API: CanlÄ± MatÃ§lar
+// Yeni API: CanlÃ„Â± MatÃƒÂ§lar
 app.post("/api/matches/live/client-snapshot", (req, res) => {
     try {
+        if (MACKOLIK_CANONICAL_MODE) {
+            return res.json({ success: false, skipped: true, message: "Mackolik canonical mode keeps server live cache authoritative" });
+        }
+
         const rawEvents = Array.isArray(req.body?.events) ? req.body.events : [];
         if (!rawEvents.length) {
-            return res.status(400).json({ success: false, message: "events array required" });
+            return res.json({ success: false, skipped: true, message: "events array required" });
         }
 
         const normalized = normalizeSofaLiveEventsData({
@@ -3731,10 +4721,10 @@ app.post("/api/matches/live/client-snapshot", (req, res) => {
         normalized.generatedAt = new Date().toISOString();
 
         if (!normalized.events.length) {
-            return res.status(400).json({ success: false, message: "no live SofaScore events in snapshot" });
+            return res.json({ success: false, skipped: true, message: "no live SofaScore events in snapshot" });
         }
         if (containsMackolikLiveData(normalized)) {
-            return res.status(400).json({ success: false, message: "Mackolik data is not accepted in SofaScore snapshot" });
+            return res.json({ success: false, skipped: true, message: "Mackolik data is not accepted in SofaScore snapshot" });
         }
 
         globalLiveEvents = normalized;
@@ -3762,14 +4752,25 @@ app.get("/api/matches/live", async (req, res) => {
     res.set('Expires', '0');
 
     try {
-        await ensureLiveSnapshotLoaded();
+        if (!globalLiveEvents?.events?.length && !MACKOLIK_CANONICAL_MODE) {
+            await ensureLiveSnapshotLoaded();
+        }
         if (req.query.source === "mackolik") {
             if (!ENABLE_MACKOLIK_MATCHES) {
                 return res.status(410).json({ error: true, message: "Mackolik match source is disabled. Sofascore-only mode is active." });
             }
-            return res.json(await fetchLiveFromMackolik());
+            const data = await fetchLiveFromMackolik();
+            syncLiveMatchCache(data.events);
+            globalLiveEvents = data;
+            lastLiveFetchTime = Date.now();
+            saveLiveSnapshot();
+            warmLiveMatchDetails(data.events).catch(() => {});
+            return res.json(data);
         }
         if (req.query.source === "sofascore") {
+            if (MACKOLIK_CANONICAL_MODE) {
+                return res.status(410).json({ error: true, source: "mackolik", message: "SofaScore source is disabled. Mackolik-only mode is active." });
+            }
             return res.json(await fetchLiveFromSofaScore());
         }
         const allowImmediateCache = req.query.fresh !== "1" && (req.query.fast === "1" || !!globalLiveEvents?.events?.length);
@@ -3777,6 +4778,15 @@ app.get("/api/matches/live", async (req, res) => {
         res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Live matches: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
+        if (MACKOLIK_CANONICAL_MODE) {
+            return res.json({
+                events: [],
+                source: "mackolik",
+                stale: true,
+                warning: error.message,
+                generatedAt: new Date().toISOString()
+            });
+        }
         if (globalLiveEvents && Array.isArray(globalLiveEvents.events)) {
             const cacheAge = lastLiveFetchTime ? Date.now() - lastLiveFetchTime : Infinity;
             if (cacheAge <= LIVE_STALE_RETURN_MAX_AGE) {
@@ -3798,23 +4808,37 @@ app.get("/api/matches/live", async (req, res) => {
     }
 });
 
-// Yeni API: MatÃ§lar (Skedullu)
+// Yeni API: MatÃƒÂ§lar (Skedullu)
 app.get("/api/matches/:date", async (req, res) => {
     const { date } = req.params;
     try {
         const today = new Date().toISOString().split('T')[0];
         const ttl = (date === today) ? 10 * 1000 : CACHE_TIMES.SCHEDULED; // 10s cache for today
-        const source = String(req.query.source || "sofascore").toLowerCase();
+        const source = MACKOLIK_CANONICAL_MODE
+            ? "mackolik"
+            : String(req.query.source || (LIVE_PRIMARY_SOURCE === "mackolik" ? "mackolik" : "sofascore")).toLowerCase();
         const data = await getCachedData(`matches_${source}_${date}`, async () => {
             if (source === "mackolik") {
                 if (!ENABLE_MACKOLIK_MATCHES) {
                     throw new Error("Mackolik match source is disabled. Sofascore-only mode is active.");
                 }
-                return await fetchMackolikMatchesByDate(date);
+                try {
+                    const mackolikData = await fetchMackolikMatchesByDate(date);
+                    return { ...mackolikData, source: "mackolik" };
+                } catch (mackolikError) {
+                    console.warn(`[SCHEDULED] Mackolik failed for ${date}: ${mackolikError.message}`);
+                    if (MACKOLIK_CANONICAL_MODE) {
+                        throw mackolikError;
+                    }
+                }
+                if (ALLOW_MACKOLIK_FALLBACK || !SOFASCORE_ONLY_MODE) {
+                    return await fetchScheduledFromSofaScore(date);
+                }
+                return { events: [], source: "mackolik", warning: "No Mackolik scheduled events" };
             }
             return await fetchScheduledFromSofaScore(date);
         }, ttl);
-        if (source !== "mackolik" && Array.isArray(data?.events)) {
+        if (Array.isArray(data?.events)) {
             warmLiveMatchDetails(data.events).catch(() => {});
         }
         res.json(data);
@@ -3824,7 +4848,7 @@ app.get("/api/matches/:date", async (req, res) => {
     }
 });
 
-// Yeni API: MatÃ§ HadisÉ™lÉ™ri (Qollar, Kartlar)
+// Yeni API: MatÃƒÂ§ HadisÃ‰â„¢lÃ‰â„¢ri (Qollar, Kartlar)
 // Client-side SofaScore details snapshot. This keeps match details instant on
 // devices where the server or iOS Safari hits a temporary upstream block.
 app.post("/api/match/:id/client-details", (req, res) => {
@@ -3883,7 +4907,12 @@ app.get("/api/match/:id/incidents", async (req, res) => {
         let data;
         if (req.query.fresh === "1") {
             try {
-                data = normalizeIncidentsData(await fetchFromSofaFastRace(`/event/${id}/incidents`, {}, 4500));
+                data = normalizeIncidentsData(await Promise.any([
+                    fetchFromSofaApiDirect(`/event/${id}/incidents`, {}, 1500),
+                    fetchFromSofaNativeFast(`/event/${id}/incidents`, {}, 1800),
+                    fetchFromSofaFastRace(`/event/${id}/incidents`, {}, 2400),
+                    fetchRapidApiSofaPath(`/event/${id}/incidents`, {}, 2600)
+                ]));
                 if (data) cache[`incidents_${id}`] = { data, timestamp: Date.now() };
             } catch (freshError) {
                 console.warn(`[INCIDENTS FRESH FALLBACK] ${id}: ${freshError.message}`);
@@ -3897,11 +4926,11 @@ app.get("/api/match/:id/incidents", async (req, res) => {
         console.error(`[API ERROR] Match incidents ${id}: ${error.message}`);
         const cached = cache[`incidents_${id}`];
         if (cached) return res.json(cached.data);
-        res.status(500).json({ error: true, message: error.message });
+        res.json({ incidents: [], unavailable: true, warning: error.message });
     }
 });
 
-// Yeni API: MatÃ§ StatistikasÄ±
+// Yeni API: MatÃƒÂ§ StatistikasÃ„Â±
 app.get("/api/match/:id/statistics", async (req, res) => {
     const id = req.params.id;
     try {
@@ -3930,22 +4959,20 @@ app.get("/api/match/:id/statistics", async (req, res) => {
             });
         }
 
-        const data = req.query.fresh === "1"
-            ? await fetchMatchStatisticsFresh(id).then(data => {
-                if (data) cache[`stats_${id}`] = { data, timestamp: Date.now() };
-                return data;
-            })
-            : await getMatchStatisticsData(id, STATS_CACHE_TTL);
+        const data = await fetchMatchStatisticsFresh(id).then(data => {
+            if (data) cache[`stats_${id}`] = { data, timestamp: Date.now() };
+            return data;
+        });
         res.json(normalizeStatisticsData(data));
     } catch (error) {
         console.error(`[API ERROR] Match statistics ${id}: ${error.message}`);
         const cached = cache[`stats_${id}`];
         if (cached) return res.json({ ...normalizeStatisticsData(cached.data), cached: true, stale: true });
-        res.status(500).json({ error: true, message: error.message });
+        res.json({ statistics: [], unavailable: true, warning: error.message });
     }
 });
 
-// Yeni API: H2H (Head to Head) MatÃ§lar - Native Sofascore API
+// Yeni API: H2H (Head to Head) MatÃƒÂ§lar - Native Sofascore API
 app.get("/api/match/:id/h2h", async (req, res) => {
     const id = req.params.id;
     try {
@@ -3957,7 +4984,7 @@ app.get("/api/match/:id/h2h", async (req, res) => {
     }
 });
 
-// MatÃ§ detallarÄ±nÄ± vahid endpoint-dÉ™ birlÉ™ÅŸdiririk (bloklanmamaq Ã¼Ã§Ã¼n)
+// MatÃƒÂ§ detallarÃ„Â±nÃ„Â± vahid endpoint-dÃ‰â„¢ birlÃ‰â„¢Ã…Å¸diririk (bloklanmamaq ÃƒÂ¼ÃƒÂ§ÃƒÂ¼n)
 app.get("/api/match/:id/details", async (req, res) => {
     const id = req.params.id;
     try {
@@ -3965,14 +4992,30 @@ app.get("/api/match/:id/details", async (req, res) => {
             if (!ENABLE_MACKOLIK_MATCHES) {
                 return res.json({ incidents: [], stats: null, unavailable: true, source: "mackolik", message: "Mackolik details disabled" });
             }
-            const data = await getCachedData(`mackolik_details_${id}_${req.query.slug || ""}_${req.query.stats === "0" ? "nostats" : "all"}`, async () => {
-                return await fetchMackolikMatchDetails(id, req.query.slug || "");
-            }, 12000);
+            const cacheKey = `mackolik_details_${id}_${req.query.slug || ""}_${req.query.stats === "0" ? "nostats" : "all"}`;
+            const cached = cache[cacheKey];
+            const cachedAge = cached ? Date.now() - cached.timestamp : Infinity;
+            let data = null;
+            if (req.query.fresh !== "1" && cached && cachedAge < MACKOLIK_DETAILS_CACHE_TTL) {
+                data = cached.data;
+            } else {
+                try {
+                    data = await fetchMackolikMatchDetails(id, req.query.slug || "");
+                    cache[cacheKey] = { data, timestamp: Date.now() };
+                } catch (error) {
+                    if (cached && cachedAge < 5000) {
+                        data = { ...cached.data, stale: true, warning: error.message };
+                    } else {
+                        throw error;
+                    }
+                }
+            }
             return res.json(req.query.stats === "0" ? { incidents: data.incidents, stats: null } : data);
         }
 
         const statsDisabled = req.query.stats === "0";
         const forceFresh = req.query.fresh === "1";
+        const fastMode = req.query.fast === "1";
 
         const cachedFromLoop = matchDetailsCache[id];
         const cachedLoopUseful = hasUsefulIncidentData(cachedFromLoop?.incidents) ||
@@ -4014,8 +5057,10 @@ app.get("/api/match/:id/details", async (req, res) => {
                     const data = key.startsWith("stats_")
                         ? await getMatchStatisticsData(id, STATS_CACHE_TTL)
                         : await Promise.any([
-                            fetchFromSofaFastRace(path, {}, 4500),
-                            fetchRapidApiSofaPath(path, {}, 6500)
+                            fetchFromSofaApiDirect(path, {}, fastMode ? 1500 : 2200),
+                            fetchFromSofaNativeFast(path, {}, fastMode ? 1800 : 2600),
+                            fetchFromSofaFastRace(path, {}, fastMode ? 2400 : 3600),
+                            fetchRapidApiSofaPath(path, {}, fastMode ? 2600 : 4200)
                         ]);
                     return key.startsWith("incidents_") ? normalizeIncidentsData(data) : normalizeStatisticsData(data);
                 } catch (error) {
@@ -4024,7 +5069,12 @@ app.get("/api/match/:id/details", async (req, res) => {
                     }
                     if (key.startsWith("incidents_")) {
                         console.warn(`[INCIDENTS FALLBACK] Native details incidents failed for ${id}: ${error.message}`);
-                        const fallback = await fetchRapidApiIncidents(id);
+                        const fallback = fastMode
+                            ? await Promise.race([
+                                fetchRapidApiIncidents(id),
+                                new Promise(resolve => setTimeout(() => resolve(null), 800))
+                            ])
+                            : await fetchRapidApiIncidents(id);
                         if (fallback) return fallback;
                     }
                     throw error;
@@ -4085,7 +5135,7 @@ app.get("/api/match/:id/details", async (req, res) => {
 
 
 
-// Yeni API: CanlÄ± Liqa CÉ™dvÉ™li Ã¼Ã§Ã¼n Proxy
+// Yeni API: CanlÃ„Â± Liqa CÃ‰â„¢dvÃ‰â„¢li ÃƒÂ¼ÃƒÂ§ÃƒÂ¼n Proxy
 function fetchFastStandingForSeason(tourId, seasonId) {
     const standingPath = `/unique-tournament/${tourId}/season/${seasonId}/standings/total`;
     return Promise.any([
@@ -4203,7 +5253,7 @@ async function fetchStandingsFromEventsFallback(tourId, seasonId, options = {}) 
     return {
         standings: [{
             type: "total",
-            name: "Hesablanmış cədvəl",
+            name: "HesablanmÄ±ÅŸ cÉ™dvÉ™l",
             rows
         }],
         seasonId,
@@ -4254,6 +5304,19 @@ function warmCategoryStandings(data, limit = 20) {
 app.get("/api/standings-fast/:tourId", async (req, res) => {
     const startedAt = Date.now();
     try {
+        if (MACKOLIK_CANONICAL_MODE) {
+            const data = await getCachedData(
+                `mackolik_standings_${req.params.tourId}_${req.query.seasonId || "auto"}`,
+                () => fetchMackolikLeagueStandings(req.params.tourId, req.query.seasonId || null),
+                45 * 1000,
+                { skipJitter: true }
+            );
+            return res.json({
+                ...data,
+                fast: true,
+                durationMs: Date.now() - startedAt
+            });
+        }
         const { tourId } = req.params;
         let seasonId = req.query.seasonId;
         let season = null;
@@ -4490,6 +5553,15 @@ app.get("/api/standings-fast/:tourId", async (req, res) => {
 
 app.get("/api/standings/:tourId/:seasonId", async (req, res) => {
     try {
+        if (MACKOLIK_CANONICAL_MODE) {
+            const data = await getCachedData(
+                `mackolik_standings_${req.params.tourId}_${req.params.seasonId || "auto"}`,
+                () => fetchMackolikLeagueStandings(req.params.tourId, req.params.seasonId || null),
+                45 * 1000,
+                { skipJitter: true }
+            );
+            return res.json(data);
+        }
         const { tourId, seasonId } = req.params;
         const data = await getCachedData(`standings_${tourId}_${seasonId}`, async () => {
             const result = await fetchFromSofa(`/unique-tournament/${tourId}/season/${seasonId}/standings/total`);
@@ -4524,8 +5596,21 @@ app.get("/api/standings/:tourId/:seasonId", async (req, res) => {
     }
 });
 
-// Yeni API: Populyar Liqalar siyahÄ±sÄ±
+// Yeni API: Populyar Liqalar siyahÃ„Â±sÃ„Â±
 app.get("/api/top-leagues", async (req, res) => {
+    if (MACKOLIK_CANONICAL_MODE) {
+        try {
+            const catalog = await getCachedData("mackolik_competition_catalog", fetchMackolikCompetitionCatalog, 30 * 1000, { skipJitter: true });
+            return res.json({
+                uniqueTournaments: catalog.uniqueTournaments,
+                source: "mackolik",
+                matchDate: catalog.matchDate,
+                generatedAt: catalog.generatedAt
+            });
+        } catch (error) {
+            return res.json({ uniqueTournaments: [], source: "mackolik", unavailable: true, message: error.message });
+        }
+    }
     const cachedEntry = cache.top_leagues;
     const cachedData = cachedEntry?.data;
     const hasCachedLeagues = Array.isArray(cachedData?.uniqueTournaments) && cachedData.uniqueTournaments.length;
@@ -4553,8 +5638,21 @@ app.get("/api/top-leagues", async (req, res) => {
     }, CACHE_TIMES.STATIC, { skipJitter: true }).catch(() => {});
 });
 
-// Yeni API: BÃ¼tÃ¼n Kategoriyalar (Ã–lkÉ™lÉ™r)
+// Yeni API: BÃƒÂ¼tÃƒÂ¼n Kategoriyalar (Ãƒâ€“lkÃ‰â„¢lÃ‰â„¢r)
 app.get("/api/categories", async (req, res) => {
+    if (MACKOLIK_CANONICAL_MODE) {
+        try {
+            const catalog = await getCachedData("mackolik_competition_catalog", fetchMackolikCompetitionCatalog, 30 * 1000, { skipJitter: true });
+            return res.json({
+                categories: catalog.categories,
+                source: "mackolik",
+                matchDate: catalog.matchDate,
+                generatedAt: catalog.generatedAt
+            });
+        } catch (error) {
+            return res.json({ categories: [], source: "mackolik", unavailable: true, message: error.message });
+        }
+    }
     const cachedEntry = cache.categories;
     const cachedData = cachedEntry?.data;
     const cachedCategories = Array.isArray(cachedData?.categories) && cachedData.categories.length
@@ -4598,7 +5696,23 @@ app.get("/api/sofa-image", async (req, res) => {
             return sendFallbackImage(200);
         }
 
-        const image = await fetchSofaImageCached(imagePath);
+        const candidatePaths = [imagePath];
+        const uniqueMatch = imagePath.match(/^\/unique-tournament\/([\w-]+)\/image$/);
+        const tournamentMatch = imagePath.match(/^\/tournament\/([\w-]+)\/image$/);
+        if (uniqueMatch) candidatePaths.push(`/tournament/${uniqueMatch[1]}/image`);
+        if (tournamentMatch) candidatePaths.push(`/unique-tournament/${tournamentMatch[1]}/image`);
+
+        let image = null;
+        let lastImageError = null;
+        for (const candidatePath of Array.from(new Set(candidatePaths))) {
+            try {
+                image = await fetchSofaImageCached(candidatePath);
+                break;
+            } catch (error) {
+                lastImageError = error;
+            }
+        }
+        if (!image) throw lastImageError || new Error("Image unavailable");
         res.set("Content-Type", image.contentType || "image/png");
         res.set("Cache-Control", "public, max-age=604800, immutable");
         res.set("X-Image-Cache", image.cached ? "HIT" : "MISS");
@@ -4609,9 +5723,68 @@ app.get("/api/sofa-image", async (req, res) => {
     }
 });
 
-// Yeni API: Kateqoriya Ã¼zrÉ™ Liqalar
+// Yeni API: Kateqoriya ÃƒÂ¼zrÃ‰â„¢ Liqalar
+app.get("/api/image-proxy", async (req, res) => {
+    try {
+        const rawUrl = String(req.query.url || "");
+        const parsed = new URL(rawUrl);
+        if (!["https:", "http:"].includes(parsed.protocol) || !EXTERNAL_IMAGE_HOSTS.has(parsed.hostname)) {
+            return res.status(400).json({ error: "Image host not allowed" });
+        }
+
+        const image = await fetchExternalImageCached(parsed.href);
+        res.set("Content-Type", image.contentType || inferImageContentType(parsed.href));
+        res.set("Cache-Control", "public, max-age=604800, immutable");
+        res.set("X-Image-Cache", image.cached ? "HIT" : "MISS");
+        res.set("Access-Control-Allow-Origin", "*");
+        res.send(image.body);
+    } catch (error) {
+        console.warn(`[IMAGE PROXY] ${req.query.url || ""}: ${error.message}`);
+        res.set("Cache-Control", "public, max-age=300");
+        res.set("X-Image-Cache", "FALLBACK");
+        res.status(200).type("image/svg+xml").send(generatedImageFallbackSvg({
+            label: "RM",
+            type: "team"
+        }));
+    }
+});
+
+app.post("/api/image-warmup", async (req, res) => {
+    try {
+        const paths = Array.isArray(req.body?.paths) ? req.body.paths : [];
+        const urls = Array.isArray(req.body?.urls) ? req.body.urls : [];
+        Promise.allSettled([
+            warmImagePaths(paths, 120),
+            warmExternalImageUrls(urls, 120)
+        ]).catch(() => {});
+        res.json({
+            success: true,
+            acceptedPaths: Math.min(paths.filter(Boolean).length, 120),
+            acceptedUrls: Math.min(urls.filter(Boolean).length, 120)
+        });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+});
+
 app.get("/api/category/:id/tournaments", async (req, res) => {
     const categoryId = String(req.params.id);
+    if (MACKOLIK_CANONICAL_MODE) {
+        try {
+            const catalog = await getCachedData("mackolik_competition_catalog", fetchMackolikCompetitionCatalog, 30 * 1000, { skipJitter: true });
+            const uniqueTournaments = catalog.leaguesByCategory?.[categoryId] || [];
+            return res.json({
+                uniqueTournaments,
+                tournaments: uniqueTournaments,
+                groups: uniqueTournaments.length ? [{ uniqueTournaments, tournaments: uniqueTournaments }] : [],
+                source: "mackolik",
+                matchDate: catalog.matchDate,
+                generatedAt: catalog.generatedAt
+            });
+        } catch (error) {
+            return res.json({ uniqueTournaments: [], tournaments: [], groups: [], source: "mackolik", unavailable: true, message: error.message });
+        }
+    }
     const fallbackData = getFallbackCategoryTournaments(categoryId);
     const cacheKey = `category_tournaments_${categoryId}`;
     const cached = cache[cacheKey]?.data;
@@ -4704,9 +5877,15 @@ app.get("/api/category/:id/tournaments", async (req, res) => {
     }
 });
 
-// Yeni API: Turnir MÉ™lumatÄ± (Single League Info)
+// Yeni API: Turnir MÃ‰â„¢lumatÃ„Â± (Single League Info)
 app.get("/api/tournament/:id", async (req, res) => {
     try {
+        if (MACKOLIK_CANONICAL_MODE) {
+            const catalog = await getCachedData("mackolik_competition_catalog", fetchMackolikCompetitionCatalog, 30 * 1000, { skipJitter: true });
+            const league = catalog.uniqueTournaments.find(item => String(item.id) === String(req.params.id));
+            if (!league) return res.json({ source: "mackolik", unavailable: true, message: "Mackolik liqa məlumatı tapılmadı" });
+            return res.json({ uniqueTournament: league, tournament: league, source: "mackolik" });
+        }
         const type = req.query.isUnique === 'false' ? 'tournament' : 'unique-tournament';
         const data = await getCachedData(`tournament_${type}_${req.params.id}`, async () => {
             const result = await fetchFromSofa(`/${type}/${req.params.id}`);
@@ -4718,9 +5897,18 @@ app.get("/api/tournament/:id", async (req, res) => {
     }
 });
 
-// Yeni API: Turnir MÃ¶vsÃ¼mlÉ™ri (Seasons)
+// Yeni API: Turnir MÃƒÂ¶vsÃƒÂ¼mlÃ‰â„¢ri (Seasons)
 app.get("/api/tournament/:id/seasons", async (req, res) => {
     try {
+        if (MACKOLIK_CANONICAL_MODE) {
+            const seasons = await getCachedData(
+                `mackolik_seasons_${req.params.id}`,
+                () => fetchMackolikLeagueSeasons(req.params.id),
+                6 * 60 * 60 * 1000,
+                { skipJitter: true }
+            );
+            return res.json({ seasons, source: "mackolik" });
+        }
         const type = req.query.isUnique === 'false' ? 'tournament' : 'unique-tournament';
         const data = await getCachedData(`seasons_${type}_${req.params.id}`, async () => {
             const result = await fetchFromSofa(`/${type}/${req.params.id}/seasons`);
@@ -4732,11 +5920,36 @@ app.get("/api/tournament/:id/seasons", async (req, res) => {
     }
 });
 
-// Yeni API: Qlobal AxtarÄ±ÅŸ
+// Yeni API: Qlobal AxtarÃ„Â±Ã…Å¸
 app.get("/api/search", async (req, res) => {
     try {
         const { q } = req.query;
         if (!q) return res.json({ results: [] });
+        if (MACKOLIK_CANONICAL_MODE) {
+            const query = normalizeSearchName(String(q || ""));
+            const catalog = await getCachedData("mackolik_competition_catalog", fetchMackolikCompetitionCatalog, 30 * 1000, { skipJitter: true });
+            const leagues = (catalog.uniqueTournaments || [])
+                .filter(league => {
+                    const haystack = normalizeSearchName([
+                        league?.name,
+                        league?.slug,
+                        league?.category?.name,
+                        league?.country
+                    ].filter(Boolean).join(" "));
+                    return haystack.includes(query);
+                })
+                .slice(0, 50)
+                .map(league => ({
+                    type: "uniqueTournament",
+                    entity: league,
+                    source: "mackolik"
+                }));
+            return res.json({
+                results: leagues,
+                source: "mackolik",
+                generatedAt: catalog.generatedAt
+            });
+        }
         const result = await fetchFromSofa("/search/all", { q });
         res.json(result.data);
     } catch (error) {
@@ -4767,9 +5980,21 @@ app.get("/api/team/resolve", async (req, res) => {
     }
 });
 
-// Yeni API: BombardirlÉ™r (Top Players)
+// Yeni API: BombardirlÃ‰â„¢r (Top Players)
 app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
     try {
+        if (MACKOLIK_CANONICAL_MODE) {
+            const data = await getCachedData(
+                `mackolik_topplayers_${req.params.id}_${req.params.sid || "auto"}`,
+                () => fetchMackolikLeagueTopPlayers(req.params.id, req.params.sid || null),
+                60 * 1000,
+                { skipJitter: true }
+            );
+            return res.json({
+                ...data,
+                fast: req.query.fast === "1"
+            });
+        }
         const { id, sid } = req.params;
         const fast = req.query.fast === "1";
         const cacheKey = `topplayers_goals_v6_${id}_${sid}`;
@@ -4816,24 +6041,85 @@ app.get("/api/tournament/:id/season/:sid/top-players", async (req, res) => {
         res.json({ topPlayers: { goals: [] }, error: true, message: error.message });
     }
 });
-// Yeni API: ÅžifrÉ™ SÄ±fÄ±rlama Kodu GÃ¶ndÉ™r (OTP)
+// Yeni API: Ã…Å¾ifrÃ‰â„¢ SÃ„Â±fÃ„Â±rlama Kodu GÃƒÂ¶ndÃ‰â„¢r (OTP)
+function buildPasswordResetOtpEmail(to, otp) {
+    const subject = "\u015eifr\u0259 s\u0131f\u0131rlama kodunuz - Rabona Media";
+    const plainText = [
+        "Rabona Media LIVE",
+        "",
+        "Salam,",
+        "",
+        "\u015eifr\u0259nizi s\u0131f\u0131rlamaq \u00fc\u00e7\u00fcn t\u0259l\u0259b g\u00f6nd\u0259rdiniz. Sizin bird\u0259f\u0259lik t\u0259sdiq kodunuz (OTP):",
+        otp,
+        "",
+        "Bu kod 3 d\u0259qiq\u0259 \u0259rzind\u0259 etibarl\u0131d\u0131r.",
+        "",
+        "\u018fg\u0259r bunu siz etm\u0259misinizs\u0259, z\u0259hm\u0259t olmasa bu emaili n\u0259z\u0259r\u0259 almay\u0131n.",
+        "",
+        "Bu avtomatik g\u00f6nd\u0259ril\u0259n bir mesajd\u0131r, cavab yazmay\u0131n."
+    ].join("\n");
+
+    const html = `
+        <!doctype html>
+        <html lang="az">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>${subject}</title>
+        </head>
+        <body style="margin:0; padding:0; background:#0f172a;">
+            <div style="font-family: Arial, Helvetica, sans-serif; padding:24px; color:#e5e7eb; background:#0f172a;">
+                <h2 style="color:#7aa2ff; margin:0 0 24px; font-size:28px;">Rabona Media LIVE</h2>
+                <p style="font-size:16px; line-height:1.6; margin:0 0 16px;">Salam,</p>
+                <p style="font-size:16px; line-height:1.6; margin:0 0 18px;">
+                    \u015eifr\u0259nizi s\u0131f\u0131rlamaq \u00fc\u00e7\u00fcn t\u0259l\u0259b g\u00f6nd\u0259rdiniz. Sizin bird\u0259f\u0259lik t\u0259sdiq kodunuz (OTP):
+                </p>
+                <div style="font-size:36px; font-weight:800; color:#f87171; padding:18px 32px; background:#1f2937; border-radius:10px; display:inline-block; margin:8px 0 22px; letter-spacing:6px;">
+                    ${otp}
+                </div>
+                <p style="font-size:16px; line-height:1.6; margin:0 0 16px;">Bu kod <b>3 d\u0259qiq\u0259</b> \u0259rzind\u0259 etibarl\u0131d\u0131r.</p>
+                <p style="font-size:16px; line-height:1.6; margin:0 0 24px;">
+                    \u018fg\u0259r bunu siz etm\u0259misinizs\u0259, z\u0259hm\u0259t olmasa bu emaili n\u0259z\u0259r\u0259 almay\u0131n.
+                </p>
+                <hr style="border:0; border-top:1px solid #334155; margin:24px 0;">
+                <p style="font-size:13px; line-height:1.5; color:#94a3b8; margin:0;">Bu avtomatik g\u00f6nd\u0259ril\u0259n bir mesajd\u0131r, cavab yazmay\u0131n.</p>
+            </div>
+        </body>
+        </html>
+    `;
+
+    return {
+        from: `"Rabona Media" <${process.env.EMAIL_USER || "typingmaster.az@gmail.com"}>`,
+        to,
+        subject,
+        text: plainText,
+        html,
+        encoding: "utf-8",
+        textEncoding: "base64",
+        headers: {
+            "Content-Language": "az",
+            "X-Auto-Response-Suppress": "All"
+        }
+    };
+}
+
 app.post("/api/auth/send-otp", async (req, res) => {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ success: false, message: "Email lazÄ±mdÄ±r." });
+    if (!email) return res.status(400).json({ success: false, message: "Email lazÃ„Â±mdÃ„Â±r." });
     console.log(`[AUTH] Sending OTP to: ${email}`);
 
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
-    const expiry = Date.now() + 3 * 60 * 1000; // 3 dÉ™qiqÉ™ valid
+    const expiry = Date.now() + 3 * 60 * 1000; // 3 dÃ‰â„¢qiqÃ‰â„¢ valid
 
     try {
         let user = await getUserByEmail(email) || { email: email, resendCount: 0 };
 
-        // GÃ¼ndÉ™lik Limit YoxlanÄ±ÅŸÄ± (5 dÉ™fÉ™)
+        // GÃƒÂ¼ndÃ‰â„¢lik Limit YoxlanÃ„Â±Ã…Å¸Ã„Â± (5 dÃ‰â„¢fÃ‰â„¢)
         const today = new Date().toISOString().split('T')[0];
         
         if (user.lastResendDate === today) {
             if (user.resendCount >= 5) {
-                return res.status(429).json({ success: false, message: "GÃ¼ndÉ™lik limitiniz (5 dÉ™fÉ™) dolub. Sabah yenidÉ™n cÉ™hd edin." });
+                return res.status(429).json({ success: false, message: "GÃƒÂ¼ndÃ‰â„¢lik limitiniz (5 dÃ‰â„¢fÃ‰â„¢) dolub. Sabah yenidÃ‰â„¢n cÃ‰â„¢hd edin." });
             }
             user.resendCount++;
         } else {
@@ -4848,24 +6134,24 @@ app.post("/api/auth/send-otp", async (req, res) => {
         const mailOptions = {
             from: '"Rabona Media" <typingmaster.az@gmail.com>',
             to: email,
-            subject: 'ÅžifrÉ™ SÄ±fÄ±rlama Kodunuz - Rabona Media',
+            subject: 'Ã…Å¾ifrÃ‰â„¢ SÃ„Â±fÃ„Â±rlama Kodunuz - Rabona Media',
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
                     <h2 style="color: #3b82f6;">Rabona Media LIVE</h2>
                     <p>Salam,</p>
-                    <p>ÅžifrÉ™nizi sÄ±fÄ±rlamaq Ã¼Ã§Ã¼n tÉ™lÉ™b gÃ¶ndÉ™rdiniz. Sizin birdÉ™fÉ™lik tÉ™sdiq kodunuz (OTP):</p>
+                    <p>Ã…Å¾ifrÃ‰â„¢nizi sÃ„Â±fÃ„Â±rlamaq ÃƒÂ¼ÃƒÂ§ÃƒÂ¼n tÃ‰â„¢lÃ‰â„¢b gÃƒÂ¶ndÃ‰â„¢rdiniz. Sizin birdÃ‰â„¢fÃ‰â„¢lik tÃ‰â„¢sdiq kodunuz (OTP):</p>
                     <div style="font-size: 32px; font-weight: bold; color: #ef4444; padding: 15px 30px; background: #f1f5f9; border-radius: 8px; display: inline-block; margin: 10px 0; letter-spacing: 5px;">
                         ${otp}
                     </div>
-                    <p>Bu kod <b>3 dÉ™qiqÉ™</b> É™rzindÉ™ etibarlÄ±dÄ±r.</p>
-                    <p>Æ gÉ™r bunu siz etmÉ™misinizsÉ™, zÉ™hmÉ™t olmasa bu emaili nÉ™zÉ™rÉ™ almayÄ±n.</p>
+                    <p>Bu kod <b>3 dÃ‰â„¢qiqÃ‰â„¢</b> Ã‰â„¢rzindÃ‰â„¢ etibarlÃ„Â±dÃ„Â±r.</p>
+                    <p>Ã† gÃ‰â„¢r bunu siz etmÃ‰â„¢misinizsÃ‰â„¢, zÃ‰â„¢hmÃ‰â„¢t olmasa bu emaili nÃ‰â„¢zÃ‰â„¢rÃ‰â„¢ almayÃ„Â±n.</p>
                     <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-                    <p style="font-size: 12px; color: #94a3b8;">Bu avtomatik gÃ¶ndÉ™rilÉ™n bir mesajdÄ±r, cavab yazmayÄ±n.</p>
+                    <p style="font-size: 12px; color: #94a3b8;">Bu avtomatik gÃƒÂ¶ndÃ‰â„¢rilÃ‰â„¢n bir mesajdÃ„Â±r, cavab yazmayÃ„Â±n.</p>
                 </div>
             `
         };
 
-        await transporter.sendMail(mailOptions);
+        await transporter.sendMail(buildPasswordResetOtpEmail(email, otp));
         res.json({ success: true, message: "OTP kod email Ã¼nvanÄ±nÄ±za gÃ¶ndÉ™rildi." });
 
     } catch (error) {
@@ -4874,7 +6160,7 @@ app.post("/api/auth/send-otp", async (req, res) => {
     }
 });
 
-// Yeni API: OTP Kodu Yoxla (SadÉ™cÉ™ DoÄŸrulama)
+// Yeni API: OTP Kodu Yoxla (SadÃ‰â„¢cÃ‰â„¢ DoÃ„Å¸rulama)
 app.post("/api/auth/check-otp", async (req, res) => {
     const { email, otp } = req.body;
     try {
@@ -4884,20 +6170,20 @@ app.post("/api/auth/check-otp", async (req, res) => {
         
         if (!user) {
             console.log(`[AUTH] OTP mismatch for ${email}`);
-            return res.status(400).json({ success: false, message: "Kod yanlÄ±ÅŸdÄ±r." });
+            return res.status(400).json({ success: false, message: "Kod yanlÃ„Â±Ã…Å¸dÃ„Â±r." });
         }
         if (Date.now() > user.otpExpiry) {
             console.log(`[AUTH] OTP expired for ${email}`);
-            return res.status(400).json({ success: false, message: "Kodun vaxtÄ± bitib." });
+            return res.status(400).json({ success: false, message: "Kodun vaxtÃ„Â± bitib." });
         }
 
-        res.json({ success: true, message: "Kod tÉ™sdiqlÉ™ndi. Yeni ÅŸifrÉ™ni daxil edin." });
+        res.json({ success: true, message: "Kod tÃ‰â„¢sdiqlÃ‰â„¢ndi. Yeni Ã…Å¸ifrÃ‰â„¢ni daxil edin." });
     } catch (e) {
         res.status(500).json({ success: false });
     }
 });
 
-// Yeni API: ÅžifrÉ™ni Final Olaraq DÉ™yiÅŸ
+// Yeni API: Ã…Å¾ifrÃ‰â„¢ni Final Olaraq DÃ‰â„¢yiÃ…Å¸
 app.post("/api/auth/verify-otp", async (req, res) => {
     const { email, otp, newPassword } = req.body;
     
@@ -4905,14 +6191,14 @@ app.post("/api/auth/verify-otp", async (req, res) => {
         const user = await getUserByEmail(email);
         
         if (!user || user.otp !== otp) {
-            return res.status(400).json({ success: false, message: "Kod yanlÄ±ÅŸdÄ±r." });
+            return res.status(400).json({ success: false, message: "Kod yanlÃ„Â±Ã…Å¸dÃ„Â±r." });
         }
         
         if (Date.now() > user.otpExpiry) {
-            return res.status(400).json({ success: false, message: "Kodun vaxtÄ± bitib." });
+            return res.status(400).json({ success: false, message: "Kodun vaxtÃ„Â± bitib." });
         }
 
-        // ===== FIREBASE ÅžÄ°FRÆ  DEYÄ°ÅžÄ°KLÄ°YÄ° ======
+        // ===== FIREBASE Ã…Å¾Ã„Â°FRÃ†  DEYÃ„Â°Ã…Å¾Ã„Â°KLÃ„Â°YÃ„Â° ======
         if (firebaseInitialized) {
             try {
                 const firebaseUser = await admin.auth().getUserByEmail(email);
@@ -4922,30 +6208,30 @@ app.post("/api/auth/verify-otp", async (req, res) => {
                 console.log(`[AUTH] Firebase password successfully updated for UID: ${firebaseUser.uid}`);
             } catch (fbError) {
                 console.error("[AUTH] Firebase update password error:", fbError);
-                return res.status(500).json({ success: false, message: "Firebase hesabÄ±nÄ±zla É™laqÉ™ yaradÄ±la bilmÉ™di. ÅžifrÉ™ yenilÉ™nmÉ™di." });
+                return res.status(500).json({ success: false, message: "Firebase hesabÃ„Â±nÃ„Â±zla Ã‰â„¢laqÃ‰â„¢ yaradÃ„Â±la bilmÃ‰â„¢di. Ã…Å¾ifrÃ‰â„¢ yenilÃ‰â„¢nmÃ‰â„¢di." });
             }
         } else {
             console.warn("[AUTH] Firebase not initialized, skipping Firebase Auth password update.");
         }
 
-        // OTP-ni tÉ™mizlÉ™ vÉ™ ÅŸifrÉ™ni hash-lÉ™yÉ™rÉ™k saxla
+        // OTP-ni tÃ‰â„¢mizlÃ‰â„¢ vÃ‰â„¢ Ã…Å¸ifrÃ‰â„¢ni hash-lÃ‰â„¢yÃ‰â„¢rÃ‰â„¢k saxla
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(newPassword, salt);
         delete user.otp;
         delete user.otpExpiry;
         await saveUser(user);
-        res.json({ success: true, message: "ÅžifrÉ™ uÄŸurla dÉ™yiÅŸdirildi." });
+        res.json({ success: true, message: "Ã…Å¾ifrÃ‰â„¢ uÃ„Å¸urla dÃ‰â„¢yiÃ…Å¸dirildi." });
 
     } catch (e) {
         res.status(500).json({ success: false });
     }
 });
 
-// Yeni API: Profil MÉ™lumatlarÄ±nÄ± YenilÉ™
+// Yeni API: Profil MÃ‰â„¢lumatlarÃ„Â±nÃ„Â± YenilÃ‰â„¢
 app.post("/api/auth/update-profile", async (req, res) => {
     const { email, displayName, status, profilePic } = req.body;
     
-    if (!email) return res.status(400).json({ success: false, message: "Email lazÄ±mdÄ±r." });
+    if (!email) return res.status(400).json({ success: false, message: "Email lazÃ„Â±mdÃ„Â±r." });
 
     try {
         const authUser = await getAuthUserFromRequest(req);
@@ -4953,7 +6239,7 @@ app.post("/api/auth/update-profile", async (req, res) => {
         const cleanDisplayName = typeof displayName === "string" ? displayName.trim() : "";
         const uid = authUser?.uid || String(req.body.uid || "").trim();
         const effectiveEmail = String(authUser?.email || normalizedEmail).trim().toLowerCase();
-        let user = await getUserByIdentity({ email: effectiveEmail, uid }) || { email: effectiveEmail, username: cleanDisplayName || effectiveEmail.split('@')[0], status: status || "Rabona Media istifadəçisi" };
+        let user = await getUserByIdentity({ email: effectiveEmail, uid }) || { email: effectiveEmail, username: cleanDisplayName || effectiveEmail.split('@')[0], status: status || "Rabona Media istifadÉ™Ã§isi" };
         if (uid) user.uid = uid;
         user.email = normalizedEmail;
         user.email = effectiveEmail;
@@ -4966,7 +6252,7 @@ app.post("/api/auth/update-profile", async (req, res) => {
             uid,
             email: effectiveEmail,
             displayName: cleanDisplayName || user.username,
-            status: user.status || "Rabona Media istifadəçisi",
+            status: user.status || "Rabona Media istifadÉ™Ã§isi",
             profilePic: profilePic !== undefined ? profilePic : (existingProfile?.profilePic || ""),
             updatedAt: user.updatedAt
         });
@@ -4980,21 +6266,21 @@ app.post("/api/auth/update-profile", async (req, res) => {
         }
         res.json({
             success: true,
-            message: "Profil uÄŸurla yenilÉ™ndi.",
+            message: "Profil uÃ„Å¸urla yenilÃ‰â„¢ndi.",
             data: {
                 displayName: savedProfile.displayName,
-                status: savedProfile.status || "Rabona Media istifadəçisi",
+                status: savedProfile.status || "Rabona Media istifadÉ™Ã§isi",
                 profilePic: savedProfile.profilePic || "",
                 updatedAt: savedProfile.updatedAt || null
             }
         });
     } catch (e) {
         console.error("Update profile error:", e);
-        res.status(500).json({ success: false, message: "Server xÉ™tasÄ± baÅŸ verdi." });
+        res.status(500).json({ success: false, message: "Server xÃ‰â„¢tasÃ„Â± baÃ…Å¸ verdi." });
     }
 });
 
-// Yeni API: Profil MÉ™lumatlarÄ±nÄ± GÉ™tir
+// Yeni API: Profil MÃ‰â„¢lumatlarÃ„Â±nÃ„Â± GÃ‰â„¢tir
 app.get("/api/auth/profile/:email", async (req, res) => {
     const email = String(req.params.email || "").trim().toLowerCase();
     try {
@@ -5007,7 +6293,7 @@ app.get("/api/auth/profile/:email", async (req, res) => {
                 success: true,
                 data: {
                     displayName: profile.displayName,
-                    status: profile.status || "Rabona Media istifadəçisi",
+                    status: profile.status || "Rabona Media istifadÉ™Ã§isi",
                     profilePic: profile.profilePic || "",
                     updatedAt: profile.updatedAt || null
                 }
@@ -5021,7 +6307,7 @@ app.get("/api/auth/profile/:email", async (req, res) => {
                     uid: firebaseUser.uid,
                     email: String(firebaseUser.email || email).trim().toLowerCase(),
                     username: firebaseUser.displayName || String(firebaseUser.email || email).split('@')[0],
-                    status: "Rabona Media istifadəçisi",
+                    status: "Rabona Media istifadÉ™Ã§isi",
                     updatedAt: new Date().toISOString()
                 };
                 await saveUser(user);
@@ -5029,14 +6315,14 @@ app.get("/api/auth/profile/:email", async (req, res) => {
                 console.warn("[AUTH] Firebase profile fallback failed:", fbError.message);
             }
         }
-        if (!user) return res.status(404).json({ success: false, message: "Ä°stifadÉ™Ã§i tapÄ±lmadÄ±." });
+        if (!user) return res.status(404).json({ success: false, message: "Ã„Â°stifadÃ‰â„¢ÃƒÂ§i tapÃ„Â±lmadÃ„Â±." });
 
         res.set("Cache-Control", "no-store");
         res.json({
             success: true,
             data: {
                 displayName: user.username,
-                status: user.status || "Rabona Media istifadəçisi",
+                status: user.status || "Rabona Media istifadÉ™Ã§isi",
                 profilePic: user.profilePic || "",
                 updatedAt: user.updatedAt || null
             }
@@ -5083,13 +6369,13 @@ function buildSupportEmail(item) {
 
     const html = `
         <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111827">
-            <h2>Yeni dəstək mesajı</h2>
+            <h2>Yeni dÉ™stÉ™k mesajÄ±</h2>
             <p><b>ID:</b> ${escapeEmailHtml(item.id)}</p>
-            <p><b>Mövzu:</b> ${escapeEmailHtml(item.type)}</p>
-            <p><b>Başlıq:</b> ${escapeEmailHtml(item.title)}</p>
-            <p><b>Əlaqə:</b> ${escapeEmailHtml(item.contact || "Yoxdur")}</p>
-            <p><b>İstifadəçi:</b> ${escapeEmailHtml(userLine)}</p>
-            <p><b>Səhifə:</b> ${escapeEmailHtml(item.page || "Yoxdur")}</p>
+            <p><b>MÃ¶vzu:</b> ${escapeEmailHtml(item.type)}</p>
+            <p><b>BaÅŸlÄ±q:</b> ${escapeEmailHtml(item.title)}</p>
+            <p><b>ÆlaqÉ™:</b> ${escapeEmailHtml(item.contact || "Yoxdur")}</p>
+            <p><b>Ä°stifadÉ™Ã§i:</b> ${escapeEmailHtml(userLine)}</p>
+            <p><b>SÉ™hifÉ™:</b> ${escapeEmailHtml(item.page || "Yoxdur")}</p>
             <p><b>Tarix:</b> ${escapeEmailHtml(item.createdAt)}</p>
             <p><b>IP:</b> ${escapeEmailHtml(item.ip || "Yoxdur")}</p>
             <hr>
@@ -5108,10 +6394,10 @@ async function sendSupportEmail(item) {
         ? contact
         : (item.user?.email || undefined);
     return await transporter.sendMail({
-        from: `"Rabona Media Dəstək" <${process.env.EMAIL_USER || 'typingmaster.az@gmail.com'}>`,
+        from: `"Rabona Media DÉ™stÉ™k" <${process.env.EMAIL_USER || 'typingmaster.az@gmail.com'}>`,
         to: SUPPORT_NOTIFY_EMAIL,
         replyTo,
-        subject: `Rabona Media dəstək: ${item.title}`,
+        subject: `Rabona Media dÉ™stÉ™k: ${item.title}`,
         text,
         html
     });
@@ -5191,7 +6477,7 @@ app.post("/api/support", async (req, res) => {
         const contact = String(req.body?.contact || "").trim().slice(0, 120);
 
         if (!title || !message) {
-            return res.status(400).json({ success: false, message: "Başlıq və mesaj lazımdır" });
+            return res.status(400).json({ success: false, message: "BaÅŸlÄ±q vÉ™ mesaj lazÄ±mdÄ±r" });
         }
 
         let items = [];
@@ -5237,12 +6523,12 @@ app.post("/api/support", async (req, res) => {
             res.status(502).json({
                 success: false,
                 id: item.id,
-                message: "Mesaj saxlanıldı, amma email göndərilmədi. Email ayarlarını yoxlayın."
+                message: "Mesaj saxlanÄ±ldÄ±, amma email gÃ¶ndÉ™rilmÉ™di. Email ayarlarÄ±nÄ± yoxlayÄ±n."
             });
         }
     } catch (error) {
         console.error("[Support] Save error:", error.message);
-        res.status(500).json({ success: false, message: "Dəstək mesajı saxlanmadı" });
+        res.status(500).json({ success: false, message: "DÉ™stÉ™k mesajÄ± saxlanmadÄ±" });
     }
 });
 
@@ -5342,10 +6628,10 @@ function normalizeIdList(list) {
 
 function repairFavoriteText(value) {
     const text = String(value || "");
-    if (!/[ÃÂÄÅÆ]/.test(text)) return text;
+    if (!/[ÃƒÃ‚Ã„Ã…Ã†]/.test(text)) return text;
     try {
         const repaired = Buffer.from(text, "latin1").toString("utf8");
-        return repaired && !repaired.includes("�") ? repaired : text;
+        return repaired && !repaired.includes("ï¿½") ? repaired : text;
     } catch (e) {
         return text;
     }
@@ -5355,13 +6641,13 @@ function normalizeFavoriteText(value) {
     return repairFavoriteText(value)
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[Əə]/g, "e")
-        .replace(/[İIı]/g, "i")
-        .replace(/[Ğğ]/g, "g")
-        .replace(/[Üü]/g, "u")
-        .replace(/[Şş]/g, "s")
-        .replace(/[Öö]/g, "o")
-        .replace(/[Çç]/g, "c")
+        .replace(/[ÆÉ™]/g, "e")
+        .replace(/[Ä°IÄ±]/g, "i")
+        .replace(/[ÄÄŸ]/g, "g")
+        .replace(/[ÃœÃ¼]/g, "u")
+        .replace(/[ÅÅŸ]/g, "s")
+        .replace(/[Ã–Ã¶]/g, "o")
+        .replace(/[Ã‡Ã§]/g, "c")
         .toLowerCase()
         .replace(/&/g, " and ")
         .replace(/[^a-z0-9]+/g, " ")
@@ -5532,9 +6818,17 @@ function getFavoritePayloadFromReg(reg) {
     return {
         favorites: normalizeIdList(reg?.favorites),
         leagues: normalizeIdList(reg?.leagues),
+        teams: normalizeIdList(reg?.teams),
         favoriteKeys: Array.from(favoriteKeySet),
         favoriteMatches
     };
+}
+
+function favoriteTeamsMatchEvent(teamIds = [], event = null) {
+    if (!event || !Array.isArray(teamIds) || teamIds.length === 0) return false;
+    const homeId = event.homeTeam?.id?.toString();
+    const awayId = event.awayTeam?.id?.toString();
+    return teamIds.includes(homeId) || teamIds.includes(awayId);
 }
 
 function getFavoriteRefInitialScore(ref) {
@@ -5660,10 +6954,11 @@ function collectFavoriteRecipients(matchId, leagueId, favoriteKey = "", event = 
     const recipients = [];
 
     Object.entries(fcmRegistrations).forEach(([token, reg]) => {
-        const { favorites, leagues, favoriteKeys, favoriteMatches } = getFavoritePayloadFromReg(reg);
+        const { favorites, leagues, teams, favoriteKeys, favoriteMatches } = getFavoritePayloadFromReg(reg);
         if (
             favorites.includes(matchKey) ||
             leagues.includes(leagueKey) ||
+            favoriteTeamsMatchEvent(teams, event) ||
             favoriteKeys.some(key => eventKeys.has(key)) ||
             favoriteMatches.some(ref => favoriteRefMatchesEvent(ref, event, matchKey, eventKeys))
         ) {
@@ -5672,10 +6967,11 @@ function collectFavoriteRecipients(matchId, leagueId, favoriteKey = "", event = 
     });
 
     Object.entries(webPushRegistrations).forEach(([deviceId, reg]) => {
-        const { favorites, leagues, favoriteKeys, favoriteMatches } = getFavoritePayloadFromReg(reg);
+        const { favorites, leagues, teams, favoriteKeys, favoriteMatches } = getFavoritePayloadFromReg(reg);
         if (
             favorites.includes(matchKey) ||
             leagues.includes(leagueKey) ||
+            favoriteTeamsMatchEvent(teams, event) ||
             favoriteKeys.some(key => eventKeys.has(key)) ||
             favoriteMatches.some(ref => favoriteRefMatchesEvent(ref, event, matchKey, eventKeys))
         ) {
@@ -5759,11 +7055,12 @@ function buildRegistrationFavoriteKeys(favorites = [], favoriteKeys = [], favori
     return Array.from(keySet);
 }
 
-function buildRegistrationFavoriteState({ favorites, leagues, favoriteKeys, favoriteMatches }) {
+function buildRegistrationFavoriteState({ favorites, leagues, teams, favoriteKeys, favoriteMatches }) {
     const refs = normalizeFavoriteMatchRefs(favoriteMatches);
     return {
         favorites: normalizeIdList(favorites),
         leagues: normalizeIdList(leagues),
+        teams: normalizeIdList(teams),
         favoriteKeys: buildRegistrationFavoriteKeys(favorites, favoriteKeys, refs),
         favoriteMatches: refs,
         lastUpdated: Date.now()
@@ -5771,16 +7068,16 @@ function buildRegistrationFavoriteState({ favorites, leagues, favoriteKeys, favo
 }
 
 app.post("/api/fcm/register", (req, res) => {
-    const { token, favorites, leagues, favoriteKeys, favoriteMatches } = req.body;
+    const { token, favorites, leagues, teams, favoriteKeys, favoriteMatches } = req.body;
     if (token) {
         const previous = fcmRegistrations[token] || {};
         fcmRegistrations[token] = { 
             ...previous,
-            ...buildRegistrationFavoriteState({ favorites, leagues, favoriteKeys, favoriteMatches }),
+            ...buildRegistrationFavoriteState({ favorites, leagues, teams, favoriteKeys, favoriteMatches }),
             recipientScorePushState: previous.recipientScorePushState || {}
         };
         saveRegistrations();
-        console.log(`[FCM] Token updated. Matches: ${(favorites||[]).length}, Keys: ${fcmRegistrations[token].favoriteKeys.length}, Leagues: ${(leagues||[]).length}`);
+        console.log(`[FCM] Token updated. Matches: ${(favorites||[]).length}, Keys: ${fcmRegistrations[token].favoriteKeys.length}, Leagues: ${(leagues||[]).length}, Teams: ${(teams||[]).length}`);
         queueMissedGoalCheck("fcm", token, fcmRegistrations[token], "fcm-register");
         res.json({ success: true });
     } else {
@@ -5793,7 +7090,7 @@ app.get("/api/push/public-key", (req, res) => {
 });
 
 app.post("/api/push/subscribe", (req, res) => {
-    const { deviceId, subscription, favorites, leagues, favoriteKeys, favoriteMatches, platform, userAgent } = req.body || {};
+    const { deviceId, subscription, favorites, leagues, teams, favoriteKeys, favoriteMatches, platform, userAgent } = req.body || {};
     if (!deviceId || !subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
         return res.status(400).json({ success: false, message: "deviceId and valid subscription are required" });
     }
@@ -5802,13 +7099,13 @@ app.post("/api/push/subscribe", (req, res) => {
     webPushRegistrations[deviceId] = {
         ...previous,
         subscription,
-        ...buildRegistrationFavoriteState({ favorites, leagues, favoriteKeys, favoriteMatches }),
+        ...buildRegistrationFavoriteState({ favorites, leagues, teams, favoriteKeys, favoriteMatches }),
         platform: platform || "webpush",
         userAgent: userAgent || "",
         recipientScorePushState: previous.recipientScorePushState || {}
     };
     saveWebPushRegistrations();
-    console.log(`[WebPush] Device updated. Device: ${deviceId}, Matches: ${(favorites || []).length}, Keys: ${webPushRegistrations[deviceId].favoriteKeys.length}, Leagues: ${(leagues || []).length}`);
+    console.log(`[WebPush] Device updated. Device: ${deviceId}, Matches: ${(favorites || []).length}, Keys: ${webPushRegistrations[deviceId].favoriteKeys.length}, Leagues: ${(leagues || []).length}, Teams: ${(teams || []).length}`);
     queueMissedGoalCheck("webpush", deviceId, webPushRegistrations[deviceId], "webpush-subscribe");
     let endpointHost = "";
     try {
@@ -5826,8 +7123,8 @@ app.post("/api/push/subscribe", (req, res) => {
 });
 
 app.post("/api/push/favorites-sync", (req, res) => {
-    const { token, deviceId, favorites, leagues, favoriteKeys, favoriteMatches } = req.body || {};
-    const favoriteState = buildRegistrationFavoriteState({ favorites, leagues, favoriteKeys, favoriteMatches });
+    const { token, deviceId, favorites, leagues, teams, favoriteKeys, favoriteMatches } = req.body || {};
+    const favoriteState = buildRegistrationFavoriteState({ favorites, leagues, teams, favoriteKeys, favoriteMatches });
     let updated = 0;
 
     if (token && fcmRegistrations[token]) {
@@ -5858,7 +7155,8 @@ app.post("/api/push/favorites-sync", (req, res) => {
         updated,
         favoriteCount: favoriteState.favorites.length,
         favoriteKeyCount: favoriteState.favoriteKeys.length,
-        leagueCount: favoriteState.leagues.length
+        leagueCount: favoriteState.leagues.length,
+        teamCount: favoriteState.teams.length
     });
 });
 
@@ -5917,7 +7215,7 @@ app.post("/api/fcm/test-push", async (req, res) => {
     const message = {
         notification: {
             title: "Rabona Media",
-            body: "Təbriklər! Arxa plan bildirişləri artıq aktivdir."
+            body: "TÉ™briklÉ™r! Arxa plan bildiriÅŸlÉ™ri artÄ±q aktivdir."
         },
         data: { type: 'test' },
         android: {
@@ -5964,14 +7262,14 @@ app.post("/api/push/test", async (req, res) => {
     try {
         const payload = createPushPayload({
             title: "Rabona Media",
-            body: "Test bildirişi uğurla göndərildi. Arxa plan bildirişləri hazırdır.",
+            body: "Test bildiriÅŸi uÄŸurla gÃ¶ndÉ™rildi. Arxa plan bildiriÅŸlÉ™ri hazÄ±rdÄ±r.",
             type: "test",
             tag: `test-${deviceId}-${Date.now()}`,
             requireInteraction: true
         });
         const sent = await sendWebPushMessage(deviceId, payload);
         if (!sent) {
-            return res.status(502).json({ success: false, message: "Web Push göndərilmədi. Abunəliyi yenidən aktiv edin." });
+            return res.status(502).json({ success: false, message: "Web Push gÃ¶ndÉ™rilmÉ™di. AbunÉ™liyi yenidÉ™n aktiv edin." });
         }
         res.json({ success: true });
     } catch (e) {
@@ -6030,7 +7328,7 @@ app.get("/api/push/device-status/:deviceId", (req, res) => {
         return res.status(404).json({
             success: false,
             registered: false,
-            message: "Device Web Push qeydiyyatı serverdə tapılmadı"
+            message: "Device Web Push qeydiyyatÄ± serverdÉ™ tapÄ±lmadÄ±"
         });
     }
 
@@ -6058,7 +7356,7 @@ app.get("/api/push/device-status/:deviceId", (req, res) => {
 
 async function sendBroadcastPushTest() {
     const title = "Rabona Media Test";
-    const body = "Bu test bildirişidir. Sayt bağlı olsa da telefona çatmalıdır.";
+    const body = "Bu test bildiriÅŸidir. Sayt baÄŸlÄ± olsa da telefona Ã§atmalÄ±dÄ±r.";
 
     const fcmTokens = Object.keys(fcmRegistrations);
     const webPushDevices = Object.keys(webPushRegistrations);
@@ -6139,29 +7437,29 @@ app.get("/api/push/broadcast-test", async (req, res) => {
             <meta charset="utf-8">
             <title>Push Test</title>
             <body style="font-family:Arial,sans-serif;background:#020617;color:#f8fafc;padding:32px">
-                <h1>Push test göndərildi</h1>
-                <p>FCM: ${result.sentFcm} | WebPush: ${result.sentWebPush} | Cəmi qeydiyyat: ${result.totalTargets}</p>
+                <h1>Push test gÃ¶ndÉ™rildi</h1>
+                <p>FCM: ${result.sentFcm} | WebPush: ${result.sentWebPush} | CÉ™mi qeydiyyat: ${result.totalTargets}</p>
                 <pre style="background:#0f172a;border:1px solid #1e293b;padding:16px;border-radius:12px">${JSON.stringify(result, null, 2)}</pre>
-                <a href="/push-test.html" style="color:#60a5fa">Test panelinə qayıt</a>
+                <a href="/push-test.html" style="color:#60a5fa">Test panelinÉ™ qayÄ±t</a>
             </body>
         `);
     } catch (error) {
-        res.status(500).send("Push test xətası: " + error.message);
+        res.status(500).send("Push test xÉ™tasÄ±: " + error.message);
     }
 });
 
-// YENI YOXLANIS UCUN (KÆ NAR VASÄ°TÆ )
-// Bu linkÉ™ kompÃ¼terdÉ™n girdiyinizdÉ™ BÃœTÃœN qeydiyyatdan keÃ§miÅŸ cihazlara (o cÃ¼mlÉ™dÉ™n baÄŸlÄ± olan iPhone-a) bildiriÅŸ gÃ¶ndÉ™rÉ™cÉ™k
+// YENI YOXLANIS UCUN (KÃ† NAR VASÃ„Â°TÃ† )
+// Bu linkÃ‰â„¢ kompÃƒÂ¼terdÃ‰â„¢n girdiyinizdÃ‰â„¢ BÃƒÅ“TÃƒÅ“N qeydiyyatdan keÃƒÂ§miÃ…Å¸ cihazlara (o cÃƒÂ¼mlÃ‰â„¢dÃ‰â„¢n baÃ„Å¸lÃ„Â± olan iPhone-a) bildiriÃ…Å¸ gÃƒÂ¶ndÃ‰â„¢rÃ‰â„¢cÃ‰â„¢k
 app.get("/api/fcm/broadcast-test", async (req, res) => {
-    if (!firebaseInitialized) return res.status(500).send("Firebase qoşulmayıb");
+    if (!firebaseInitialized) return res.status(500).send("Firebase qoÅŸulmayÄ±b");
     
     const tokens = Object.keys(fcmRegistrations);
-    if (tokens.length === 0) return res.send("Heç bir cihaz qeydiyyatda deyil.");
+    if (tokens.length === 0) return res.send("HeÃ§ bir cihaz qeydiyyatda deyil.");
 
     const message = {
         notification: {
-            title: "Xüsusi Test Bildirişi",
-            body: "Əgər tətbiq tam bağlıdırsa və bu bildiriş gəlirsə, hər şey əla işləyir!"
+            title: "XÃ¼susi Test BildiriÅŸi",
+            body: "ÆgÉ™r tÉ™tbiq tam baÄŸlÄ±dÄ±rsa vÉ™ bu bildiriÅŸ gÉ™lirsÉ™, hÉ™r ÅŸey É™la iÅŸlÉ™yir!"
         },
         data: { type: 'test' },
         android: {
@@ -6190,9 +7488,9 @@ app.get("/api/fcm/broadcast-test", async (req, res) => {
                 if (err.code === 'messaging/registration-token-not-registered') delete fcmRegistrations[token];
             }
         }
-        res.send(`<h1>Uğurlu!</h1><p>${sentCount} cihaza bildiriş göndərildi.</p><p>İndi iPhone-unuzu yoxlayın.</p>`);
+        res.send(`<h1>UÄŸurlu!</h1><p>${sentCount} cihaza bildiriÅŸ gÃ¶ndÉ™rildi.</p><p>Ä°ndi iPhone-unuzu yoxlayÄ±n.</p>`);
     } catch (e) {
-        res.status(500).send("Xəta baş verdi: " + e.message);
+        res.status(500).send("XÉ™ta baÅŸ verdi: " + e.message);
     }
 });
 
@@ -6239,7 +7537,7 @@ async function runBackgroundGoalTracker() {
                     const scoringSide = hs > prev.homeScore ? "home" : "away";
                     const previousGoalTotal = (Number(prev.homeScore) || 0) + (Number(prev.awayScore) || 0);
                     const title = `Rabona Media`;
-                    const body = `${ev.homeTeam.name} ${hs} - ${as} ${ev.awayTeam.name}. Hesab dəyişdi, qol vuruldu.`;
+                    const body = `${ev.homeTeam.name} ${hs} - ${as} ${ev.awayTeam.name}. Hesab dÉ™yiÅŸdi, qol vuruldu.`;
                     
                     console.log(`[GOAL] ${ev.homeTeam.name} - ${ev.awayTeam.name} GOOOL!`);
 
@@ -6407,10 +7705,10 @@ async function runIncidentScorerWorker() {
                     incident.playerIn?.name ||
                     "";
                 if (!scorerName) continue;
-                const minuteText = incident.time ? `${incident.time}'` : "Canlı";
+                const minuteText = incident.time ? `${incident.time}'` : "CanlÄ±";
                 const goalLabel =
                     incident.incidentClass === "ownGoal" ? "Avtoqol" :
-                    incident.incidentClass === "penalty" ? "Penaltidən qol" :
+                    incident.incidentClass === "penalty" ? "PenaltidÉ™n qol" :
                     "Qol";
                 const title = "Rabona Media";
                 const body = `${minuteText} ${goalLabel}: ${scorerName}. ${ev.homeTeam.name} ${ev.homeScore?.current || 0} - ${ev.awayScore?.current || 0} ${ev.awayTeam.name}`;
@@ -6441,7 +7739,7 @@ async function runIncidentScorerWorker() {
 
         pruneGoalNotificationState();
     } catch (e) {
-        // Log noise-u azaltmaq üçün daha qısa mesaj
+        // Log noise-u azaltmaq Ã¼Ã§Ã¼n daha qÄ±sa mesaj
         const shortMsg = e.message.length > 100 ? e.message.substring(0, 100) + "..." : e.message;
         console.warn("[Goal Incident Worker] Warning:", shortMsg);
     }
@@ -6528,13 +7826,15 @@ async function runReminderWorker() {
         ];
 
         for (const recipient of recipients) {
-            const { favorites, favoriteKeys } = getFavoritePayloadFromReg(recipient.reg);
-            if (favorites.length === 0 && favoriteKeys.length === 0) continue;
+            const { favorites, leagues, teams, favoriteKeys, favoriteMatches: favoriteMatchRefs } = getFavoritePayloadFromReg(recipient.reg);
+            if (favorites.length === 0 && leagues.length === 0 && teams.length === 0 && favoriteKeys.length === 0 && favoriteMatchRefs.length === 0) continue;
 
             const favoriteMatches = allUpcomingEvents.filter(ev =>
                 favorites.includes(ev.id?.toString()) ||
+                leagues.includes((ev.tournament?.uniqueTournament?.id || ev.tournament?.id || '').toString()) ||
+                favoriteTeamsMatchEvent(teams, ev) ||
                 buildServerFavoriteKeyVariants(ev).some(key => favoriteKeys.includes(key)) ||
-                (getFavoritePayloadFromReg(recipient.reg).favoriteMatches || []).some(ref =>
+                favoriteMatchRefs.some(ref =>
                     favoriteRefMatchesEvent(ref, ev, ev.id?.toString(), new Set(buildServerFavoriteKeyVariants(ev)))
                 )
             );
@@ -6553,8 +7853,8 @@ async function runReminderWorker() {
 
                 if (timeUntilStart > 0 && timeUntilStart <= 40 * 60 && timeUntilStart >= 20 * 60 && !state.soon) {
                     const sent = await sendReminderToRecipient(recipient, {
-                        title: `Xatırlatma: ${match.homeTeam.name} - ${match.awayTeam.name}`,
-                        body: "Oyunun başlamasına təxminən 30 dəqiqə qaldı.",
+                        title: `XatÄ±rlatma: ${match.homeTeam.name} - ${match.awayTeam.name}`,
+                        body: "Oyunun baÅŸlamasÄ±na tÉ™xminÉ™n 30 dÉ™qiqÉ™ qaldÄ±.",
                         matchId: favId,
                         type: "reminder_soon",
                         tag: `soon-${favId}`
@@ -6569,8 +7869,8 @@ async function runReminderWorker() {
                 const isStarted = match.status?.type === "inprogress" || (timeUntilStart <= 0 && timeUntilStart >= -600);
                 if (isStarted && !state.started) {
                     const sent = await sendReminderToRecipient(recipient, {
-                        title: "Oyun başladı",
-                        body: `${match.homeTeam.name} - ${match.awayTeam.name} oyunu başladı.`,
+                        title: "Oyun baÅŸladÄ±",
+                        body: `${match.homeTeam.name} - ${match.awayTeam.name} oyunu baÅŸladÄ±.`,
                         matchId: favId,
                         type: "reminder_started",
                         tag: `started-${favId}`
@@ -6785,7 +8085,7 @@ app.get("/api/warmup", async (req, res) => {
 });
 
 
-// â€”â€”â€” API ENDPOINTS FOR KEEPALIVE & SSE â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+// Ã¢â‚¬â€Ã¢â‚¬â€Ã¢â‚¬â€ API ENDPOINTS FOR KEEPALIVE & SSE Ã¢â‚¬â€Ã¢â‚¬â€Ã¢â‚¬â€Ã¢â‚¬â€Ã¢â‚¬â€Ã¢â‚¬â€Ã¢â‚¬â€Ã¢â‚¬â€Ã¢â‚¬â€Ã¢â‚¬â€Ã¢â‚¬â€Ã¢â‚¬â€Ã¢â‚¬â€Ã¢â‚¬â€Ã¢â‚¬â€
 
 app.get("/api/ping", (req, res) => {
     const source = req.query.source || "unknown";
@@ -6824,12 +8124,12 @@ app.get("/api/health", (req, res) => {
     });
 });
 
-// Aqressiv keep-alive endpoint - həm də yüngül warmup edir
+// Aqressiv keep-alive endpoint - hÉ™m dÉ™ yÃ¼ngÃ¼l warmup edir
 app.get("/api/keepalive-v2", async (req, res) => {
     const source = req.query.source || "external";
     console.log(`[KEEPALIVE-V2] Aggressive ping from: ${source}`);
     
-    // Yüngül warmup - serverin aktiv olduğunu platformaya göstərmək üçün
+    // YÃ¼ngÃ¼l warmup - serverin aktiv olduÄŸunu platformaya gÃ¶stÉ™rmÉ™k Ã¼Ã§Ã¼n
     const warmupResult = await warmRuntimeCaches({ light: true }).catch(() => ({ error: "failed" }));
     
     res.json({
@@ -6851,7 +8151,7 @@ app.get("/api/match/stream/:id", (req, res) => {
 
     const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
 
-    // İlk məlumatı keşdən göndər
+    // Ä°lk mÉ™lumatÄ± keÅŸdÉ™n gÃ¶ndÉ™r
     if (matchCache[matchId]) {
         send({ 
             type: "init", 
@@ -6861,7 +8161,7 @@ app.get("/api/match/stream/:id", (req, res) => {
             } 
         });
     } else {
-        // Əgər keşdə yoxdursa, anında çəkməyə çalış
+        // ÆgÉ™r keÅŸdÉ™ yoxdursa, anÄ±nda Ã§É™kmÉ™yÉ™ Ã§alÄ±ÅŸ
         refreshMatchDetails(matchId);
     }
 
@@ -6886,7 +8186,7 @@ app.get("/api/match/stream/:id", (req, res) => {
 });
 
 
-// ——— BACKGROUND REFRESH LOGIC ———————————————
+// â€”â€”â€” BACKGROUND REFRESH LOGIC â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
 async function refreshLiveData() {
     try {
         const data = await fetchLiveScoresForNotifications({ allowPushFallback: false });
@@ -6902,18 +8202,18 @@ async function refreshLiveData() {
                 prev.awayScore?.current !== match.awayScore?.current
             );
 
-            // Qol və ya vəziyyət dəyişikliyi yoxla
+            // Qol vÉ™ ya vÉ™ziyyÉ™t dÉ™yiÅŸikliyi yoxla
             if (!prev || (
                 scoreChanged ||
                 prev.status?.type !== match.status?.type
             )) {
-                // Detalları yenilə (xüsusilə qol olanda)
+                // DetallarÄ± yenilÉ™ (xÃ¼susilÉ™ qol olanda)
                 refreshMatchDetails(id);
                 
-                // SSE dinləyicilərinə xəbər ver
+                // SSE dinlÉ™yicilÉ™rinÉ™ xÉ™bÉ™r ver
                 notifySseListeners(match);
                 
-                // Qol bildirişi (əgər qol olubsa)
+                // Qol bildiriÅŸi (É™gÉ™r qol olubsa)
                 if (scoreChanged) {
                     console.log(`[GOAL] ${match.homeTeam.name} ${match.homeScore.current} - ${match.awayScore.current} ${match.awayTeam.name}`);
                     scorePushTasks.push(sendImmediateScoreGoalPush(match, prev, "refresh").catch(e => {
@@ -6925,6 +8225,9 @@ async function refreshLiveData() {
         if (scorePushTasks.length > 0) {
             await Promise.allSettled(scorePushTasks);
         }
+        warmLiveMatchDetails(liveEvents).catch(error => {
+            console.warn(`[DETAILS-WARMUP] Live details warmup failed: ${error.message}`);
+        });
         console.log(`[REFRESH] Background update success. Live matches: ${liveEvents.length}`);
     } catch (e) {
         console.error("[REFRESH] Error:", e.message);
@@ -6940,7 +8243,7 @@ async function refreshLiveDetailsLoop() {
     });
     if (ids.length === 0) return;
 
-    const count = 8;
+    const count = 12;
     const tasks = [];
     for (let i = 0; i < count; i++) {
         const idx = (lastDetailIndex + i) % ids.length;
@@ -7018,14 +8321,16 @@ async function startAlwaysOnWorkers() {
         savePersistentState(); // Periodically save scores to disk
     }, 60000);
 
-    // 4. Cache Warmup (20s)
+    // 4. Cache Warmup (10s)
+    refreshLiveDetailsLoop().catch(e => console.error("[Always-On] Initial details warmup failed:", e.message));
     setInterval(async () => {
         await refreshLiveDetailsLoop();
         await warmRuntimeCaches({ light: true });
-    }, 20000);
+    }, 10000);
 
     // 5. Optional self-ping for platforms that sleep. Oracle VPS does not need this.
     if (KEEPALIVE_ENABLED) {
+        runEnhancedSelfPing().catch(e => console.warn("[Keep-Alive] Initial self-ping failed:", e.message));
         setInterval(async () => {
             await runEnhancedSelfPing();
         }, SELF_PING_INTERVAL_MS);
@@ -7040,23 +8345,34 @@ const server = app.listen(PORT, "0.0.0.0", async () => {
     await Promise.allSettled([registrationsReadyPromise, webPushRegistrationsReadyPromise]);
     console.log(`[BOOT] Push registrations ready. FCM: ${Object.keys(fcmRegistrations).length}, WebPush: ${Object.keys(webPushRegistrations).length}`);
 
-    // Start consolidated workers
-    startAlwaysOnWorkers();
+    // Start consolidated workers only when enabled. Local development can use
+    // cached snapshots without hammering external APIs during page load.
+    if (ALWAYS_ON_ENABLED) {
+        startAlwaysOnWorkers();
+    } else {
+        console.log("[Always-On] Disabled by ALWAYS_ON_ENABLED=false.");
+    }
 
     // Initial refresh
     ensureLiveSnapshotLoaded().then(() => {
         console.log(`[BOOT] Live snapshot loaded. Events: ${globalLiveEvents?.events?.length || 0}`);
-        refreshLiveData();
-        runBackgroundGoalTracker().catch(() => {});
+        if (ALWAYS_ON_ENABLED) {
+            refreshLiveData();
+            refreshLiveDetailsLoop().catch(error => {
+                console.warn(`[BOOT] Initial details warmup failed: ${error.message}`);
+            });
+            runBackgroundGoalTracker().catch(() => {});
+        }
     });
 });
 
-
-app.get("/", (req, res) => {
-    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-    res.set("Pragma", "no-cache");
-    res.set("Expires", "0");
-    res.set("Surrogate-Control", "no-store");
-    res.sendFile(path.join(__dirname, "index.html"));
+server.on("error", (error) => {
+    if (error?.code === "EADDRINUSE") {
+        console.log(`[STARTUP] Port ${PORT} artiq istifadededir. Server zaten aciqdir: http://localhost:${PORT}`);
+        console.log("[STARTUP] Yeni proses dayandirildi; brauzerde movcud localhost sehifesini refresh edin.");
+        process.exit(0);
+    }
+    throw error;
 });
+
 
