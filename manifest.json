@@ -3,7 +3,7 @@
   "short_name": "Rabona Media",
   "description": "Canlı idman nəticələri və statistikalar.",
   "id": "/",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

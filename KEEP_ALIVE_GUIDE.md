@@ -15,7 +15,8 @@ Bu sayt hər dəqiqə serverinizə zəng vuraraq onu oyaq saxlayacaq.
 
 ## 2. UptimeRobot (Alternativ)
 
-Əgər Cron-job xoşunuza gəlməsə, bunu yoxlayın:
+Əgər Cron-job xoşunuza gəlməsə, bunu yoxlayın:bu saytda arxa backend isleyir amma ekrana hec bir sey gelmir bax 3 saatdir bele olub qalib hec bir duymesi bele islemir
+
 
 1.  [UptimeRobot](https://uptimerobot.com/) saytına daxil olun.
 2.  **"Add New Monitor"** seçin.

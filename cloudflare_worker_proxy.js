@@ -3,7 +3,7 @@ export default {
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type"
+      "Access-Control-Allow-Headers": "Content-Type, Accept, X-Requested-With"
     };
 
     if (request.method === "OPTIONS") {
@@ -11,14 +11,22 @@ export default {
     }
 
     const url = new URL(request.url);
-    const path = url.searchParams.get("path") || "/sport/football/events/live";
+    let path = url.searchParams.get("path") || "/sport/football/events/live";
+    path = `/${String(path).replace(/^\/+/, "").replace(/^api\/v1\//, "")}`;
 
     const passthroughParams = new URLSearchParams(url.search);
     passthroughParams.delete("path");
 
     const bases = [
       "https://api.sofascore.com/api/v1",
-      "https://www.sofascore.com/api/v1"
+      "https://www.sofascore.com/api/v1",
+      "https://api.sofascore.app/api/v1"
+    ];
+
+    const userAgents = [
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1",
+      "Mozilla/5.0 (Linux; Android 15; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Mobile Safari/537.36"
     ];
 
     const browserHeaders = {
@@ -28,7 +36,7 @@ export default {
       "Pragma": "no-cache",
       "Referer": "https://www.sofascore.com/football/livescore",
       "Origin": "https://www.sofascore.com",
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"
+      "User-Agent": userAgents[Math.floor(Math.random() * userAgents.length)]
     };
 
     let lastError = null;
@@ -56,7 +64,11 @@ export default {
         } catch (_) {}
 
         if (upstreamRes.ok && json && !json.error) {
-          return new Response(JSON.stringify(json), {
+          return new Response(JSON.stringify({
+            ...json,
+            proxySource: "cloudflare-worker",
+            upstream: upstream.hostname
+          }), {
             status: 200,
             headers: {
               ...corsHeaders,

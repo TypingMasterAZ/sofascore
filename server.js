@@ -32,7 +32,13 @@ async function fetchMatchDetailsFromServer(id) {
     try {
         const cachedMatch = matchCache[String(id)];
         if (String(cachedMatch?.source || "").toLowerCase().includes("mackolik")) {
-            return await fetchMackolikMatchDetails(id, cachedMatch?.slug || "");
+            return await fetchMackolikMatchDetails(id, cachedMatch?.slug || "", { fast: true });
+        }
+        if (String(cachedMatch?.source || "").toLowerCase() === "flashscore") {
+            return {
+                incidents: buildSyntheticIncidentsFromScore(cachedMatch),
+                stats: { statistics: [] }
+            };
         }
 
         const [incidents, stats] = await Promise.all([
@@ -77,6 +83,97 @@ function matchHasAnyGoalScore(match) {
     return (Number.isFinite(home) ? home : 0) + (Number.isFinite(away) ? away : 0) > 0;
 }
 
+let matchDetailsDiskSaveTimer = null;
+
+function pruneMatchDetailsCacheForDisk() {
+    const now = Date.now();
+    Object.keys(matchDetailsCache).forEach(matchId => {
+        const entry = matchDetailsCache[matchId];
+        if (!entry?.updatedAt || now - entry.updatedAt > MATCH_DETAILS_DISK_MAX_AGE) {
+            delete matchDetailsCache[matchId];
+        }
+    });
+    const entries = Object.entries(matchDetailsCache)
+        .sort((a, b) => (b[1]?.updatedAt || 0) - (a[1]?.updatedAt || 0));
+    entries.slice(MATCH_DETAILS_DISK_MAX_ITEMS).forEach(([matchId]) => {
+        delete matchDetailsCache[matchId];
+    });
+}
+
+function saveMatchDetailsCacheToDiskSoon() {
+    if (matchDetailsDiskSaveTimer) return;
+    matchDetailsDiskSaveTimer = setTimeout(() => {
+        matchDetailsDiskSaveTimer = null;
+        try {
+            pruneMatchDetailsCacheForDisk();
+            fs.writeFileSync(MATCH_DETAILS_CACHE_FILE, JSON.stringify(matchDetailsCache, null, 2));
+        } catch (error) {
+            console.warn("[DETAILS-CACHE] Disk save failed:", error.message);
+        }
+    }, 900);
+}
+
+function loadMatchDetailsCacheFromDisk() {
+    try {
+        if (!fs.existsSync(MATCH_DETAILS_CACHE_FILE)) return;
+        const parsed = JSON.parse(fs.readFileSync(MATCH_DETAILS_CACHE_FILE, "utf8"));
+        if (!parsed || typeof parsed !== "object") return;
+        const now = Date.now();
+        let loaded = 0;
+        Object.entries(parsed).forEach(([matchId, entry]) => {
+            if (!entry?.updatedAt || now - entry.updatedAt > MATCH_DETAILS_DISK_MAX_AGE) return;
+            const incidents = normalizeIncidentsData(entry.incidents) || { incidents: [] };
+            const stats = normalizeStatisticsData(entry.stats || { statistics: [] });
+            if (!hasUsefulIncidentData(incidents) && !hasUsefulStatsData(stats)) return;
+            matchDetailsCache[matchId] = {
+                incidents,
+                stats,
+                updatedAt: entry.updatedAt,
+                source: entry.source || "disk"
+            };
+            cache[`incidents_${matchId}`] = { data: incidents, timestamp: entry.updatedAt };
+            cache[`stats_${matchId}`] = { data: stats, timestamp: entry.updatedAt };
+            loaded++;
+        });
+        console.log(`[DETAILS-CACHE] Loaded ${loaded} match details from disk.`);
+    } catch (error) {
+        console.warn("[DETAILS-CACHE] Disk load failed:", error.message);
+    }
+}
+
+function buildSyntheticIncidentsFromScore(match) {
+    if (!matchHasAnyGoalScore(match)) return { incidents: [] };
+    const homeGoals = Number(match?.homeScore?.current ?? match?.homeScore?.display ?? 0) || 0;
+    const awayGoals = Number(match?.awayScore?.current ?? match?.awayScore?.display ?? 0) || 0;
+    const minute = String(match?.status?.description || "").match(/\d+/)?.[0];
+    const incidents = [];
+    if (homeGoals > 0) {
+        incidents.push({
+            id: `${match.id}-home-score-summary`,
+            incidentType: "goal",
+            incidentClass: "regular",
+            time: minute ? Number(minute) : undefined,
+            isHome: true,
+            playerName: match.homeTeam?.name || "Home",
+            text: homeGoals === 1 ? "1 goal recorded" : `${homeGoals} goals recorded`,
+            synthetic: true
+        });
+    }
+    if (awayGoals > 0) {
+        incidents.push({
+            id: `${match.id}-away-score-summary`,
+            incidentType: "goal",
+            incidentClass: "regular",
+            time: minute ? Number(minute) : undefined,
+            isHome: false,
+            playerName: match.awayTeam?.name || "Away",
+            text: awayGoals === 1 ? "1 goal recorded" : `${awayGoals} goals recorded`,
+            synthetic: true
+        });
+    }
+    return { incidents, synthetic: true, source: "score-summary" };
+}
+
 function storeMatchDetailsCache(id, details = {}, source = "server") {
     const matchId = String(id || "");
     if (!matchId) return null;
@@ -102,6 +199,9 @@ function storeMatchDetailsCache(id, details = {}, source = "server") {
     matchDetailsCache[matchId] = stored;
     if (hasUsefulIncidentData(incidents)) cache[`incidents_${matchId}`] = { data: incidents, timestamp: updatedAt };
     if (hasUsefulStatsData(stats)) cache[`stats_${matchId}`] = { data: stats, timestamp: updatedAt };
+    if (hasUsefulIncidentData(incidents) || hasUsefulStatsData(stats)) {
+        saveMatchDetailsCacheToDiskSoon();
+    }
 
     const match = matchCache[matchId];
     if (match) {
@@ -1201,6 +1301,7 @@ async function fetchSofaImageCached(imagePath) {
 
 const EXTERNAL_IMAGE_HOSTS = new Set([
     "file.mackolikfeeds.com",
+    "static.flashscore.com",
     "flagcdn.com",
     "img.sofascore.com",
     "api.sofascore.com",
@@ -1248,7 +1349,9 @@ async function fetchExternalImageCached(imageUrl) {
                 headers: {
                     ...HEADERS,
                     Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-                    Referer: imageHost === "file.mackolikfeeds.com" ? "https://www.mackolik.com/" : "https://www.sofascore.com/",
+                    Referer: imageHost === "file.mackolikfeeds.com"
+                        ? "https://www.mackolik.com/"
+                        : (imageHost === "static.flashscore.com" ? "https://www.flashscore.com/" : "https://www.sofascore.com/"),
                     "User-Agent": getRandomUA()
                 }
             });
@@ -1318,6 +1421,7 @@ function savePersistentState() {
 }
 
 loadPersistentState();
+loadMatchDetailsCacheFromDisk();
 
 let goalNotificationState = {};
 let pendingGoalDetailNotifications = {};
@@ -1339,7 +1443,14 @@ const STATS_CACHE_TTL = 2500;
 const STATS_STALE_REFRESH_MS = 500;
 const EMPTY_STATS_CACHE_TTL = 500;
 const MACKOLIK_DETAILS_CACHE_TTL = 450;
+const MACKOLIK_FAST_DETAILS_CACHE_TTL = 30 * 60 * 1000;
 const DETAILS_WARMUP_INTERVAL_MS = 700;
+const MATCH_DETAILS_CACHE_FILE = "./match_details_cache.json";
+const MATCH_DETAILS_DISK_MAX_ITEMS = 2500;
+const MATCH_DETAILS_DISK_MAX_AGE = 14 * 24 * 60 * 60 * 1000;
+const SCHEDULED_DETAILS_WARM_BATCH = 8;
+const SCHEDULED_DETAILS_WARM_INTERVAL_MS = 600;
+const RECENT_SCHEDULED_DETAILS_WARM_INTERVAL_MS = 60 * 1000;
 const LIVE_SNAPSHOT_FILE = "./live_snapshot.json";
 const LIVE_SNAPSHOT_MAX_AGE = 900;
 const LIVE_DISK_SNAPSHOT_MAX_AGE = 10 * 60 * 1000;
@@ -1352,6 +1463,7 @@ const ALLOW_MACKOLIK_FALLBACK = String(process.env.ALLOW_MACKOLIK_FALLBACK || "t
 const STRICT_SOFASCORE_ONLY = String(process.env.SOFASCORE_STRICT_ONLY || "false").toLowerCase() === "true";
 const SOFASCORE_ONLY_MODE = STRICT_SOFASCORE_ONLY || (LIVE_PRIMARY_SOURCE === "sofascore" && !ENABLE_MACKOLIK_MATCHES && !ALLOW_MACKOLIK_FALLBACK);
 const MACKOLIK_CANONICAL_MODE = !SOFASCORE_ONLY_MODE && LIVE_PRIMARY_SOURCE === "mackolik" && ENABLE_MACKOLIK_MATCHES;
+const FLASHSCORE_CANONICAL_MODE = !SOFASCORE_ONLY_MODE && LIVE_PRIMARY_SOURCE === "flashscore";
 const ENABLE_MACKOLIK_PUSH_FALLBACK = String(process.env.ENABLE_MACKOLIK_PUSH_FALLBACK || "true").toLowerCase() !== "false";
 const ENABLE_MACKOLIK_SCORE_OVERLAY = String(process.env.ENABLE_MACKOLIK_SCORE_OVERLAY || "true").toLowerCase() !== "false";
 let lastPushFallbackLogAt = 0;
@@ -1364,7 +1476,7 @@ const MACKOLIK_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
     "Accept": "application/json, text/plain, */*",
     "Referer": "https://www.mackolik.com/canli-sonuclar",
-    
+    "X-Requested-With": "XMLHttpRequest"
 };
 
 function getMackolikTeamLogo(teamId) {
@@ -1572,17 +1684,14 @@ function mapMackolikStatus(match) {
         };
     }
 
-    if (isMackolikFinishedStatus(match)) {
-        if (substate === "penalties" || box === "PEN") return { type: "finished", description: rawBox || "PEN" };
-        if (substate === "afterextratime" || box === "AET") return { type: "finished", description: rawBox || "AET" };
+    if (state === "post") {
+        if (substate === "penalties") return { type: "finished", description: rawBox || "PEN" };
+        if (substate === "afterextratime") return { type: "finished", description: rawBox || "AET" };
         return { type: "finished", description: rawBox || "FT" };
     }
 
-    if (substate === "postponed" || box === "ERT" || box === "POSTPONED") {
-        return { type: "notstarted", description: rawBox || "ERT" };
-    }
-    if (substate === "canceled" || substate === "cancelled" || box === "İPT" || box === "IPT") {
-        return { type: "notstarted", description: rawBox || "İPT" };
+    if (substate === "postponed") {
+        return { type: "notstarted", description: rawBox || "POSTPONED" };
     }
 
     return { type: "notstarted", description: rawBox || "" };
@@ -2305,10 +2414,177 @@ async function fetchMackolikPushFallback(primaryError) {
     }
 }
 
+const FLASHSCORE_FEED_URL = "https://www.flashscore.mobi/x/feed/f_1_0_3_en_1";
+
+function normalizeFlashscoreName(value) {
+    return String(value || "").trim();
+}
+
+function parseFlashscoreFeed(rawText) {
+    const feedText = String(rawText || "")
+        .replace(/\u00c2\u00ac/g, "¬")
+        .replace(/\u00c3\u00b7/g, "÷");
+    const sections = feedText.split("~");
+    const events = [];
+    let tournament = null;
+
+    for (const section of sections) {
+        if (!section) continue;
+        const parts = section.split("¬");
+        const fields = {};
+        for (const part of parts) {
+            const splitAt = part.indexOf("÷");
+            if (splitAt <= 0) continue;
+            fields[part.slice(0, splitAt)] = part.slice(splitAt + 1);
+        }
+
+        if (fields.ZA || fields.ZE || fields.ZEE) {
+            const countryName = normalizeFlashscoreName(fields.ZY || fields.ZAF || fields.ZB || "");
+            const tournamentName = normalizeFlashscoreName(fields.ZA || fields.ZE || fields.ZEE || "Football");
+            tournament = {
+                id: fields.ZEE || fields.ZC || fields.ZE || tournamentName,
+                name: tournamentName,
+                slug: String(tournamentName).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+                category: {
+                    id: fields.ZC || countryName || "world",
+                    name: countryName || "World",
+                    slug: String(countryName || "world").toLowerCase().replace(/[^a-z0-9]+/g, "-")
+                },
+                logoUrl: fields.OAJ ? `https://static.flashscore.com/res/image/data/${fields.OAJ}.png` : null
+            };
+            continue;
+        }
+
+        if (!fields.AA || (!fields.AE && !fields.AF)) continue;
+
+        const statusCode = Number(fields.AB || 0);
+        const stateCode = Number(fields.AC || 0);
+        let statusType = "notstarted";
+        let statusDescription = "";
+        let currentPeriodStartTimestamp = null;
+        let initial = 0;
+
+        if (statusCode === 2) {
+            statusType = "inprogress";
+            if (stateCode === 38 || fields.CR === "3") {
+                statusDescription = "HT";
+            } else if (fields.AO && Number.isFinite(Number(fields.AO))) {
+                currentPeriodStartTimestamp = Number(fields.AO);
+                if (stateCode === 13 || stateCode === 15) initial = 45 * 60;
+                if (stateCode === 14) initial = 90 * 60;
+                const elapsed = Math.max(0, Math.floor(Date.now() / 1000) - currentPeriodStartTimestamp);
+                const minute = Math.max(1, Math.floor((elapsed + initial) / 60) + 1);
+                statusDescription = minute > 90 && minute <= 130 ? `90+${minute - 90}'` : `${minute}'`;
+            } else {
+                statusDescription = "LIVE";
+            }
+        } else if (statusCode === 3) {
+            statusType = "finished";
+            statusDescription = "FT";
+        }
+
+        const homeScore = Number(fields.AG);
+        const awayScore = Number(fields.AH);
+        const safeHomeScore = Number.isFinite(homeScore) ? homeScore : 0;
+        const safeAwayScore = Number.isFinite(awayScore) ? awayScore : 0;
+        const startTimestamp = Number(fields.AD || 0) || Math.floor(Date.now() / 1000);
+        const homeTeamId = fields.PX || fields.WU || `${fields.AA}-home`;
+        const awayTeamId = fields.PY || fields.WV || `${fields.AA}-away`;
+
+        events.push({
+            id: `fs_${fields.AA}`,
+            flashscoreId: fields.AA,
+            source: "flashscore",
+            slug: fields.WE || fields.AA,
+            startTimestamp,
+            status: { type: statusType, description: statusDescription },
+            time: currentPeriodStartTimestamp ? { currentPeriodStartTimestamp, initial } : undefined,
+            homeTeam: {
+                id: homeTeamId,
+                name: normalizeFlashscoreName(fields.AE || ""),
+                shortName: normalizeFlashscoreName(fields.AE || ""),
+                slug: fields.WU || "",
+                logoUrl: fields.JA ? `https://static.flashscore.com/res/image/data/${fields.JA}.png` : null
+            },
+            awayTeam: {
+                id: awayTeamId,
+                name: normalizeFlashscoreName(fields.AF || ""),
+                shortName: normalizeFlashscoreName(fields.AF || ""),
+                slug: fields.WV || "",
+                logoUrl: fields.JB ? `https://static.flashscore.com/res/image/data/${fields.JB}.png` : null
+            },
+            homeScore: { current: safeHomeScore, display: statusType === "notstarted" ? null : safeHomeScore },
+            awayScore: { current: safeAwayScore, display: statusType === "notstarted" ? null : safeAwayScore },
+            tournament: tournament || {
+                id: "flashscore-football",
+                name: "Football",
+                category: { id: "world", name: "World" }
+            }
+        });
+    }
+
+    return {
+        events,
+        source: "flashscore",
+        generatedAt: new Date().toISOString()
+    };
+}
+
+function dateToFlashscoreOffset(date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || ""))) return 0;
+    const [year, month, day] = String(date).split("-").map(Number);
+    const targetUtc = Date.UTC(year, month - 1, day);
+    const now = new Date();
+    const todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    return Math.round((targetUtc - todayUtc) / (24 * 60 * 60 * 1000));
+}
+
+async function fetchFlashscoreFeedByOffset(offset = 0) {
+    const safeOffset = Number.isFinite(Number(offset)) ? Number(offset) : 0;
+    const feedUrl = `https://www.flashscore.mobi/x/feed/f_1_${safeOffset}_3_en_1`;
+    const response = await axios.get(feedUrl, {
+        timeout: 3200,
+        responseType: "text",
+        transformResponse: [data => data],
+        headers: {
+            ...HEADERS,
+            Accept: "*/*",
+            Referer: "https://www.flashscore.com/",
+            Origin: "https://www.flashscore.com",
+            "X-Fsign": "SW9D1eZo",
+            "User-Agent": getRandomUA()
+        }
+    });
+    return parseFlashscoreFeed(response.data);
+}
+
+async function fetchLiveFromFlashscore() {
+    const parsed = await fetchFlashscoreFeedByOffset(0);
+    parsed.events = parsed.events.filter(event => String(event.status?.type || "").toLowerCase() === "inprogress");
+    parsed.source = "flashscore";
+    return parsed;
+}
+
+async function fetchMatchesFromFlashscoreByDate(date) {
+    const offset = dateToFlashscoreOffset(date);
+    const parsed = await fetchFlashscoreFeedByOffset(offset);
+    parsed.events = parsed.events.sort((a, b) => Number(a.startTimestamp || 0) - Number(b.startTimestamp || 0));
+    parsed.source = "flashscore-scheduled";
+    parsed.matchDate = date;
+    parsed.flashscoreOffset = offset;
+    return parsed;
+}
+
 async function fetchLiveScoresForNotifications(options = {}) {
     const { allowPushFallback = true, saveSnapshot = true } = options;
     let primaryErrorMessage = "";
     try {
+        if (FLASHSCORE_CANONICAL_MODE) {
+            const normalized = await fetchLiveFromFlashscore();
+            saveLivePollPayloadIfPublic(normalized, saveSnapshot);
+            return normalized;
+        }
+
         if (MACKOLIK_CANONICAL_MODE) {
             const normalized = await fetchLiveFromMackolik();
             saveLivePollPayloadIfPublic(normalized, saveSnapshot);
@@ -2348,8 +2624,6 @@ async function fetchLiveScoresForNotifications(options = {}) {
 
     return getLiveEventsData(true);
 }
-
-
 
 async function fetchLiveFromScheduledFallback(sourceError = "") {
     const now = Date.now();
@@ -2435,6 +2709,10 @@ async function fetchLiveFromMackolik() {
 }
 
 async function fetchLiveWithFallback() {
+    if (FLASHSCORE_CANONICAL_MODE) {
+        return await fetchLiveFromFlashscore();
+    }
+
     if (MACKOLIK_CANONICAL_MODE) {
         return await fetchLiveFromMackolik();
     }
@@ -2453,6 +2731,7 @@ async function fetchLiveWithFallback() {
             errors.push(`${name}: empty`);
         } catch (error) {
             errors.push(`${name}: ${error.message}`);
+            // Sadece ciddi xetalarÄ± logla (403/timeout cox olanda logu doldurmasÄ±n)
             if (!error.message.includes("403") && !error.message.includes("timeout")) {
                 console.warn(`[LIVE SOURCE] ${name} failed: ${error.message}`);
             }
@@ -2490,11 +2769,11 @@ async function fetchLiveWithFallback() {
 async function fetchMackolikMatchesByDate(matchDate) {
     const response = await axios.get(MACKOLIK_LIVE_URL, {
         params: {
-            "sports[]": "Soccer",
+            sports: ["Soccer"],
             matchDate
         },
         headers: MACKOLIK_HEADERS,
-        timeout: 20000
+        timeout: 6500
     });
 
     if (response.data?.status !== "success") {
@@ -2749,25 +3028,44 @@ async function fetchMackolikKeyEvents(matchId, slug = "") {
     return Array.isArray(payload.keyEvents) ? payload.keyEvents : [];
 }
 
-async function fetchMackolikMatchDetails(matchId, slug = "") {
+function buildMackolikDetailsPayload(keyEvents = [], statsSource = {}) {
+    const incidents = (Array.isArray(keyEvents) ? keyEvents : []).map(mapMackolikIncident).filter(Boolean);
+    const statisticsItems = normalizeMackolikGameStatsPayload(statsSource || {});
+
+    return {
+        incidents: { incidents },
+        stats: statisticsItems.length ? {
+            statistics: [{
+                period: "ALL",
+                groups: [{
+                    groupName: "Ümumi",
+                    statisticsItems
+                }]
+            }]
+        } : { statistics: [] }
+    };
+}
+
+async function fetchMackolikMatchDetails(matchId, slug = "", options = {}) {
     const safeSlug = slug || "mac";
     const url = `https://www.mackolik.com/mac/${safeSlug}/${matchId}`;
-    
-    // Start fetching HTML concurrently to save time if AJAX fails
-    const htmlPromise = axios.get(url, {
-        headers: {
-            "User-Agent": MACKOLIK_HEADERS["User-Agent"],
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-        },
-        timeout: 4500
-    }).catch(() => null);
-
     const freshStatsPromise = fetchMackolikGameStats(matchId, safeSlug).catch(() => null);
-    let keyEvents = await fetchMackolikKeyEvents(matchId, safeSlug).catch(() => []);
     let gameStatsSettings = null;
+    let keyEvents = await fetchMackolikKeyEvents(matchId, safeSlug).catch(() => []);
+
+    if (options.fast) {
+        const freshStats = await freshStatsPromise;
+        return buildMackolikDetailsPayload(keyEvents, freshStats || {});
+    }
 
     if (!keyEvents.length) {
-        const response = await htmlPromise;
+        const response = await axios.get(url, {
+            headers: {
+                "User-Agent": MACKOLIK_HEADERS["User-Agent"],
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+            },
+            timeout: 4500
+        }).catch(() => null);
 
         const settingsObjects = extractMackolikSettingsObjects(response?.data || "");
         const keyEventsSettings = settingsObjects.find(obj => obj?.url?.includes("/ajax/football/key-events"));
@@ -2785,23 +3083,8 @@ async function fetchMackolikMatchDetails(matchId, slug = "") {
         }
     }
 
-    const incidents = keyEvents.map(mapMackolikIncident).filter(Boolean);
-
     const freshStats = await freshStatsPromise;
-    const statisticsItems = normalizeMackolikGameStatsPayload(freshStats || gameStatsSettings || {});
-
-    return {
-        incidents: { incidents },
-        stats: statisticsItems.length ? {
-            statistics: [{
-                period: "ALL",
-                groups: [{
-                    groupName: "Ümumi",
-                    statisticsItems
-                }]
-            }]
-        } : { statistics: [] }
-    };
+    return buildMackolikDetailsPayload(keyEvents, freshStats || gameStatsSettings || {});
 }
 
 function loadLiveSnapshot() {
@@ -4582,7 +4865,8 @@ async function warmLiveMatchDetails(events = []) {
             await Promise.allSettled(batch.flatMap(event => {
                 const id = event.id.toString();
                 if (String(event.source || "").toLowerCase().includes("mackolik")) {
-                    return [refreshMatchDetails(id)];
+                    return [fetchMackolikMatchDetails(id, event.slug || "", { fast: true })
+                        .then(details => storeMatchDetailsCache(id, details, "mackolik-fast-warm"))];
                 }
                 const tasks = [];
                 if (!cache[`incidents_${id}`] || Date.now() - cache[`incidents_${id}`].timestamp > INCIDENTS_STALE_REFRESH_MS) {
@@ -4616,6 +4900,184 @@ async function warmLiveMatchDetails(events = []) {
 }
 
 // API vasitÃ‰â„¢ÃƒÂ§isi (Komanda mÃ‰â„¢lumatlarÃ„Â± vÃ‰â„¢ heyÃ‰â„¢t ÃƒÂ¼ÃƒÂ§ÃƒÂ¼n)
+const scheduledDetailsWarmQueue = [];
+const scheduledDetailsWarmQueued = new Set();
+let scheduledDetailsWarmWorkerRunning = false;
+
+function getEventDetailCacheId(event = {}) {
+    return String(event.mackolikMatchId || event.id || "");
+}
+
+function hasReadyMatchDetails(matchId) {
+    const cached = matchDetailsCache[matchId];
+    return hasUsefulIncidentData(cached?.incidents) || hasUsefulStatsData(cached?.stats);
+}
+
+function enqueueScheduledMatchDetails(events = [], reason = "scheduled") {
+    if (!ALWAYS_ON_ENABLED) return;
+    const candidates = (Array.isArray(events) ? events : [])
+        .filter(event => event?.id)
+        .filter(event => {
+            const status = String(event.status?.type || "").toLowerCase();
+            return status === "finished" || status === "inprogress" || matchHasAnyGoalScore(event);
+        })
+        .slice(0, 700);
+
+    for (const event of candidates) {
+        const detailId = getEventDetailCacheId(event);
+        if (!detailId || hasReadyMatchDetails(detailId) || scheduledDetailsWarmQueued.has(detailId)) continue;
+        scheduledDetailsWarmQueued.add(detailId);
+        scheduledDetailsWarmQueue.push({ event, detailId, reason, queuedAt: Date.now() });
+        if (event?.id) matchCache[String(event.id)] = event;
+        if (detailId && !matchCache[detailId]) matchCache[detailId] = { ...event, id: detailId };
+    }
+
+    setTimeout(() => {
+        runScheduledDetailsWarmWorker().catch(error => {
+            console.warn("[SCHEDULED DETAILS WARMUP] Worker failed:", error.message);
+        });
+    }, 250);
+}
+
+function enqueueScheduledMatchDetailsPriority(event = {}, reason = "priority-click") {
+    if (!ALWAYS_ON_ENABLED || !event?.id) return;
+    const detailId = getEventDetailCacheId(event);
+    if (!detailId || hasReadyMatchDetails(detailId)) return;
+    if (!scheduledDetailsWarmQueued.has(detailId)) {
+        scheduledDetailsWarmQueued.add(detailId);
+    }
+    scheduledDetailsWarmQueue.unshift({ event, detailId, reason, queuedAt: Date.now(), priority: true });
+    if (event?.id) matchCache[String(event.id)] = event;
+    if (detailId && !matchCache[detailId]) matchCache[detailId] = { ...event, id: detailId };
+    runScheduledDetailsWarmWorker().catch(error => {
+        console.warn("[SCHEDULED DETAILS WARMUP] Priority worker failed:", error.message);
+    });
+}
+
+async function warmOneScheduledMatchDetails(item) {
+    const event = item.event || {};
+    const detailId = item.detailId || getEventDetailCacheId(event);
+    if (!detailId || hasReadyMatchDetails(detailId)) return;
+
+    const source = String(event.source || "").toLowerCase();
+    const slug = event.mackolikSlug || event.slug || "";
+    if (source.includes("mackolik") || event.mackolikMatchId) {
+        const details = await withServerTimeout(
+            fetchMackolikMatchDetails(detailId, slug, { fast: true }),
+            3200,
+            `Mackolik scheduled details ${detailId}`
+        );
+        storeMatchDetailsCache(detailId, details, `scheduled-${item.reason || "warm"}-mackolik`);
+        return;
+    }
+
+    const details = await withServerTimeout(
+        fetchMatchDetailsFromServer(detailId),
+        3600,
+        `Scheduled details ${detailId}`
+    );
+    if (details) storeMatchDetailsCache(detailId, details, `scheduled-${item.reason || "warm"}`);
+}
+
+async function runScheduledDetailsWarmWorker() {
+    if (scheduledDetailsWarmWorkerRunning) return;
+    scheduledDetailsWarmWorkerRunning = true;
+    try {
+        while (scheduledDetailsWarmQueue.length) {
+            const batch = scheduledDetailsWarmQueue.splice(0, SCHEDULED_DETAILS_WARM_BATCH);
+            await Promise.allSettled(batch.map(item =>
+                warmOneScheduledMatchDetails(item).catch(error => {
+                    if (!String(error.message || "").includes("timeout")) {
+                        console.warn(`[SCHEDULED DETAILS WARMUP] ${item.detailId}: ${error.message}`);
+                    }
+                }).finally(() => {
+                    scheduledDetailsWarmQueued.delete(item.detailId);
+                })
+            ));
+            if (scheduledDetailsWarmQueue.length) {
+                await new Promise(resolve => setTimeout(resolve, SCHEDULED_DETAILS_WARM_INTERVAL_MS));
+            }
+        }
+    } finally {
+        scheduledDetailsWarmWorkerRunning = false;
+    }
+}
+
+function isPastMatchDate(date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || ""))) return false;
+    const [year, month, day] = String(date).split("-").map(Number);
+    const targetUtc = Date.UTC(year, month - 1, day);
+    const now = new Date();
+    const todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    return targetUtc < todayUtc;
+}
+
+async function warmScheduledMatchDetailsImmediate(events = [], options = {}) {
+    if (!ALWAYS_ON_ENABLED) return { warmed: 0 };
+    const limit = Number(options.limit || 18);
+    const batchSize = Number(options.batchSize || 4);
+    const budgetMs = Number(options.budgetMs || 4200);
+    const startedAt = Date.now();
+    let warmed = 0;
+
+    const candidates = (Array.isArray(events) ? events : [])
+        .filter(event => event?.id)
+        .filter(event => {
+            const detailId = getEventDetailCacheId(event);
+            if (!detailId || hasReadyMatchDetails(detailId)) return false;
+            const status = String(event.status?.type || "").toLowerCase();
+            return status === "finished" || status === "inprogress" || matchHasAnyGoalScore(event);
+        })
+        .slice(0, limit);
+
+    for (let i = 0; i < candidates.length; i += batchSize) {
+        if (Date.now() - startedAt > budgetMs) break;
+        const batch = candidates.slice(i, i + batchSize);
+        const results = await Promise.allSettled(batch.map(event =>
+            warmOneScheduledMatchDetails({
+                event,
+                detailId: getEventDetailCacheId(event),
+                reason: options.reason || "immediate"
+            })
+        ));
+        warmed += results.filter(result => result.status === "fulfilled").length;
+    }
+
+    return { warmed, durationMs: Date.now() - startedAt };
+}
+
+let lastRecentScheduledDetailsWarmAt = 0;
+async function warmRecentScheduledDetails(options = {}) {
+    if (!ALWAYS_ON_ENABLED) return;
+    const now = Date.now();
+    if (!options.force && now - lastRecentScheduledDetailsWarmAt < RECENT_SCHEDULED_DETAILS_WARM_INTERVAL_MS) return;
+    lastRecentScheduledDetailsWarmAt = now;
+
+    const dayOffsets = options.force
+        ? [0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -14]
+        : [0, -1, -2, -3, -4, -5, -6];
+    for (const offset of dayOffsets) {
+        const date = new Date();
+        date.setDate(date.getDate() + offset);
+        const dateStr = date.toISOString().slice(0, 10);
+        try {
+            const data = await withServerTimeout(
+                fetchMackolikMatchesByDate(dateStr),
+                7000,
+                `Recent scheduled ${dateStr}`
+            );
+            if (Array.isArray(data?.events) && data.events.length > 0) {
+                cache[`matches_mackolik_${dateStr}_serverwarm`] = { data: { ...data, source: "mackolik" }, timestamp: Date.now() };
+                enqueueScheduledMatchDetails(data.events, `serverwarm-${dateStr}`);
+            }
+        } catch (error) {
+            if (!String(error.message || "").includes("timeout")) {
+                console.warn(`[RECENT DETAILS WARMUP] ${dateStr}: ${error.message}`);
+            }
+        }
+    }
+}
+
 app.get("/api/team/:id(\\d+)", async (req, res) => {
     try {
         if (MACKOLIK_CANONICAL_MODE) {
@@ -4700,6 +5162,9 @@ app.get("/api/team/:id(\\d+)", async (req, res) => {
 // Yeni API: CanlÃ„Â± MatÃƒÂ§lar
 app.post("/api/matches/live/client-snapshot", (req, res) => {
     try {
+        if (FLASHSCORE_CANONICAL_MODE) {
+            return res.json({ success: false, skipped: true, message: "Flashscore mode keeps server live cache authoritative" });
+        }
         if (MACKOLIK_CANONICAL_MODE) {
             return res.json({ success: false, skipped: true, message: "Mackolik canonical mode keeps server live cache authoritative" });
         }
@@ -4752,8 +5217,24 @@ app.get("/api/matches/live", async (req, res) => {
     res.set('Expires', '0');
 
     try {
-        if (!globalLiveEvents?.events?.length && !MACKOLIK_CANONICAL_MODE) {
+        if (FLASHSCORE_CANONICAL_MODE && globalLiveEvents?.source && globalLiveEvents.source !== "flashscore") {
+            globalLiveEvents = null;
+            lastLiveFetchTime = 0;
+        }
+        if (!globalLiveEvents?.events?.length && !MACKOLIK_CANONICAL_MODE && !FLASHSCORE_CANONICAL_MODE) {
             await ensureLiveSnapshotLoaded();
+        }
+        if (req.query.source === "flashscore") {
+            const data = await fetchLiveFromFlashscore();
+            syncLiveMatchCache(data.events);
+            globalLiveEvents = data;
+            lastLiveFetchTime = Date.now();
+            saveLiveSnapshot();
+            return res.json(data);
+        }
+        if (FLASHSCORE_CANONICAL_MODE && req.query.source === "mackolik") {
+            const data = await getLiveEventsData(req.query.fresh === "1", req.query.fresh !== "1");
+            return res.json(data);
         }
         if (req.query.source === "mackolik") {
             if (!ENABLE_MACKOLIK_MATCHES) {
@@ -4816,8 +5297,107 @@ app.get("/api/matches/:date", async (req, res) => {
         const ttl = (date === today) ? 10 * 1000 : CACHE_TIMES.SCHEDULED; // 10s cache for today
         const source = MACKOLIK_CANONICAL_MODE
             ? "mackolik"
-            : String(req.query.source || (LIVE_PRIMARY_SOURCE === "mackolik" ? "mackolik" : "sofascore")).toLowerCase();
-        const data = await getCachedData(`matches_${source}_${date}`, async () => {
+            : String(req.query.source || (ENABLE_MACKOLIK_MATCHES ? "mackolik" : "sofascore")).toLowerCase();
+        if (source === "flashscore") {
+            const flashCacheKey = `matches_flashscore_${date}_v5`;
+            const cached = cache[flashCacheKey];
+            if (cached && Date.now() - cached.timestamp < ttl && Array.isArray(cached.data?.events) && cached.data.events.length > 0) {
+                return res.json(cached.data);
+            }
+
+            let data = null;
+            try {
+                const flashscoreData = await fetchMatchesFromFlashscoreByDate(date);
+                if (Array.isArray(flashscoreData.events) && flashscoreData.events.length > 0) {
+                    data = flashscoreData;
+                } else {
+                    throw new Error("Flashscore returned no scheduled events for this date");
+                }
+            } catch (flashscoreError) {
+                console.warn(`[SCHEDULED] Flashscore failed for ${date}: ${flashscoreError.message}`);
+                if (ENABLE_MACKOLIK_MATCHES && ALLOW_MACKOLIK_FALLBACK) {
+                    try {
+                        const mackolikData = await withServerTimeout(
+                            fetchMackolikMatchesByDate(date),
+                            6500,
+                            "Mackolik scheduled fallback"
+                        );
+                        if (Array.isArray(mackolikData.events) && mackolikData.events.length > 0) {
+                            data = { ...mackolikData, source: "mackolik-fallback" };
+                        }
+                    } catch (mackolikError) {
+                        console.warn(`[SCHEDULED] Mackolik fallback failed for ${date}: ${mackolikError.message}`);
+                    }
+                }
+                if (!data) {
+                    try {
+                        data = await withServerTimeout(
+                            fetchScheduledFromSofaScore(date),
+                            7000,
+                            "SofaScore scheduled fallback"
+                        );
+                    } catch (sofaError) {
+                        console.warn(`[SCHEDULED] SofaScore fallback failed for ${date}: ${sofaError.message}`);
+                    }
+                }
+                if (!data) {
+                    data = { events: [], source: "flashscore", warning: flashscoreError.message, generatedAt: new Date().toISOString() };
+                }
+            }
+
+            if (Array.isArray(data?.events) && data.events.length > 0) {
+                if (isPastMatchDate(date)) {
+                    await warmScheduledMatchDetailsImmediate(data.events, {
+                        limit: 8,
+                        batchSize: 2,
+                        budgetMs: 1600,
+                        reason: `priority-${date}`
+                    });
+                }
+                cache[flashCacheKey] = { data, timestamp: Date.now() };
+                warmLiveMatchDetails(data.events).catch(() => {});
+                enqueueScheduledMatchDetails(data.events, `date-${date}`);
+            }
+            return res.json(data);
+        }
+        const data = await getCachedData(`matches_${source}_${date}_v3`, async () => {
+            if (source === "flashscore") {
+                try {
+                    const flashscoreData = await fetchMatchesFromFlashscoreByDate(date);
+                    if (Array.isArray(flashscoreData.events) && flashscoreData.events.length > 0) {
+                        return flashscoreData;
+                    }
+                    throw new Error("Flashscore returned no scheduled events for this date");
+                } catch (flashscoreError) {
+                    console.warn(`[SCHEDULED] Flashscore failed for ${date}: ${flashscoreError.message}`);
+                    if (FLASHSCORE_CANONICAL_MODE) {
+                        if (ENABLE_MACKOLIK_MATCHES && ALLOW_MACKOLIK_FALLBACK) {
+                            try {
+                                const mackolikData = await withServerTimeout(
+                                    fetchMackolikMatchesByDate(date),
+                                    6500,
+                                    "Mackolik scheduled fallback"
+                                );
+                                if (Array.isArray(mackolikData.events) && mackolikData.events.length > 0) {
+                                    return { ...mackolikData, source: "mackolik-fallback" };
+                                }
+                            } catch (mackolikError) {
+                                console.warn(`[SCHEDULED] Mackolik fallback failed for ${date}: ${mackolikError.message}`);
+                            }
+                        }
+                        try {
+                            return await withServerTimeout(
+                                fetchScheduledFromSofaScore(date),
+                                7000,
+                                "SofaScore scheduled fallback"
+                            );
+                        } catch (sofaError) {
+                            console.warn(`[SCHEDULED] SofaScore fallback failed for ${date}: ${sofaError.message}`);
+                        }
+                        return { events: [], source: "flashscore", warning: flashscoreError.message, generatedAt: new Date().toISOString() };
+                    }
+                }
+            }
             if (source === "mackolik") {
                 if (!ENABLE_MACKOLIK_MATCHES) {
                     throw new Error("Mackolik match source is disabled. Sofascore-only mode is active.");
@@ -4828,7 +5408,7 @@ app.get("/api/matches/:date", async (req, res) => {
                 } catch (mackolikError) {
                     console.warn(`[SCHEDULED] Mackolik failed for ${date}: ${mackolikError.message}`);
                     if (MACKOLIK_CANONICAL_MODE) {
-                        throw mackolikError;
+                        return { events: [], source: "mackolik", warning: mackolikError.message, generatedAt: new Date().toISOString() };
                     }
                 }
                 if (ALLOW_MACKOLIK_FALLBACK || !SOFASCORE_ONLY_MODE) {
@@ -4839,12 +5419,27 @@ app.get("/api/matches/:date", async (req, res) => {
             return await fetchScheduledFromSofaScore(date);
         }, ttl);
         if (Array.isArray(data?.events)) {
+            if (isPastMatchDate(date)) {
+                await warmScheduledMatchDetailsImmediate(data.events, {
+                    limit: 8,
+                    batchSize: 2,
+                    budgetMs: 1600,
+                    reason: `priority-${date}`
+                });
+            }
             warmLiveMatchDetails(data.events).catch(() => {});
+            enqueueScheduledMatchDetails(data.events, `date-${date}`);
         }
         res.json(data);
     } catch (error) {
         console.error(`[API ERROR] Scheduled matches for date ${date}: ${error.message}${error.response ? ' | Status: ' + error.response.status : ''}`);
-        res.status(500).json({ error: true, message: error.message, details: error.response?.data?.substring?.(0, 100) });
+        res.json({
+            events: [],
+            source: MACKOLIK_CANONICAL_MODE ? "mackolik" : "none",
+            stale: true,
+            warning: error.message,
+            generatedAt: new Date().toISOString()
+        });
     }
 });
 
@@ -4878,6 +5473,9 @@ app.post("/api/match/:id/client-details", (req, res) => {
 app.get("/api/match/:id/incidents", async (req, res) => {
     const id = req.params.id;
     try {
+        if (req.query.source !== "mackolik" && !hasReadyMatchDetails(id)) {
+            enqueueScheduledMatchDetailsPriority(matchCache[id] || { id }, "incidents-click");
+        }
         if (req.query.source === "mackolik") {
             if (!ENABLE_MACKOLIK_MATCHES) {
                 return res.json([]);
@@ -4892,6 +5490,14 @@ app.get("/api/match/:id/incidents", async (req, res) => {
         const cachedFromLoop = matchDetailsCache[id];
         if (req.query.fresh !== "1" && hasUsefulIncidentData(cachedFromLoop?.incidents)) {
             return res.json({ ...normalizeIncidentsData(cachedFromLoop.incidents), cached: true, instant: true, source: 'background_cache' });
+        }
+        const flashscoreMatch = String(matchCache[id]?.source || "").toLowerCase() === "flashscore" ? matchCache[id] : null;
+        if (flashscoreMatch && req.query.fresh !== "1") {
+            const synthetic = buildSyntheticIncidentsFromScore(flashscoreMatch);
+            if (hasUsefulIncidentData(synthetic)) {
+                cache[`incidents_${id}`] = { data: synthetic, timestamp: Date.now() };
+                return res.json({ ...synthetic, cached: true, instant: true });
+            }
         }
         const cached = cache[`incidents_${id}`];
         const matchHasScore = matchHasAnyGoalScore(matchCache[id]);
@@ -4934,6 +5540,9 @@ app.get("/api/match/:id/incidents", async (req, res) => {
 app.get("/api/match/:id/statistics", async (req, res) => {
     const id = req.params.id;
     try {
+        if (!hasReadyMatchDetails(id)) {
+            enqueueScheduledMatchDetailsPriority(matchCache[id] || { id }, "statistics-click");
+        }
         const cachedFromLoop = matchDetailsCache[id];
         if (req.query.fresh !== "1" && hasUsefulStatsData(cachedFromLoop?.stats)) {
             return res.json({
@@ -4988,6 +5597,9 @@ app.get("/api/match/:id/h2h", async (req, res) => {
 app.get("/api/match/:id/details", async (req, res) => {
     const id = req.params.id;
     try {
+        if (req.query.source !== "mackolik" && !hasReadyMatchDetails(id)) {
+            enqueueScheduledMatchDetailsPriority(matchCache[id] || { id }, "details-click");
+        }
         if (req.query.source === "mackolik") {
             if (!ENABLE_MACKOLIK_MATCHES) {
                 return res.json({ incidents: [], stats: null, unavailable: true, source: "mackolik", message: "Mackolik details disabled" });
@@ -4995,18 +5607,68 @@ app.get("/api/match/:id/details", async (req, res) => {
             const cacheKey = `mackolik_details_${id}_${req.query.slug || ""}_${req.query.stats === "0" ? "nostats" : "all"}`;
             const cached = cache[cacheKey];
             const cachedAge = cached ? Date.now() - cached.timestamp : Infinity;
+            const fastMode = req.query.fast === "1";
+            const cacheTtl = fastMode ? MACKOLIK_FAST_DETAILS_CACHE_TTL : MACKOLIK_DETAILS_CACHE_TTL;
+            const hasUsefulMackolikDetails = (details) =>
+                hasUsefulIncidentData(details?.incidents) ||
+                (req.query.stats !== "0" && hasUsefulStatsData(details?.stats));
+            const cachedUnified = matchDetailsCache[id];
+            if (req.query.fresh !== "1" && cachedUnified && hasUsefulMackolikDetails(cachedUnified)) {
+                return res.json(req.query.stats === "0"
+                    ? { incidents: cachedUnified.incidents, stats: null, cached: true, instant: true, source: "match_details_cache" }
+                    : {
+                        incidents: cachedUnified.incidents,
+                        stats: normalizeStatisticsData(cachedUnified.stats || { statistics: [] }),
+                        cached: true,
+                        instant: true,
+                        source: "match_details_cache"
+                    });
+            }
             let data = null;
-            if (req.query.fresh !== "1" && cached && cachedAge < MACKOLIK_DETAILS_CACHE_TTL) {
+            if (req.query.fresh !== "1" && cached && cachedAge < cacheTtl) {
                 data = cached.data;
             } else {
                 try {
-                    data = await fetchMackolikMatchDetails(id, req.query.slug || "");
-                    cache[cacheKey] = { data, timestamp: Date.now() };
+                    const fetchPromise = fetchMackolikMatchDetails(id, req.query.slug || "", { fast: fastMode });
+                    
+                    fetchPromise.then(resolvedData => {
+                        if (hasUsefulMackolikDetails(resolvedData)) {
+                            cache[cacheKey] = { data: resolvedData, timestamp: Date.now() };
+                            matchDetailsCache[id] = resolvedData;
+                        }
+                    }).catch(() => {});
+
+                    data = fastMode
+                        ? await withServerTimeout(fetchPromise, 2850, "Mackolik fast details")
+                        : await fetchPromise;
+                    if (hasUsefulMackolikDetails(data) || !fastMode) {
+                        cache[cacheKey] = { data, timestamp: Date.now() };
+                    } else if (cached?.data && hasUsefulMackolikDetails(cached.data)) {
+                        data = { ...cached.data, stale: true, pendingRefresh: true };
+                    } else if (fastMode) {
+                        const sourceMatch = matchCache[id];
+                        const syntheticIncidents = sourceMatch ? buildSyntheticIncidentsFromScore(sourceMatch) : null;
+                        data = {
+                            incidents: hasUsefulIncidentData(syntheticIncidents) ? syntheticIncidents : { incidents: [] },
+                            stats: req.query.stats === "0" ? null : { statistics: [] },
+                            pending: true,
+                            syntheticFallback: true,
+                            warning: "Mackolik details are still loading"
+                        };
+                    }
                 } catch (error) {
-                    if (cached && cachedAge < 5000) {
+                    if (cached?.data && hasUsefulMackolikDetails(cached.data)) {
                         data = { ...cached.data, stale: true, warning: error.message };
                     } else {
-                        throw error;
+                        const sourceMatch = matchCache[id];
+                        const syntheticIncidents = sourceMatch ? buildSyntheticIncidentsFromScore(sourceMatch) : null;
+                        data = {
+                            incidents: hasUsefulIncidentData(syntheticIncidents) ? syntheticIncidents : { incidents: [] },
+                            stats: req.query.stats === "0" ? null : { statistics: [] },
+                            pending: true,
+                            syntheticFallback: true,
+                            warning: error.message
+                        };
                     }
                 }
             }
@@ -5028,6 +5690,21 @@ app.get("/api/match/:id/details", async (req, res) => {
                 instant: true,
                 source: 'background_cache'
             });
+        }
+        const flashscoreMatch = String(matchCache[id]?.source || "").toLowerCase() === "flashscore" ? matchCache[id] : null;
+        if (!forceFresh && flashscoreMatch) {
+            const syntheticIncidents = buildSyntheticIncidentsFromScore(flashscoreMatch);
+            if (hasUsefulIncidentData(syntheticIncidents)) {
+                const syntheticStats = statsDisabled ? null : { statistics: [] };
+                storeMatchDetailsCache(id, { incidents: syntheticIncidents, stats: syntheticStats || { statistics: [] } }, "flashscore-score-summary");
+                return res.json({
+                    incidents: syntheticIncidents,
+                    stats: syntheticStats,
+                    cached: true,
+                    instant: true,
+                    source: "flashscore-score-summary"
+                });
+            }
         }
 
         const cachedIncidents = cache[`incidents_${id}`];
@@ -7914,6 +8591,9 @@ async function warmRuntimeCaches(options = {}) {
 
         const liveData = await getLiveEventsData(true);
         result.liveEvents = liveData?.events?.length || 0;
+        warmRecentScheduledDetails({ force: options.force }).catch(e => {
+            console.warn("[Warmup] Recent scheduled details prefetch failed:", e.message);
+        });
 
         if (options.force) {
             const todayStr = new Date().toISOString().split('T')[0];
@@ -8321,8 +9001,10 @@ async function startAlwaysOnWorkers() {
         savePersistentState(); // Periodically save scores to disk
     }, 60000);
 
-    // 4. Cache Warmup (10s)
-    refreshLiveDetailsLoop().catch(e => console.error("[Always-On] Initial details warmup failed:", e.message));
+    // 4. Cache Warmup (delayed so first user request after boot is not blocked)
+    setTimeout(() => {
+        refreshLiveDetailsLoop().catch(e => console.error("[Always-On] Initial details warmup failed:", e.message));
+    }, 20000);
     setInterval(async () => {
         await refreshLiveDetailsLoop();
         await warmRuntimeCaches({ light: true });
@@ -8357,10 +9039,15 @@ const server = app.listen(PORT, "0.0.0.0", async () => {
     ensureLiveSnapshotLoaded().then(() => {
         console.log(`[BOOT] Live snapshot loaded. Events: ${globalLiveEvents?.events?.length || 0}`);
         if (ALWAYS_ON_ENABLED) {
-            refreshLiveData();
-            refreshLiveDetailsLoop().catch(error => {
-                console.warn(`[BOOT] Initial details warmup failed: ${error.message}`);
-            });
+            setTimeout(() => {
+                refreshLiveData().catch?.(() => {});
+                refreshLiveDetailsLoop().catch(error => {
+                    console.warn(`[BOOT] Initial details warmup failed: ${error.message}`);
+                });
+                warmRecentScheduledDetails({ force: true }).catch(error => {
+                    console.warn(`[BOOT] Recent scheduled details warmup failed: ${error.message}`);
+                });
+            }, 30000);
             runBackgroundGoalTracker().catch(() => {});
         }
     });

@@ -12,7 +12,9 @@ module.exports = {
         NODE_ENV: "production",
         PORT: "3000",
         KEEPALIVE_ENABLED: "false",
-        LIVE_SCORE_POLL_INTERVAL_MS: "2500",
+        ALWAYS_ON_ENABLED: "true",
+        LIVE_SCORE_POLL_INTERVAL_MS: "1000",
+        BACKGROUND_REFRESH_INTERVAL_MS: "5000",
         RUNTIME_WARMUP_INTERVAL_MS: "60000",
         CATEGORY_WARMUP_INTERVAL_MS: "180000"
       }
