@@ -39,8 +39,43 @@
         "startTimestamp": "1779037200"
       }
     ],
-    "lastUpdated": 1779039546695,
+    "lastUpdated": 1779134152849,
     "platform": "webpush",
     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
+  },
+  "12acc595-28ab-46ca-a462-0b1a2ea28631": {
+    "subscription": {
+      "endpoint": "https://fcm.googleapis.com/fcm/send/cdFtKzfkEgM:APA91bELBGm9qBBM-xNKLkWX36VA8LV1p1e9uAubefaGgmsqOdQbWKBGsJQHWBtZyiZzI3IJ9cRfTbLgcKZl2R0i1BjPMxKna0eV8uo_wAZfa0eE4oOUIevc5gCAawtAHiNGP95T_Fmr",
+      "expirationTime": null,
+      "keys": {
+        "p256dh": "BGK2nr7dWj-Ujx1fAu6CYEEH-QTuQHhm-njAHDdr7YsE559CAspF4bCJSTpYah_K7-BbsdBj_5-xAATepy4hdQE",
+        "auth": "87kTv9kQBnLOtt0D2p9YOw"
+      }
+    },
+    "favorites": [],
+    "leagues": [
+      "25382",
+      "32688",
+      "740",
+      "30029",
+      "709",
+      "736",
+      "32668",
+      "21050",
+      "20077",
+      "25528"
+    ],
+    "favoriteKeys": [],
+    "favoriteMatches": [],
+    "lastUpdated": 1780749093946,
+    "platform": "webpush",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "recipientScorePushState": {},
+    "teams": [
+      "5962",
+      "267828",
+      "5215",
+      "36951"
+    ]
   }
 }

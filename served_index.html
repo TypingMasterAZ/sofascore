@@ -2678,20 +2678,31 @@
                 let uc = desc.toUpperCase();
                 if (uc === 'HALFTIME' || uc === 'HALF TIME') return 'HT';
                 if (uc === 'ENDED') return 'FT';
+                if (uc === 'DUR') return '';
                 return desc;
+            }
+
+            function isLiveMatch(m) {
+                const desc = (m.status && m.status.description) ? m.status.description.toUpperCase() : '';
+                return (m.status && m.status.type === 'inprogress') || desc === 'HT' || desc === 'ET' || desc.includes("'");
+            }
+
+            function isValidMatch(m) {
+                const desc = (m.status && m.status.description) ? m.status.description.toUpperCase() : '';
+                return desc !== 'DUR';
             }
 
             function applyFilters() {
                 console.log("Applying filters... allEvents count:", allEvents.length);
                 let listRaw = allEvents;
                 if (isLiveFiltered) {
-                    listRaw = allEvents.filter(m => m.status.type === 'inprogress' || m.status.description.toUpperCase() === 'HT' || m.status.description.toUpperCase() === 'ET' || m.status.description.includes("'"));
+                    listRaw = allEvents.filter(m => isValidMatch(m) && isLiveMatch(m));
                 } else if (selectedDate) {
                     listRaw = allEvents.filter(m => {
                         if (!m.startTimestamp) return false;
                         try {
                             const eventDate = new Date(m.startTimestamp * 1000).toISOString().split('T')[0];
-                            return eventDate === selectedDate;
+                            return isValidMatch(m) && eventDate === selectedDate;
                         } catch (e) {
                             return false;
                         }

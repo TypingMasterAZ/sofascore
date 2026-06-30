@@ -5536,7 +5536,7 @@
                 <div class="search-wrapper" style="display: none; margin-bottom: 10px;">
                     <div class="search-input-box">
                         <span class="search-icon">&#128269;</span>
-                        <input type="text" id="matchSearchTerm" placeholder="Komanda ve ya liqa axtar..."
+                        <input type="text" id="matchSearchTerm" data-i18n-placeholder="search.matchPlaceholder" placeholder="Komanda və ya liqa axtar..."
                             oninput="applyFilters()">
                     </div>
                 </div>
@@ -5569,7 +5569,7 @@
                 <div class="search-wrapper" style="display: none; margin-bottom: 10px;">
                     <div class="search-input-box">
                         <span class="search-icon">&#128269;</span>
-                        <input type="text" id="leagueSearchTerm" placeholder="Liqa ve ya olke axtar..."
+                        <input type="text" id="leagueSearchTerm" data-i18n-placeholder="search.leaguePlaceholder" placeholder="Liqa və ya ölkə axtar..."
                             oninput="renderLeaguesView()">
                     </div>
                 </div>
@@ -5610,8 +5610,8 @@
 
                     <div class="empty-state">
                         <div class="empty-state-icon">&#128276;</div>
-                        <div class="empty-state-title">Bildiriş yoxdur</div>
-                        <div class="empty-state-text">Qollar və digər önəmli hadisələr burada görünəcək.</div>
+                        <div class="empty-state-title" data-i18n="notifications.emptyTitle">Bildiriş yoxdur</div>
+                        <div class="empty-state-text" data-i18n="notifications.emptyText">Qollar və digər önəmli hadisələr burada görünəcək.</div>
                     </div>
                 </div>
             </div>
@@ -5651,7 +5651,7 @@
                         <button class="support-submit" id="supportSubmitBtn" type="submit" data-i18n="support.send">Göndər</button>
                     </div>
                 </form>
-                <div class="support-note" data-i18n="support.note">Göndərdiyiniz məlumatlar tətbiqi yaxşılaşdırmaq üçün saxlanılır. Åifrə və ya gizli kod yazmayın.</div>
+                <div class="support-note" data-i18n="support.note">Göndərdiyiniz məlumatlar tətbiqi yaxşılaşdırmaq üçün saxlanılır. Şifrə və ya gizli kod yazmayın.</div>
             </div>
 
             <!-- 7. Auth View -->
@@ -5680,14 +5680,14 @@
                     </div>
                     <div style="text-align:left; margin-bottom:12px;">
                         <label
-                            style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Åifrə</label>
+                            style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Şifrə</label>
                         <div class="password-wrapper">
                             <input type="password" id="authPassword" class="profile-input" placeholder="********" autocomplete="current-password">
                             <span class="toggle-password" onclick="togglePasswordVisibility('authPassword', this)">&#128065;</span>
                         </div>
                     </div>
                     <div id="forgotPassLink" style="text-align:right; margin-bottom:15px;">
-                        <span style="color:var(--primary); font-size:13px; cursor:pointer; font-weight:600;" onclick="toggleForgotView(true)">Åifrəni unutmusunuz?</span>
+                        <span style="color:var(--primary); font-size:13px; cursor:pointer; font-weight:600;" onclick="toggleForgotView(true)">Şifrəni unutmusunuz?</span>
                     </div>
 
                     <div id="authError" class="auth-error"></div>
@@ -5703,7 +5703,7 @@
                          <!-- Forgot Password Flow (Hidden by default) -->
                     <div id="forgotView" style="display:none;">
                         <div class="forgot-card" style="padding: 40px 30px;">
-                            <h3 style="margin-bottom:20px; font-size: 26px; font-weight: 900; letter-spacing: -0.5px;">Åifrə Sıfırlama</h3>
+                            <h3 style="margin-bottom:20px; font-size: 26px; font-weight: 900; letter-spacing: -0.5px;">Şifrə Sıfırlama</h3>
                             
                             <div id="forgotStep1" style="display:flex; flex-direction:column; align-items:center; padding: 10px 0;">
                                 <div style="margin-bottom: 25px; display:inline-flex; justify-content:center; align-items:center; width:64px; height:64px; border-radius:50%; background:rgba(59, 130, 246, 0.1); color:var(--primary); font-size:28px;">
@@ -5748,22 +5748,22 @@
                                 <div style="margin-bottom: 25px; display:inline-flex; justify-content:center; align-items:center; width:64px; height:64px; border-radius:50%; background:rgba(59, 130, 246, 0.1); color:var(--primary); font-size:28px;">
                                     &#128273;
                                 </div>
-                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">Təhlükəsizliyiniz üçün yeni v? güclü Åifrə təyin edin.</p>
+                                <p style="font-size:15px; color:var(--text-muted); margin-bottom:30px; line-height: 1.6; padding: 0 10px;">Təhlükəsizliyiniz üçün yeni və güclü Şifrə təyin edin.</p>
                                 <div style="text-align:left; margin-bottom:20px; width: 100%;">
-                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-left:4px;">Yeni Åifrə</label>
+                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-left:4px;">Yeni Şifrə</label>
                                     <div class="password-wrapper">
                                         <input type="password" id="newPassword" class="profile-input" placeholder="********" autocomplete="new-password" style="margin-top:10px; height: 52px; font-size: 16px; border-radius: 14px;">
                                         <span class="toggle-password" onclick="togglePasswordVisibility('newPassword', this)">&#128065;</span>
                                     </div>
                                 </div>
                                 <div style="text-align:left; margin-bottom:30px; width: 100%;">
-                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-left:4px;">Åifrənin Təkrarı</label>
+                                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-left:4px;">Şifrənin Təkrarı</label>
                                     <div class="password-wrapper">
                                         <input type="password" id="confirmPassword" class="profile-input" placeholder="********" autocomplete="new-password" style="margin-top:10px; height: 52px; font-size: 16px; border-radius: 14px;">
                                         <span class="toggle-password" onclick="togglePasswordVisibility('confirmPassword', this)">&#128065;</span>
                                     </div>
                                 </div>
-                                <button class="save-btn" onclick="handleFinalReset()" style="height: 54px; font-size: 16px; border-radius: 14px; width: 100%; margin-top: 5px;">Åifrəni Yenilə</button>
+                                <button class="save-btn" onclick="handleFinalReset()" style="height: 54px; font-size: 16px; border-radius: 14px; width: 100%; margin-top: 5px;">Şifrəni Yenilə</button>
                                 </form>
                             </div>
 
@@ -6177,6 +6177,32 @@
 
             const APP_I18N = {
                 az: {
+                    'toast.teamRemovedFav': 'Komanda favoritlərdən çıxarıldı',
+                    'toast.titleMessageRequired': 'Başlıq və mesaj yazın',
+                    'toast.countryInfoNotFound': 'Ölkə məlumatı tapılmadı',
+                    'toast.favoritesSaved': 'Favorit seçimlər yadda saxlanıldı',
+                    'toast.matchAddedFav': 'Oyun favoritlərə əlavə edildi',
+                    'toast.matchRemovedFav': 'Oyun favoritlərdən çıxarıldı',
+                    'toast.notificationRegFailed': 'Bildiriş qeydiyyatı alınmadı',
+                    'toast.goalNotificationsActive': 'Qol bildirişləri aktivdir',
+                    'toast.notificationRegNotFound': 'Bildiriş qeydiyyatı tapılmadı. Bildirişləri yenidən aktiv edin.',
+                    'toast.sendingTestNotification': 'Test bildirişi göndərilir...',
+                    'toast.testNotificationSent': 'Test bildirişi göndərildi!',
+                    'toast.serverError': 'Serverlə əlaqə xətası',
+                    'toast.leagueAddedFav': 'Liqa favoritlərə əlavə edildi',
+                    'toast.leagueRemovedFav': 'Liqa favoritlərdən çıxarıldı',
+                    'toast.leagueNotFound': 'Liqa məlumatı tapılmadı',
+                    'toast.nameNotEmpty': 'Ad boş ola bilməz!',
+                    'toast.dataSaved': 'Məlumatlar yadda saxlanıldı',
+                    'toast.nameNotSaved': 'Ad serverə yazılmadı. Yenidən cəhd edin.',
+                    'toast.imageTooLarge': 'Şəkil 12MB-dan kiçik olmalıdır!',
+                    'toast.imageNotSaved': 'Şəkil serverə yazılmadı. Bir az sonra yenidən cəhd edin.',
+                    'toast.profilePhotoUpdated': 'Profil şəkli yeniləndi',
+                    'toast.imageNotRead': 'Şəkil oxunmadı. JPG/PNG/WebP şəkil seçin.',
+                    'toast.noActiveLeague': 'Bu ölkə üçün aktiv liqa tapılmadı.',
+                    'toast.leagueDataDelayed': 'Liqa məlumatı hazırda gecikir.',
+                    'toast.searchError': 'Axtarışda xəta baş verdi. Zəhmət olmasa yenidən yoxlayın.',
+
                     'settings.heroTitle': 'T\u0259nziml\u0259m\u0259l\u0259r',
                     'settings.heroText': 'Bildiri\u015fl\u0259ri, s\u0259s se\u00e7iml\u0259rini v\u0259 t\u0259tbiqin dilini buradan idar\u0259 edin.',
                     'settings.notifications': 'Bildiri\u015f parametrl\u0259ri',
@@ -6242,9 +6268,45 @@
                     'profile.save': 'M\u0259lumatlar\u0131 saxla',
                     'profile.deleteAll': 'B\u00fct\u00fcn m\u0259lumatlar\u0131 sil',
                     'profile.logout': 'Hesabdan \u00e7\u0131x',
-                    'toast.settingSaved': 'T\u0259nziml\u0259m\u0259 yadda saxlan\u0131ld\u0131'
+                    'toast.settingSaved': 'T\u0259nziml\u0259m\u0259 yadda saxlan\u0131ld\u0131',
+                    'notifications.emptyTitle': 'Bildiri\u015f yoxdur',
+                    'notifications.emptyText': 'Qollar v\u0259 dig\u0259r \u00f6n\u0259mli hadis\u0259l\u0259r burada g\u00f6r\u00fcn\u0259c\u0259k.',
+                    'notifications.recentEvents': 'SON HAD\u0130S\u018fL\u018fR',
+                    'notifications.clearAll': 'HAMISINI S\u0130L',
+                    'dialog.yes': 'B\u0259li',
+                    'dialog.no': 'Xeyr',
+                    'dialog.cancel': 'L\u0259\u011fv et',
+                    'btn.delete': 'Sil',
+                    'dialog.clearAllTitle': 'Bütün Məlumatları Sil?',
+                    'dialog.clearAllMsg': 'Bütün favoritləriniz və profil məlumatlarınız həmişəlik silinəcək. Bu hərəkəti geri qaytarmaq mümkün deyil.'
                 },
                 en: {
+                    'toast.teamRemovedFav': 'Team removed from favorites',
+                    'toast.titleMessageRequired': 'Enter a title and message',
+                    'toast.countryInfoNotFound': 'Country information not found',
+                    'toast.favoritesSaved': 'Favorites saved',
+                    'toast.matchAddedFav': 'Match added to favorites',
+                    'toast.matchRemovedFav': 'Match removed from favorites',
+                    'toast.notificationRegFailed': 'Notification registration failed',
+                    'toast.goalNotificationsActive': 'Goal notifications are active',
+                    'toast.notificationRegNotFound': 'Notification registration not found. Please re-enable notifications.',
+                    'toast.sendingTestNotification': 'Sending test notification...',
+                    'toast.testNotificationSent': 'Test notification sent!',
+                    'toast.serverError': 'Server connection error',
+                    'toast.leagueAddedFav': 'League added to favorites',
+                    'toast.leagueRemovedFav': 'League removed from favorites',
+                    'toast.leagueNotFound': 'League information not found',
+                    'toast.nameNotEmpty': 'Name cannot be empty!',
+                    'toast.dataSaved': 'Data saved',
+                    'toast.nameNotSaved': 'Name was not saved to the server. Please try again.',
+                    'toast.imageTooLarge': 'Image must be smaller than 12MB!',
+                    'toast.imageNotSaved': 'Image was not saved to the server. Please try again later.',
+                    'toast.profilePhotoUpdated': 'Profile photo updated',
+                    'toast.imageNotRead': 'Image could not be read. Please select a JPG/PNG/WebP image.',
+                    'toast.noActiveLeague': 'No active league found for this country.',
+                    'toast.leagueDataDelayed': 'League data is currently delayed.',
+                    'toast.searchError': 'An error occurred during the search. Please try again.',
+
                     'settings.heroTitle': 'Settings',
                     'settings.heroText': 'Manage notifications, sound choices, and the app language here.',
                     'settings.notifications': 'Notification settings',
@@ -6310,9 +6372,45 @@
                     'profile.save': 'Save information',
                     'profile.deleteAll': 'Delete all data',
                     'profile.logout': 'Sign out',
-                    'toast.settingSaved': 'Setting saved'
+                    'toast.settingSaved': 'Setting saved',
+                    'notifications.emptyTitle': 'No notifications',
+                    'notifications.emptyText': 'Goals and other important events will appear here.',
+                    'notifications.recentEvents': 'RECENT EVENTS',
+                    'notifications.clearAll': 'CLEAR ALL',
+                    'dialog.yes': 'Yes',
+                    'dialog.no': 'No',
+                    'dialog.cancel': 'Cancel',
+                    'btn.delete': 'Delete',
+                    'dialog.clearAllTitle': 'Delete all data?',
+                    'dialog.clearAllMsg': 'All your favorites and profile data will be permanently deleted. This action cannot be undone.'
                 },
                 tr: {
+                    'toast.teamRemovedFav': 'Takım favorilerden çıkarıldı',
+                    'toast.titleMessageRequired': 'Başlık ve mesaj girin',
+                    'toast.countryInfoNotFound': 'Ülke bilgisi bulunamadı',
+                    'toast.favoritesSaved': 'Favoriler kaydedildi',
+                    'toast.matchAddedFav': 'Maç favorilere eklendi',
+                    'toast.matchRemovedFav': 'Maç favorilerden çıkarıldı',
+                    'toast.notificationRegFailed': 'Bildirim kaydı alınamadı',
+                    'toast.goalNotificationsActive': 'Gol bildirimleri aktif',
+                    'toast.notificationRegNotFound': 'Bildirim kaydı bulunamadı. Bildirimleri yeniden etkinleştirin.',
+                    'toast.sendingTestNotification': 'Test bildirimi gönderiliyor...',
+                    'toast.testNotificationSent': 'Test bildirimi gönderildi!',
+                    'toast.serverError': 'Sunucu bağlantı hatası',
+                    'toast.leagueAddedFav': 'Lig favorilere eklendi',
+                    'toast.leagueRemovedFav': 'Lig favorilerden çıkarıldı',
+                    'toast.leagueNotFound': 'Lig bilgisi bulunamadı',
+                    'toast.nameNotEmpty': 'Ad boş olamaz!',
+                    'toast.dataSaved': 'Veriler kaydedildi',
+                    'toast.nameNotSaved': 'Ad sunucuya kaydedilemedi. Lütfen tekrar deneyin.',
+                    'toast.imageTooLarge': 'Resim 12MB dan küçük olmalıdır!',
+                    'toast.imageNotSaved': 'Resim sunucuya kaydedilemedi. Lütfen daha sonra tekrar deneyin.',
+                    'toast.profilePhotoUpdated': 'Profil fotoğrafı güncellendi',
+                    'toast.imageNotRead': 'Resim okunamadı. Lütfen bir JPG/PNG/WebP resmi seçin.',
+                    'toast.noActiveLeague': 'Bu ülke için aktif lig bulunamadı.',
+                    'toast.leagueDataDelayed': 'Lig verileri şu anda gecikiyor.',
+                    'toast.searchError': 'Arama sırasında bir hata oluştu. Lütfen tekrar deneyin.',
+
                     'settings.heroTitle': 'Ayarlar',
                     'settings.heroText': 'Bildirimleri, ses se\u00e7imlerini ve uygulama dilini buradan y\u00f6netin.',
                     'settings.notifications': 'Bildirim ayarlar\u0131',
@@ -6370,7 +6468,7 @@
                     'support.contactPlaceholder': 'Email veya kullanıcı adınız',
                     'support.send': 'Gönder',
                     'support.sent': 'Mesajınız gönderildi',
-                    'support.note': 'Gönderdiğiniz bilgiler uygulamayı iyileştirmek için saklanır. Åifre veya gizli kod yazmayın.',
+                    'support.note': 'Gönderdiğiniz bilgiler uygulamayı iyileştirmek için saklanır. Şifre veya gizli kod yazmayın.',
                     'profile.account': 'Hesap bilgileri',
                     'profile.edit': 'D\u00fczenle',
                     'profile.username': 'Kullan\u0131c\u0131 ad\u0131',
@@ -6378,9 +6476,45 @@
                     'profile.save': 'Bilgileri kaydet',
                     'profile.deleteAll': 'T\u00fcm verileri sil',
                     'profile.logout': 'Hesaptan \u00e7\u0131k',
-                    'toast.settingSaved': 'Ayar kaydedildi'
+                    'toast.settingSaved': 'Ayar kaydedildi',
+                    'notifications.emptyTitle': 'Bildirim yok',
+                    'notifications.emptyText': 'Goller ve di\u011fer \u00f6nemli olaylar burada g\u00f6r\u00fcnecek.',
+                    'notifications.recentEvents': 'SON OLAYLAR',
+                    'notifications.clearAll': 'HEPS\u0130N\u0130 S\u0130L',
+                    'dialog.yes': 'Evet',
+                    'dialog.no': 'Hay\u0131r',
+                    'dialog.cancel': '\u0130ptal',
+                    'btn.delete': 'Sil',
+                    'dialog.clearAllTitle': 'Tüm Verileri Sil?',
+                    'dialog.clearAllMsg': 'Tüm favorileriniz ve profil verileriniz kalıcı olarak silinecektir. Bu işlem geri alınamaz.'
                 },
                 ru: {
+                    'toast.teamRemovedFav': 'Команда удалена из избранного',
+                    'toast.titleMessageRequired': 'Введите заголовок и сообщение',
+                    'toast.countryInfoNotFound': 'Информация о стране не найдена',
+                    'toast.favoritesSaved': 'Избранное сохранено',
+                    'toast.matchAddedFav': 'Матч добавлен в избранное',
+                    'toast.matchRemovedFav': 'Матч удален из избранного',
+                    'toast.notificationRegFailed': 'Не удалось зарегистрировать уведомления',
+                    'toast.goalNotificationsActive': 'Уведомления о голах активны',
+                    'toast.notificationRegNotFound': 'Регистрация уведомлений не найдена. Пожалуйста, включите уведомления снова.',
+                    'toast.sendingTestNotification': 'Отправка тестового уведомления...',
+                    'toast.testNotificationSent': 'Тестовое уведомление отправлено!',
+                    'toast.serverError': 'Ошибка подключения к серверу',
+                    'toast.leagueAddedFav': 'Лига добавлена в избранное',
+                    'toast.leagueRemovedFav': 'Лига удалена из избранного',
+                    'toast.leagueNotFound': 'Информация о лиге не найдена',
+                    'toast.nameNotEmpty': 'Имя не может быть пустым!',
+                    'toast.dataSaved': 'Данные сохранены',
+                    'toast.nameNotSaved': 'Имя не сохранено на сервере. Пожалуйста, попробуйте снова.',
+                    'toast.imageTooLarge': 'Размер изображения должен быть меньше 12 МБ!',
+                    'toast.imageNotSaved': 'Изображение не сохранено на сервере. Пожалуйста, попробуйте позже.',
+                    'toast.profilePhotoUpdated': 'Фото профиля обновлено',
+                    'toast.imageNotRead': 'Не удалось прочитать изображение. Выберите изображение JPG/PNG/WebP.',
+                    'toast.noActiveLeague': 'Активных лиг для этой страны не найдено.',
+                    'toast.leagueDataDelayed': 'Данные лиги в настоящее время задерживаются.',
+                    'toast.searchError': 'При поиске произошла ошибка. Пожалуйста, попробуйте снова.',
+
                     'settings.heroTitle': '\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438',
                     'settings.heroText': '\u0417\u0434\u0435\u0441\u044c \u043c\u043e\u0436\u043d\u043e \u0443\u043f\u0440\u0430\u0432\u043b\u044f\u0442\u044c \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f\u043c\u0438, \u0437\u0432\u0443\u043a\u043e\u043c \u0438 \u044f\u0437\u044b\u043a\u043e\u043c.',
                     'settings.notifications': '\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439',
@@ -6453,7 +6587,12 @@
 
             const APP_I18N_EXTRA = {
                 az: {
+                    
+                    'search.matchPlaceholder': 'Komanda və ya liqa axtar...',
+                    'search.leaguePlaceholder': 'Liqa və ya ölkə axtar...',
                     'league.popular': 'Populyar turnirl\u0259r',
+                    'search.matchPlaceholder': 'Komanda və ya liqa axtar...',
+                    'search.leaguePlaceholder': 'Liqa və ya ölkə axtar...',
                     'league.allCountries': 'B\u00fct\u00fcn \u00f6lk\u0259l\u0259r',
                     'league.searchResults': 'Axtar\u0131\u015f n\u0259tic\u0259l\u0259ri',
                     'league.countSuffix': 'Liqa',
@@ -6489,7 +6628,12 @@
                     'month.11': 'Dek'
                 },
                 en: {
+                    
+                    'search.matchPlaceholder': 'Search team or league...',
+                    'search.leaguePlaceholder': 'Search league or country...',
                     'league.popular': 'Popular tournaments',
+                    'search.matchPlaceholder': 'Search team or league...',
+                    'search.leaguePlaceholder': 'Search league or country...',
                     'league.allCountries': 'All countries',
                     'league.searchResults': 'Search results',
                     'league.countSuffix': 'Leagues',
@@ -6525,7 +6669,12 @@
                     'month.11': 'Dec'
                 },
                 tr: {
+                    
+                    'search.matchPlaceholder': 'Takım veya lig ara...',
+                    'search.leaguePlaceholder': 'Lig veya ülke ara...',
                     'league.popular': 'Pop\u00fcler turnuvalar',
+                    'search.matchPlaceholder': 'Takım veya lig ara...',
+                    'search.leaguePlaceholder': 'Lig veya ülke ara...',
                     'league.allCountries': 'T\u00fcm \u00fclkeler',
                     'league.searchResults': 'Arama sonu\u00e7lar\u0131',
                     'league.countSuffix': 'Lig',
@@ -6561,7 +6710,12 @@
                     'month.11': 'Ara'
                 },
                 ru: {
+                    
+                    'search.matchPlaceholder': 'Поиск команды или лиги...',
+                    'search.leaguePlaceholder': 'Поиск лиги или страны...',
                     'league.popular': '\u041f\u043e\u043f\u0443\u043b\u044f\u0440\u043d\u044b\u0435 \u0442\u0443\u0440\u043d\u0438\u0440\u044b',
+                    'search.matchPlaceholder': 'Поиск команды или лиги...',
+                    'search.leaguePlaceholder': 'Поиск лиги или страны...',
                     'league.allCountries': '\u0412\u0441\u0435 \u0441\u0442\u0440\u0430\u043d\u044b',
                     'league.searchResults': '\u0420\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u044b \u043f\u043e\u0438\u0441\u043a\u0430',
                     'league.countSuffix': '\u041b\u0438\u0433\u0438',
@@ -6632,9 +6786,9 @@
                     'auth.registerTab': 'Qeydiyyat',
                     'auth.username': 'İstifadəçi adı',
                     'auth.email': 'Email',
-                    'auth.password': 'Åifrə',
-                    'auth.forgotPassword': 'Åifrəni unutmusunuz?',
-                    'auth.resetTitle': 'Åifrə Sıfırlama',
+                    'auth.password': 'Şifrə',
+                    'auth.forgotPassword': 'Şifrəni unutmusunuz?',
+                    'auth.resetTitle': 'Şifrə Sıfırlama',
                     'auth.resetEmailText': 'Hesabınızın email ünvanını daxil edin, biz sizə 4 rəqəmli təsdiq kodu göndərəcəyik.',
                     'auth.emailAddress': 'Email ünvanı',
                     'auth.sendCode': 'Kod Göndər',
@@ -6643,9 +6797,9 @@
                     'auth.verifyCode': 'Kodu Təsdiqlə',
                     'auth.resendCode': 'Kodu Yenidən Göndər',
                     'auth.newPasswordText': 'Təhlükəsizliyiniz üçün yeni və güclü şifrə təyin edin.',
-                    'auth.newPassword': 'Yeni Åifrə',
-                    'auth.confirmPassword': 'Åifrənin Təkrarı',
-                    'auth.updatePassword': 'Åifrəni Yenilə',
+                    'auth.newPassword': 'Yeni Şifrə',
+                    'auth.confirmPassword': 'Şifrənin Təkrarı',
+                    'auth.updatePassword': 'Şifrəni Yenilə',
                     'auth.back': 'Geri qayıt',
                     'logout.confirmTitle': 'Çıxış Et?',
                     'logout.confirmMessage': 'Hesabınızdan çıxmaq istədiyinizə əminsiniz?',
@@ -6664,7 +6818,11 @@
                     'toast.settingSaved': 'Tənzimləmə yadda saxlanıldı',
                     'toast.profileLoginRequired': 'Profil üçün daxil olun',
                     'toast.welcomeUser': 'Xoş gəldin, {name}!',
-                    'toast.registerSuccess': 'Qeydiyyat uğurludur! Xoş gəldiniz.'
+                    'toast.registerSuccess': 'Qeydiyyat uğurludur! Xoş gəldiniz.',
+                    'notifications.emptyTitle': 'Bildiriş yoxdur',
+                    'notifications.emptyText': 'Qollar və digər önəmli hadisələr burada görünəcək.',
+                    'notifications.recentEvents': 'SON HADİSƏLƏR',
+                    'notifications.clearAll': 'HAMISINI SİL'
                 },
                 en: {
                     'match.detailsTab': 'Details',
@@ -6725,7 +6883,11 @@
                     'toast.settingSaved': 'Setting saved',
                     'toast.profileLoginRequired': 'Sign in to view your profile',
                     'toast.welcomeUser': 'Welcome, {name}!',
-                    'toast.registerSuccess': 'Registration successful. Welcome!'
+                    'toast.registerSuccess': 'Registration successful. Welcome!',
+                    'notifications.emptyTitle': 'No notifications',
+                    'notifications.emptyText': 'Goals and other important events will appear here.',
+                    'notifications.recentEvents': 'RECENT EVENTS',
+                    'notifications.clearAll': 'CLEAR ALL'
                 },
                 tr: {
                     'match.detailsTab': 'Detaylar',
@@ -6742,7 +6904,7 @@
                     'match.yellowCard': 'Sarı Kart',
                     'match.redCard': 'Kırmızı Kart',
                     'stat.ballPossession': 'Topa sahip olma',
-                    'stat.totalShots': 'Åutlar',
+                    'stat.totalShots': 'Şutlar',
                     'stat.shotsOnTarget': 'İsabetli şutlar',
                     'stat.cornerKicks': 'Kornerler',
                     'stat.fouls': 'Fauller',
@@ -6754,9 +6916,9 @@
                     'auth.registerTab': 'Kayıt',
                     'auth.username': 'Kullanıcı adı',
                     'auth.email': 'Email',
-                    'auth.password': 'Åifre',
-                    'auth.forgotPassword': 'Åifrenizi mi unuttunuz?',
-                    'auth.resetTitle': 'Åifre Sıfırlama',
+                    'auth.password': 'Şifre',
+                    'auth.forgotPassword': 'Şifrenizi mi unuttunuz?',
+                    'auth.resetTitle': 'Şifre Sıfırlama',
                     'auth.resetEmailText': 'Hesabınızın email adresini girin, size 4 haneli doğrulama kodu gönderelim.',
                     'auth.emailAddress': 'Email adresi',
                     'auth.sendCode': 'Kod gönder',
@@ -6766,8 +6928,8 @@
                     'auth.resendCode': 'Kodu yeniden gönder',
                     'auth.newPasswordText': 'Güvenliğiniz için yeni ve güçlü bir şifre belirleyin.',
                     'auth.newPassword': 'Yeni şifre',
-                    'auth.confirmPassword': 'Åifre tekrarı',
-                    'auth.updatePassword': 'Åifreyi güncelle',
+                    'auth.confirmPassword': 'Şifre tekrarı',
+                    'auth.updatePassword': 'Şifreyi güncelle',
                     'auth.back': 'Geri dön',
                     'logout.confirmTitle': 'Çıkış yapılsın mı?',
                     'logout.confirmMessage': 'Hesabınızdan çıkmak istediğinize emin misiniz?',
@@ -6786,68 +6948,110 @@
                     'toast.settingSaved': 'Ayar kaydedildi',
                     'toast.profileLoginRequired': 'Profil için giriş yapın',
                     'toast.welcomeUser': 'Hoş geldin, {name}!',
-                    'toast.registerSuccess': 'Kayıt başarılı. Hoş geldiniz!'
+                    'toast.registerSuccess': 'Kayıt başarılı. Hoş geldiniz!',
+                    'notifications.emptyTitle': 'Bildirim yok',
+                    'notifications.emptyText': 'Goller ve diğer önemli olaylar burada görünecek.',
+                    'notifications.recentEvents': 'SON OLAYLAR',
+                    'notifications.clearAll': 'HEPSİNİ SİL'
                 },
                 ru: {
-                    'match.detailsTab': 'Ğ”ĞµÑ‚Ğ°Ğ»Ğ¸',
-                    'match.statsTab': 'Ğ¡Ñ‚Ğ°Ñ‚Ğ¸ÑÑ‚Ğ¸ĞºĞ°',
-                    'match.detailsLoading': 'Ğ”ĞµÑ‚Ğ°Ğ»Ğ¸ Ğ·Ğ°Ğ³Ñ€ÑƒĞ¶Ğ°ÑÑ‚ÑÑ...',
-                    'match.statsLoading': 'Ğ¡Ñ‚Ğ°Ñ‚Ğ¸ÑÑ‚Ğ¸ĞºĞ° Ğ·Ğ°Ğ³Ñ€ÑƒĞ¶Ğ°ĞµÑ‚ÑÑ...',
-                    'match.statsEmpty': 'Ğ¡Ñ‚Ğ°Ñ‚Ğ¸ÑÑ‚Ğ¸ĞºĞ° Ğ½Ğµ Ğ½Ğ°Ğ¹Ğ´ĞµĞ½Ğ°',
-                    'match.goal': 'Ğ“Ğ¾Ğ»',
-                    'match.ownGoal': 'ĞĞ²Ñ‚Ğ¾Ğ³Ğ¾Ğ»',
-                    'match.penalty': 'ĞŸĞµĞ½Ğ°Ğ»ÑŒÑ‚Ğ¸',
-                    'match.penaltyGoal': 'ĞŸĞµĞ½Ğ°Ğ»ÑŒÑ‚Ğ¸ Ğ·Ğ°Ğ±Ğ¸Ñ‚',
-                    'match.penaltyMissed': 'ĞŸĞµĞ½Ğ°Ğ»ÑŒÑ‚Ğ¸ Ğ½Ğµ Ğ·Ğ°Ğ±Ğ¸Ñ‚',
-                    'match.substitution': 'Ğ—Ğ°Ğ¼ĞµĞ½Ğ°',
-                    'match.yellowCard': 'Ğ–Ñ‘Ğ»Ñ‚Ğ°Ñ ĞºĞ°Ñ€Ñ‚Ğ¾Ñ‡ĞºĞ°',
-                    'match.redCard': 'ĞšÑ€Ğ°ÑĞ½Ğ°Ñ ĞºĞ°Ñ€Ñ‚Ğ¾Ñ‡ĞºĞ°',
-                    'stat.ballPossession': 'Ğ’Ğ»Ğ°Ğ´ĞµĞ½Ğ¸Ğµ Ğ¼ÑÑ‡Ğ¾Ğ¼',
-                    'stat.totalShots': 'Ğ£Ğ´Ğ°Ñ€Ñ‹',
-                    'stat.shotsOnTarget': 'Ğ£Ğ´Ğ°Ñ€Ñ‹ Ğ² ÑÑ‚Ğ²Ğ¾Ñ€',
-                    'stat.cornerKicks': 'Ğ£Ğ³Ğ»Ğ¾Ğ²Ñ‹Ğµ',
-                    'stat.fouls': 'Ğ¤Ğ¾Ğ»Ñ‹',
-                    'stat.yellowCards': 'Ğ–Ñ‘Ğ»Ñ‚Ñ‹Ğµ ĞºĞ°Ñ€Ñ‚Ğ¾Ñ‡ĞºĞ¸',
-                    'stat.redCards': 'ĞšÑ€Ğ°ÑĞ½Ñ‹Ğµ ĞºĞ°Ñ€Ñ‚Ğ¾Ñ‡ĞºĞ¸',
-                    'stat.offsides': 'ĞÑ„ÑĞ°Ğ¹Ğ´Ñ‹',
-                    'stat.saves': 'Ğ¡ĞµĞ¹Ğ²Ñ‹',
-                    'auth.loginTab': 'Ğ’Ñ…Ğ¾Ğ´',
-                    'auth.registerTab': 'Ğ ĞµĞ³Ğ¸ÑÑ‚Ñ€Ğ°Ñ†Ğ¸Ñ',
-                    'auth.username': 'Ğ˜Ğ¼Ñ Ğ¿Ğ¾Ğ»ÑŒĞ·Ğ¾Ğ²Ğ°Ñ‚ĞµĞ»Ñ',
+                    'match.detailsTab': 'Детали',
+                    'match.statsTab': 'Статистика',
+                    'match.detailsLoading': 'Детали загружаются...',
+                    'match.statsLoading': 'Статистика загружается...',
+                    'match.statsEmpty': 'Статистика не найдена',
+                    'match.goal': 'Гол',
+                    'match.ownGoal': 'Автогол',
+                    'match.penalty': 'Пенальти',
+                    'match.penaltyGoal': 'Пенальти забит',
+                    'match.penaltyMissed': 'Пенальти не забит',
+                    'match.substitution': 'Замена',
+                    'match.yellowCard': 'Желтая карточка',
+                    'match.redCard': 'Красная карточка',
+                    'stat.ballPossession': 'Владение мячом',
+                    'stat.totalShots': 'Удары',
+                    'stat.shotsOnTarget': 'Удары в створ',
+                    'stat.cornerKicks': 'Угловые',
+                    'stat.fouls': 'Фолы',
+                    'stat.yellowCards': 'Желтые карточки',
+                    'stat.redCards': 'Красные карточки',
+                    'stat.offsides': 'Офсайды',
+                    'stat.saves': 'Сейвы',
+                    'auth.loginTab': 'Вход',
+                    'auth.registerTab': 'Регистрация',
+                    'auth.username': 'Имя пользователя',
                     'auth.email': 'Email',
-                    'auth.password': 'ĞŸĞ°Ñ€Ğ¾Ğ»ÑŒ',
-                    'auth.forgotPassword': 'Ğ—Ğ°Ğ±Ñ‹Ğ»Ğ¸ Ğ¿Ğ°Ñ€Ğ¾Ğ»ÑŒ?',
-                    'auth.resetTitle': 'Ğ¡Ğ±Ñ€Ğ¾Ñ Ğ¿Ğ°Ñ€Ğ¾Ğ»Ñ',
-                    'auth.resetEmailText': 'Ğ’Ğ²ĞµĞ´Ğ¸Ñ‚Ğµ email Ğ°ĞºĞºĞ°ÑƒĞ½Ñ‚Ğ°, Ğ¸ Ğ¼Ñ‹ Ğ¾Ñ‚Ğ¿Ñ€Ğ°Ğ²Ğ¸Ğ¼ 4-Ğ·Ğ½Ğ°Ñ‡Ğ½Ñ‹Ğ¹ ĞºĞ¾Ğ´ Ğ¿Ğ¾Ğ´Ñ‚Ğ²ĞµÑ€Ğ¶Ğ´ĞµĞ½Ğ¸Ñ.',
-                    'auth.emailAddress': 'Email Ğ°Ğ´Ñ€ĞµÑ',
-                    'auth.sendCode': 'ĞÑ‚Ğ¿Ñ€Ğ°Ğ²Ğ¸Ñ‚ÑŒ ĞºĞ¾Ğ´',
-                    'auth.codeText': 'Ğ’Ğ²ĞµĞ´Ğ¸Ñ‚Ğµ Ğ¾Ñ‚Ğ¿Ñ€Ğ°Ğ²Ğ»ĞµĞ½Ğ½Ñ‹Ğ¹ 4-Ğ·Ğ½Ğ°Ñ‡Ğ½Ñ‹Ğ¹ ĞºĞ¾Ğ´ Ğ¿Ğ¾Ğ´Ñ‚Ğ²ĞµÑ€Ğ¶Ğ´ĞµĞ½Ğ¸Ñ.',
-                    'auth.timeLeft': 'ĞÑÑ‚Ğ°Ğ»Ğ¾ÑÑŒ:',
-                    'auth.verifyCode': 'ĞŸĞ¾Ğ´Ñ‚Ğ²ĞµÑ€Ğ´Ğ¸Ñ‚ÑŒ ĞºĞ¾Ğ´',
-                    'auth.resendCode': 'ĞÑ‚Ğ¿Ñ€Ğ°Ğ²Ğ¸Ñ‚ÑŒ ĞºĞ¾Ğ´ ÑĞ½Ğ¾Ğ²Ğ°',
-                    'auth.newPasswordText': 'Ğ”Ğ»Ñ Ğ±ĞµĞ·Ğ¾Ğ¿Ğ°ÑĞ½Ğ¾ÑÑ‚Ğ¸ Ğ·Ğ°Ğ´Ğ°Ğ¹Ñ‚Ğµ Ğ½Ğ¾Ğ²Ñ‹Ğ¹ Ğ½Ğ°Ğ´Ñ‘Ğ¶Ğ½Ñ‹Ğ¹ Ğ¿Ğ°Ñ€Ğ¾Ğ»ÑŒ.',
-                    'auth.newPassword': 'ĞĞ¾Ğ²Ñ‹Ğ¹ Ğ¿Ğ°Ñ€Ğ¾Ğ»ÑŒ',
-                    'auth.confirmPassword': 'ĞŸĞ¾Ğ²Ñ‚Ğ¾Ñ€ Ğ¿Ğ°Ñ€Ğ¾Ğ»Ñ',
-                    'auth.updatePassword': 'ĞĞ±Ğ½Ğ¾Ğ²Ğ¸Ñ‚ÑŒ Ğ¿Ğ°Ñ€Ğ¾Ğ»ÑŒ',
-                    'auth.back': 'ĞĞ°Ğ·Ğ°Ğ´',
-                    'logout.confirmTitle': 'Ğ’Ñ‹Ğ¹Ñ‚Ğ¸?',
-                    'logout.confirmMessage': 'Ğ’Ñ‹ ÑƒĞ²ĞµÑ€ĞµĞ½Ñ‹, Ñ‡Ñ‚Ğ¾ Ñ…Ğ¾Ñ‚Ğ¸Ñ‚Ğµ Ğ²Ñ‹Ğ¹Ñ‚Ğ¸ Ğ¸Ğ· Ğ°ĞºĞºĞ°ÑƒĞ½Ñ‚Ğ°?',
-                    'toast.loggedOut': 'Ğ’Ñ‹ Ğ²Ñ‹ÑˆĞ»Ğ¸ Ğ¸Ğ· Ğ°ĞºĞºĞ°ÑƒĞ½Ñ‚Ğ°.',
-                    'auth.loginTitle': 'Ğ”Ğ¾Ğ±Ñ€Ğ¾ Ğ¿Ğ¾Ğ¶Ğ°Ğ»Ğ¾Ğ²Ğ°Ñ‚ÑŒ',
-                    'auth.loginSubtitle': 'Ğ’Ğ¾Ğ¹Ğ´Ğ¸Ñ‚Ğµ, Ñ‡Ñ‚Ğ¾Ğ±Ñ‹ Ğ¿Ñ€Ğ¾Ğ´Ğ¾Ğ»Ğ¶Ğ¸Ñ‚ÑŒ',
-                    'auth.registerTitle': 'ĞĞ¾Ğ²Ñ‹Ğ¹ Ğ°ĞºĞºĞ°ÑƒĞ½Ñ‚',
-                    'auth.registerSubtitle': 'ĞŸÑ€Ğ¸ÑĞ¾ĞµĞ´Ğ¸Ğ½ÑĞ¹Ñ‚ĞµÑÑŒ Ğº Rabona Media',
-                    'auth.loginButton': 'Ğ’Ğ¾Ğ¹Ñ‚Ğ¸',
-                    'auth.registerButton': 'Ğ—Ğ°Ñ€ĞµĞ³Ğ¸ÑÑ‚Ñ€Ğ¸Ñ€Ğ¾Ğ²Ğ°Ñ‚ÑŒÑÑ',
-                    'auth.haveAccount': 'Ğ£Ğ¶Ğµ ĞµÑÑ‚ÑŒ Ğ°ĞºĞºĞ°ÑƒĞ½Ñ‚?',
-                    'auth.loginLink': 'Ğ’Ğ¾Ğ¹Ñ‚Ğ¸',
-                    'auth.requiredTitle': 'Ğ¡Ğ¾Ğ·Ğ´Ğ°Ğ¹Ñ‚Ğµ Ğ°ĞºĞºĞ°ÑƒĞ½Ñ‚',
-                    'auth.requiredSubtitle': 'Ğ¡Ğ¾Ğ·Ğ´Ğ°Ğ¹Ñ‚Ğµ Ğ±ĞµÑĞ¿Ğ»Ğ°Ñ‚Ğ½Ñ‹Ğ¹ Ğ°ĞºĞºĞ°ÑƒĞ½Ñ‚, Ñ‡Ñ‚Ğ¾Ğ±Ñ‹ ÑĞ¼Ğ¾Ñ‚Ñ€ĞµÑ‚ÑŒ Ğ´ĞµÑ‚Ğ°Ğ»Ğ¸ Ğ¼Ğ°Ñ‚Ñ‡Ğ°.',
-                    'toast.authRequired': 'Ğ¡Ğ¾Ğ·Ğ´Ğ°Ğ¹Ñ‚Ğµ Ğ°ĞºĞºĞ°ÑƒĞ½Ñ‚, Ñ‡Ñ‚Ğ¾Ğ±Ñ‹ ÑĞ¼Ğ¾Ñ‚Ñ€ĞµÑ‚ÑŒ Ğ´ĞµÑ‚Ğ°Ğ»Ğ¸ Ğ¼Ğ°Ñ‚Ñ‡Ğ°.',
-                    'toast.settingSaved': 'ĞĞ°ÑÑ‚Ñ€Ğ¾Ğ¹ĞºĞ° ÑĞ¾Ñ…Ñ€Ğ°Ğ½ĞµĞ½Ğ°',
-                    'toast.profileLoginRequired': 'Ğ’Ğ¾Ğ¹Ğ´Ğ¸Ñ‚Ğµ, Ñ‡Ñ‚Ğ¾Ğ±Ñ‹ Ğ¾Ñ‚ĞºÑ€Ñ‹Ñ‚ÑŒ Ğ¿Ñ€Ğ¾Ñ„Ğ¸Ğ»ÑŒ',
-                    'toast.welcomeUser': 'Ğ”Ğ¾Ğ±Ñ€Ğ¾ Ğ¿Ğ¾Ğ¶Ğ°Ğ»Ğ¾Ğ²Ğ°Ñ‚ÑŒ, {name}!',
-                    'toast.registerSuccess': 'Ğ ĞµĞ³Ğ¸ÑÑ‚Ñ€Ğ°Ñ†Ğ¸Ñ Ğ¿Ñ€Ğ¾ÑˆĞ»Ğ° ÑƒÑĞ¿ĞµÑˆĞ½Ğ¾. Ğ”Ğ¾Ğ±Ñ€Ğ¾ Ğ¿Ğ¾Ğ¶Ğ°Ğ»Ğ¾Ğ²Ğ°Ñ‚ÑŒ!'
+                    'auth.password': 'Пароль',
+                    'auth.forgotPassword': 'Забыли пароль?',
+                    'auth.resetTitle': 'Сброс пароля',
+                    'auth.resetEmailText': 'Введите email аккаунта, и мы отправим 4-значный код подтверждения.',
+                    'auth.emailAddress': 'Email адрес',
+                    'auth.sendCode': 'Отправить код',
+                    'auth.codeText': 'Введите отправленный 4-значный код подтверждения.',
+                    'auth.timeLeft': 'Осталось:',
+                    'auth.verifyCode': 'Подтвердить код',
+                    'auth.resendCode': 'Отправить код снова',
+                    'auth.newPasswordText': 'Для безопасности задайте новый надёжный пароль.',
+                    'auth.newPassword': 'Новый пароль',
+                    'auth.confirmPassword': 'Повтор пароля',
+                    'auth.updatePassword': 'Обновить пароль',
+                    'auth.back': 'Назад',
+                    'logout.confirmTitle': 'Выйти?',
+                    'logout.confirmMessage': 'Вы уверены, что хотите выйти из аккаунта?',
+                    'toast.loggedOut': 'Вы вышли из аккаунта.',
+                    'auth.loginTitle': 'Добро пожаловать',
+                    'auth.loginSubtitle': 'Войдите, чтобы продолжить',
+                    'auth.registerTitle': 'Новый аккаунт',
+                    'auth.registerSubtitle': 'Присоединяйтесь к Rabona Media',
+                    'auth.loginButton': 'Войти',
+                    'auth.registerButton': 'Зарегистрироваться',
+                    'auth.haveAccount': 'Уже есть аккаунт?',
+                    'auth.loginLink': 'Войти',
+                    'auth.requiredTitle': 'Создайте аккаунт',
+                    'auth.requiredSubtitle': 'Создайте бесплатный аккаунт, чтобы смотреть детали матча.',
+                    'toast.authRequired': 'Создайте аккаунт, чтобы смотреть детали матча.',
+                    'toast.settingSaved': 'Настройка сохранена',
+                    'notifications.emptyTitle': 'Нет уведомлений',
+                    'notifications.emptyText': 'Голы и другие важные события появятся здесь.',
+                    'notifications.recentEvents': 'ПОСЛЕДНИЕ СОБЫТИЯ',
+                    'notifications.clearAll': 'ОЧИСТИТЬ ВСЕ'
+,
+                    'toast.profileLoginRequired': 'Войдите, чтобы открыть профиль',
+                    'toast.welcomeUser': 'Добро пожаловать, {name}!',
+                    'toast.registerSuccess': 'Регистрация прошла успешно. Добро пожаловать!',
+                    'dialog.yes': 'Да',
+                    'dialog.no': 'Нет',
+                    'dialog.cancel': 'Отмена',
+                    'btn.delete': 'Удалить',
+                    'notifications.none': 'Уведомлений нет',
+                    'notifications.noneText': 'Голы и другие важные события появятся здесь.',
+                    'notifications.clearAll': 'Очистить всё',
+                    'notifications.recentEvents': 'Последние события',
+                    'notifications.goalBody': 'Счёт изменился!',
+                    'notifications.matchStart': 'Матч начался',
+                    'notifications.matchStartBody': 'матч начался!',
+                    'notifications.clearAllTitle': 'Удалить все уведомления?',
+                    'notifications.clearAllMessage': 'Вы хотите очистить всю историю уведомлений?',
+                    'search.matchPlaceholder': 'Поиск команды или лиги...',
+                    'search.leaguePlaceholder': 'Поиск лиги или страны...',
+                    'firstAccount.title': 'Создайте аккаунт',
+                    'firstAccount.text': 'Создайте бесплатный аккаунт для просмотра деталей матчей, выбора любимых лиг/команд и получения уведомлений о голах.',
+                    'firstAccount.create': 'Создать аккаунт',
+                    'firstAccount.login': 'Войти в существующий аккаунт',
+                    'onboard.leaguesTitle': 'Выберите ваши любимые лиги',
+                    'onboard.leaguesDesc': 'Выберите одну или несколько лиг, чтобы закрепить матчи в прямом эфире и получать уведомления.',
+                    'onboard.teamsTitle': 'Выберите любимые команды',
+                    'onboard.teamsDesc': 'Выберите одну или несколько команд. Вы автоматически будете получать уведомления об их матчах.',
+                    'onboard.leaguesSelected': 'Выбрано {count} лиг',
+                    'onboard.teamsSelected': 'Выбрано {count} команд',
+                    'onboard.toTeams': 'Перейти к командам',
+                    'onboard.save': 'Сохранить',
+                    'onboard.loadingTeams': 'Загрузка команд...',
+                    'search.leagueOnly': 'Поиск лиги...',
+                    'search.teamOnly': 'Поиск команды...',
+                    'btn.back': 'Назад',
+                    'dialog.clearAllTitle': 'Удалить все данные?',
+                    'dialog.clearAllMsg': 'Все ваши избранные и данные профиля будут безвозвратно удалены. Это действие нельзя отменить.'
                 }
             };
             Object.keys(UI_I18N_PATCH).forEach(lang => {
@@ -7137,7 +7341,7 @@
                     'Azərbaycan dili': 'Azərbaycan dili', 'English': 'English', 'Türkçe': 'Türkçe', 'Ğ ÑƒÑÑĞºĞ¸Ğ¹': 'Ğ ÑƒÑÑĞºĞ¸Ğ¹', 'Versiya': 'Versiya',
                     'Hesab Məlumatları': 'Hesab Məlumatları', 'Redaktə et': 'Redaktə et', 'İstifadəçi Adı': 'İstifadəçi Adı', 'Status': 'Status',
                     'Məlumatlar Saxla': 'Məlumatlar Saxla', 'Bütün Məlumatlar Sil': 'Bütün Məlumatlar Sil', 'Hesabdan Çıx': 'Hesabdan Çıx',
-                    'QEYDİYYAT': 'QEYDİYYAT', 'BİLDİRİÅLƏR': 'BİLDİRİÅLƏR', 'DƏSTƏK': 'DƏSTƏK', 'PROFİL': 'PROFİL', 'LİQALAR': 'LİQALAR', 'FAVORİTLƏR': 'FAVORİTLƏR', 'TƏNZİMLƏMƏLƏR': 'TƏNZİMLƏMƏLƏR',
+                    'QEYDİYYAT': 'QEYDİYYAT', 'BİLDİRİŞLƏR': 'BİLDİRİŞLƏR', 'DƏSTƏK': 'DƏSTƏK', 'PROFİL': 'PROFİL', 'LİQALAR': 'LİQALAR', 'FAVORİTLƏR': 'FAVORİTLƏR', 'TƏNZİMLƏMƏLƏR': 'TƏNZİMLƏMƏLƏR',
                     'Tənzimləmə yadda saxlanıldı': 'Tənzimləmə yadda saxlanıldı'
                 },
                 en: {
@@ -7149,7 +7353,7 @@
                     'Azərbaycan dili': 'Azerbaijani', 'English': 'English', 'Türkçe': 'Turkish', 'Ğ ÑƒÑÑĞºĞ¸Ğ¹': 'Russian', 'Versiya': 'Version',
                     'Hesab Məlumatları': 'Account information', 'Redaktə et': 'Edit', 'İstifadəçi Adı': 'Username', 'Status': 'Status',
                     'Məlumatlar Saxla': 'Save information', 'Bütün Məlumatlar Sil': 'Delete all data', 'Hesabdan Çıx': 'Sign out',
-                    'QEYDİYYAT': 'REGISTER', 'BİLDİRİÅLƏR': 'NOTIFICATIONS', 'DƏSTƏK': 'SUPPORT', 'PROFİL': 'PROFILE', 'LİQALAR': 'LEAGUES', 'FAVORİTLƏR': 'FAVORITES', 'TƏNZİMLƏMƏLƏR': 'SETTINGS',
+                    'QEYDİYYAT': 'REGISTER', 'BİLDİRİŞLƏR': 'NOTIFICATIONS', 'DƏSTƏK': 'SUPPORT', 'PROFİL': 'PROFILE', 'LİQALAR': 'LEAGUES', 'FAVORİTLƏR': 'FAVORITES', 'TƏNZİMLƏMƏLƏR': 'SETTINGS',
                     'Tənzimləmə yadda saxlanıldı': 'Setting saved'
                 },
                 tr: {
@@ -7161,7 +7365,7 @@
                     'Azərbaycan dili': 'Azerbaycan dili', 'English': 'İngilizce', 'Türkçe': 'Türkçe', 'Ğ ÑƒÑÑĞºĞ¸Ğ¹': 'Rusça', 'Versiya': 'Versiyon',
                     'Hesab Məlumatları': 'Hesap bilgileri', 'Redaktə et': 'Düzenle', 'İstifadəçi Adı': 'Kullanıcı adı', 'Status': 'Durum',
                     'Məlumatlar Saxla': 'Bilgileri kaydet', 'Bütün Məlumatlar Sil': 'Tüm verileri sil', 'Hesabdan Çıx': 'Hesaptan çık',
-                    'QEYDİYYAT': 'KAYIT', 'BİLDİRİÅLƏR': 'BİLDİRİMLER', 'DƏSTƏK': 'DESTEK', 'PROFİL': 'PROFİL', 'LİQALAR': 'LİGLER', 'FAVORİTLƏR': 'FAVORİLER', 'TƏNZİMLƏMƏLƏR': 'AYARLAR',
+                    'QEYDİYYAT': 'KAYIT', 'BİLDİRİŞLƏR': 'BİLDİRİMLER', 'DƏSTƏK': 'DESTEK', 'PROFİL': 'PROFİL', 'LİQALAR': 'LİGLER', 'FAVORİTLƏR': 'FAVORİLER', 'TƏNZİMLƏMƏLƏR': 'AYARLAR',
                     'Tənzimləmə yadda saxlanıldı': 'Ayar kaydedildi'
                 },
                 ru: {
@@ -7173,7 +7377,7 @@
                     'Azərbaycan dili': 'ĞĞ·ĞµÑ€Ğ±Ğ°Ğ¹Ğ´Ğ¶Ğ°Ğ½ÑĞºĞ¸Ğ¹', 'English': 'ĞĞ½Ğ³Ğ»Ğ¸Ğ¹ÑĞºĞ¸Ğ¹', 'Türkçe': 'Ğ¢ÑƒÑ€ĞµÑ†ĞºĞ¸Ğ¹', 'Ğ ÑƒÑÑĞºĞ¸Ğ¹': 'Ğ ÑƒÑÑĞºĞ¸Ğ¹', 'Versiya': 'Ğ’ĞµÑ€ÑĞ¸Ñ',
                     'Hesab Məlumatları': 'Ğ”Ğ°Ğ½Ğ½Ñ‹Ğµ Ğ°ĞºĞºĞ°ÑƒĞ½Ñ‚Ğ°', 'Redaktə et': 'Ğ˜Ğ·Ğ¼ĞµĞ½Ğ¸Ñ‚ÑŒ', 'İstifadəçi Adı': 'Ğ˜Ğ¼Ñ Ğ¿Ğ¾Ğ»ÑŒĞ·Ğ¾Ğ²Ğ°Ñ‚ĞµĞ»Ñ', 'Status': 'Ğ¡Ñ‚Ğ°Ñ‚ÑƒÑ',
                     'Məlumatlar Saxla': 'Ğ¡Ğ¾Ñ…Ñ€Ğ°Ğ½Ğ¸Ñ‚ÑŒ Ğ´Ğ°Ğ½Ğ½Ñ‹Ğµ', 'Bütün Məlumatlar Sil': 'Ğ£Ğ´Ğ°Ğ»Ğ¸Ñ‚ÑŒ Ğ²ÑĞµ Ğ´Ğ°Ğ½Ğ½Ñ‹Ğµ', 'Hesabdan Çıx': 'Ğ’Ñ‹Ğ¹Ñ‚Ğ¸ Ğ¸Ğ· Ğ°ĞºĞºĞ°ÑƒĞ½Ñ‚Ğ°',
-                    'QEYDİYYAT': 'Ğ Ğ•Ğ“Ğ˜Ğ¡Ğ¢Ğ ĞĞ¦Ğ˜Ğ¯', 'BİLDİRİÅLƏR': 'Ğ£Ğ’Ğ•Ğ”ĞĞœĞ›Ğ•ĞĞ˜Ğ¯', 'DƏSTƏK': 'ĞŸĞĞ”Ğ”Ğ•Ğ Ğ–ĞšĞ', 'PROFİL': 'ĞŸĞ ĞĞ¤Ğ˜Ğ›Ğ¬', 'LİQALAR': 'Ğ›Ğ˜Ğ“Ğ˜', 'FAVORİTLƏR': 'Ğ˜Ğ—Ğ‘Ğ ĞĞĞĞĞ•', 'TƏNZİMLƏMƏLƏR': 'ĞĞĞ¡Ğ¢Ğ ĞĞ™ĞšĞ˜',
+                    'QEYDİYYAT': 'Ğ Ğ•Ğ“Ğ˜Ğ¡Ğ¢Ğ ĞĞ¦Ğ˜Ğ¯', 'BİLDİRİŞLƏR': 'Ğ£Ğ’Ğ•Ğ”ĞĞœĞ›Ğ•ĞĞ˜Ğ¯', 'DƏSTƏK': 'ĞŸĞĞ”Ğ”Ğ•Ğ Ğ–ĞšĞ', 'PROFİL': 'ĞŸĞ ĞĞ¤Ğ˜Ğ›Ğ¬', 'LİQALAR': 'Ğ›Ğ˜Ğ“Ğ˜', 'FAVORİTLƏR': 'Ğ˜Ğ—Ğ‘Ğ ĞĞĞĞĞ•', 'TƏNZİMLƏMƏLƏR': 'ĞĞĞ¡Ğ¢Ğ ĞĞ™ĞšĞ˜',
                     'Tənzimləmə yadda saxlanıldı': 'ĞĞ°ÑÑ‚Ñ€Ğ¾Ğ¹ĞºĞ° ÑĞ¾Ñ…Ñ€Ğ°Ğ½ĞµĞ½Ğ°'
                 }
             };
@@ -7512,7 +7716,7 @@
 
                     const before = suspiciousScore(text);
                     const after = suspiciousScore(decoded);
-                    if (after < before || /[əğıöüşçƏÄİÖÜÅÇ]/.test(decoded)) {
+                    if (after < before || /[əğıöüşçƏĞİÖÜŞÇ]/.test(decoded)) {
                         return decoded;
                     }
                 } catch (e) {}
@@ -7537,10 +7741,10 @@
                 ['Məlumat', 'Məlumat'],
                 ['Bombardir məlumatı', 'Bombardir məlumatı'],
                 ['Giriş', 'Giriş'],
-                ['Åifrə', 'Åifrə'],
-                ['Åifrəni', 'Åifrəni'],
-                ['Åifrənin', 'Åifrənin'],
-                ['Åifrələr', 'Åifrələr'],
+                ['Şifrə', 'Şifrə'],
+                ['Şifrəni', 'Şifrəni'],
+                ['Şifrənin', 'Şifrənin'],
+                ['Şifrələr', 'Şifrələr'],
                 ['İstifadəçi', 'İstifadəçi'],
                 ['İcazə', 'İcazə'],
                 ['Əlavə', 'Əlavə'],
@@ -7768,7 +7972,7 @@
                 ,['yanl??d?r', 'yanlışdır']
                 ,['art?q', 'artıq']
                 ,['format?d?r', 'formatıdır']
-                ,['?ox z?ifdir', 'çox zəifdir']
+                ,['çox zəifdir', 'çox zəifdir']
                 ,['ver? bilm?di', 'verə bilmədi']
                 ,['d??m?r', 'düşmür']
                 ,['??x?? Et?', 'Çıxış Et?']
@@ -7980,9 +8184,9 @@
                     .replace(/[\u0300-\u036f]/g, '')
                     .replace(/[Əə]/g, 'e')
                     .replace(/[İIı]/g, 'i')
-                    .replace(/[Äğ]/g, 'g')
+                    .replace(/[Ğğ]/g, 'g')
                     .replace(/[Üü]/g, 'u')
-                    .replace(/[Åş]/g, 's')
+                    .replace(/[Şş]/g, 's')
                     .replace(/[Öö]/g, 'o')
                     .replace(/[Çç]/g, 'c')
                     .toLowerCase()
@@ -8576,6 +8780,12 @@
                 }
 
                 requestPermission() {
+                    if (window.AppInventor) {
+                        try {
+                            window.AppInventor.setWebViewString("request_push_permission");
+                            return Promise.resolve('granted');
+                        } catch(e) { console.error(e); }
+                    }
                     if (!("Notification" in window)) return Promise.resolve('unsupported');
                     return Notification.requestPermission();
                 }
@@ -8692,16 +8902,16 @@
                         container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">&#128276;</div>
-                        <div class="empty-state-title">Bildiriş yoxdur</div>
-                        <div class="empty-state-text">Qollar və digər önəmli hadisələr burada görünəcək.</div>
+                        <div class="empty-state-title">${appT('notifications.emptyTitle')}</div>
+                        <div class="empty-state-text">${appT('notifications.emptyText')}</div>
                     </div>`;
                         return;
                     }
 
                     let html = `
                 <div class="notif-header-actions">
-                    <span style="font-weight:800; opacity:0.6;">SON HADISELER</span>
-                    <div class="clear-all-btn" onclick="notificationMgr.clearAllHistory()">&#128465; HAMSINI SIL</div>
+                    <span style="font-weight:800; opacity:0.6;">${appT('notifications.recentEvents')}</span>
+                    <div class="clear-all-btn" onclick="notificationMgr.clearAllHistory()">&#128465; ${appT('notifications.clearAll')}</div>
                 </div>
             `;
 
@@ -11233,7 +11443,7 @@
                     const leagues = await fetchCategoryLeaguesData(key);
 
                     if (leagues.length === 0) {
-                        leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">Bu ölkə üçün aktiv liqa tapılmadı.</div>`;
+                        leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">${appT('toast.noActiveLeague')}</div>`;
                         return;
                     }
 
@@ -11242,7 +11452,7 @@
                     prefetchCountryLeagueStandings(leagues);
                 } catch (e) {
                     console.warn("Category leagues load failed:", key, e.message);
-                    leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">Liqa məlumatı hazırda gecikir.</div>`;
+                    leagueContainer.innerHTML = `<div style="padding:15px; color:var(--text-muted); text-align:center; font-size:12px;">${appT('toast.leagueDataDelayed')}</div>`;
                 }
             }
 
@@ -11430,7 +11640,7 @@
 
                         list.innerHTML = html;
                     } catch (e) {
-                        list.innerHTML = `<div class="empty-state" style="padding:60px 20px;">Axtarışda xəta baş verdi. Zəhmət olmasa yenidən yoxlayın.</div>`;
+                        list.innerHTML = `<div class="empty-state" style="padding:60px 20px;">${appT('toast.searchError')}</div>`;
                     }
                 }, 500);
             }
@@ -13446,7 +13656,7 @@
                         });
                         btn.innerHTML = '&#9733;';
                         btn.classList.add('active');
-                        showToast('Oyun favoritlərə əlavə edildi');
+                        showToast(appT('toast.matchAddedFav'));
                     }
                 } else {
                     const removalKeys = new Set([
@@ -13466,7 +13676,7 @@
                         btn.innerHTML = '&#9734;';
                         btn.classList.remove('active');
                     }
-                    showToast('Oyun favoritlərdən çıxarıldı');
+                    showToast(appT('toast.matchRemovedFav'));
                 }
                 persistFavoriteMatches();
                 syncFavoritesLight({ beacon: true });
@@ -13924,7 +14134,25 @@
 
             async function refreshPushAfterFavoriteChange(shouldAskPermission = false) {
                 syncRegisteredPushState();
+                
+                // Kodular Bypass
+                if (window.AppInventor) {
+                    if (shouldAskPermission) {
+                        await notificationMgr.requestPermission();
+                    }
+                    updateSetting('browserNotifEnabled', true);
+                    const toggle = document.getElementById('browserNotifToggle');
+                    if (toggle) toggle.checked = true;
+                    // Note: Registration itself is handled natively by OneSignal in Kodular, 
+                    // we just update our UI state to reflect it's enabled.
+                    if (shouldAskPermission) showToast('Qol bildirişləri aktivdir', 'success');
+                    return true;
+                }
 
+                if (window.AppInventor) {
+                    // Kodular WebView - skip browser notification checks
+                    return true;
+                }
                 if (!("Notification" in window)) return false;
                 if (!supportsWebPush() && !supportsFirebaseMessaging()) return false;
                 if (!window.isSecureContext) {
@@ -13977,7 +14205,7 @@
                 }
 
                 try {
-                    showToast('Test bildirişi göndərilir...');
+                    showToast(appT('toast.sendingTestNotification'));
                     const calls = [];
                     if (webPushReady && deviceId) {
                         calls.push(fetch(API_BASE_URL + '/api/push/test', {
@@ -14015,12 +14243,12 @@
                     favLeagues.push({ id, name, country });
                     btn.innerHTML = '&#9733;';
                     btn.classList.add('active');
-                    showToast('Liqa favoritlərə əlavə edildi');
+                    showToast(appT('toast.leagueAddedFav'));
                 } else {
                     favLeagues.splice(idx, 1);
                     btn.innerHTML = '&#9734;';
                     btn.classList.remove('active');
-                    showToast('Liqa favoritlərdən çıxarıldı');
+                    showToast(appT('toast.leagueRemovedFav'));
                 }
                 localStorage.setItem('favLeagues', JSON.stringify(favLeagues));
                 persistAccountFavorites();
@@ -14050,7 +14278,7 @@
                         const groupKey = Object.keys(groupedDataGlobal).find(k => k.startsWith(l.name));
                         html += `
                     <div class="league-card">
-                        <div style="display:flex; align-items:center; gap:16px; flex:1;" onclick="${groupKey ? `openSingleLeague('${groupKey.replace(/'/g, "\\'")}')` : `showToast('Liqa məlumatı tapılmadı')`}">
+                        <div style="display:flex; align-items:center; gap:16px; flex:1;" onclick="${groupKey ? `openSingleLeague('${groupKey.replace(/'/g, "\\'")}')` : `showToast(appT('toast.leagueNotFound'))`}">
                             <img class="league-card-logo" loading="eager" decoding="async" fetchpriority="high" src="${sofaImageUrl(`/tournament/${l.id}/image`)}" onerror="this.onerror=null; this.src='${IMAGE_PLACEHOLDER}'">
                             <div class="league-card-info">
                                 <span class="league-card-country">${l.country}</span>
@@ -14447,7 +14675,7 @@
                 let newStatus = DEFAULT_PROFILE_STATUS;
 
                 if (!newName) {
-                    showToast('Ad boş ola bilməz!');
+                    showToast(appT('toast.nameNotEmpty'));
                     return;
                 }
 
@@ -14517,7 +14745,7 @@
                 if (!file) return;
 
                 if (file.size > 12 * 1024 * 1024) {
-                    showToast('Åəkil 12MB-dan kiçik olmalıdır!', 'error');
+                    showToast('Şəkil 12MB-dan kiçik olmalıdır!', 'error');
                     return;
                 }
 
@@ -14547,14 +14775,14 @@
                             else setLocalProfileImage('');
                             updateAuthUI();
                             console.warn('Profile image server sync failed:', e.message);
-                            showToast('Åəkil serverə yazılmadı. Bir az sonra yenidən cəhd edin.', 'error');
+                            showToast('Şəkil serverə yazılmadı. Bir az sonra yenidən cəhd edin.', 'error');
                             return;
                         }
                     }
                     showToast('Profil şəkli yeniləndi', 'success');
                 }).catch((e) => {
                     console.warn('Profile image read failed:', e.message);
-                    showToast('Åəkil oxunmadı. JPG/PNG/WebP şəkil seçin.', 'error');
+                    showToast('Şəkil oxunmadı. JPG/PNG/WebP şəkil seçin.', 'error');
                 }).finally(() => {
                     event.target.value = '';
                 });
@@ -14673,6 +14901,15 @@
 
             function toggleBrowserNotifications(enabled) {
                 if (enabled) {
+                    // Kodular WebView bypass - bildirişləri tətbiq özü idarə edir
+                    if (window.AppInventor) {
+                        window.AppInventor.setWebViewString("request_push_permission");
+                        updateSetting('browserNotifEnabled', true);
+                        document.getElementById('browserNotifToggle').checked = true;
+                        showToast(appT('notif.enabled', 'Bildirişlər aktiv edildi'), 'success');
+                        return;
+                    }
+
                     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
                     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
@@ -14737,8 +14974,8 @@
                     icon: '&#128465;',
                     type: 'confirm',
                     isDanger: true,
-                    confirmTxt: appT('btn.delete', 'Sil'),
-                    cancelTxt: appT('btn.cancel', 'Ləğv et'),
+                    confirmTxt: appT('btn.delete'),
+                    cancelTxt: appT('dialog.cancel'),
                     onConfirm: () => {
                         localStorage.clear();
                         location.reload();
@@ -14888,6 +15125,48 @@
                 }
             }
 
+            
+const APP_I18N_VERIFY_MSG = {
+    az: {
+        'auth.verifyEmailSentLong': 'Email doğrulama linki göndərildi. Link əsas səhifədə görünməsə, spam qovluğunu da yoxlayın.',
+        'auth.verifyEmailSent': 'Doğrulama linki göndərildi.'
+    },
+    tr: {
+        'auth.verifyEmailSentLong': 'E-posta doğrulama bağlantısı gönderildi. Bağlantı ana sayfada görünmezse, spam klasörünü de kontrol edin.',
+        'auth.verifyEmailSent': 'Doğrulama bağlantısı gönderildi.'
+    },
+    en: {
+        'auth.verifyEmailSentLong': 'Email verification link sent. If it does not appear in your inbox, please check your spam folder.',
+        'auth.verifyEmailSent': 'Verification link sent.'
+    },
+    ru: {
+        'auth.verifyEmailSentLong': 'Ссылка для подтверждения отправлена. Если ее нет во входящих, проверьте папку спам.',
+        'auth.verifyEmailSent': 'Ссылка отправлена.'
+    }
+};
+Object.keys(APP_I18N_VERIFY_MSG).forEach(lang => {
+    APP_I18N[lang] = { ...(APP_I18N[lang] || {}), ...APP_I18N_VERIFY_MSG[lang] };
+});
+
+            
+const APP_I18N_EMAIL_NOT_VERIFIED = {
+    az: {
+        'auth.emailNotVerified': 'Email ünvanınız təsdiqlənməyib. Zəhmət olmasa inbox (və ya spam) qovluğunuzu yoxlayıb hesabı aktivləşdirin.'
+    },
+    tr: {
+        'auth.emailNotVerified': 'E-posta adresiniz onaylanmadı. Lütfen gelen kutunuzu (veya spam) kontrol edip hesabı etkinleştirin.'
+    },
+    en: {
+        'auth.emailNotVerified': 'Your email is not verified. Please check your inbox (or spam) to activate your account.'
+    },
+    ru: {
+        'auth.emailNotVerified': 'Ваш адрес электронной почты не подтвержден. Пожалуйста, проверьте почту (или спам), чтобы активировать аккаунт.'
+    }
+};
+Object.keys(APP_I18N_EMAIL_NOT_VERIFIED).forEach(lang => {
+    APP_I18N[lang] = { ...(APP_I18N[lang] || {}), ...APP_I18N_EMAIL_NOT_VERIFIED[lang] };
+});
+
             window.handleAuthSubmit = async function() {
                 if (window.DEBUG_AUTH_LOGS) console.log("handleAuthSubmit (Firebase) called");
                 const emailInput = document.getElementById('authEmail');
@@ -14905,6 +15184,7 @@
                 const tabLogin = document.getElementById('tabLogin');
                 const isLogin = tabLogin ? tabLogin.classList.contains('active') : true;
                 const errorDiv = document.getElementById('authError');
+                if (errorDiv) errorDiv.removeAttribute('data-i18n');
                 const btn = document.getElementById('authSubmitBtn');
 
                 if (Date.now() < firebaseAuthBlockedUntil) {
@@ -14940,6 +15220,12 @@
                 try {
                     if (isLogin) {
                         const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                        
+                        // Check email verification
+                        if (!userCredential.user.emailVerified) {
+                            await auth.signOut();
+                            throw new Error('email-not-verified');
+                        }
                         
                         // Fetch profile from backend
                         let welcomeName = getDefaultProfileName(userCredential.user);
@@ -14978,10 +15264,21 @@
                             status: DEFAULT_PROFILE_STATUS
                         }, userCredential.user);
 
-                        showToast('toast.registerSuccess');
-                        localStorage.setItem(FIRST_ACCOUNT_PROMPT_KEY, '1');
-                        switchMainView('profile');
-                        forceFavoriteOnboardingForNewAccount();
+                        // Send verification email and sign out
+                        auth.languageCode = window.currentLang || 'az';
+                        await userCredential.user.sendEmailVerification();
+                        await auth.signOut();
+
+                        showToast(appT('auth.verifyEmailSent'), 'success');
+                        
+                        // Switch to login tab and show message
+                        switchAuthTab('login');
+                        if (errorDiv) {
+                            errorDiv.setAttribute('data-i18n', 'auth.verifyEmailSentLong');
+                            errorDiv.innerText = appT('auth.verifyEmailSentLong');
+                            errorDiv.style.display = 'block';
+                            errorDiv.style.color = 'var(--live)'; // Green color for success message
+                        }
                     }
                     
                     // Clear inputs
@@ -14992,6 +15289,20 @@
                 } catch (error) {
                     const errorCode = error?.code || '';
                     const errorText = String(error?.message || '');
+                    
+                    if (errorText === 'email-not-verified') {
+                        if (errorDiv) {
+                            errorDiv.innerText = appT('auth.emailNotVerified');
+                            errorDiv.style.display = 'block';
+                        }
+                        if (btn) {
+                            btn.innerText = appT(isLogin ? 'auth.loginButton' : 'auth.registerButton');
+                            btn.disabled = false;
+                            btn.style.opacity = '1';
+                        }
+                        return;
+                    }
+
                     const isNetworkAuthError = errorCode === 'auth/network-request-failed' || /network|timeout|unreachable/i.test(errorText);
                     if (isNetworkAuthError) {
                         firebaseAuthBlockedUntil = Date.now() + 30000;
@@ -15004,11 +15315,11 @@
                         errMsg = appT('auth.networkError');
                     } else switch (error.code) {
                         case 'auth/user-not-found': errMsg = "İstifadəçi tapılmadı."; break;
-                        case 'auth/wrong-password': errMsg = "Åifrə yanlışdır. Yenidən cəhd edin."; break; // User specifically asked for this check
+                        case 'auth/wrong-password': errMsg = "Şifrə yanlışdır. Yenidən cəhd edin."; break; // User specifically asked for this check
                         case 'auth/invalid-credential': errMsg = "Email və ya şifrə yanlışdır."; break;
-                        case 'auth/email-already-in-use': errMsg = "Bu email art?q istifadə olunub."; break;
+                        case 'auth/email-already-in-use': errMsg = "Bu email artıq istifadə olunub."; break;
                         case 'auth/invalid-email': errMsg = "Yanlış email format?d?r."; break;
-                        case 'auth/weak-password': errMsg = "Åifrə ?ox z?ifdir (?n az 6 simvol)."; break;
+                        case 'auth/weak-password': errMsg = "Şifrə çox zəifdir (ən az 6 simvol)."; break;
                         default: errMsg = error.message;
                     }
                     if (errorDiv) {
@@ -15324,8 +15635,8 @@
                     icon: '&#128682;',
                     type: 'confirm',
                     isDanger: true,
-                    confirmTxt: window.currentLang === 'en' ? 'Yes' : window.currentLang === 'tr' ? 'Evet' : window.currentLang === 'ru' ? 'Да' : 'Bəli',
-                    cancelTxt: window.currentLang === 'en' ? 'Cancel' : window.currentLang === 'tr' ? 'İptal Et' : window.currentLang === 'ru' ? 'Отмена' : 'Ləğv Et',
+                    confirmTxt: appT('dialog.yes'),
+                    cancelTxt: appT('dialog.cancel'),
                     onConfirm: () => {
                         const profileKey = getProfileStorageKey();
                         const nameLockKey = getProfileNameLockKey();
@@ -15437,6 +15748,10 @@
             auth.onAuthStateChanged((user) => {
                 updateAuthUI();
                 if (user) {
+                    if (!user.emailVerified) {
+                        auth.signOut();
+                        return;
+                    }
                     localStorage.setItem(FIRST_ACCOUNT_PROMPT_KEY, '1');
                     const firstPrompt = document.getElementById('firstAccountPrompt');
                     if (firstPrompt) {
