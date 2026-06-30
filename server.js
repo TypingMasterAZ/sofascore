@@ -1,23 +1,4 @@
-const express = require("express");
-// ─── OneSignal: qol bildirisi funksiyasi ─────────────────────────────────────
-async function sendGoalNotification() {
-    try {
-        await axios.post('https://onesignal.com/api/v1/notifications', {
-            app_id: "9f13e700-01e4-4259-9747-c9140e93d657",
-            included_segments: ["All"],
-            contents: { en: "GOOOL! RabonaMedia-da hesab deyisdi!" },
-            headings: { en: "QOL! \u26bd" }
-        }, {
-            headers: {
-                "Authorization": "Basic os_v2_app_t4j6oaab4rbftf2hzeka5e6wk4tmvph2ctmulunlpfzz443esiz3nulrekzb7qfawwpxacelfwzwhp6bbfwcyzzwkhrioqu75qipotq",
-                "Content-Type": "application/json"
-            }
-        });
-        console.log("[OneSignal] sendGoalNotification: Bildirish gonderildi!");
-    } catch (error) {
-        console.error("[OneSignal] sendGoalNotification xetasi:", error.response ? JSON.stringify(error.response.data) : error.message);
-    }
-}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Version: 2.0.0 - Keep-Alive Fix + Render Sleep Prevention
 console.log("-----------------------------------------");
@@ -4420,57 +4401,7 @@ function rememberScorePush(matchId, scoreMarker, snapshot) {
 }
 
 // ─── ONESIGNAL PUSH ───────────────────────────────────────────────────────────
-const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID || "9f13e700-01e4-4259-9747-c9140e93d657";
-const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY || "os_v2_app_t4j6oaab4rbftf2hzeka5e6wk4tmvph2ctmulunlpfzz443esiz3nulrekzb7qfawwpxacelfwzwhp6bbfwcyzzwkhrioqu75qipotq";
 
-async function sendOneSignalGoalNotification(payload) {
-    if (!ONESIGNAL_APP_ID || !ONESIGNAL_API_KEY) return null;
-    try {
-        const body = {
-            app_id: ONESIGNAL_APP_ID,
-            included_segments: ["All"],
-            headings: { en: payload.title || "Rabona Media", az: payload.title || "Rabona Media" },
-            contents: { en: payload.body || "Hesab dəyişdi!", az: payload.body || "Hesab dəyişdi!" },
-            data: {
-                matchId: payload.matchId || "",
-                leagueId: payload.leagueId || "",
-                type: payload.type || "goal_score",
-                score: payload.score || "",
-                url: payload.url || "/"
-            },
-            url: payload.url || "/",
-            web_url: payload.url || "/",
-            app_url: payload.url || "/",
-            priority: 10,
-            ttl: Number(payload.ttl || 120),
-            web_push_topic: payload.tag || `goal-${payload.matchId}-${payload.score}`
-        };
-
-        const response = await axios.post(
-            "https://onesignal.com/api/v1/notifications",
-            body,
-            {
-                headers: {
-                    "Content-Type": "application/json; charset=utf-8",
-                    "Authorization": `Basic ${ONESIGNAL_API_KEY}`
-                },
-                timeout: 8000
-            }
-        );
-
-        const result = response.data;
-        if (result?.errors?.length) {
-            console.warn(`[OneSignal] Xəbərdarlıq: ${JSON.stringify(result.errors).substring(0, 120)}`);
-        } else {
-            console.log(`[OneSignal] ✅ Bildiriş göndərildi. recipients=${result?.recipients ?? "?"}  id=${result?.id ?? "?"}`);
-        }
-        return result;
-    } catch (err) {
-        const detail = err?.response?.data ? JSON.stringify(err.response.data).substring(0, 200) : err.message;
-        console.error(`[OneSignal] ❌ Göndərmə xətası: ${detail}`);
-        return null;
-    }
-}
 // ──────────────────────────────────────────────────────────────────────────────
 
 function addServerNotification({ type, title, body, matchId, leagueId }) {
