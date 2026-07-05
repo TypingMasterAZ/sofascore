@@ -5,6 +5,7 @@ console.log("-----------------------------------------");
 console.log(`[STARTUP] Server booting at ${new Date().toISOString()}`);
 console.log("-----------------------------------------");
 require('dotenv').config();
+const express = require("express");
 const path = require("path");
 const axios = require("axios");
 const cors = require("cors");
@@ -473,40 +474,10 @@ const transporter = nodemailer.createTransport({
     greetingTimeout: 8000,
     socketTimeout: 10000,
     auth: {
-        user: process.env.EMAIL_USER || 'rabonamedialive@gmail.com', // Sizin email
-        pass: process.env.EMAIL_PASS || 'clku ygjx olqe udpo'    // Sizin "App Password" Ã…Å¸ifrÃ‰â„¢niz
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
     }
 });
-
-app.use(cors({
-    origin: '*', // HÃ‰â„¢lÃ‰â„¢lik hÃ‰â„¢r yerÃ‰â„¢ icazÃ‰â„¢ veririk, Render linki bÃ‰â„¢lli olandan sonra bunu GitHub linkinlÃ‰â„¢ Ã‰â„¢vÃ‰â„¢z edÃ‰â„¢ bilÃ‰â„¢rik
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
-app.use(express.json({ limit: "15mb" }));
-app.use((req, res, next) => {
-    const requestPath = req.path || "";
-    if (
-        requestPath === "/" ||
-        requestPath.endsWith(".html") ||
-        requestPath === "/sw.js" ||
-        requestPath === "/firebase-messaging-sw.js"
-    ) {
-        res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-        res.set("Pragma", "no-cache");
-        res.set("Expires", "0");
-        res.set("Surrogate-Control", "no-store");
-    }
-    next();
-});
-
-function sendNoStoreHtml(res, fileName) {
-    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-    res.set("Pragma", "no-cache");
-    res.set("Expires", "0");
-    res.set("Surrogate-Control", "no-store");
-    res.sendFile(path.join(__dirname, fileName));
-}
 
 app.get(["/", "/index.html"], (req, res, next) => {
     if (String(process.env.LOCAL_SAFE_MODE || "false").toLowerCase() === "true") {
@@ -539,7 +510,7 @@ app.use(express.static(path.join(__dirname), {
 }));
 app.get("/favicon.ico", (req, res) => {
     res.set("Cache-Control", "public, max-age=86400");
-    res.type("image/png").sendFile(path.join(__dirname, "ayble.png"));
+    res.type("image/png").sendFile(path.join(__dirname, "icons", "icon-192.png"));
 });
 let detectedHostUrl = null;
 app.use((req, res, next) => {
@@ -6901,125 +6872,130 @@ app.post("/api/auth/send-otp", async (req, res) => {
         return res.status(429).json({ success: false, message: "Çox sayda sorğu göndərdiniz. 1 dəqiqə gözləyin." });
     }
     const { email } = req.body;
-    if (!email) return res.status(400).json({ success: false, message: "Email lazÃ„Â±mdÃ„Â±r." });
-    console.log(`[AUTH] Sending OTP to: ${email}`);
+    if (!email) return res.status(400).json({ success: false, message: "Email lazımdır." });
+    console.log(`[AUTH-DEBUG] Starting OTP process for: ${email}`);
 
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
-    const expiry = Date.now() + 3 * 60 * 1000; // 3 dÃ‰â„¢qiqÃ‰â„¢ valid
+    const expiry = Date.now() + 3 * 60 * 1000;
 
     try {
-        let user = await getUserByEmail(email) || { email: email, resendCount: 0 };
-
-        // GÃƒÂ¼ndÃ‰â„¢lik Limit YoxlanÃ„Â±Ã…Å¸Ã„Â± (5 dÃ‰â„¢fÃ‰â„¢)
-        const today = new Date().toISOString().split('T')[0];
+        if (!firebaseInitialized) {
+            console.log(`[AUTH-DEBUG] firebaseInitialized is FALSE`);
+            return res.status(503).json({ success: false, message: "Firebase not available" });
+        }
         
-        if (user.lastResendDate === today) {
-            if (user.resendCount >= 5) {
-                return res.status(429).json({ success: false, message: "GÃƒÂ¼ndÃ‰â„¢lik limitiniz (5 dÃ‰â„¢fÃ‰â„¢) dolub. Sabah yenidÃ‰â„¢n cÃ‰â„¢hd edin." });
-            }
-            user.resendCount++;
-        } else {
-            user.lastResendDate = today;
-            user.resendCount = 1;
+        console.log(`[AUTH-DEBUG] Fetching Firebase User...`);
+        let firebaseUser;
+        try {
+            firebaseUser = await admin.auth().getUserByEmail(email);
+            console.log(`[AUTH-DEBUG] User fetched: ${firebaseUser.uid}`);
+        } catch(e) {
+            console.log(`[AUTH-DEBUG] User fetch failed:`, e.message);
+            return res.status(404).json({ success: false, message: "İstifadəçi tapılmadı." });
         }
 
-        user.otp = otp;
-        user.otpExpiry = expiry;
-        await saveUser(user);
+        const today = new Date().toISOString().split('T')[0];
+        const currentClaims = firebaseUser.customClaims || {};
+        
+        let newResendCount = 1;
+        if (currentClaims.lastResendDate === today) {
+            if (currentClaims.resendCount >= 5) {
+                console.log(`[AUTH-DEBUG] Rate limit exceeded for user`);
+                return res.status(429).json({ success: false, message: "Gündəlik limitiniz (5 dəfə) dolub. Sabah yenidən cəhd edin." });
+            }
+            newResendCount = (currentClaims.resendCount || 0) + 1;
+        }
 
-        const mailOptions = {
-            from: '"Rabona Media" <typingmaster.az@gmail.com>',
-            to: email,
-            subject: 'Ã…Å¾ifrÃ‰â„¢ SÃ„Â±fÃ„Â±rlama Kodunuz - Rabona Media',
-            html: `
-                <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-                    <h2 style="color: #3b82f6;">Rabona Media LIVE</h2>
-                    <p>Salam,</p>
-                    <p>Ã…Å¾ifrÃ‰â„¢nizi sÃ„Â±fÃ„Â±rlamaq ÃƒÂ¼ÃƒÂ§ÃƒÂ¼n tÃ‰â„¢lÃ‰â„¢b gÃƒÂ¶ndÃ‰â„¢rdiniz. Sizin birdÃ‰â„¢fÃ‰â„¢lik tÃ‰â„¢sdiq kodunuz (OTP):</p>
-                    <div style="font-size: 32px; font-weight: bold; color: #ef4444; padding: 15px 30px; background: #f1f5f9; border-radius: 8px; display: inline-block; margin: 10px 0; letter-spacing: 5px;">
-                        ${otp}
-                    </div>
-                    <p>Bu kod <b>3 dÃ‰â„¢qiqÃ‰â„¢</b> Ã‰â„¢rzindÃ‰â„¢ etibarlÃ„Â±dÃ„Â±r.</p>
-                    <p>Ã† gÃ‰â„¢r bunu siz etmÃ‰â„¢misinizsÃ‰â„¢, zÃ‰â„¢hmÃ‰â„¢t olmasa bu emaili nÃ‰â„¢zÃ‰â„¢rÃ‰â„¢ almayÃ„Â±n.</p>
-                    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-                    <p style="font-size: 12px; color: #94a3b8;">Bu avtomatik gÃƒÂ¶ndÃ‰â„¢rilÃ‰â„¢n bir mesajdÃ„Â±r, cavab yazmayÃ„Â±n.</p>
-                </div>
-            `
-        };
+        console.log(`[AUTH-DEBUG] Setting Custom Claims...`);
+        await admin.auth().setCustomUserClaims(firebaseUser.uid, {
+            ...currentClaims,
+            lastResendDate: today,
+            resendCount: newResendCount,
+            pendingOtp: otp,
+            otpExpiry: expiry
+        });
+        console.log(`[AUTH-DEBUG] Custom Claims set successfully`);
 
+        console.log(`[AUTH-DEBUG] Sending email...`);
         await transporter.sendMail(buildPasswordResetOtpEmail(email, otp));
-        res.json({ success: true, message: "OTP kod email Ã¼nvanÄ±nÄ±za gÃ¶ndÉ™rildi." });
+        console.log(`[AUTH-DEBUG] Email sent successfully`);
+
+        res.json({ success: true, message: "OTP kod email ünvanınıza göndərildi." });
 
     } catch (error) {
-        console.error("OTP Error:", error);
-        res.status(500).json({ success: false, message: "Email gÃ¶ndÉ™rilÉ™rkÉ™n xÉ™ta baÅŸ verdi." });
+        console.error("[AUTH-DEBUG] OTP Error:", error);
+        res.status(500).json({ success: false, message: "Email göndərilərkən xəta baş verdi." });
     }
 });
-
-// Yeni API: OTP Kodu Yoxla (SadÃ‰â„¢cÃ‰â„¢ DoÃ„Å¸rulama)
+// Yeni API: OTP Kodu Yoxla (Sadəcə Doğrulama)
 app.post("/api/auth/check-otp", async (req, res) => {
     const { email, otp } = req.body;
     try {
-        const userData = await getUserByEmail(email);
-        const user = (userData && userData.otp === otp) ? userData : null;
+        const firebaseUser = await admin.auth().getUserByEmail(email);
+        const claims = firebaseUser.customClaims || {};
+        
         console.log(`[AUTH] Checking OTP for ${email}: ${otp ? 'Provided' : 'Missing'}`);
         
-        if (!user) {
+        if (claims.pendingOtp !== otp) {
             console.log(`[AUTH] OTP mismatch for ${email}`);
-            return res.status(400).json({ success: false, message: "Kod yanlÃ„Â±Ã…Å¸dÃ„Â±r." });
+            return res.status(400).json({ success: false, message: "Kod yanlışdır." });
         }
-        if (Date.now() > user.otpExpiry) {
+        if (Date.now() > (claims.otpExpiry || 0)) {
             console.log(`[AUTH] OTP expired for ${email}`);
-            return res.status(400).json({ success: false, message: "Kodun vaxtÃ„Â± bitib." });
+            return res.status(400).json({ success: false, message: "Kodun vaxtı bitib." });
         }
 
-        res.json({ success: true, message: "Kod tÃ‰â„¢sdiqlÃ‰â„¢ndi. Yeni Ã…Å¸ifrÃ‰â„¢ni daxil edin." });
+        res.json({ success: true, message: "Kod təsdiqləndi. Yeni şifrəni daxil edin." });
     } catch (e) {
-        res.status(500).json({ success: false });
+        console.error("Check OTP Error:", e.message);
+        res.status(500).json({ success: false, message: "Server xətası." });
     }
 });
 
-// Yeni API: Ã…Å¾ifrÃ‰â„¢ni Final Olaraq DÃ‰â„¢yiÃ…Å¸
+// Yeni API: Şifrəni Final Olaraq Dəyiş
 app.post("/api/auth/verify-otp", async (req, res) => {
     const { email, otp, newPassword } = req.body;
     
     try {
-        const user = await getUserByEmail(email);
+        const firebaseUser = await admin.auth().getUserByEmail(email);
+        const claims = firebaseUser.customClaims || {};
         
-        if (!user || user.otp !== otp) {
-            return res.status(400).json({ success: false, message: "Kod yanlÃ„Â±Ã…Å¸dÃ„Â±r." });
+        if (claims.pendingOtp !== otp) {
+            return res.status(400).json({ success: false, message: "Kod yanlışdır." });
         }
         
-        if (Date.now() > user.otpExpiry) {
-            return res.status(400).json({ success: false, message: "Kodun vaxtÃ„Â± bitib." });
+        if (Date.now() > (claims.otpExpiry || 0)) {
+            return res.status(400).json({ success: false, message: "Kodun vaxtı bitib." });
         }
 
-        // ===== FIREBASE Ã…Å¾Ã„Â°FRÃ†  DEYÃ„Â°Ã…Å¾Ã„Â°KLÃ„Â°YÃ„Â° ======
         if (firebaseInitialized) {
             try {
-                const firebaseUser = await admin.auth().getUserByEmail(email);
                 await admin.auth().updateUser(firebaseUser.uid, {
-                    password: newPassword
+                    password: newPassword,
+                    emailVerified: true
                 });
                 console.log(`[AUTH] Firebase password successfully updated for UID: ${firebaseUser.uid}`);
+                
+                // Clear the OTP claims
+                const { pendingOtp, otpExpiry, ...remainingClaims } = claims;
+                await admin.auth().setCustomUserClaims(firebaseUser.uid, remainingClaims);
+                
             } catch (fbError) {
-                console.error("[AUTH] Firebase update password error:", fbError);
-                return res.status(500).json({ success: false, message: "Firebase hesabÃ„Â±nÃ„Â±zla Ã‰â„¢laqÃ‰â„¢ yaradÃ„Â±la bilmÃ‰â„¢di. Ã…Å¾ifrÃ‰â„¢ yenilÃ‰â„¢nmÃ‰â„¢di." });
+                console.error("[AUTH] Firebase update password error:", fbError.message);
+                let msg = fbError.message;
+                if (msg.includes("6 characters")) msg = "Şifrə ən azı 6 simvol olmalıdır.";
+                return res.status(400).json({ success: false, message: msg });
             }
         } else {
-            console.warn("[AUTH] Firebase not initialized, skipping Firebase Auth password update.");
+            console.error("[AUTH] Firebase is not initialized. Cannot update Firebase Auth password.");
+            return res.status(500).json({ success: false, message: "Server konfiqurasiyası xətası (Firebase qoşulmayıb)." });
         }
 
-        // OTP-ni tÃ‰â„¢mizlÃ‰â„¢ vÃ‰â„¢ Ã…Å¸ifrÃ‰â„¢ni hash-lÃ‰â„¢yÃ‰â„¢rÃ‰â„¢k saxla
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword, salt);
-        delete user.otp;
-        delete user.otpExpiry;
-        await saveUser(user);
-        res.json({ success: true, message: "Ã…Å¾ifrÃ‰â„¢ uÃ„Å¸urla dÃ‰â„¢yiÃ…Å¸dirildi." });
+        res.json({ success: true, message: "Şifrə uğurla dəyişdirildi." });
 
     } catch (e) {
-        res.status(500).json({ success: false });
+        console.error("Verify OTP Error:", e.message);
+        res.status(500).json({ success: false, message: "Server xətası." });
     }
 });
 
@@ -7190,7 +7166,7 @@ async function sendSupportEmail(item) {
         ? contact
         : (item.user?.email || undefined);
     return await transporter.sendMail({
-        from: `"Rabona Media DÉ™stÉ™k" <${process.env.EMAIL_USER || 'typingmaster.az@gmail.com'}>`,
+        from: `"Rabona Media DÉ™stÉ™k" <${process.env.EMAIL_USER || '${process.env.EMAIL_USER}'}>`,
         to: SUPPORT_NOTIFY_EMAIL,
         replyTo,
         subject: `Rabona Media dÉ™stÉ™k: ${item.title}`,

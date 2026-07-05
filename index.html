@@ -11,10 +11,19 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <title>Rabona Media LIVE</title>
-    <link rel="icon" type="image/png" href="ayble.png">
-    <link rel="apple-touch-icon" href="/icons/icon-512.png">
-    <link rel="manifest" href="manifest.json?v=3">
+    <title>Rabona Media LIVE - Canlı oyunlar, statistikalar</title>
+    <meta name="description" content="Canlı oyunlar, statistikalar">
+    <meta property="og:site_name" content="Rabona Media">
+    <meta property="og:title" content="Rabona Media LIVE - Canlı oyunlar, statistikalar">
+    <meta property="og:description" content="Canlı oyunlar, statistikalar">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Rabona Media LIVE - Canlı oyunlar, statistikalar">
+    <meta name="twitter:description" content="Canlı oyunlar, statistikalar">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png?v=4">
+    <link rel="shortcut icon" type="image/png" href="/icons/icon-192.png?v=4">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png?v=4">
+    <link rel="manifest" href="manifest.json?v=4">
     <link rel="preconnect" href="https://file.mackolikfeeds.com" crossorigin>
     <link rel="dns-prefetch" href="//file.mackolikfeeds.com">
     <link rel="preconnect" href="https://img.sofascore.com" crossorigin>
@@ -80,9 +89,14 @@
                         console.warn('[Firebase] Init warning:', e.message);
                     }
                 }
-                return typeof firebase !== 'undefined' ? firebase : null;
+                
+                if (typeof firebase === 'undefined' || typeof firebase.auth !== 'function') {
+                    throw new Error("Firebase or Firebase Auth is not defined after script load");
+                }
+                return firebase;
             })().catch(err => {
                 console.warn('[Firebase] SDK deferred load failed:', err.message);
+                window.__firebaseLoadPromise = null;
                 return null;
             });
             return window.__firebaseLoadPromise;
@@ -390,13 +404,11 @@
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 19px;
-            font-weight: 900;
-            letter-spacing: 1px;
-            color: #fff;
-            text-transform: uppercase;
-            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             z-index: 1;
+            white-space: nowrap;
         }
 
         /* Scrollable Date Tabs */
@@ -5485,8 +5497,8 @@
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <div style="width:56px; height:56px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.04); box-shadow:0 10px 24px rgba(0,0,0,0.18); overflow:hidden; flex-shrink:0;">
-                <img src="ayble.png" alt="Rabona Media loqosu" style="width:100%; height:100%; object-fit:cover; display:block;">
+            <div style="width:56px; height:56px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:#000; box-shadow:0 10px 24px rgba(0,0,0,0.35); overflow:hidden; flex-shrink:0;">
+                <img src="rabona-logo.jpg" alt="Rabona Media loqosu" style="width:100%; height:100%; object-fit:contain; display:block;">
             </div>
             <div>
                 <div style="font-weight:900; font-size:18px;">Rabona Media</div>
@@ -5507,7 +5519,7 @@
                 <div class="header-left">
                     <span class="back-btn" id="backBtn" onclick="goBack()" role="button" aria-label="Geri" title="Geri">&lsaquo;</span>
                     <span class="menu-icon" id="menuBtn" onclick="toggleSidebar()" role="button" aria-label="Menyu" title="Menyu">&#9776;</span>
-                    <div class="logo" id="logoTitle">RABONA MEDIA <span id="serverStatus" class="status-dot"></span></div>
+                    <div class="logo" id="logoTitle"><img src="rabona-logo.jpg" alt="Rabona Media" style="height:34px; width:34px; object-fit:contain; border-radius:8px; background:#000; vertical-align:middle;"><span id="serverStatus" class="status-dot" style="margin-left:4px;"></span></div>
                 </div>
 
                 <div class="header-right">
@@ -5691,6 +5703,11 @@
                     </div>
 
                     <div id="authError" class="auth-error"></div>
+
+                    <!-- Anti-phishing disclaimer -->
+                    <div style="text-align:center; margin-top:10px; margin-bottom:15px; font-size:11px; color:var(--text-muted); line-height:1.4;">
+                        <span style="font-weight:bold; color:var(--primary);">Diqqət:</span> Bu sayt (Rabona Media) müstəqil layihədir və rəsmi qurumlarla (SofaScore, Mackolik və s.) heç bir əlaqəsi yoxdur. Şəxsi məlumatlarınızı (məs. bank şifrəsi) bura daxil etməyin.
+                    </div>
 
                     <button class="save-btn" id="authSubmitBtn" type="submit" style="margin-top:5px;" data-i18n="auth.loginButton">Daxil Ol</button>
                     </form>
@@ -6048,10 +6065,10 @@
                     return () => {};
                 },
                 signInWithEmailAndPassword() {
-                    return Promise.reject(new Error('Firebase auth SDK yüklənməyib. İnternet bağlantısını yoxlayın.'));
+                    return Promise.reject(new Error('Firebase auth SDK yüklənməyib. İnternet bağlantısını yoxlayın və ya reklam bloklayıcısını (AdBlock) söndürüb yenidən cəhd edin.'));
                 },
                 createUserWithEmailAndPassword() {
-                    return Promise.reject(new Error('Firebase auth SDK yüklənməyib. İnternet bağlantısını yoxlayın.'));
+                    return Promise.reject(new Error('Firebase auth SDK yüklənməyib. İnternet bağlantısını yoxlayın və ya reklam bloklayıcısını (AdBlock) söndürüb yenidən cəhd edin.'));
                 },
                 signOut() {
                     return Promise.resolve();
@@ -6136,7 +6153,7 @@
                     return window.loadFirebaseSdk()
                         .then(() => {
                             const loadedAuth = getRealFirebaseAuth();
-                            if (!loadedAuth) throw new Error('Firebase auth SDK yuklenmedi. Internet baglantisini yoxlayin.');
+                            if (!loadedAuth) throw new Error('Firebase auth SDK yüklənmədi. İnternet bağlantısını yoxlayın və ya reklam bloklayıcısını söndürüb yenidən cəhd edin.');
                             return configureFirebaseAuthPersistence(loadedAuth).then(() => loadedAuth);
                         })
                         .then((loadedAuth) => {
@@ -6149,7 +6166,7 @@
                     return window.loadFirebaseSdk()
                         .then(() => {
                             const loadedAuth = getRealFirebaseAuth();
-                            if (!loadedAuth) throw new Error('Firebase auth SDK yuklenmedi. Internet baglantisini yoxlayin.');
+                            if (!loadedAuth) throw new Error('Firebase auth SDK yüklənmədi. İnternet bağlantısını yoxlayın və ya reklam bloklayıcısını söndürüb yenidən cəhd edin.');
                             return configureFirebaseAuthPersistence(loadedAuth).then(() => loadedAuth);
                         })
                         .then((loadedAuth) => {
@@ -15064,14 +15081,9 @@
 
                 if (tab === 'login') {
                     tabL.classList.add('active');
-                    document.getElementById('authTitle').setAttribute('data-i18n', 'auth.loginTitle');
-                    document.getElementById('authTitle').innerText = appT('auth.loginTitle', 'Xoş Gəlmisiniz');
-                    document.getElementById('authSubtitle').setAttribute('data-i18n', 'auth.loginSubtitle');
-                    document.getElementById('authSubtitle').innerText = appT('auth.loginSubtitle', 'Davam etmək üçün daxil olun');
-                    if (btn) {
-                        btn.setAttribute('data-i18n', 'auth.loginButton');
-                        btn.innerText = appT('auth.loginButton', 'Daxil Ol');
-                    }
+                    document.getElementById('authTitle').innerText = 'XoÅŸ GÉ™lmisiniz';
+                    document.getElementById('authSubtitle').innerText = 'Davam etmÉ™k Ã¼Ã§Ã¼n daxil olun';
+                    if (btn) btn.innerText = 'Daxil Ol';
                     if (emailField) emailField.style.display = 'block'; // Firebase login requires email
                     if (forgotLink) forgotLink.style.display = 'block';
                     // Hide username field for login since Firebase doesn't use it for auth
@@ -15079,14 +15091,9 @@
                     document.getElementById('alreadyHaveAccount').style.display = 'none';
                 } else {
                     tabR.classList.add('active');
-                    document.getElementById('authTitle').setAttribute('data-i18n', 'auth.registerTitle');
-                    document.getElementById('authTitle').innerText = appT('auth.registerTitle', 'Yeni Hesab');
-                    document.getElementById('authSubtitle').setAttribute('data-i18n', 'auth.registerSubtitle');
-                    document.getElementById('authSubtitle').innerText = appT('auth.registerSubtitle', 'ProScore ailəsinə qoşulun');
-                    if (btn) {
-                        btn.setAttribute('data-i18n', 'auth.registerButton');
-                        btn.innerText = appT('auth.registerButton', 'Qeydiyyatdan Keç');
-                    }
+                    document.getElementById('authTitle').innerText = 'Yeni Hesab';
+                    document.getElementById('authSubtitle').innerText = 'ProScore ailÉ™sinÉ™ qoÅŸulun';
+                    if (btn) btn.innerText = 'Qeydiyyatdan KeÃ§';
                     if (emailField) emailField.style.display = 'block';
                     if (forgotLink) forgotLink.style.display = 'none';
                     // Show username field for registration to use as displayName
@@ -15125,229 +15132,227 @@
                 }
             }
 
-            
-const APP_I18N_VERIFY_MSG = {
-    az: {
-        'auth.verifyEmailSentLong': 'Email doğrulama linki göndərildi. Link əsas səhifədə görünməsə, spam qovluğunu da yoxlayın.',
-        'auth.verifyEmailSent': 'Doğrulama linki göndərildi.'
-    },
-    tr: {
-        'auth.verifyEmailSentLong': 'E-posta doğrulama bağlantısı gönderildi. Bağlantı ana sayfada görünmezse, spam klasörünü de kontrol edin.',
-        'auth.verifyEmailSent': 'Doğrulama bağlantısı gönderildi.'
-    },
-    en: {
-        'auth.verifyEmailSentLong': 'Email verification link sent. If it does not appear in your inbox, please check your spam folder.',
-        'auth.verifyEmailSent': 'Verification link sent.'
-    },
-    ru: {
-        'auth.verifyEmailSentLong': 'Ссылка для подтверждения отправлена. Если ее нет во входящих, проверьте папку спам.',
-        'auth.verifyEmailSent': 'Ссылка отправлена.'
-    }
-};
-Object.keys(APP_I18N_VERIFY_MSG).forEach(lang => {
-    APP_I18N[lang] = { ...(APP_I18N[lang] || {}), ...APP_I18N_VERIFY_MSG[lang] };
-});
-
-            
-const APP_I18N_EMAIL_NOT_VERIFIED = {
-    az: {
-        'auth.emailNotVerified': 'Email ünvanınız təsdiqlənməyib. Zəhmət olmasa inbox (və ya spam) qovluğunuzu yoxlayıb hesabı aktivləşdirin.'
-    },
-    tr: {
-        'auth.emailNotVerified': 'E-posta adresiniz onaylanmadı. Lütfen gelen kutunuzu (veya spam) kontrol edip hesabı etkinleştirin.'
-    },
-    en: {
-        'auth.emailNotVerified': 'Your email is not verified. Please check your inbox (or spam) to activate your account.'
-    },
-    ru: {
-        'auth.emailNotVerified': 'Ваш адрес электронной почты не подтвержден. Пожалуйста, проверьте почту (или спам), чтобы активировать аккаунт.'
-    }
-};
-Object.keys(APP_I18N_EMAIL_NOT_VERIFIED).forEach(lang => {
-    APP_I18N[lang] = { ...(APP_I18N[lang] || {}), ...APP_I18N_EMAIL_NOT_VERIFIED[lang] };
-});
-
             window.handleAuthSubmit = async function() {
-                if (window.DEBUG_AUTH_LOGS) console.log("handleAuthSubmit (Firebase) called");
-                const emailInput = document.getElementById('authEmail');
-                const passwordInput = document.getElementById('authPassword');
-                const usernameInput = document.getElementById('authUsername');
-                
-                if (!emailInput || !passwordInput) {
-                    console.error("Auth inputs not found!");
-                    return;
-                }
+    if (window.DEBUG_AUTH_LOGS) console.log("handleAuthSubmit (Firebase) called");
+    const emailInput = document.getElementById('authEmail');
+    const passwordInput = document.getElementById('authPassword');
+    const usernameInput = document.getElementById('authUsername');
+    
+    if (!emailInput || !passwordInput) {
+        console.error("Auth inputs not found!");
+        return;
+    }
 
-                const email = emailInput.value.trim();
-                const password = passwordInput.value.trim();
-                const username = usernameInput ? usernameInput.value.trim() : "";
-                const tabLogin = document.getElementById('tabLogin');
-                const isLogin = tabLogin ? tabLogin.classList.contains('active') : true;
-                const errorDiv = document.getElementById('authError');
-                if (errorDiv) errorDiv.removeAttribute('data-i18n');
-                const btn = document.getElementById('authSubmitBtn');
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+    const username = usernameInput ? usernameInput.value.trim() : "";
+    const tabLogin = document.getElementById('tabLogin');
+    const isLogin = tabLogin ? tabLogin.classList.contains('active') : true;
+    const errorDiv = document.getElementById('authError');
+    if (errorDiv) errorDiv.removeAttribute('data-i18n');
+    const btn = document.getElementById('authSubmitBtn');
 
-                if (Date.now() < firebaseAuthBlockedUntil) {
-                    const blockedMsg = appT('auth.networkError');
-                    if (errorDiv) {
-                        errorDiv.innerText = blockedMsg;
-                        errorDiv.style.display = 'block';
-                    }
-                    showToast(blockedMsg, 'error');
-                    return;
-                }
+    if (Date.now() < firebaseAuthBlockedUntil) {
+        const blockedMsg = appT('auth.networkError');
+        if (errorDiv) {
+            errorDiv.innerText = blockedMsg;
+            errorDiv.style.display = 'block';
+        }
+        showToast(blockedMsg, 'error');
+        return;
+    }
 
-                if (!email || !password || (!isLogin && !username)) {
-                    if (errorDiv) errorDiv.innerText = appT('auth.fillAll');
-                    return;
-                    if (errorDiv) errorDiv.innerText = 'Zəhmət olmasa bütün xanaları doldurun.';
-                    return;
-                }
+    if (!email || !password || (!isLogin && !username)) {
+        if (errorDiv) {
+            errorDiv.innerText = appT('auth.fillAll');
+            errorDiv.style.display = 'block';
+        }
+        return;
+    }
 
-                if (errorDiv) errorDiv.innerText = '';
-                if (btn) {
-                    btn.innerText = appT('auth.wait');
-                    btn.disabled = true;
-                    btn.style.opacity = '0.7';
-                    await new Promise(resolve => setTimeout(resolve, 0));
-                }
-                if (btn) {
-                    btn.innerText = appT('auth.wait');
-                    btn.disabled = true;
-                    btn.style.opacity = '0.7';
-                }
+    if (password.length < 6) {
+        if (errorDiv) {
+            errorDiv.innerText = 'Şifrə ən azı 6 simvol olmalıdır.';
+            errorDiv.style.display = 'block';
+        }
+        return;
+    }
 
-                try {
-                    if (isLogin) {
-                        const userCredential = await auth.signInWithEmailAndPassword(email, password);
-                        
-                        // Check email verification
-                        if (!userCredential.user.emailVerified) {
-                            await auth.signOut();
-                            throw new Error('email-not-verified');
-                        }
-                        
-                        // Fetch profile from backend
-                        let welcomeName = getDefaultProfileName(userCredential.user);
-                        try {
-                            const serverProfile = await syncProfileFromServer(userCredential.user, { preferServer: true });
-                            const firebaseName = cleanProfileText(userCredential.user?.displayName, '');
-                            if (serverProfile?.name) {
-                                welcomeName = serverProfile.name;
-                                if (firebaseName !== serverProfile.name && userCredential.user?.updateProfile) {
-                                    await userCredential.user.updateProfile({ displayName: serverProfile.name }).catch(e => {
-                                        console.warn("Firebase displayName repair failed:", e.message);
-                                    });
-                                }
-                            }
-                        } catch(e) { console.warn("Could not sync profile from server."); }
+    if (errorDiv) {
+        errorDiv.innerText = '';
+        errorDiv.style.display = 'none';
+    }
 
-                        prepareAuthenticatedFavorites(userCredential.user, { newAccount: false });
-                        showToast(appT('toast.welcomeUser').replace('{name}', welcomeName));
-                        localStorage.setItem(FIRST_ACCOUNT_PROMPT_KEY, '1');
-                        switchMainView('profile');
-                        setTimeout(() => maybeShowFavoriteOnboarding(), 500);
-                    } else {
-                        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                        await userCredential.user.updateProfile({ displayName: username });
-                        prepareAuthenticatedFavorites(userCredential.user, { newAccount: true });
-                        
-                        // Initial profile sync
-                        await persistProfileToServer({
-                            name: username,
-                            status: DEFAULT_PROFILE_STATUS
-                        }, userCredential.user);
+    if (btn) {
+        btn.innerText = appT('auth.wait');
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+        await new Promise(resolve => setTimeout(resolve, 0));
+    }
 
-                        // Local sync
-                        writeStoredProfile({
-                            name: username,
-                            status: DEFAULT_PROFILE_STATUS
-                        }, userCredential.user);
-
-                        // Send verification email and sign out
-                        auth.languageCode = window.currentLang || 'az';
-                        await userCredential.user.sendEmailVerification();
-                        await auth.signOut();
-
-                        showToast(appT('auth.verifyEmailSent'), 'success');
-                        
-                        // Switch to login tab and show message
-                        switchAuthTab('login');
-                        if (errorDiv) {
-                            errorDiv.setAttribute('data-i18n', 'auth.verifyEmailSentLong');
-                            errorDiv.innerText = appT('auth.verifyEmailSentLong');
-                            errorDiv.style.display = 'block';
-                            errorDiv.style.color = 'var(--live)'; // Green color for success message
-                        }
-                    }
-                    
-                    // Clear inputs
-                    emailInput.value = '';
-                    passwordInput.value = '';
-                    if(usernameInput) usernameInput.value = '';
-
-                } catch (error) {
-                    const errorCode = error?.code || '';
-                    const errorText = String(error?.message || '');
-                    
-                    if (errorText === 'email-not-verified') {
-                        if (errorDiv) {
-                            errorDiv.innerText = appT('auth.emailNotVerified');
-                            errorDiv.style.display = 'block';
-                        }
-                        if (btn) {
-                            btn.innerText = appT(isLogin ? 'auth.loginButton' : 'auth.registerButton');
-                            btn.disabled = false;
-                            btn.style.opacity = '1';
-                        }
-                        return;
-                    }
-
-                    const isNetworkAuthError = errorCode === 'auth/network-request-failed' || /network|timeout|unreachable/i.test(errorText);
-                    if (isNetworkAuthError) {
-                        firebaseAuthBlockedUntil = Date.now() + 30000;
-                        console.warn("[Auth] Firebase Auth network is unavailable; retry is paused briefly.");
-                    } else {
-                        console.error("Firebase auth error:", error);
-                    }
-                    let errMsg = "Bir xəta baş verdi.";
-                    if (isNetworkAuthError) {
-                        errMsg = appT('auth.networkError');
-                    } else switch (error.code) {
-                        case 'auth/user-not-found': errMsg = "İstifadəçi tapılmadı."; break;
-                        case 'auth/wrong-password': errMsg = "Şifrə yanlışdır. Yenidən cəhd edin."; break; // User specifically asked for this check
-                        case 'auth/invalid-credential': errMsg = "Email və ya şifrə yanlışdır."; break;
-                        case 'auth/email-already-in-use': errMsg = "Bu email artıq istifadə olunub."; break;
-                        case 'auth/invalid-email': errMsg = "Yanlış email format?d?r."; break;
-                        case 'auth/weak-password': errMsg = "Şifrə çox zəifdir (ən az 6 simvol)."; break;
-                        default: errMsg = error.message;
-                    }
-                    if (errorDiv) {
-                        errorDiv.innerText = errMsg;
-                        errorDiv.style.display = 'block';
-                    }
-                    showToast(errMsg, 'error');
-                } finally {
-                    if (btn) {
-                        btn.innerText = isLogin ? appT('auth.loginButton') : appT('auth.registerButton');
-                        btn.disabled = false;
-                        btn.style.opacity = '1';
-                    }
-                }
+    try {
+        if (isLogin) {
+            const userCredential = await auth.signInWithEmailAndPassword(email, password);
+            
+            // Check email verification
+            if (!userCredential.user.emailVerified) {
+                await auth.signOut();
+                throw new Error('email-not-verified');
             }
 
-            window.togglePasswordVisibility = function(inputId, iconEl) {
-                const input = document.getElementById(inputId);
-                if (input.type === 'password') {
-                    input.type = 'text';
-                    iconEl.innerHTML = '&#128228;';
-                } else {
-                    input.type = 'password';
-                    iconEl.innerHTML = '&#128065;';
+            // Fetch profile from backend
+            let welcomeName = getDefaultProfileName(userCredential.user);
+            try {
+                const serverProfile = await syncProfileFromServer(userCredential.user, { preferServer: true });
+                const firebaseName = cleanProfileText(userCredential.user?.displayName, '');
+                if (serverProfile?.name) {
+                    welcomeName = serverProfile.name;
+                    if (firebaseName !== serverProfile.name && userCredential.user?.updateProfile) {
+                        await userCredential.user.updateProfile({ displayName: serverProfile.name }).catch(e => {
+                            console.warn("Firebase displayName repair failed:", e.message);
+                        });
+                    }
                 }
-            };
+            } catch(e) { console.warn("Could not sync profile from server."); }
 
-            /* Forgot Password Flow Functions */
+            prepareAuthenticatedFavorites(userCredential.user, { newAccount: false });
+            showToast(appT('toast.welcomeUser').replace('{name}', welcomeName));
+            localStorage.setItem(FIRST_ACCOUNT_PROMPT_KEY, '1');
+            switchMainView('profile');
+            setTimeout(() => maybeShowFavoriteOnboarding(), 500);
+        } else {
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            await userCredential.user.updateProfile({ displayName: username });
+            prepareAuthenticatedFavorites(userCredential.user, { newAccount: true });
+            
+            // Initial profile sync
+            await persistProfileToServer({
+                name: username,
+                status: DEFAULT_PROFILE_STATUS
+            }, userCredential.user);
+
+            // Local sync
+            writeStoredProfile({
+                name: username,
+                status: DEFAULT_PROFILE_STATUS
+            }, userCredential.user);
+
+            // Send verification email and sign out
+            auth.languageCode = window.currentLang || 'az';
+            await userCredential.user.sendEmailVerification();
+            await auth.signOut();
+
+            showToast(appT('auth.verifyEmailSent'), 'success');
+            
+            // Switch to login tab and show message
+            switchAuthTab('login');
+            if (errorDiv) {
+                errorDiv.setAttribute('data-i18n', 'auth.verifyEmailSentLong');
+                errorDiv.innerText = appT('auth.verifyEmailSentLong');
+                errorDiv.style.display = 'block';
+                errorDiv.style.color = 'var(--live)'; // Green color for success message
+            }
+        }
+        
+        // Clear inputs
+        emailInput.value = '';
+        passwordInput.value = '';
+        if(usernameInput) usernameInput.value = '';
+
+    } catch (error) {
+        const errorCode = error?.code || '';
+        const errorText = String(error?.message || '');
+        
+        if (errorText === 'email-not-verified') {
+            if (errorDiv) {
+                errorDiv.innerText = appT('auth.emailNotVerified');
+                errorDiv.style.display = 'block';
+            }
+            if (btn) {
+                btn.innerText = appT(isLogin ? 'auth.loginButton' : 'auth.registerButton');
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
+            return;
+        }
+
+        const isNetworkAuthError = errorCode === 'auth/network-request-failed' || /network|timeout|unreachable/i.test(errorText);
+        if (isNetworkAuthError) {
+            firebaseAuthBlockedUntil = Date.now() + 30000;
+            console.warn("[Auth] Firebase Auth network is unavailable; retry is paused briefly.");
+        } else {
+            console.error("Firebase auth error:", error);
+        }
+
+        let errMsg = "Bir xəta baş verdi.";
+        if (isNetworkAuthError) {
+            errMsg = appT('auth.networkError');
+        } else switch (error.code) {
+            case 'auth/user-not-found': errMsg = "İstifadəçi tapılmadı."; break;
+            case 'auth/wrong-password': errMsg = "Şifrə yanlışdır. Yenidən cəhd edin."; break;
+            case 'auth/invalid-credential': errMsg = "Email və ya şifrə yanlışdır."; break;
+            case 'auth/email-already-in-use': errMsg = "Bu email artıq istifadə olunub."; break;
+            case 'auth/invalid-email': errMsg = "Yanlış email formatıdır."; break;
+            case 'auth/weak-password': errMsg = "Şifrə çox zəifdir (ən az 6 simvol)."; break;
+            default: errMsg = error.message;
+        }
+        if (errorDiv) {
+            errorDiv.innerText = errMsg;
+            errorDiv.style.display = 'block';
+        }
+        showToast(errMsg, 'error');
+    } finally {
+        if (btn) {
+            btn.innerText = isLogin ? appT('auth.loginButton') : appT('auth.registerButton');
+            btn.disabled = false;
+            btn.style.opacity = '1';
+        }
+    }
+}
+
+function startOTPCountdown() {
+    clearInterval(otpInterval);
+    let seconds = 180;
+    const display = document.getElementById('otpCountdown');
+    const inputs = document.querySelectorAll('.otp-input');
+    const verifyBtn = document.getElementById('verifyBtn');
+    const resendBox = document.getElementById('resendBox');
+
+    if (resendBox) resendBox.style.display = 'none';
+    if (verifyBtn) verifyBtn.disabled = false;
+    inputs.forEach(i => { i.classList.remove('expired'); i.value = ''; });
+    if (inputs.length > 0) inputs[0].focus();
+
+    otpInterval = setInterval(() => {
+        seconds--;
+        let m = Math.floor(seconds / 60);
+        let s = seconds % 60;
+        if (display) display.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+
+        if (seconds <= 0) {
+            clearInterval(otpInterval);
+            if (display) display.innerText = "00:00";
+            showResetToast('auth.resetTimeExpired');
+            inputs.forEach(i => i.classList.add('expired'));
+            if (verifyBtn) verifyBtn.disabled = true;
+            if (resendBox) resendBox.style.display = 'block';
+        }
+    }, 1000);
+}
+
+window.togglePasswordVisibility = function(inputId, iconEl) {
+    const input = document.getElementById(inputId);
+    if (input) {
+        if (input.type === 'password') {
+            input.type = 'text';
+            iconEl.innerHTML = '&#128228;';
+        } else {
+            input.type = 'password';
+            iconEl.innerHTML = '&#128065;';
+        }
+    }
+}
+/* Forgot Password Flow Functions */
             function resetForgotPasswordFlow() {
                 clearInterval(otpInterval);
                 document.getElementById('forgotStep1').style.display = 'flex';
@@ -15440,43 +15445,12 @@ Object.keys(APP_I18N_EMAIL_NOT_VERIFIED).forEach(lang => {
                     document.querySelectorAll('.otp-input')[idx + 1].focus();
                 }
             }
-            window.handleOTPBack = function(e, idx) {
+                        window.handleOTPBack = function(e, idx) {
                 if (e.key === 'Backspace' && !e.target.value && idx > 0) {
                     document.querySelectorAll('.otp-input')[idx - 1].focus();
                 }
             }
-
-            function startOTPCountdown() {
-                clearInterval(otpInterval);
-                let seconds = 180;
-                const display = document.getElementById('otpCountdown');
-                const inputs = document.querySelectorAll('.otp-input');
-                const verifyBtn = document.getElementById('verifyBtn');
-                const resendBox = document.getElementById('resendBox');
-
-                resendBox.style.display = 'none';
-                verifyBtn.disabled = false;
-                inputs.forEach(i => { i.classList.remove('expired'); i.value = ''; });
-                inputs[0].focus();
-
-                otpInterval = setInterval(() => {
-                    seconds--;
-                    let m = Math.floor(seconds / 60);
-                    let s = seconds % 60;
-                    display.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-
-                    if (seconds <= 0) {
-                        clearInterval(otpInterval);
-                        display.innerText = "00:00";
-                        showResetToast('auth.resetTimeExpired');
-                        inputs.forEach(i => i.classList.add('expired'));
-                        verifyBtn.disabled = true;
-                        resendBox.style.display = 'block';
-                    }
-                }, 1000);
-            }
-
-            window.handleSendResetOTP = async function(isResend = false) {
+window.handleSendResetOTP = async function(isResend = false) {
                 const email = document.getElementById('resetEmail').value.trim();
                 const resetUsername = document.getElementById('resetUsernameForPasswordManager');
                 if (resetUsername) resetUsername.value = email;
@@ -15562,6 +15536,10 @@ Object.keys(APP_I18N_EMAIL_NOT_VERIFIED).forEach(lang => {
                     showResetToast('auth.fillAll');
                     return;
                 }
+                if (newPassword.length < 6) {
+                    showResetToast('Şifrə ən azı 6 simvol olmalıdır.', 'error');
+                    return;
+                }
                 if (newPassword !== confirmPassword) {
                     showResetToast('auth.passwordMismatch');
                     return;
@@ -15589,6 +15567,7 @@ Object.keys(APP_I18N_EMAIL_NOT_VERIFIED).forEach(lang => {
                     const data = await res.json();
                     if (data.success) {
                         showResetToast('auth.resetPasswordUpdated', 'success');
+                        localStorage.setItem('passwordJustReset', document.getElementById('resetEmail').value.trim());
                         clearInterval(otpInterval);
                         toggleForgotView(false);
                     } else {
@@ -16074,6 +16053,7 @@ Object.keys(APP_I18N_EMAIL_NOT_VERIFIED).forEach(lang => {
                 setTimeout(() => switchMainView('leagues'), 100);
             }
         </script>
+
 </body>
 
 </html>
