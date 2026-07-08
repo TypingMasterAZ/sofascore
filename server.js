@@ -479,6 +479,14 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+function sendNoStoreHtml(res, filename) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+    return res.sendFile(require('path').join(__dirname, filename));
+}
+
 app.get(["/", "/index.html"], (req, res, next) => {
     if (String(process.env.LOCAL_SAFE_MODE || "false").toLowerCase() === "true") {
         return sendNoStoreHtml(res, "local-safe.html");
@@ -9108,6 +9116,45 @@ async function startAlwaysOnWorkers() {
         }, SELF_PING_INTERVAL_MS);
     }
 }
+
+// --- Static Pages (AdSense Requirements) ---
+app.get("/privacy-policy", (req, res) => {
+    res.sendFile(path.join(__dirname, "privacy-policy.html"));
+});
+
+app.get("/terms", (req, res) => {
+    res.sendFile(path.join(__dirname, "terms.html"));
+});
+
+app.get("/contact", (req, res) => {
+    res.sendFile(path.join(__dirname, "contact.html"));
+});
+
+// Contact form API
+app.post("/api/contact", express.json(), async (req, res) => {
+    try {
+        const { name, email, subject, message } = req.body || {};
+        if (!name || !email || !message) {
+            return res.status(400).json({ success: false, error: "Missing required fields" });
+        }
+        // Save message to support_messages.json
+        const fs = require("fs");
+        const msgFile = path.join(__dirname, "support_messages.json");
+        let messages = [];
+        try {
+            if (fs.existsSync(msgFile)) {
+                messages = JSON.parse(fs.readFileSync(msgFile, "utf8"));
+            }
+        } catch(e) {}
+        messages.push({ name, email, subject, message, receivedAt: new Date().toISOString() });
+        fs.writeFileSync(msgFile, JSON.stringify(messages, null, 2));
+        console.log(`[Contact] New message from ${email}: ${subject}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.warn("[Contact] Form error:", err.message);
+        res.json({ success: true }); // Still return success to user
+    }
+});
 
 // --- Cuptrees (Bracket) API ---
 app.get("/api/tournament/:tourId/season/:seasonId/cuptrees", async (req, res) => {
